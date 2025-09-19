@@ -3,61 +3,55 @@ using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
 
-[UpdateAfter(typeof(SpawnerSystem))]
+[UpdateAfter(typeof(EnemiesMovementRequestProviderSystem))]
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
-public partial struct MovementTowardPlayerSystem : ISystem
+public partial struct MoveEntitiesSystem : ISystem
 {
-    private Entity _planetEntity;
-    private Entity _playerEntity;
-
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<PlanetData>();
-        state.RequireForUpdate<Player>();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        if (!SystemAPI.TryGetSingletonEntity<PlanetData>(out _planetEntity))
-            return;
-
-        if (!SystemAPI.TryGetSingletonEntity<Player>(out _playerEntity))
+        if (!SystemAPI.TryGetSingletonEntity<PlanetData>(out Entity planetEntity))
             return;
 
         float delta = SystemAPI.Time.DeltaTime;
 
-        LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(_playerEntity).ValueRO;
+        var ecbSystem = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        EntityCommandBuffer.ParallelWriter ecb = ecbSystem.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
 
-        LocalTransform planetTransform = SystemAPI.GetComponentRO<LocalTransform>(_planetEntity).ValueRO;
-        PlanetData planetData = SystemAPI.GetComponentRO<PlanetData>(_planetEntity).ValueRO;
+        LocalTransform planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
+        PlanetData planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
 
-        var moveJob = new MoveEnemiesOnPlanetJob
+        var moveJob = new MoveEntitiesOnPlanetJob
         {
-            PlayerPosition = playerTransform.Position,
             PlanetCenter = planetTransform.Position,
             PlanetRadius = planetData.Radius,
-            Delta = delta
+            Delta = delta,
+            ECB = ecb
         };
 
         state.Dependency = moveJob.ScheduleParallel(state.Dependency);
     }
 
     [BurstCompile]
-    private partial struct MoveEnemiesOnPlanetJob : IJobEntity
+    private partial struct MoveEntitiesOnPlanetJob : IJobEntity
     {
-        public float3 PlayerPosition;
         public float3 PlanetCenter;
         public float PlanetRadius;
         public float Delta;
 
-        void Execute(ref LocalTransform transform, ref Velocity velocity, in Enemy enemy)
+        public EntityCommandBuffer.ParallelWriter ECB;
+
+        void Execute([EntityIndexInQuery] int index, Entity entity, ref LocalTransform transform, ref Velocity velocity, in RequestForMovement request)
         {
             float3 position = transform.Position;
-            float3 direction = math.normalize(PlayerPosition - position);
-            //float3 direction = math.normalize(velocity.Direction);
+            float3 direction = request.Direction;
             float speed = velocity.Magnitude;
 
             // Get normal at entity position
@@ -86,6 +80,9 @@ public partial struct MovementTowardPlayerSystem : ISystem
                 Rotation = rotation,
                 Scale = transform.Scale
             };
+
+            // Remove request
+            ECB.RemoveComponent<RequestForMovement>(index, entity);
         }
     }
 }
