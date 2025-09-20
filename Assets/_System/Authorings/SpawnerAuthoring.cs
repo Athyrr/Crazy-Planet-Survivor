@@ -7,7 +7,7 @@ public class SpawnerAuthoring : MonoBehaviour
 
     public int amount = 0;
 
-    public float range = 0;
+    public float DefaultSpeed = 0;
 
     private class Baker : Baker<SpawnerAuthoring>
     {
@@ -19,7 +19,7 @@ public class SpawnerAuthoring : MonoBehaviour
             {
                 Prefab = GetEntity(authoring.prefab, TransformUsageFlags.Dynamic),
                 Amount = authoring.amount,
-                Range = authoring.range
+                DefaultSpeed = authoring.DefaultSpeed
             });
         }
     }
