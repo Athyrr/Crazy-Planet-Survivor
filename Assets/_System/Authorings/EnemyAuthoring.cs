@@ -7,7 +7,7 @@ public class EnemyAuthoring : MonoBehaviour
     {
         public override void Bake(EnemyAuthoring authoring)
         {
-            var entity = GetEntity(TransformUsageFlags.None);
+            var entity = GetEntity(TransformUsageFlags.Dynamic);
 
             AddComponent(entity, new Enemy() { });
         }

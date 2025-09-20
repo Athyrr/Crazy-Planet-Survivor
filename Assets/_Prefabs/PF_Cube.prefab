@@ -12,8 +12,6 @@ GameObject:
   - component: {fileID: 7430232737262992792}
   - component: {fileID: 2295197189331311308}
   - component: {fileID: 7740206154973149621}
-  - component: {fileID: 6741485294021044079}
-  - component: {fileID: 3545414946936841049}
   - component: {fileID: -795139794179562712}
   m_Layer: 0
   m_Name: PF_Cube
@@ -114,32 +112,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &6741485294021044079
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4960229139857780973}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 03ad80e0f7623394f96b19b6249a9d45, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RotationSpeedAuthoring
-  value: 5
---- !u!114 &3545414946936841049
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4960229139857780973}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: de43bfa48060a78478621d5698ea3ddc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MovementAuthoring
-  Speed: 30
 --- !u!114 &-795139794179562712
 MonoBehaviour:
   m_ObjectHideFlags: 0

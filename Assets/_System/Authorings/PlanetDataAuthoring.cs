@@ -26,8 +26,5 @@ public class PlanetDataAuthoring : MonoBehaviour
         var mesh = GetComponent<MeshFilter>();
         if (mesh && mesh.sharedMesh)
             _radius = 0.5f * mesh.sharedMesh.bounds.size.x * transform.lossyScale.x;
-        //_radius = 25f;
-
-        Debug.Log("Radius: " + _radius);
     }
 }
