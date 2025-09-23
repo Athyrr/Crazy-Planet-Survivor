@@ -51,11 +51,9 @@ public struct CameraSettings : IComponentData
     public UnityObjectRef<Camera> Camera;
     public float Smooth;
     public float RotationSmooth;
-    public float Distance;
-    public float Height;
 
-    public float3 WorldOffset;
-    public quaternion FixedRotation;
+    public float3 LocalOffset;
+    public quaternion LocalRotation;
 }
 
 public struct CameraWorldData : IComponentData

@@ -1,9 +1,10 @@
-using Unity.Jobs;
 using Unity.Burst;
-using Unity.Entities;
-using Unity.Transforms;
 using Unity.Collections;
+using Unity.Entities;
+using Unity.Jobs;
 using Unity.Mathematics;
+using Unity.Transforms;
+using UnityEngine.UIElements;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -108,12 +109,12 @@ public partial struct EntitiesMovementSystem : ISystem
     [BurstCompile]
     private struct MoveLinearJob : IJobParallelFor
     {
-        public float3 PlanetCenter;
-        public float PlanetRadius;
+        [ReadOnly] public float3 PlanetCenter;
+        [ReadOnly] public float PlanetRadius;
+        [ReadOnly] public float deltaTime;
 
         public NativeArray<LocalTransform> transforms;
         public NativeArray<LinearMovement> movements;
-        [ReadOnly] public float deltaTime;
 
         public void Execute(int index)
         {
@@ -129,20 +130,19 @@ public partial struct EntitiesMovementSystem : ISystem
 
 
             // Get normal at entity position
-            float3 normal = math.normalize(position - PlanetCenter);
+            float3 normal = PlanetMovementUtils.GetSurfaceNormalAtPosition(position, PlanetCenter);
 
             // Project direction on surface
-            float3 tangentDirection = direction - math.dot(direction, normal) * normal;
-            tangentDirection = math.normalize(tangentDirection);
+            float3 tangentDirection = PlanetMovementUtils.ProjectDirectionOnSurface(direction, normal);
 
             // Calculate target projected position
-            float3 targetPosition = position + tangentDirection * speed * deltaTime;
+            float3 newPosition = position + tangentDirection * (speed * deltaTime);
 
             // Snap to surface
-            float3 snappedPosition = PlanetCenter + math.normalize(targetPosition - PlanetCenter) * PlanetRadius;
+            float3 snappedPosition = PlanetMovementUtils.SnapToSurface(newPosition, PlanetCenter, PlanetRadius);
 
             // Rotation
-            quaternion rotation = quaternion.LookRotationSafe(tangentDirection, normal);
+            quaternion rotation = PlanetMovementUtils.GetRotationOnSurface(tangentDirection, normal);
 
             // Apply new direction
             movement.Direction = tangentDirection;
@@ -165,7 +165,7 @@ public partial struct EntitiesMovementSystem : ISystem
     {
         public NativeArray<LocalTransform> transforms;
         [ReadOnly] public NativeArray<FollowTargetMovement> movements;
-        [ReadOnly] public float3 playerPosition;
+        [ReadOnly] public float3 playerPosition; // Actually the global target but could be changed
         [ReadOnly] public float deltaTime;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
@@ -177,29 +177,23 @@ public partial struct EntitiesMovementSystem : ISystem
 
             float3 position = transform.Position;
 
-            // Direction vers le player
-            float3 directionToPlayer = math.normalize(playerPosition - position);
 
             // Get normal at entity position
-            float3 normal = math.normalize(position - PlanetCenter);
+            float3 normal = PlanetMovementUtils.GetSurfaceNormalAtPosition(position, PlanetCenter);
 
-            // Project direction on surface
-            float3 tangentDirection = directionToPlayer - math.dot(directionToPlayer, normal) * normal;
-            tangentDirection = math.normalize(tangentDirection);
+            // Position after movement toward the target
+            float3 targetPosition = PlanetMovementUtils.GetSurfaceStepTowardPosition(position, playerPosition, movement.Speed * deltaTime, PlanetCenter, PlanetRadius);
 
-            // Calculate target projected position
-            float3 targetPosition = position + tangentDirection * movement.Speed * deltaTime;
-
-            // Snap to surface
-            float3 snappedPosition = PlanetCenter + math.normalize(targetPosition - PlanetCenter) * PlanetRadius;
+            // Direction to target
+            float3 actualDirection = math.normalize(targetPosition - position);
 
             // Rotation
-            quaternion rotation = quaternion.LookRotationSafe(tangentDirection, normal);
+            quaternion rotation = PlanetMovementUtils.GetRotationOnSurface(actualDirection, normal);
 
             // Apply new transform
             transforms[index] = new LocalTransform
             {
-                Position = snappedPosition,
+                Position = targetPosition,
                 Rotation = rotation,
                 Scale = transform.Scale
             };
@@ -213,13 +207,13 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
 
-        void Execute(ref LocalTransform transform, ref OrbitMovement movement)
+        void Execute(ref LocalTransform transform, in OrbitMovement movement)
         {
             float3 orbitCenter = movement.OrbitCenter;
 
             float3 orbitVector = transform.Position - orbitCenter;
 
-            float3 orbitNormal = math.normalize(orbitCenter - PlanetCenter);
+            float3 orbitNormal = PlanetMovementUtils.GetSurfaceNormalAtPosition(orbitCenter, PlanetCenter);
             quaternion rotation = quaternion.AxisAngle(orbitNormal, movement.AngularSpeed * DeltaTime);
 
             float3 rotatedVector = math.mul(rotation, orbitVector);
@@ -227,11 +221,11 @@ public partial struct EntitiesMovementSystem : ISystem
 
             float3 newPosition = PlanetCenter + math.normalize(newOrbitPosition - PlanetCenter) * PlanetRadius;
 
-            float3 normal = math.normalize(newPosition - PlanetCenter);
+            float3 normal = PlanetMovementUtils.GetSurfaceNormalAtPosition(newPosition, PlanetCenter);
             float3 tangentDirection = math.normalize(math.cross(normal, orbitNormal));
 
             transform.Position = newPosition;
-            transform.Rotation = quaternion.LookRotationSafe(tangentDirection, normal);
+            transform.Rotation = PlanetMovementUtils.GetRotationOnSurface(tangentDirection, normal);
         }
     }
 
