@@ -8,61 +8,72 @@ using Unity.Mathematics;
 public static partial class PlanetMovementUtils
 {
     [BurstCompile]
-    public static float3 ProjectDirectionOnSurface(in float3 direction, in float3 normal)
+    public static void ProjectDirectionOnSurface(in float3 direction, in float3 normal, out float3 projectedDirection)
     {
         float3 tangent = direction - math.dot(direction, normal) * normal;
-        return math.lengthsq(tangent) > 0.001f ? math.normalize(tangent) : float3.zero;
+        projectedDirection = math.lengthsq(tangent) > 0.001f ? math.normalize(tangent) : float3.zero;
+        return;
     }
 
     [BurstCompile]
-    public static float3 SnapToSurface(in float3 position, in float3 planetCenter, float planetRadius)
+    public static void SnapToSurface(in float3 position, in float3 planetCenter, float planetRadius, out float3 snappedPosition)
     {
-        return planetCenter + math.normalize(position - planetCenter) * planetRadius;
+        snappedPosition = planetCenter + math.normalize(position - planetCenter) * planetRadius;
+        return;
     }
 
     [BurstCompile]
-    public static quaternion GetRotationOnSurface(in float3 to, in float3 normal)
+    public static void GetRotationOnSurface(in float3 to, in float3 normal, out quaternion rotation)
     {
-        return quaternion.LookRotationSafe(to, normal);
+        rotation = quaternion.LookRotationSafe(to, normal);
+        return;
     }
 
     [BurstCompile]
-    public static float3 GetSurfaceNormalAtPosition(in float3 position, in float3 center)
+    public static void GetSurfaceNormalAtPosition(in float3 position, in float3 center, out float3 normal)
     {
-        return math.normalize(position - center);
+        normal = math.normalize(position - center);
+        return;
     }
 
     [BurstCompile]
-    public static float3 GetSurfaceStepTowardPosition(in float3 from, in float3 toPosition, float distance, in float3 planetCenter, float radius)
+    public static void GetSurfaceStepTowardPosition(in float3 from, in float3 toPosition, float distance, in float3 planetCenter, float radius, out float3 resultPosition)
     {
-        float3 normal = GetSurfaceNormalAtPosition(in from,in planetCenter);
-        float3 tangentialDirection = ProjectDirectionOnSurface(math.normalize(toPosition - from),in normal);
-        float3 newPosition = from + tangentialDirection * distance;
-        return SnapToSurface(newPosition, planetCenter, radius);
+        GetSurfaceNormalAtPosition(in from, in planetCenter, out var normal);
+        ProjectDirectionOnSurface(math.normalize(toPosition - from), in normal, out float3 tangentDirection);
+        float3 newPosition = from + tangentDirection * distance;
+        SnapToSurface(newPosition, planetCenter, radius, out var snapped);
+        resultPosition = snapped;
+        return;
     }
 
 
     [BurstCompile]
-    public static float3 GetSurfaceStepTowardDirection(in float3 from, in float3 toDirection, float distance, in float3 planetCenter, float radius)
+    public static void GetSurfaceStepTowardDirection(in float3 from, in float3 toDirection, float distance, in float3 planetCenter, float radius, out float3 resultPosition)
     {
-        float3 normal = GetSurfaceNormalAtPosition(from, planetCenter);
-        float3 tangentialDirection = ProjectDirectionOnSurface(math.normalize(toDirection), normal);
-        float3 newPosition = from + tangentialDirection * distance;
-        return SnapToSurface(newPosition, planetCenter, radius);
+        GetSurfaceNormalAtPosition(from, planetCenter, out var normal);
+        ProjectDirectionOnSurface(math.normalize(toDirection), normal, out float3 tangentDirection);
+        float3 newPosition = from + tangentDirection * distance;
+        SnapToSurface(newPosition, planetCenter, radius, out var snappedPosition);
+        resultPosition = snappedPosition;
+        return;
     }
 
     [BurstCompile]
-    public static float GetSurfaceDistance(in float3 from, in float3 to, in float3 planetCenter, float planetRadius)
+    public static void GetSurfaceDistanceBetweenPoints(in float3 from, in float3 to, in float3 planetCenter, float planetRadius, out float distance)
     {
         float3 fromDir = math.normalize(from - planetCenter);
         float3 toDir = math.normalize(to - planetCenter);
         float angle = math.acos(math.clamp(math.dot(fromDir, toDir), -1f, 1f));
-        return angle * planetRadius;
+        distance = angle * planetRadius;
+        return;
     }
 
     [BurstCompile]
-    public static bool IsWithinRange(in float3 center, in float3 target, float range, in float3 planetCenter, float planetRadius)
+    public static void IsWithinRange(in float3 center, in float3 target, float range, in float3 planetCenter, float planetRadius, out bool result)
     {
-        return GetSurfaceDistance(center, target, planetCenter, planetRadius) <= range;
+        GetSurfaceDistanceBetweenPoints(center, target, planetCenter, planetRadius, out var distance);
+        result = distance <= range;
+        return;
     }
 }

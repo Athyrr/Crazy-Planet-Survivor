@@ -130,19 +130,19 @@ public partial struct EntitiesMovementSystem : ISystem
 
 
             // Get normal at entity position
-            float3 normal = PlanetMovementUtils.GetSurfaceNormalAtPosition(position, PlanetCenter);
+            PlanetMovementUtils.GetSurfaceNormalAtPosition(in position, in PlanetCenter, out var normal);
 
             // Project direction on surface
-            float3 tangentDirection = PlanetMovementUtils.ProjectDirectionOnSurface(direction, normal);
+            PlanetMovementUtils.ProjectDirectionOnSurface(in direction, in normal, out float3 tangentDirection);
 
             // Calculate target projected position
             float3 newPosition = position + tangentDirection * (speed * deltaTime);
 
             // Snap to surface
-            float3 snappedPosition = PlanetMovementUtils.SnapToSurface(newPosition, PlanetCenter, PlanetRadius);
+            PlanetMovementUtils.SnapToSurface(in newPosition, in PlanetCenter, PlanetRadius, out float3 snappedPosition);
 
             // Rotation
-            quaternion rotation = PlanetMovementUtils.GetRotationOnSurface(tangentDirection, normal);
+            PlanetMovementUtils.GetRotationOnSurface(in tangentDirection, in normal, out quaternion rotation);
 
             // Apply new direction
             movement.Direction = tangentDirection;
@@ -179,16 +179,16 @@ public partial struct EntitiesMovementSystem : ISystem
 
 
             // Get normal at entity position
-            float3 normal = PlanetMovementUtils.GetSurfaceNormalAtPosition(position, PlanetCenter);
+            PlanetMovementUtils.GetSurfaceNormalAtPosition(in position, in PlanetCenter, out var normal);
 
             // Position after movement toward the target
-            float3 targetPosition = PlanetMovementUtils.GetSurfaceStepTowardPosition(position, playerPosition, movement.Speed * deltaTime, PlanetCenter, PlanetRadius);
+            PlanetMovementUtils.GetSurfaceStepTowardPosition(in position, in playerPosition, movement.Speed * deltaTime, in PlanetCenter, PlanetRadius, out float3 targetPosition);
 
             // Direction to target
             float3 actualDirection = math.normalize(targetPosition - position);
 
             // Rotation
-            quaternion rotation = PlanetMovementUtils.GetRotationOnSurface(actualDirection, normal);
+            PlanetMovementUtils.GetRotationOnSurface(in actualDirection, in normal, out quaternion rotation);
 
             // Apply new transform
             transforms[index] = new LocalTransform
@@ -213,7 +213,7 @@ public partial struct EntitiesMovementSystem : ISystem
 
             float3 orbitVector = transform.Position - orbitCenter;
 
-            float3 orbitNormal = PlanetMovementUtils.GetSurfaceNormalAtPosition(orbitCenter, PlanetCenter);
+            PlanetMovementUtils.GetSurfaceNormalAtPosition(in orbitCenter, in PlanetCenter, out float3 orbitNormal);
             quaternion rotation = quaternion.AxisAngle(orbitNormal, movement.AngularSpeed * DeltaTime);
 
             float3 rotatedVector = math.mul(rotation, orbitVector);
@@ -221,11 +221,12 @@ public partial struct EntitiesMovementSystem : ISystem
 
             float3 newPosition = PlanetCenter + math.normalize(newOrbitPosition - PlanetCenter) * PlanetRadius;
 
-            float3 normal = PlanetMovementUtils.GetSurfaceNormalAtPosition(newPosition, PlanetCenter);
+            PlanetMovementUtils.GetSurfaceNormalAtPosition(in newPosition, in PlanetCenter, out float3 normal);
             float3 tangentDirection = math.normalize(math.cross(normal, orbitNormal));
 
             transform.Position = newPosition;
-            transform.Rotation = PlanetMovementUtils.GetRotationOnSurface(tangentDirection, normal);
+            PlanetMovementUtils.GetRotationOnSurface(in tangentDirection, in normal, out quaternion targetRotation);
+            transform.Rotation = targetRotation;
         }
     }
 
