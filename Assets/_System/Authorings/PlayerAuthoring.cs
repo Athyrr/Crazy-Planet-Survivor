@@ -1,7 +1,8 @@
-using Unity.Entities;
-using Unity.Mathematics;
-using Unity.Transforms;
 using UnityEngine;
+using Unity.Entities;
+using Unity.Transforms;
+using Unity.Mathematics;
+using UnityEngine.InputSystem.Android;
 
 public class PlayerAuthoring : MonoBehaviour
 {
@@ -18,7 +19,8 @@ public class PlayerAuthoring : MonoBehaviour
         Speed = 2
     };
 
-    [Header("Spells")]
+    [Header("Spells \n" +
+        "@todo ScriptAsset for spell refs and convert in authoring")]
     public ActiveSpell[] InitialSpells;
 
     [Header("Modifiers")]
@@ -58,8 +60,13 @@ public class PlayerAuthoring : MonoBehaviour
                 CooldownReduction = authoring.BaseStats.CooldownReduction
             });
 
-            AddBuffer<StatModifier>(entity);
-            var spellBuffer = AddBuffer<ActiveSpell>(entity);
+            DynamicBuffer<StatModifier> modifierBuffer = AddBuffer<StatModifier>(entity);
+            foreach (var modifier in authoring.InitialModifers)
+            {
+                modifierBuffer.Add(modifier);
+            }
+
+            DynamicBuffer<ActiveSpell> spellBuffer = AddBuffer<ActiveSpell>(entity);
             foreach (var spell in authoring.InitialSpells)
             {
                 spellBuffer.Add(spell);

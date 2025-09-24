@@ -1,10 +1,9 @@
 using Unity.Entities;
-using UnityEngine;
 
 public partial struct StatsCalculationSystem : ISystem
 {
 
-    public void OnUppate(ref SystemState state)
+    public void OnUpdate(ref SystemState state)
     {
         foreach (var (stats, baseStats, modifiers) in
             SystemAPI.Query<RefRW<Stats>, RefRO<BaseStats>, DynamicBuffer<StatModifier>>())
