@@ -124,4 +124,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55673145199c3c142b35a50fd9665155, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAuthoring
-  Speed: 30
+  BaseSpeed: 30
+  BaseStats:
+    MaxHealth: 100
+    Speed: 30
+    Damage: 100
+    Armor: 5
+    CooldownReduction: 0
+  InitialSpells:
+  - ID: 0
+    BaseCooldown: 0
+    CooldownTimer: 0
+  InitialModifers: []
