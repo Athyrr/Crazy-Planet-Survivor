@@ -1,5 +1,8 @@
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
+using UnityEngine;
 
 /// <summary>
 /// System that handles spell cooldown and sends request or notify if a spell can be casted.
@@ -11,8 +14,11 @@ using Unity.Entities;
 /// </para>
 /// <para>@todo AI system to decide which spell to cast or how to move.</para> 
 /// </summary>
-public partial struct SpellCasterSystem : ISystem
+[BurstCompile]
+public partial struct SpellCooldownSystem : ISystem
 {
+
+    [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<Player>();
@@ -20,34 +26,34 @@ public partial struct SpellCasterSystem : ISystem
         state.RequireForUpdate<ActiveSpell>();
     }
 
+    [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
         var deltaTime = SystemAPI.Time.DeltaTime;
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        EntityCommandBuffer ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        EndSimulationEntityCommandBufferSystem.Singleton ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
 
-        ComponentLookup<Stats> statsLookup = SystemAPI.GetComponentLookup<Stats>(true);
-
+        EntityCommandBuffer ecbPlayer = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var spellCasterJob = new SpellCasterJob
         {
             DeltaTime = deltaTime,
-            ECB = ecb.AsParallelWriter(),
-            StatsLookup = statsLookup
+            ECB = ecbPlayer.AsParallelWriter(),
         };
-        var spellCasterHandle = spellCasterJob.ScheduleParallel(state.Dependency);
-        spellCasterHandle.Complete();
+        JobHandle spellCasterHandle = spellCasterJob.ScheduleParallel(state.Dependency);
 
+        EntityCommandBuffer ecbEnemy = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var spellReadyJob = new SpellReadyNotifyJob
         {
             DeltaTime = deltaTime,
-            ECB = ecb.AsParallelWriter(),
-            StatsLookup = statsLookup,
-            //EnemySpellReadyLookup = SystemAPI.GetBufferLookup<EnemySpellReady>(false)
+            ECB = ecbEnemy.AsParallelWriter(),
         };
-        var spellReadyHandle = spellReadyJob.ScheduleParallel(state.Dependency);
-        spellReadyHandle.Complete();
+        JobHandle spellReadyHandle = spellReadyJob.ScheduleParallel(spellCasterHandle);
+
+        state.Dependency = spellReadyHandle;
     }
 
+
+
+    [BurstCompile]
     [WithAll(typeof(Stats), typeof(Enemy))]
     private partial struct SpellReadyNotifyJob : IJobEntity
     {
@@ -55,15 +61,12 @@ public partial struct SpellCasterSystem : ISystem
 
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        //public BufferLookup<EnemySpellReady> EnemySpellReadyLookup;
-
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
-
-        void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref DynamicBuffer<ActiveSpell> spells, ref DynamicBuffer<EnemySpellReady> readyBuffer, in Enemy enemy)
+        void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity,
+                     ref DynamicBuffer<ActiveSpell> spells,
+                     ref DynamicBuffer<EnemySpellReady> readyBuffer,
+                     in Stats stats,
+                     in Enemy enemy)
         {
-            //var spellReadyBuffer = EnemySpellReadyLookup[entity];
-
-            var stats = StatsLookup[entity];
 
             for (int i = 0; i < spells.Length; i++)
             {
@@ -72,7 +75,6 @@ public partial struct SpellCasterSystem : ISystem
 
                 if (spell.CooldownTimer <= 0)
                 {
-                    //spellReadyBuffer.Add(new EnemySpellReady { Caster = entity, SpellID = spell.ID });
                     readyBuffer.Add(new EnemySpellReady { Caster = entity, Spell = spell });
 
                     float cooldown = spell.BaseCooldown * (1 - stats.CooldownReduction);
@@ -84,20 +86,22 @@ public partial struct SpellCasterSystem : ISystem
     }
 
     [WithAll(typeof(Stats), typeof(Player))]
+    [BurstCompile]
     private partial struct SpellCasterJob : IJobEntity
     {
         public float DeltaTime;
 
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
-
-        void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref DynamicBuffer<ActiveSpell> spells, in Player player)
+        void Execute([ChunkIndexInQuery] int chunkIndex,
+            Entity entity,
+            ref DynamicBuffer<ActiveSpell> spells,
+            in Stats stats,
+            in Player player)
         {
             if (!spells.IsCreated || spells.IsEmpty)
                 return;
 
-            var stats = StatsLookup[entity];
 
             for (int i = 0; i < spells.Length; i++)
             {
