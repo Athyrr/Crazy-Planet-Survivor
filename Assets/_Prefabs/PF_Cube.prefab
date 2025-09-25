@@ -124,3 +124,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03db88175c3880e4d91f5497f684801e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
+  BaseStats:
+    MaxHealth: 50
+    Speed: 2
+    Damage: 10
+    Armor: 5
+    FireResistance: 0
+    CooldownReduction: 0
+    AreaSize: 0
+    CollectRange: 0
+  InitialSpells:
+  - ID: 0
+    BaseCooldown: 5
+    CooldownTimer: 5
+    Damage: 5
+    Area: 0
+    Range: 10
+    Element: 0
+  InitialModifers: []

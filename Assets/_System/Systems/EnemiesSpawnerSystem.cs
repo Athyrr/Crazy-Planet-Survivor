@@ -14,7 +14,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
         state.RequireForUpdate<PlanetData>();
     }
 
-    //[BurstCompile]
+    [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
         SpawnConfig config = SystemAPI.GetSingleton<SpawnConfig>();
