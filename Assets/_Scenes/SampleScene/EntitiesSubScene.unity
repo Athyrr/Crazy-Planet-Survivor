@@ -206,7 +206,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpawnerAuthoring
   prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-  amount: 500000
+  amount: 5000
   DefaultSpeed: 80
 --- !u!4 &488186155
 Transform:
@@ -276,8 +276,80 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: BaseStats.FireResistance
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialSpells.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
       propertyPath: InitialModifers.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialSpells.Array.data[1].ID
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialSpells.Array.data[0].Range
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialSpells.Array.data[1].Range
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialModifers.Array.data[1].Type
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialModifers.Array.data[2].Type
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialSpells.Array.data[0].Damage
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialSpells.Array.data[1].Damage
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialModifers.Array.data[0].Value
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialModifers.Array.data[1].Value
+      value: 1.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialModifers.Array.data[2].Value
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialModifers.Array.data[1].Strategy
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialModifers.Array.data[2].Strategy
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialSpells.Array.data[0].BaseCooldown
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialSpells.Array.data[1].BaseCooldown
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialSpells.Array.data[0].CooldownTimer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7657396182450034165, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: InitialSpells.Array.data[1].CooldownTimer
+      value: 10
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

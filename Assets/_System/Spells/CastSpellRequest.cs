@@ -20,3 +20,9 @@ public struct CastSpellRequest : IComponentData
     public Entity Caster;
     public ESpellID SpellID;
 }
+
+public struct EnemySpellReady : IBufferElementData
+{
+    public Entity Caster;   
+    public ActiveSpell Spell;
+}

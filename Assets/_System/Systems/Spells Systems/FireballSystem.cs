@@ -27,7 +27,8 @@ public partial struct FireballSystem : ISystem
                 Stats casterStats = SystemAPI.GetComponent<Stats>(request.ValueRO.Caster);
 
                 float damage = 20 + casterStats.Damage;
-                Debug.Log($"Cast FIREBALL ! Damages: {damage}, caster: {request.ValueRO.Caster}");
+                //Debug.Log($"Cast FIREBALL ! Damages: {damage}, caster: {request.ValueRO.Caster}");
+                Debug.Log($"Cast FIREBALL ! Damages: {damage}");
                 ecb.DestroyEntity(requestEntity);
             }
         }
