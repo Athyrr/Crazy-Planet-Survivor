@@ -12,7 +12,7 @@ public struct ActiveSpell : IBufferElementData
     public float Area;
     public float Range;
     public ESpellElement Element;
-    int Level;
+    public int Level;
 }
 
 public struct CastSpellRequest : IComponentData
@@ -23,6 +23,7 @@ public struct CastSpellRequest : IComponentData
 
 public struct EnemySpellReady : IBufferElementData
 {
-    public Entity Caster;   
+    public Entity Caster;
     public ActiveSpell Spell;
 }
+

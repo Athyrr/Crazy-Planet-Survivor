@@ -4,8 +4,18 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine.UIElements;
 
+/// <summary>
+/// System that processes all entity movements on a planetary surface.
+/// <para>
+/// - <see cref="MoveLinearJob"/>: Moves entities along a fixed direction.
+/// - <see cref="MoveFollowJob"/>: Moves entities towards the player's position.
+/// - <see cref="OrbitMovementJob"/>: Moves entities in a circular orbit around a central point.
+/// </para>
+/// <para>
+/// All calculations leverage the <see cref="PlanetMovementUtils"/> helper to ensure entities correctly follow the planet's curvature.
+/// </para>
+/// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
 public partial struct EntitiesMovementSystem : ISystem
@@ -22,185 +32,109 @@ public partial struct EntitiesMovementSystem : ISystem
         if (!SystemAPI.TryGetSingletonEntity<PlanetData>(out Entity planetEntity))
             return;
 
-        //EndSimulationEntityCommandBufferSystem.Singleton ecbSystem = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        //EntityCommandBuffer.ParallelWriter ecb = ecbSystem.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
+        var delta = SystemAPI.Time.DeltaTime;
+        var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
+        var planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
 
-        float delta = SystemAPI.Time.DeltaTime;
-        LocalTransform planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
-        PlanetData planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
+        bool playerExists = SystemAPI.TryGetSingletonEntity<Player>(out var player);
+        LocalTransform playerTransform = playerExists ? SystemAPI.GetComponentRO<LocalTransform>(player).ValueRO : default;
+        float3 playerPos = playerExists ? playerTransform.Position : float3.zero;
 
-        // Entity Query for Parralel job required NativeArrays
-        EntityQuery linearQuery = SystemAPI.QueryBuilder()
-          .WithAll<LocalTransform, LinearMovement>().Build();
-
-        if (!linearQuery.IsEmpty)
+        // Linear movement job
+        var linearJob = new MoveLinearJob
         {
-            // Retrieve components array from the entity query
-            var transforms = linearQuery.ToComponentDataArray<LocalTransform>(Allocator.TempJob);
-            var movements = linearQuery.ToComponentDataArray<LinearMovement>(Allocator.TempJob);
+            deltaTime = delta,
+            PlanetCenter = planetTransform.Position,
+            PlanetRadius = planetData.Radius
+        };
+        // Execute on threads 
+        JobHandle linearHandle = linearJob.ScheduleParallel(state.Dependency);
 
-            var linearJob = new MoveLinearJob
-            {
-                transforms = transforms,
-                movements = movements,
-                deltaTime = delta,
-                PlanetCenter = planetTransform.Position,
-                PlanetRadius = planetData.Radius
-            };
-
-            // Dispatch in threads
-            var linearHandle = linearJob.Schedule(transforms.Length, 64);
-
-            // Ensure finish job
-            linearHandle.Complete();
-
-            // Apply results back 
-            linearQuery.CopyFromComponentDataArray(transforms);
-
-            // Free memory (on est en cpp ou quoi)
-            transforms.Dispose(linearHandle);
-            movements.Dispose(linearHandle);
-        }
-
-        EntityQuery followQuery = SystemAPI.QueryBuilder().WithAll<LocalTransform, FollowTargetMovement>().Build();
-
-        if (!followQuery.IsEmpty && SystemAPI.TryGetSingletonEntity<Player>(out Entity playerEntity))
+        // Follow movement job
+        JobHandle followHandle = default;
+        if (playerExists)
         {
-            // Player position
-            var playerPos = SystemAPI.GetComponent<LocalTransform>(playerEntity).Position;
-
-            // Retrieve components array from the entity query
-            var followTransforms = followQuery.ToComponentDataArray<LocalTransform>(Allocator.TempJob);
-            var followMovements = followQuery.ToComponentDataArray<FollowTargetMovement>(Allocator.TempJob);
-
             var followJob = new MoveFollowJob
             {
-                transforms = followTransforms,
-                movements = followMovements,
                 playerPosition = playerPos,
                 deltaTime = delta,
                 PlanetCenter = planetTransform.Position,
                 PlanetRadius = planetData.Radius
             };
-
-            // Dispatch in threads
-            var followHandle = followJob.Schedule(followTransforms.Length, 128);
-
-            // Ensure finish job
-            followHandle.Complete();
-
-            // Apply result
-            followQuery.CopyFromComponentDataArray<LocalTransform>(followTransforms);
-
-            followTransforms.Dispose(followHandle);
-            followMovements.Dispose(followHandle);
+            followHandle = followJob.ScheduleParallel(linearHandle);
         }
 
-        OrbitMovementJob orbitMovementJob = new OrbitMovementJob
+        // Orbital movement job
+        var orbitalMovementJob = new OrbitMovementJob
         {
             DeltaTime = delta,
             PlanetCenter = planetTransform.Position,
             PlanetRadius = planetData.Radius
         };
-        orbitMovementJob.ScheduleParallel();
+        JobHandle orbitHandle = orbitalMovementJob.ScheduleParallel(followHandle);
+
+        // Final dependency
+        state.Dependency = orbitHandle;
     }
 
 
     [BurstCompile]
-    private struct MoveLinearJob : IJobParallelFor
+    [WithAll(typeof(LinearMovement))]
+    [WithNone(typeof(FollowTargetMovement), typeof(OrbitMovement))]
+    private partial struct MoveLinearJob : IJobEntity
     {
+        [ReadOnly] public float deltaTime;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
-        [ReadOnly] public float deltaTime;
 
-        public NativeArray<LocalTransform> transforms;
-        public NativeArray<LinearMovement> movements;
-
-        public void Execute(int index)
+        public void Execute(ref LocalTransform transform, ref LinearMovement movement)
         {
-            var transform = transforms[index];
-            LinearMovement movement = movements[index];
-
-            float3 position = transform.Position;
-            float3 direction = movement.Direction;
-            float speed = movement.Speed;
-
-            if (math.lengthsq(direction) < 0.001f)
+            if (math.lengthsq(movement.Direction) < 0.001f)
                 return;
 
+            PlanetMovementUtils.GetSurfaceNormalAtPosition(in transform.Position, in PlanetCenter, out var normal);
+            PlanetMovementUtils.ProjectDirectionOnSurface(in movement.Direction, in normal, out float3 tangentDirection);
 
-            // Get normal at entity position
-            PlanetMovementUtils.GetSurfaceNormalAtPosition(in position, in PlanetCenter, out var normal);
-
-            // Project direction on surface
-            PlanetMovementUtils.ProjectDirectionOnSurface(in direction, in normal, out float3 tangentDirection);
-
-            // Calculate target projected position
-            float3 newPosition = position + tangentDirection * (speed * deltaTime);
-
-            // Snap to surface
+            float3 newPosition = transform.Position + tangentDirection * (movement.Speed * deltaTime);
             PlanetMovementUtils.SnapToSurface(in newPosition, in PlanetCenter, PlanetRadius, out float3 snappedPosition);
 
-            // Rotation
             PlanetMovementUtils.GetRotationOnSurface(in tangentDirection, in normal, out quaternion rotation);
 
-            // Apply new direction
             movement.Direction = tangentDirection;
-
-            // Apply new transform
-            transform = new LocalTransform
-            {
-                Position = snappedPosition,
-                Rotation = rotation,
-                Scale = transform.Scale
-            };
-
-            transforms[index] = transform;
+            transform.Position = snappedPosition;
+            transform.Rotation = rotation;
         }
     }
 
 
     [BurstCompile]
-    private struct MoveFollowJob : IJobParallelFor
+    [WithAll(typeof(FollowTargetMovement))]
+    [WithNone(typeof(LinearMovement), typeof(OrbitMovement))]
+    private partial struct MoveFollowJob : IJobEntity
     {
-        public NativeArray<LocalTransform> transforms;
-        [ReadOnly] public NativeArray<FollowTargetMovement> movements;
-        [ReadOnly] public float3 playerPosition; // Actually the global target but could be changed
         [ReadOnly] public float deltaTime;
+        [ReadOnly] public float3 playerPosition;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
 
-        public void Execute(int index)
+        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement)
         {
-            var transform = transforms[index];
-            var movement = movements[index];
+            PlanetMovementUtils.GetSurfaceNormalAtPosition(in transform.Position, in PlanetCenter, out var normal);
+            PlanetMovementUtils.GetSurfaceStepTowardPosition(in transform.Position, in playerPosition, movement.Speed * deltaTime, in PlanetCenter, PlanetRadius, out float3 targetPosition);
 
-            float3 position = transform.Position;
+            float3 actualDirection = math.normalize(targetPosition - transform.Position);
+            if (math.lengthsq(actualDirection) < 0.001f) actualDirection = transform.Forward();
 
-
-            // Get normal at entity position
-            PlanetMovementUtils.GetSurfaceNormalAtPosition(in position, in PlanetCenter, out var normal);
-
-            // Position after movement toward the target
-            PlanetMovementUtils.GetSurfaceStepTowardPosition(in position, in playerPosition, movement.Speed * deltaTime, in PlanetCenter, PlanetRadius, out float3 targetPosition);
-
-            // Direction to target
-            float3 actualDirection = math.normalize(targetPosition - position);
-
-            // Rotation
             PlanetMovementUtils.GetRotationOnSurface(in actualDirection, in normal, out quaternion rotation);
 
-            // Apply new transform
-            transforms[index] = new LocalTransform
-            {
-                Position = targetPosition,
-                Rotation = rotation,
-                Scale = transform.Scale
-            };
+            transform.Position = targetPosition;
+            transform.Rotation = rotation;
         }
     }
 
     [BurstCompile]
+    [WithAll(typeof(OrbitMovement))]
+    [WithNone(typeof(LinearMovement), typeof(FollowTargetMovement))]
     partial struct OrbitMovementJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;
