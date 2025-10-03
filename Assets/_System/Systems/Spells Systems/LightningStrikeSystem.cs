@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -5,17 +6,15 @@ using Unity.Transforms;
 
 [BurstCompile]
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-public partial struct FireballSystem : ISystem
+public partial struct LightningStrikeSystem : ISystem
 {
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<Stats>();
-        state.RequireForUpdate<SpellPrefab>();
         state.RequireForUpdate<ActiveSpell>();
-        state.RequireForUpdate<SpellsDatabase>();
         state.RequireForUpdate<CastSpellRequest>();
-        state.RequireForUpdate<FireballRequestTag>();
+        state.RequireForUpdate<LightningStrikeRequestTag>();
     }
 
     [BurstCompile]
@@ -28,21 +27,20 @@ public partial struct FireballSystem : ISystem
         var spellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
         var spellDatabase = SystemAPI.GetComponent<SpellsDatabase>(spellDatabaseEntity);
 
-        var fireballJob = new CastFireballJob
+        var job = new CastSpellJob
         {
             TransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true),
             StatsLookup = SystemAPI.GetComponentLookup<Stats>(true),
             ECB = ecb.AsParallelWriter(),
             SpellDatabaseRef = spellDatabase.Blobs,
             SpellPrefabs = spellPrefabs
-
         };
-        state.Dependency = fireballJob.ScheduleParallel(state.Dependency);
+        state.Dependency = job.ScheduleParallel(state.Dependency);
     }
 
     [BurstCompile]
-    [WithAll(typeof(CastSpellRequest), typeof(FireballRequestTag))]
-    private partial struct CastFireballJob : IJobEntity
+    [WithAll(typeof(CastSpellRequest), typeof(LightningStrikeRequestTag))]
+    private partial struct CastSpellJob : IJobEntity
     {
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
@@ -61,8 +59,10 @@ public partial struct FireballSystem : ISystem
             var caster = request.Caster;
             var target = request.Target;
 
+            //var spellData = request.GetSpellData();
             ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
             var spellPrefab = SpellPrefabs[request.DatabaseIndex].Prefab;
+
 
             if (spellPrefab == Entity.Null)
             {
@@ -80,7 +80,7 @@ public partial struct FireballSystem : ISystem
             //else
             //    castDirection = casterTransform.Forward();
 
-            //Spell damage calculation
+            // Spell damage calculation
             float damage = spellData.BaseDamage + casterStats.Damage;
 
             var fireballEntity = ECB.Instantiate(chunkIndex, spellPrefab);
@@ -96,7 +96,6 @@ public partial struct FireballSystem : ISystem
                 Direction = casterTransform.Forward(),
                 Speed = spellData.BaseSpeed
             });
-
 
             ECB.DestroyEntity(chunkIndex, requestEntity);
         }

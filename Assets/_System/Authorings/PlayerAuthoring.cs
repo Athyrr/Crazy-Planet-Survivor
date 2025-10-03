@@ -1,15 +1,10 @@
-using UnityEngine;
-using Unity.Entities;
-using Unity.Transforms;
 using Unity.Mathematics;
-using UnityEngine.InputSystem.Android;
+using Unity.Transforms;
+using Unity.Entities;
+using UnityEngine;
 
 public class PlayerAuthoring : MonoBehaviour
 {
-    [Header("Movement Settings \n" +
-        "@todo use base stats instead")]
-    public float BaseSpeed = 1.0f;
-
     [Header("Stats")]
     public BaseStats BaseStats = new BaseStats()
     {
@@ -19,9 +14,8 @@ public class PlayerAuthoring : MonoBehaviour
         Speed = 2
     };
 
-    [Header("Spells \n" +
-        "@todo ScriptAsset for spell refs and convert in authoring")]
-    public ActiveSpell[] InitialSpells;
+    [Header("Spells")]
+    public SpellDataSO[] InitialSpells;
 
     [Header("Modifiers")]
     public StatModifier[] InitialModifers;
@@ -62,16 +56,22 @@ public class PlayerAuthoring : MonoBehaviour
 
             DynamicBuffer<StatModifier> modifierBuffer = AddBuffer<StatModifier>(entity);
             foreach (var modifier in authoring.InitialModifers)
-            {
                 modifierBuffer.Add(modifier);
-            }
 
             DynamicBuffer<ActiveSpell> spellBuffer = AddBuffer<ActiveSpell>(entity);
-            foreach (var spell in authoring.InitialSpells)
-            {
-                spellBuffer.Add(spell);
-            }
 
+            DynamicBuffer<BaseSpell> baseSpellBuffer = AddBuffer<BaseSpell>(entity);
+            foreach (var spellSO in authoring.InitialSpells)
+            {
+                if (spellSO == null || spellSO.SpellPrefab == null)
+                    continue;
+
+                baseSpellBuffer.Add(new BaseSpell
+                {
+                    ID = spellSO.ID,
+                });
+
+            }
         }
     }
 }

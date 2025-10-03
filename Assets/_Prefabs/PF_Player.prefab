@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7610104158751036709}
   - component: {fileID: 1519524806616589538}
   - component: {fileID: 5223268465941372905}
-  - component: {fileID: 7657396182450034165}
+  - component: {fileID: 7867096471209253954}
   m_Layer: 0
   m_Name: PF_Player
   m_TagString: Untagged
@@ -112,7 +112,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &7657396182450034165
+--- !u!114 &7867096471209253954
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -124,15 +124,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55673145199c3c142b35a50fd9665155, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAuthoring
-  BaseSpeed: 30
   BaseStats:
     MaxHealth: 100
-    Speed: 30
+    Speed: 2
     Damage: 100
     Armor: 5
+    FireResistance: 0
     CooldownReduction: 0
+    AreaSize: 0
+    CollectRange: 0
   InitialSpells:
-  - ID: 0
-    BaseCooldown: 0
-    CooldownTimer: 0
+  - {fileID: 11400000, guid: a13ca1f0a33c36a46bac651b45432abc, type: 2}
   InitialModifers: []

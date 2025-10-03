@@ -1,3 +1,4 @@
+using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
@@ -12,9 +13,8 @@ public class EnemyAuthoring : MonoBehaviour
         Speed = 2
     };
 
-    [Header("Spells \n" +
-        "@todo ScriptAsset for spell refs and convert in authoring")]
-    public ActiveSpell[] InitialSpells;
+    [Header("Spells")]
+    public SpellDataSO[] InitialSpells;
 
     [Header("Modifiers")]
     public StatModifier[] InitialModifers;
@@ -28,6 +28,8 @@ public class EnemyAuthoring : MonoBehaviour
             AddComponent(entity, new Enemy() { });
 
             AddBuffer<EnemySpellReady>(entity);
+
+            AddComponent(entity, authoring.BaseStats);
 
             AddComponent(entity, new Stats()
             {
@@ -45,9 +47,17 @@ public class EnemyAuthoring : MonoBehaviour
             }
 
             DynamicBuffer<ActiveSpell> spellBuffer = AddBuffer<ActiveSpell>(entity);
-            foreach (var spell in authoring.InitialSpells)
+
+            DynamicBuffer<BaseSpell> baseSpellBuffer = AddBuffer<BaseSpell>(entity);
+            foreach (var spellSO in authoring.InitialSpells)
             {
-                spellBuffer.Add(spell);
+                if (spellSO == null)
+                    continue;
+
+                baseSpellBuffer.Add(new BaseSpell
+                {
+                    ID = spellSO.ID,
+                });
             }
         }
     }

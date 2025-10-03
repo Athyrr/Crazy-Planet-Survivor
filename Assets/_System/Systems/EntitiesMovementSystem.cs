@@ -163,6 +163,5 @@ public partial struct EntitiesMovementSystem : ISystem
             transform.Rotation = targetRotation;
         }
     }
-
 }
 

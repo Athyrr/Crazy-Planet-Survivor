@@ -1,87 +1,99 @@
+using Unity.Burst;
 using Unity.Entities;
 
+[BurstCompile]
 public partial struct StatsCalculationSystem : ISystem
 {
+    [BurstCompile]
+    public void OnCreate(ref SystemState state)
+    {
+        state.RequireForUpdate<BaseStats>();
+        state.RequireForUpdate<Stats>();
+    }
 
+    [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        foreach (var (stats, baseStats, modifiers) in
-            SystemAPI.Query<RefRW<Stats>, RefRO<BaseStats>, DynamicBuffer<StatModifier>>())
-        {
-            // Reset stats to base values
-            stats.ValueRW.MaxHealth = baseStats.ValueRO.MaxHealth;
-            stats.ValueRW.Speed = baseStats.ValueRO.Speed;
-            stats.ValueRW.Damage = baseStats.ValueRO.Damage;
-            stats.ValueRW.Armor = baseStats.ValueRO.Armor;
-            stats.ValueRW.FireResistance = baseStats.ValueRO.FireResistance;
-            stats.ValueRW.CooldownReduction = baseStats.ValueRO.CooldownReduction;
-            stats.ValueRW.AreaSize = baseStats.ValueRO.AreaSize;
-            stats.ValueRW.CollectRange = baseStats.ValueRO.CollectRange;
+        var job = new CalculateStatsJob();
+        state.Dependency = job.ScheduleParallel(state.Dependency);
+    }
 
-            // Apply all modifiers for each case
-            foreach (StatModifier modifier in modifiers)
+    [BurstCompile]
+    private partial struct CalculateStatsJob : IJobEntity
+    {
+        public void Execute(ref Stats stats, in BaseStats baseStats, in DynamicBuffer<StatModifier> modifiers)
+        {
+            stats.MaxHealth = baseStats.MaxHealth;
+            stats.Speed = baseStats.Speed;
+            stats.Damage = baseStats.Damage;
+            stats.Armor = baseStats.Armor;
+            stats.FireResistance = baseStats.FireResistance;
+            stats.CooldownReduction = baseStats.CooldownReduction;
+            stats.AreaSize = baseStats.AreaSize;
+            stats.CollectRange = baseStats.CollectRange;
+
+            for (var i = 0; i < modifiers.Length; i++)
             {
-                switch (modifier.Type)
+                switch (modifiers[i].Type)
                 {
                     case EStatType.MaxHealth:
-                        if (modifier.Strategy == EStatModiferStrategy.Flat)
-                            stats.ValueRW.MaxHealth += modifier.Value;
-                        else if (modifier.Strategy == EStatModiferStrategy.Multiply)
-                            stats.ValueRW.MaxHealth *= modifier.Value;
+                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
+                            stats.MaxHealth += modifiers[i].Value;
+                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
+                            stats.MaxHealth *= modifiers[i].Value;
                         break;
 
                     case EStatType.Speed:
-                        if (modifier.Strategy == EStatModiferStrategy.Flat)
-                            stats.ValueRW.Speed += modifier.Value;
-                        else if (modifier.Strategy == EStatModiferStrategy.Multiply)
-                            stats.ValueRW.Speed *= modifier.Value;
+                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
+                            stats.Speed += modifiers[i].Value;
+                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
+                            stats.Speed *= modifiers[i].Value;
                         break;
 
                     case EStatType.Damage:
-                        if (modifier.Strategy == EStatModiferStrategy.Flat)
-                            stats.ValueRW.Damage += modifier.Value;
-                        else if (modifier.Strategy == EStatModiferStrategy.Multiply)
-                            stats.ValueRW.Damage *= modifier.Value;
+                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
+                            stats.Damage += modifiers[i].Value;
+                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
+                            stats.Damage *= modifiers[i].Value;
                         break;
 
                     case EStatType.Armor:
-                        if (modifier.Strategy == EStatModiferStrategy.Flat)
-                            stats.ValueRW.Armor += modifier.Value;
-                        else if (modifier.Strategy == EStatModiferStrategy.Multiply)
-                            stats.ValueRW.Armor *= modifier.Value;
+                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
+                            stats.Armor += modifiers[i].Value;
+                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
+                            stats.Armor *= modifiers[i].Value;
                         break;
 
                     case EStatType.FireResistance:
-                        if (modifier.Strategy == EStatModiferStrategy.Flat)
-                            stats.ValueRW.FireResistance += modifier.Value;
-                        else if (modifier.Strategy == EStatModiferStrategy.Multiply)
-                            stats.ValueRW.FireResistance *= modifier.Value;
+                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
+                            stats.FireResistance += modifiers[i].Value;
+                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
+                            stats.FireResistance *= modifiers[i].Value;
                         break;
 
                     case EStatType.CooldownReduction:
-                        if (modifier.Strategy == EStatModiferStrategy.Flat)
-                            stats.ValueRW.CooldownReduction += modifier.Value;
-                        else if (modifier.Strategy == EStatModiferStrategy.Multiply)
-                            stats.ValueRW.CooldownReduction *= modifier.Value;
+                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
+                            stats.CooldownReduction += modifiers[i].Value;
+                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
+                            stats.CooldownReduction *= modifiers[i].Value;
                         break;
 
                     case EStatType.AreaSize:
-                        if (modifier.Strategy == EStatModiferStrategy.Flat)
-                            stats.ValueRW.AreaSize += modifier.Value;
-                        else if (modifier.Strategy == EStatModiferStrategy.Multiply)
-                            stats.ValueRW.AreaSize *= modifier.Value;
+                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
+                            stats.AreaSize += modifiers[i].Value;
+                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
+                            stats.AreaSize *= modifiers[i].Value;
                         break;
 
                     case EStatType.CollectRange:
-                        if (modifier.Strategy == EStatModiferStrategy.Flat)
-                            stats.ValueRW.CollectRange += modifier.Value;
-                        else if (modifier.Strategy == EStatModiferStrategy.Multiply)
-                            stats.ValueRW.CollectRange *= modifier.Value;
+                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
+                            stats.CollectRange += modifiers[i].Value;
+                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
+                            stats.CollectRange *= modifiers[i].Value;
                         break;
                 }
 
             }
         }
-
     }
 }

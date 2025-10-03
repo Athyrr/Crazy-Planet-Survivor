@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine;
 
 /// <summary>
 /// System that handle enemy spell to be casted by sending a CastSpellRequest. NOT THE SPELLS THEMSELVES. It processes enemies who have spells ready to be used.
@@ -40,28 +41,29 @@ public partial struct EnemyTargetingSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         EntityCommandBuffer ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-       var job = new EnemyTargetingJob
+        var job = new EnemyTargetingJob
         {
+            Player = playerEntity,
             PlayerPosition = playerTransform.Position,
             PlanetPosition = planetTransform.Position,
             PlanetRadius = planetData.Radius,
             ECB = ecb.AsParallelWriter()
         };
         state.Dependency = job.ScheduleParallel(state.Dependency);
-        state.Dependency.Complete();
     }
 
 
-    [WithAll(typeof(Stats), typeof(Enemy))]
     [BurstCompile]
+    [WithAll(typeof(Stats), typeof(Enemy))]
     private partial struct EnemyTargetingJob : IJobEntity
     {
+        public Entity Player;
         public float3 PlayerPosition;
         public float3 PlanetPosition;
         public float PlanetRadius;
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        void Execute([ChunkIndexInQuery] int index,
+        void Execute([ChunkIndexInQuery] int chunkIndex,
             ref DynamicBuffer<EnemySpellReady> readySpells,
             in LocalTransform transform,
             in Entity entity)
@@ -71,16 +73,32 @@ public partial struct EnemyTargetingSystem : ISystem
             {
                 var spellToCast = readySpells[i].Spell;
 
+                if (!spellToCast.DatabaseRef.IsCreated)
+                    continue;
+
                 PlanetMovementUtils.GetSurfaceDistanceBetweenPoints(in transform.Position, in PlayerPosition, PlanetPosition, PlanetRadius, out float distance);
-                float distanceSquared = distance * distance;
-                if (distanceSquared <= spellToCast.Range * spellToCast.Range)
+
+                if (distance <= spellToCast.GetSpellData().BaseRange)
                 {
-                    var request = ECB.CreateEntity(index);
-                    ECB.AddComponent(index, request, new CastSpellRequest
+                    var request = ECB.CreateEntity(chunkIndex);
+                    ECB.AddComponent(chunkIndex, request, new CastSpellRequest
                     {
                         Caster = entity,
-                        SpellID = spellToCast.ID
+                        Target = Player,
+                        //DatabaseRef = spellToCast.DatabaseRef,
+                        DatabaseIndex = spellToCast.DatabaseIndex
                     });
+
+                    switch (spellToCast.GetSpellData().ID)
+                    {
+                        case ESpellID.Fireball:
+                            ECB.AddComponent<FireballRequestTag>(chunkIndex, request);
+                            break;
+
+                        case ESpellID.LightningStrike:
+                            ECB.AddComponent<LightningStrikeRequestTag>(chunkIndex, request);
+                            break;
+                    }
                 }
             }
 

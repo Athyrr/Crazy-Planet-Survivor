@@ -1,0 +1,15 @@
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "NewSpellData", menuName = "Survivor/Spell Data")]
+public class SpellDataSO : ScriptableObject
+{
+    public string DisplayName;
+    public GameObject SpellPrefab;
+    public ESpellID ID;
+    public float BaseCooldown = 5f;
+    public float BaseDamage = 10f;
+    public float BaseArea = 1f;
+    public float BaseRange = 5f;
+    public float BaseSpeed = 5f;
+    public ESpellElement Element;
+}
