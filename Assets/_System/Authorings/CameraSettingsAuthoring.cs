@@ -8,7 +8,9 @@ public class CameraSettingsAuthoring : MonoBehaviour
     public Camera Camera;
     public GameObject PlayerTarget;
 
-    [Header("Settings")]
+    [Header("Settings")] 
+    [Min(1)] public float CameraDistance;
+    [Range(0f, 90f)] public float CameraAngle;
     [Range(1f, 30f)] public float Smooth = 8f;
     [Range(1f, 30f)] public float RotationSmooth = 10f;
 
@@ -34,6 +36,8 @@ public class CameraSettingsAuthoring : MonoBehaviour
                 Camera = authoring.Camera,
                 Smooth = authoring.Smooth,
                 RotationSmooth = authoring.RotationSmooth,
+                CameraAngle = authoring.CameraAngle,
+                CameraDistance = authoring.CameraDistance,
                 LocalOffset = localOffset,
                 LocalRotation = localRotation
             });
