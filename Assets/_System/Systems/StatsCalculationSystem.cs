@@ -37,63 +37,46 @@ public partial struct StatsCalculationSystem : ISystem
                 switch (modifiers[i].Type)
                 {
                     case EStatType.MaxHealth:
-                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
-                            stats.MaxHealth += modifiers[i].Value;
-                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
-                            stats.MaxHealth *= modifiers[i].Value;
+                        StatsCalculationSystem.ApplyModifier(ref stats.MaxHealth, modifiers[i]);
                         break;
 
                     case EStatType.Speed:
-                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
-                            stats.Speed += modifiers[i].Value;
-                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
-                            stats.Speed *= modifiers[i].Value;
+                        ApplyModifier(ref stats.Speed, modifiers[i]);
                         break;
 
                     case EStatType.Damage:
-                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
-                            stats.Damage += modifiers[i].Value;
-                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
-                            stats.Damage *= modifiers[i].Value;
+                        ApplyModifier(ref stats.Damage, modifiers[i]);
                         break;
 
                     case EStatType.Armor:
-                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
-                            stats.Armor += modifiers[i].Value;
-                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
-                            stats.Armor *= modifiers[i].Value;
+                        ApplyModifier(ref stats.Armor, modifiers[i]);
                         break;
 
                     case EStatType.FireResistance:
-                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
-                            stats.FireResistance += modifiers[i].Value;
-                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
-                            stats.FireResistance *= modifiers[i].Value;
+                        ApplyModifier(ref stats.FireResistance, modifiers[i]);
                         break;
 
                     case EStatType.CooldownReduction:
-                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
-                            stats.CooldownReduction += modifiers[i].Value;
-                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
-                            stats.CooldownReduction *= modifiers[i].Value;
+                        ApplyModifier(ref stats.CooldownReduction, modifiers[i]);
                         break;
 
                     case EStatType.AreaSize:
-                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
-                            stats.AreaSize += modifiers[i].Value;
-                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
-                            stats.AreaSize *= modifiers[i].Value;
+                        ApplyModifier(ref stats.AreaSize, modifiers[i]);
                         break;
 
                     case EStatType.CollectRange:
-                        if (modifiers[i].Strategy == EStatModiferStrategy.Flat)
-                            stats.CollectRange += modifiers[i].Value;
-                        else if (modifiers[i].Strategy == EStatModiferStrategy.Multiply)
-                            stats.CollectRange *= modifiers[i].Value;
+                        ApplyModifier(ref stats.CollectRange, modifiers[i]);
                         break;
                 }
-
             }
         }
+    }
+
+    private static void ApplyModifier(ref float statValue, in StatModifier modifier)
+    {
+        if (modifier.Strategy == EStatModiferStrategy.Flat)
+            statValue += modifier.Value;
+        else if (modifier.Strategy == EStatModiferStrategy.Multiply)
+            statValue *= modifier.Value;
     }
 }
