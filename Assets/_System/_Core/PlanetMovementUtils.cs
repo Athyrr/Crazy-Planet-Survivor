@@ -2,7 +2,7 @@ using Unity.Burst;
 using Unity.Mathematics;
 
 /// <summary>
-/// Helper planet based movement calculations. Burst compatible so can be used in Jobs.
+/// Helper for planet based movement calculations. Burst compatible so can be used in Jobs.
 /// </summary>
 [BurstCompile]
 public static partial class PlanetMovementUtils
