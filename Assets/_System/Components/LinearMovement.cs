@@ -22,11 +22,6 @@ public struct OrbitMovement : IComponentData
     public float Radius;
 }
 
-public struct RotationSpeed : IComponentData
-{
-    public float Value;
-}
-
 // @todo Array of SpawnData struct with Prefab + ennemies base data
 public struct SpawnConfig : IComponentData
 {

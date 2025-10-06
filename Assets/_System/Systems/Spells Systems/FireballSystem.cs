@@ -84,19 +84,36 @@ public partial struct FireballSystem : ISystem
             float damage = spellData.BaseDamage + casterStats.Damage;
 
             var fireballEntity = ECB.Instantiate(chunkIndex, spellPrefab);
+
+            var orbitData = new OrbitMovement
+            {
+                OrbitCenter = casterTransform.Position,
+                AngularSpeed = 3,
+                Radius = 50 
+            };
+            var spawnPosition = casterTransform.Position + casterTransform.Forward() * orbitData.Radius;
             ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
             {
-                Position = casterTransform.Position,
+                Position = spawnPosition,
                 Rotation = casterTransform.Rotation,
                 Scale = 5f
             });
 
-            ECB.SetComponent<LinearMovement>(chunkIndex, fireballEntity, new LinearMovement
-            {
-                Direction = casterTransform.Forward(),
-                Speed = spellData.BaseSpeed
-            });
+            //ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
+            //{
+            //    Position = casterTransform.Position,
+            //    Rotation = casterTransform.Rotation,
+            //    Scale = 10f
+            //});
 
+            //ECB.SetComponent<LinearMovement>(chunkIndex, fireballEntity, new LinearMovement
+            //{
+            //    Direction = casterTransform.Forward(),
+            //    Speed = spellData.BaseSpeed
+            //});
+
+            ECB.RemoveComponent<LinearMovement>(chunkIndex, fireballEntity);
+            ECB.AddComponent(chunkIndex, fireballEntity, orbitData);
 
             ECB.DestroyEntity(chunkIndex, requestEntity);
         }

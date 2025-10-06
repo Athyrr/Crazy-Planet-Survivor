@@ -1,4 +1,5 @@
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 
@@ -28,12 +29,16 @@ public partial struct SpellCooldownSystem : ISystem
     public void OnUpdate(ref SystemState state)
     {
         var deltaTime = SystemAPI.Time.DeltaTime;
-        EndSimulationEntityCommandBufferSystem.Singleton ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        
+        var spellDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
 
+        EndSimulationEntityCommandBufferSystem.Singleton ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         EntityCommandBuffer ecbPlayer = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        
         var spellCasterJob = new SpellCasterJob
         {
             DeltaTime = deltaTime,
+            SpellDatabaseRef = spellDatabase.Blobs,
             ECB = ecbPlayer.AsParallelWriter(),
         };
         JobHandle spellCasterHandle = spellCasterJob.ScheduleParallel(state.Dependency);
@@ -42,6 +47,7 @@ public partial struct SpellCooldownSystem : ISystem
         var spellReadyJob = new NotifySpellReadyJob
         {
             DeltaTime = deltaTime,
+            SpellDatabaseRef = spellDatabase.Blobs,
             ECB = ecbEnemy.AsParallelWriter(),
         };
         JobHandle spellReadyHandle = spellReadyJob.ScheduleParallel(spellCasterHandle);
@@ -55,8 +61,8 @@ public partial struct SpellCooldownSystem : ISystem
     [WithAll(typeof(Stats), typeof(Enemy))]
     private partial struct NotifySpellReadyJob : IJobEntity
     {
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
         public float DeltaTime;
-
         public EntityCommandBuffer.ParallelWriter ECB;
 
         void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity,
@@ -69,17 +75,16 @@ public partial struct SpellCooldownSystem : ISystem
             for (int i = 0; i < spells.Length; i++)
             {
                 var spell = spells[i];
+                ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[spell.DatabaseIndex];
 
-                if (!spell.DatabaseRef.IsCreated)
-                    continue;
-
-                if (spell.CooldownTimer > 0) spell.CooldownTimer -= DeltaTime;
+                if (spell.CooldownTimer > 0)
+                    spell.CooldownTimer -= DeltaTime;
 
                 if (spell.CooldownTimer <= 0)
                 {
                     readyBuffer.Add(new EnemySpellReady { Caster = entity, Spell = spell });
 
-                    float cooldown = spell.GetSpellData().BaseCooldown * (1 - stats.CooldownReduction);
+                    float cooldown = spellData.BaseCooldown * (1 - stats.CooldownReduction);
                     spell.CooldownTimer = cooldown;
                 }
                 spells[i] = spell;
@@ -91,8 +96,8 @@ public partial struct SpellCooldownSystem : ISystem
     [WithAll(typeof(Stats), typeof(Player))]
     private partial struct SpellCasterJob : IJobEntity
     {
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
         public float DeltaTime;
-
         public EntityCommandBuffer.ParallelWriter ECB;
 
         void Execute([ChunkIndexInQuery] int chunkIndex,
@@ -106,10 +111,8 @@ public partial struct SpellCooldownSystem : ISystem
 
             for (int i = 0; i < spells.Length; i++)
             {
-                ActiveSpell spell = spells[i];
-
-                if (!spell.DatabaseRef.IsCreated)
-                    continue;
+                var spell = spells[i];
+                ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[spell.DatabaseIndex];
 
                 if (spell.CooldownTimer > 0)
                     spell.CooldownTimer -= DeltaTime;
@@ -119,7 +122,7 @@ public partial struct SpellCooldownSystem : ISystem
                     var request = ECB.CreateEntity(chunkIndex);
                     ECB.AddComponent(chunkIndex, request, new CastSpellRequest { Caster = entity, Target = Entity.Null, /*DatabaseRef = spell.DatabaseRef,*/ DatabaseIndex = spell.DatabaseIndex });
 
-                    switch (spell.GetSpellData().ID)
+                    switch (spellData.ID)
                     {
                         case ESpellID.Fireball:
                             ECB.AddComponent<FireballRequestTag>(chunkIndex, request);
@@ -130,7 +133,7 @@ public partial struct SpellCooldownSystem : ISystem
                             break;
                     }
 
-                    float cooldown = spell.GetSpellData().BaseCooldown * (1 - stats.CooldownReduction);
+                    float cooldown = spellData.BaseCooldown * (1 - stats.CooldownReduction);
                     spell.CooldownTimer = cooldown;
                 }
 

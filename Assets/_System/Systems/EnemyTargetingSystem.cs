@@ -1,8 +1,8 @@
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine;
 
 /// <summary>
 /// System that handle enemy spell to be casted by sending a CastSpellRequest. NOT THE SPELLS THEMSELVES. It processes enemies who have spells ready to be used.
@@ -24,15 +24,13 @@ public partial struct EnemyTargetingSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-
-        //@todo check every spell ready buffer + for each spell, check range and send CastSpellRequest with spell data
-        //@todo Job chunk or parallel for
-
         if (!SystemAPI.TryGetSingletonEntity<Player>(out Entity playerEntity))
             return;
 
         if (!SystemAPI.TryGetSingletonEntity<PlanetData>(out Entity planet))
             return;
+
+        var spellDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
 
         var planetData = state.EntityManager.GetComponentData<PlanetData>(planet);
         var planetTransform = SystemAPI.GetComponent<LocalTransform>(planet);
@@ -43,6 +41,7 @@ public partial struct EnemyTargetingSystem : ISystem
 
         var job = new EnemyTargetingJob
         {
+            SpellDatabaseRef = spellDatabase.Blobs,
             Player = playerEntity,
             PlayerPosition = playerTransform.Position,
             PlanetPosition = planetTransform.Position,
@@ -53,10 +52,15 @@ public partial struct EnemyTargetingSystem : ISystem
     }
 
 
+    /// <summary>
+    /// Job that processes enemies with ready spells, checks if the player is within a ready spell range, and sends a CastSpellRequest if so.
+    /// </summary>
     [BurstCompile]
     [WithAll(typeof(Stats), typeof(Enemy))]
     private partial struct EnemyTargetingJob : IJobEntity
     {
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
+
         public Entity Player;
         public float3 PlayerPosition;
         public float3 PlanetPosition;
@@ -71,14 +75,12 @@ public partial struct EnemyTargetingSystem : ISystem
 
             for (int i = 0; i < readySpells.Length; i++)
             {
-                var spellToCast = readySpells[i].Spell;
-
-                if (!spellToCast.DatabaseRef.IsCreated)
-                    continue;
+                var spell = readySpells[i].Spell;
+                ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[spell.DatabaseIndex];
 
                 PlanetMovementUtils.GetSurfaceDistanceBetweenPoints(in transform.Position, in PlayerPosition, PlanetPosition, PlanetRadius, out float distance);
 
-                if (distance <= spellToCast.GetSpellData().BaseRange)
+                if (distance <= spellData.BaseRange)
                 {
                     var request = ECB.CreateEntity(chunkIndex);
                     ECB.AddComponent(chunkIndex, request, new CastSpellRequest
@@ -86,10 +88,10 @@ public partial struct EnemyTargetingSystem : ISystem
                         Caster = entity,
                         Target = Player,
                         //DatabaseRef = spellToCast.DatabaseRef,
-                        DatabaseIndex = spellToCast.DatabaseIndex
+                        DatabaseIndex = spell.DatabaseIndex
                     });
 
-                    switch (spellToCast.GetSpellData().ID)
+                    switch (spellData.ID)
                     {
                         case ESpellID.Fireball:
                             ECB.AddComponent<FireballRequestTag>(chunkIndex, request);

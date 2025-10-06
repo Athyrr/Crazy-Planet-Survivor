@@ -15,7 +15,9 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
             Entity entity = GetEntity(TransformUsageFlags.None);
 
             // Create spell blobs for data
-            BlobBuilder builder = new BlobBuilder(Allocator.Temp);
+            //BlobBuilder builder = new BlobBuilder(Allocator.Temp);
+            var builder = new BlobBuilder(Allocator.Persistent);
+
             ref var root = ref builder.ConstructRoot<SpellBlobs>();
             BlobBuilderArray<SpellBlob> arrayBuilder = builder.Allocate(ref root.Spells, authoring.SpellDatabase.Spells.Length);
 
@@ -41,6 +43,7 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
             AddComponent(entity, new SpellsDatabase { Blobs = spellsDatabaseBlob });
 
             builder.Dispose();
+
 
             // Add spell prefabs to buffer  
             var prefabBuffer = AddBuffer<SpellPrefab>(entity);

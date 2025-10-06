@@ -11,7 +11,6 @@ public partial struct SpellInitializationSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<SpellsDatabase>();
-        state.RequireForUpdate<BaseSpell>();
     }
 
     [BurstCompile]
@@ -22,31 +21,42 @@ public partial struct SpellInitializationSystem : ISystem
 
         Debug.Log("BDD Found!");
 
-        ref var spellBlobs = ref database.Blobs.Value.Spells;
+        ref var spellsDatabae = ref database.Blobs.Value.Spells;
 
-        var blobMap = new NativeHashMap<SpellKey, int>(spellBlobs.Length, Allocator.Temp);
-        for (int i = 0; i < spellBlobs.Length; i++)
+        // Create entity for Spell to Index Mapper
+        if (!SystemAPI.HasSingleton<SpellToIndexMap>())
         {
-            blobMap.TryAdd(new SpellKey { Value = spellBlobs[i].ID }, i);
+            var map = new NativeHashMap<SpellKey, int>(spellsDatabae.Length, Allocator.Temp);
+            for (int i = 0; i < spellsDatabae.Length; i++)
+            {
+                map.TryAdd(new SpellKey { Value = spellsDatabae[i].ID }, i);
+            }
+
+            var mapEntity = state.EntityManager.CreateEntity();
+            state.EntityManager.AddComponentData(mapEntity, new SpellToIndexMap { Map = map });
         }
 
+
         var ecb = new EntityCommandBuffer(state.WorldUpdateAllocator);
+        var spellIndexMap = SystemAPI.GetSingleton<SpellToIndexMap>().Map;
 
         foreach (var (baseSpellBuffer, entity) in
                  SystemAPI.Query<DynamicBuffer<BaseSpell>>().WithEntityAccess())
         {
+            if (!SystemAPI.HasBuffer<ActiveSpell>(entity))
+                continue;
+
             var activeSpellBuffer = SystemAPI.GetBuffer<ActiveSpell>(entity);
 
             foreach (var spellToInit in baseSpellBuffer)
             {
-                if (blobMap.TryGetValue(new SpellKey { Value = spellToInit.ID }, out var blobIndex))
+                if (spellIndexMap.TryGetValue(new SpellKey { Value = spellToInit.ID }, out var spellIndex))
                 {
                     activeSpellBuffer.Add(new ActiveSpell
                     {
-                        DatabaseRef = database.Blobs,
-                        DatabaseIndex = blobIndex,
+                        DatabaseIndex = spellIndex,
                         Level = 1,
-                        CooldownTimer = spellBlobs[blobIndex].BaseCooldown
+                        CooldownTimer = spellsDatabae[spellIndex].BaseCooldown
                     });
                 }
             }
@@ -55,7 +65,7 @@ public partial struct SpellInitializationSystem : ISystem
         }
 
         ecb.Playback(state.EntityManager);
-        blobMap.Dispose();
+        spellIndexMap.Dispose();
 
         state.Enabled = false;
     }

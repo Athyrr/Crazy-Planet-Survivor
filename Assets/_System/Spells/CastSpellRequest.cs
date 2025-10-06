@@ -1,3 +1,4 @@
+using Unity.Collections;
 using Unity.Entities;
 
 /// <summary>
@@ -5,13 +6,11 @@ using Unity.Entities;
 /// </summary>
 public struct ActiveSpell : IBufferElementData
 {
-    public BlobAssetReference<SpellBlobs> DatabaseRef;
     public int DatabaseIndex;
 
     public float CooldownTimer;
     public int Level;
 
-    public ref readonly SpellBlob GetSpellData() => ref DatabaseRef.Value.Spells[DatabaseIndex];
 }
 
 public struct BaseSpell : IBufferElementData
@@ -34,6 +33,11 @@ public struct EnemySpellReady : IBufferElementData
 {
     public Entity Caster;
     public ActiveSpell Spell;
+}
+
+public struct SpellToIndexMap : IComponentData
+{
+    public NativeHashMap<SpellKey, int> Map;
 }
 
 public struct SpellsDatabase : IComponentData
