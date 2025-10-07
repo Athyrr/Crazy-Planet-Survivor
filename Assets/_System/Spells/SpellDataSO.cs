@@ -12,4 +12,5 @@ public class SpellDataSO : ScriptableObject
     public float BaseRange = 5f;
     public float BaseSpeed = 5f;
     public ESpellElement Element;
+    public float Lifetime = 10f;
 }

@@ -7,4 +7,5 @@ public struct SpellBlob
     public float BaseRange;
     public float BaseSpeed;
     public ESpellElement Element;
+    public float Lifetime;
 }

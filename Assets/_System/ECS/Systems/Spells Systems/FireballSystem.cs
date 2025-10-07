@@ -86,6 +86,13 @@ public partial struct FireballSystem : ISystem
 
             var fireballEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
+
+
+
+
+
+
+
             var orbitData = new OrbitMovement
             {
                 OrbitCenterEntity = caster,
@@ -104,6 +111,13 @@ public partial struct FireballSystem : ISystem
             ECB.RemoveComponent<LinearMovement>(chunkIndex, fireballEntity);
             ECB.AddComponent(chunkIndex, fireballEntity, orbitData);
 
+
+
+
+
+
+
+
             //ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
             //{
             //    Position = casterTransform.Position,
@@ -117,6 +131,12 @@ public partial struct FireballSystem : ISystem
             //    Speed = spellData.BaseSpeed
             //});
 
+
+            ECB.AddComponent(chunkIndex, fireballEntity, new Lifetime
+            {
+                ElapsedTime = spellData.Lifetime,
+                Duration = spellData.Lifetime
+            });
 
             ECB.DestroyEntity(chunkIndex, requestEntity);
         }

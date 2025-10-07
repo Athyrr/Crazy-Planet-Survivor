@@ -96,6 +96,12 @@ public partial struct LightningStrikeSystem : ISystem
                 Speed = spellData.BaseSpeed
             });
 
+            ECB.AddComponent(chunkIndex, fireballEntity, new Lifetime
+            {
+                ElapsedTime = spellData.Lifetime,
+                Duration = spellData.Lifetime
+            });
+
             ECB.DestroyEntity(chunkIndex, requestEntity);
         }
     }
