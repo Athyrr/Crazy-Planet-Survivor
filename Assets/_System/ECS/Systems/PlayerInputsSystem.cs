@@ -24,7 +24,7 @@ public partial struct PlayerInputSystem : ISystem
         {
             foreach (var movement in SystemAPI.Query<RefRW<LinearMovement>>().WithAll<Player>())
             {
-                movement.ValueRW.Speed = 0f;
+                movement.ValueRW.Direction = float3.zero;
             }
             return;
         }
@@ -43,7 +43,6 @@ public partial struct PlayerInputSystem : ISystem
             float3 worldDirection = CalculateWorldDirection(inputVector, normal, ref state);
 
             movement.ValueRW.Direction = worldDirection;
-            movement.ValueRW.Speed = 30f; // @todo create Player Stasts and read this
         }
     }
 
