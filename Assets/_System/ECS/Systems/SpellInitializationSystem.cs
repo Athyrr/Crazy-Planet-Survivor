@@ -19,7 +19,7 @@ public partial struct SpellInitializationSystem : ISystem
         if (!SystemAPI.TryGetSingleton<SpellsDatabase>(out var database))
             return;
 
-        Debug.Log("BDD Found!");
+        //Debug.Log("BDD Found!");
 
         ref var spellsDatabae = ref database.Blobs.Value.Spells;
 

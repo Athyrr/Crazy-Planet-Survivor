@@ -1,14 +1,17 @@
+using Unity.Burst;
 using Unity.Entities;
-using UnityEngine;
 
+[BurstCompile]
 public partial struct EntityDestructionSystem : ISystem
 {
 
+    [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<DestroyEntityFlag>();
     }
 
+    [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
@@ -22,6 +25,7 @@ public partial struct EntityDestructionSystem : ISystem
         state.Dependency = destructionJob.ScheduleParallel(state.Dependency);
     }
 
+    [BurstCompile]
     private partial struct DestructionJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;

@@ -30,12 +30,13 @@ public class PlayerAuthoring : MonoBehaviour
 
             AddComponent(entity, new InputData() { Value = new float2(0, 0) });
 
-            AddComponent(entity, new LocalTransform()
-            {
-                Position = authoring.transform.position,
-                Rotation = authoring.transform.rotation,
-                Scale = 1
-            });
+
+            //SetComponent(entity, new LocalTransform()
+            //{
+            //    Position = authoring.transform.position,
+            //    Rotation = authoring.transform.rotation,
+            //    Scale = 1
+            //});
 
             AddComponent(entity, new LinearMovement() // @todo Movement system read player speed stats.
             {

@@ -132,7 +132,7 @@ public partial struct FireballSystem : ISystem
             //});
 
 
-            ECB.AddComponent(chunkIndex, fireballEntity, new Lifetime
+            ECB.SetComponent(chunkIndex, fireballEntity, new Lifetime
             {
                 ElapsedTime = spellData.Lifetime,
                 Duration = spellData.Lifetime

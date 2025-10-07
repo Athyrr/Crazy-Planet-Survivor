@@ -1,6 +1,3 @@
 using Unity.Entities;
-using UnityEngine;
 
-public struct DestroyEntityFlag : IComponentData
-{
-}
+public struct DestroyEntityFlag : IComponentData { }
