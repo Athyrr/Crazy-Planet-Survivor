@@ -1,4 +1,5 @@
 using Unity.Burst;
+using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -40,6 +41,7 @@ public partial struct EntitiesMovementSystem : ISystem
         LocalTransform playerTransform = playerExists ? SystemAPI.GetComponentRO<LocalTransform>(player).ValueRO : default;
         float3 playerPos = playerExists ? playerTransform.Position : float3.zero;
 
+
         // Linear movement job
         var linearJob = new MoveLinearJob
         {
@@ -50,8 +52,9 @@ public partial struct EntitiesMovementSystem : ISystem
         // Execute on threads 
         JobHandle linearHandle = linearJob.ScheduleParallel(state.Dependency);
 
+
         // Follow movement job
-        JobHandle followHandle = default;
+        JobHandle followHandle = linearHandle;
         if (playerExists)
         {
             var followJob = new MoveFollowJob
@@ -64,6 +67,15 @@ public partial struct EntitiesMovementSystem : ISystem
             followHandle = followJob.ScheduleParallel(linearHandle);
         }
 
+
+        // Update orbit center position job
+        var updateOrbitCenterJob = new UpdateOrbitCenterPositionJob
+        {
+            LocalTransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true)
+        };
+        JobHandle updateOrbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(followHandle);
+
+
         // Orbital movement job
         var orbitalMovementJob = new OrbitMovementJob
         {
@@ -71,7 +83,8 @@ public partial struct EntitiesMovementSystem : ISystem
             PlanetCenter = planetTransform.Position,
             PlanetRadius = planetData.Radius
         };
-        JobHandle orbitHandle = orbitalMovementJob.ScheduleParallel(followHandle);
+        JobHandle orbitHandle = orbitalMovementJob.ScheduleParallel(updateOrbitCenterHandle);
+
 
         // Final dependency
         state.Dependency = orbitHandle;
@@ -132,35 +145,57 @@ public partial struct EntitiesMovementSystem : ISystem
         }
     }
 
+
     [BurstCompile]
     [WithAll(typeof(OrbitMovement))]
     [WithNone(typeof(LinearMovement), typeof(FollowTargetMovement))]
-    partial struct OrbitMovementJob : IJobEntity
+    private partial struct OrbitMovementJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
 
-        void Execute(ref LocalTransform transform, in OrbitMovement movement)
+        public void Execute(ref LocalTransform transform, ref OrbitMovement movement)
         {
-            float3 orbitCenter = movement.OrbitCenter;
+            if (movement.OrbitCenterEntity == Entity.Null)
+                return;
 
-            float3 orbitVector = transform.Position - orbitCenter;
+            Entity orbitCenterEntity = movement.OrbitCenterEntity;
+            float3 orbitCenterPosition = movement.OrbitCenterPosition;
 
-            PlanetMovementUtils.GetSurfaceNormalAtPosition(in orbitCenter, in PlanetCenter, out float3 orbitNormal);
+            PlanetMovementUtils.GetSurfaceNormalAtPosition(in orbitCenterPosition, in PlanetCenter, out float3 orbitNormal);
             quaternion rotation = quaternion.AxisAngle(orbitNormal, movement.AngularSpeed * DeltaTime);
 
-            float3 rotatedVector = math.mul(rotation, orbitVector);
-            float3 newOrbitPosition = orbitCenter + rotatedVector;
+            movement.RelativeOffset = math.mul(rotation, movement.RelativeOffset);
+            movement.RelativeOffset = math.normalize(movement.RelativeOffset) * movement.Radius;
 
-            float3 newPosition = PlanetCenter + math.normalize(newOrbitPosition - PlanetCenter) * PlanetRadius;
+            float3 newOrbitPosition = orbitCenterPosition + movement.RelativeOffset;
 
-            PlanetMovementUtils.GetSurfaceNormalAtPosition(in newPosition, in PlanetCenter, out float3 normal);
+            PlanetMovementUtils.SnapToSurface(in newOrbitPosition, in PlanetCenter, PlanetRadius, out float3 snappedPosition);
+            transform.Position = snappedPosition;
+
+            // Calculate the rotation to face the movement direction
+            PlanetMovementUtils.GetSurfaceNormalAtPosition(in snappedPosition, in PlanetCenter, out float3 normal);
             float3 tangentDirection = math.normalize(math.cross(normal, orbitNormal));
-
-            transform.Position = newPosition;
             PlanetMovementUtils.GetRotationOnSurface(in tangentDirection, in normal, out quaternion targetRotation);
             transform.Rotation = targetRotation;
+        }
+    }
+
+
+    [BurstCompile]
+    [WithAll(typeof(OrbitMovement))]
+    [WithNone(typeof(LinearMovement), typeof(FollowTargetMovement))]
+    private partial struct UpdateOrbitCenterPositionJob : IJobEntity
+    {
+        [ReadOnly] public ComponentLookup<LocalTransform> LocalTransformLookup;
+
+        public void Execute(ref OrbitMovement movement)
+        {
+            if (LocalTransformLookup.HasComponent(movement.OrbitCenterEntity))
+            {
+                movement.OrbitCenterPosition = LocalTransformLookup[movement.OrbitCenterEntity].Position;
+            }
         }
     }
 }

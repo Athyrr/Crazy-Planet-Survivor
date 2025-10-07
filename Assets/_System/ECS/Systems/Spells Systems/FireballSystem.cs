@@ -1,7 +1,8 @@
 using Unity.Burst;
-using Unity.Collections;
 using Unity.Entities;
 using Unity.Transforms;
+using Unity.Mathematics;
+using Unity.Collections;
 
 [BurstCompile]
 [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -87,9 +88,11 @@ public partial struct FireballSystem : ISystem
 
             var orbitData = new OrbitMovement
             {
-                OrbitCenter = casterTransform.Position,
+                OrbitCenterEntity = caster,
+                OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 50f,
                 AngularSpeed = 3,
-                Radius = 50 
+                Radius = 50,
+                RelativeOffset = casterTransform.Forward() * 50f
             };
             var spawnPosition = casterTransform.Position + casterTransform.Forward() * orbitData.Radius;
             ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
@@ -98,12 +101,14 @@ public partial struct FireballSystem : ISystem
                 Rotation = casterTransform.Rotation,
                 Scale = 5f
             });
+            ECB.RemoveComponent<LinearMovement>(chunkIndex, fireballEntity);
+            ECB.AddComponent(chunkIndex, fireballEntity, orbitData);
 
             //ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
             //{
             //    Position = casterTransform.Position,
             //    Rotation = casterTransform.Rotation,
-            //    Scale = 10f
+            //    Scale = 100f
             //});
 
             //ECB.SetComponent<LinearMovement>(chunkIndex, fireballEntity, new LinearMovement
@@ -112,8 +117,6 @@ public partial struct FireballSystem : ISystem
             //    Speed = spellData.BaseSpeed
             //});
 
-            ECB.RemoveComponent<LinearMovement>(chunkIndex, fireballEntity);
-            ECB.AddComponent(chunkIndex, fireballEntity, orbitData);
 
             ECB.DestroyEntity(chunkIndex, requestEntity);
         }
