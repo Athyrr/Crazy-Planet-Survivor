@@ -23,6 +23,8 @@ public class EnemyAuthoring : MonoBehaviour
 
             AddComponent(entity, new Health() { Value = authoring.BaseStats.MaxHealth });
 
+            AddComponent(entity, new FollowTargetMovement() { Speed = authoring.BaseStats.Speed });
+
             AddBuffer<EnemySpellReady>(entity);
 
             AddComponent(entity, authoring.BaseStats);
