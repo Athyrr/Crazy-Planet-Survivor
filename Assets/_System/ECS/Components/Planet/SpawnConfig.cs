@@ -4,5 +4,4 @@ public struct SpawnConfig : IComponentData
 {
     public Entity Prefab;
     public int Amount;
-    public float DefaultSpeed;
 }

@@ -1,17 +1,11 @@
-using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
 public class EnemyAuthoring : MonoBehaviour
 {
-    [Header("Stats")]
-    public BaseStats BaseStats = new BaseStats()
-    {
-        MaxHealth = 100,
-        Damage = 100,
-        Armor = 5,
-        Speed = 2
-    };
+    [Header("Stats \n" +
+        "Resistances are value in %.")]
+    public BaseStats BaseStats;
 
     [Header("Spells")]
     public SpellDataSO[] InitialSpells;
@@ -26,6 +20,8 @@ public class EnemyAuthoring : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
             AddComponent(entity, new Enemy() { });
+
+            AddComponent(entity, new Health() { Value = authoring.BaseStats.MaxHealth });
 
             AddBuffer<EnemySpellReady>(entity);
 
@@ -45,6 +41,8 @@ public class EnemyAuthoring : MonoBehaviour
             {
                 modifierBuffer.Add(modifier);
             }
+
+            AddBuffer<DamageBufferElement>(entity);
 
             DynamicBuffer<ActiveSpell> spellBuffer = AddBuffer<ActiveSpell>(entity);
 

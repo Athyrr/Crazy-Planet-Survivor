@@ -7,8 +7,6 @@ public class SpawnerAuthoring : MonoBehaviour
 
     public int amount = 0;
 
-    public float DefaultSpeed = 0;
-
     private class Baker : Baker<SpawnerAuthoring>
     {
         public override void Bake(SpawnerAuthoring authoring)
@@ -19,7 +17,6 @@ public class SpawnerAuthoring : MonoBehaviour
             {
                 Prefab = GetEntity(authoring.prefab, TransformUsageFlags.Dynamic),
                 Amount = authoring.amount,
-                DefaultSpeed = authoring.DefaultSpeed
             });
         }
     }

@@ -105,11 +105,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   BaseStats:
-    MaxHealth: 50
+    MaxHealth: 80
     Speed: 20
     Damage: 10
-    Armor: 5
-    FireResistance: 0
+    Armor: 0
+    FireResistance: 50
+    IceResistance: 0
+    LightningResistance: 0
     CooldownReduction: 0
     AreaSize: 0
     CollectRange: 0

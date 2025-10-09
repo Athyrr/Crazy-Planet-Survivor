@@ -1,8 +1,8 @@
-using Unity.Burst;
-using Unity.Collections;
-using Unity.Entities;
 using Unity.Jobs;
+using Unity.Burst;
 using Unity.Physics;
+using Unity.Entities;
+using Unity.Collections;
 using Unity.Physics.Systems;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
@@ -52,15 +52,29 @@ public partial struct CollisionSystem : ISystem
             bool isBodyAProjectile = ProjectileLookup.HasComponent(entityA);
             bool isBodyBProjectile = ProjectileLookup.HasComponent(entityB);
 
+            // A: Projectile | B: Enemy
             if (isBodyAProjectile && isBodyBEnemy)
             {
+                var projectileData = ProjectileLookup[entityA];
+                ECB.AppendToBuffer(0, entityB, new DamageBufferElement()
+                {
+                    Damage = projectileData.Damage,
+                    Element = projectileData.Element
+                });
+
                 ECB.AddComponent(0, entityA, new DestroyEntityFlag());
-                ECB.AddComponent(0, entityB, new DestroyEntityFlag());
             }
 
+            // A: Enemy | B: Projectile
             if (isBodyAEnemy && isBodyBProjectile)
             {
-                ECB.AddComponent(0, entityA, new DestroyEntityFlag());
+                var projectileData = ProjectileLookup[entityB];
+                ECB.AppendToBuffer(0, entityA, new DamageBufferElement()
+                {
+                    Damage = projectileData.Damage,
+                    Element = projectileData.Element
+                });
+
                 ECB.AddComponent(0, entityB, new DestroyEntityFlag());
             }
         }

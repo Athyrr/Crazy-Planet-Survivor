@@ -1,18 +1,12 @@
 using Unity.Mathematics;
-using Unity.Transforms;
 using Unity.Entities;
 using UnityEngine;
 
 public class PlayerAuthoring : MonoBehaviour
 {
-    [Header("Stats")]
-    public BaseStats BaseStats = new BaseStats()
-    {
-        MaxHealth = 100,
-        Damage = 100,
-        Armor = 5,
-        Speed = 2
-    };
+    [Header("Stats \n" +
+        "Resistances are value in %.")]
+    public BaseStats BaseStats;
 
     [Header("Spells")]
     public SpellDataSO[] InitialSpells;
@@ -30,11 +24,15 @@ public class PlayerAuthoring : MonoBehaviour
 
             AddComponent(entity, new InputData() { Value = new float2(0, 0) });
 
-            AddComponent(entity, new LinearMovement() 
+            AddComponent(entity, new Health() { Value = authoring.BaseStats.MaxHealth});
+
+            AddComponent(entity, new LinearMovement()
             {
                 Direction = float3.zero,
                 Speed = authoring.BaseStats.Speed
             });
+
+            AddBuffer<DamageBufferElement>(entity);
 
             AddComponent(entity, authoring.BaseStats);
 
