@@ -48,7 +48,12 @@ public class PlayerController : MonoBehaviour
 
     private void InjectInputDirectionToECS(ref EntityManager entityManager, Vector2 vec)
     {
-        var inputEntity = entityManager.CreateEntityQuery(typeof(InputData)).GetSingletonEntity();
+        var inputQuery = entityManager.CreateEntityQuery(typeof(InputData));
+
+        if (inputQuery.IsEmpty)
+            return;
+
+        var inputEntity = inputQuery.GetSingletonEntity();
         entityManager.SetComponentData(inputEntity, new InputData { Value = _inputDirection });
     }
 }
