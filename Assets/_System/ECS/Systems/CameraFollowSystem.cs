@@ -27,11 +27,13 @@ public partial struct CameraFollowSystem : ISystem
         
         float3 cameraForward = cameraTransform.forward;
         
+        float camAngle = math.TORADIANS * settings.CameraAngle;
+        
         float3 cameraTangentRight = math.normalizesafe(math.cross(cameraForward, up)); 
         float3 nextCameraForward = math.normalizesafe(cameraForward - math.dot(cameraForward, up)*up);
-        nextCameraForward = math.rotate(math.normalizesafe(quaternion.AxisAngle(cameraTangentRight, -settings.CameraAngle)), nextCameraForward);
+        nextCameraForward = math.rotate(quaternion.AxisAngle(cameraTangentRight, -camAngle), nextCameraForward);
         
-        float3 relativePosition = math.rotate(math.normalizesafe(quaternion.AxisAngle(cameraTangentRight, settings.CameraAngle)), up) * settings.CameraDistance;
+        float3 relativePosition = math.rotate(quaternion.AxisAngle(cameraTangentRight, camAngle), up) * settings.CameraDistance;
         float3 targetPosition = playerPos + relativePosition;
         
         float3 camToPlayer = playerPos - (float3)cameraTransform.position;
