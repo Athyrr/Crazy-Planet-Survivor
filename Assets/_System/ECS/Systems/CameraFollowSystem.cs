@@ -28,22 +28,19 @@ public partial struct CameraFollowSystem : ISystem
         float3 cameraForward = cameraTransform.forward;
         
         float3 cameraTangentRight = math.normalizesafe(math.cross(cameraForward, up)); 
-        float3 nextCameraForward = math.normalizesafe(math.cross(up, cameraTangentRight));
-        nextCameraForward = math.rotate(quaternion.AxisAngle(cameraTangentRight, settings.CameraAngle), nextCameraForward);
+        float3 nextCameraForward = math.normalizesafe(cameraForward - math.dot(cameraForward, up)*up);
+        nextCameraForward = math.rotate(math.normalizesafe(quaternion.AxisAngle(cameraTangentRight, -settings.CameraAngle)), nextCameraForward);
         
-        float3 relativePosition = math.rotate(quaternion.AxisAngle(cameraTangentRight, -settings.CameraAngle), up) * settings.CameraDistance;
+        float3 relativePosition = math.rotate(math.normalizesafe(quaternion.AxisAngle(cameraTangentRight, settings.CameraAngle)), up) * settings.CameraDistance;
         float3 targetPosition = playerPos + relativePosition;
-
-        quaternion targetRotation = math.normalizesafe(quaternion.LookRotation(nextCameraForward, up));
+        
+        float3 camToPlayer = playerPos - (float3)cameraTransform.position;
+        quaternion targetRotation = math.normalizesafe(quaternion.LookRotation(math.normalizesafe(camToPlayer), -math.normalizesafe(math.cross(nextCameraForward, cameraTangentRight))));
         
         // Smooth
-
-        float3 smoothedPosition;
-        quaternion smoothedRotation;
-
-        smoothedPosition = math.lerp(cameraTransform.position, targetPosition, math.min(deltaTime * settings.Smooth, 1));
-        smoothedRotation = math.slerp(cameraTransform.rotation, targetRotation, math.min(deltaTime * settings.RotationSmooth, 1));
-
+        float3 smoothedPosition = math.lerp(cameraTransform.position, targetPosition, math.min(deltaTime * settings.Smooth, 1));
+        quaternion smoothedRotation = math.slerp(cameraTransform.rotation, targetRotation, math.min(deltaTime * settings.RotationSmooth, 1));
+        
         cameraTransform.position = smoothedPosition;
         cameraTransform.rotation = smoothedRotation;
 
