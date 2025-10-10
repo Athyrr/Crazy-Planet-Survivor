@@ -1,6 +1,7 @@
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEditor;
 using UnityEngine;
 
 [UpdateInGroup(typeof(LateSimulationSystemGroup))]
@@ -15,7 +16,7 @@ public partial struct CameraFollowSystem : ISystem
             return;
         if (!settings.Camera.IsValid())
             return;
-
+        
         Camera camera = settings.Camera.Value;
         Transform cameraTransform = camera.transform;
         LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
@@ -24,28 +25,22 @@ public partial struct CameraFollowSystem : ISystem
         float3 playerPos = playerTransform.Position;
         float3 up = playerTransform.Up();
         
-        float3 arbitrary = new float3(0, 0, 1); // world forward
-        if (math.abs(math.dot(up, arbitrary)) > 0.99f)
-        {
-            arbitrary = new float3(1, 0, 0);
-        }
-        float3 forward = math.normalizesafe(math.cross(math.cross(arbitrary, up), up));
+        float3 cameraForward = cameraTransform.forward;
         
-        float3 right = math.cross(up, forward);
+        float3 cameraTangentRight = math.normalizesafe(math.cross(cameraForward, up)); 
+        float3 nextCameraForward = math.normalizesafe(cameraForward - math.dot(cameraForward, up)*up);
+        nextCameraForward = math.rotate(math.normalizesafe(quaternion.AxisAngle(cameraTangentRight, -settings.CameraAngle)), nextCameraForward);
         
-        float cameraAngle = math.radians(settings.CameraAngle);
-        float3 offsetDir = -forward * math.cos(cameraAngle) + up * math.sin(cameraAngle);
-        float3 camOffset = offsetDir * settings.CameraDistance;
-
-        float3 targetPosition = playerPos + camOffset;
-        float3 toPlayer = math.normalizesafe(playerPos - targetPosition);
-
-        quaternion targetRotation = quaternion.LookRotationSafe(toPlayer, up);
+        float3 relativePosition = math.rotate(math.normalizesafe(quaternion.AxisAngle(cameraTangentRight, settings.CameraAngle)), up) * settings.CameraDistance;
+        float3 targetPosition = playerPos + relativePosition;
+        
+        float3 camToPlayer = playerPos - (float3)cameraTransform.position;
+        quaternion targetRotation = math.normalizesafe(quaternion.LookRotation(math.normalizesafe(camToPlayer), -math.normalizesafe(math.cross(nextCameraForward, cameraTangentRight))));
         
         // Smooth
-        float3 smoothedPosition = math.lerp(cameraTransform.position, targetPosition, deltaTime * settings.Smooth);
-        quaternion smoothedRotation = math.slerp(cameraTransform.rotation, targetRotation, deltaTime * settings.RotationSmooth);
-
+        float3 smoothedPosition = math.lerp(cameraTransform.position, targetPosition, math.min(deltaTime * settings.Smooth, 1));
+        quaternion smoothedRotation = math.slerp(cameraTransform.rotation, targetRotation, math.min(deltaTime * settings.RotationSmooth, 1));
+        
         cameraTransform.position = smoothedPosition;
         cameraTransform.rotation = smoothedRotation;
 
