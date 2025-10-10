@@ -4,6 +4,7 @@
 public enum EStatType
 {
     MaxHealth,
+    Health,
     Speed,
     Damage,
     Armor,
