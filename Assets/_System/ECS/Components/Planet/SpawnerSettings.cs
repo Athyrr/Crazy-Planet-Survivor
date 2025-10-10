@@ -13,6 +13,7 @@ public struct WaveElement : IBufferElementData
     public int Amount;
 }
 
+
 public struct SpawnerState : IComponentData
 {
     public int CurrentWaveIndex;

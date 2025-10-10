@@ -1,7 +1,8 @@
 using Unity.Burst;
-using Unity.Collections;
+using Unity.Physics;
 using Unity.Entities;
 using Unity.Transforms;
+using Unity.Collections;
 
 [BurstCompile]
 [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -11,6 +12,7 @@ public partial struct LightningStrikeSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<Stats>();
+        state.RequireForUpdate<SpellPrefab>();
         state.RequireForUpdate<ActiveSpell>();
         state.RequireForUpdate<CastSpellRequest>();
         state.RequireForUpdate<LightningStrikeRequestTag>();
@@ -28,9 +30,13 @@ public partial struct LightningStrikeSystem : ISystem
 
         var job = new CastSpellJob
         {
+            ECB = ecb.AsParallelWriter(),
+
+            PlayerLookup = SystemAPI.GetComponentLookup<Player>(true),
             TransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true),
             StatsLookup = SystemAPI.GetComponentLookup<Stats>(true),
-            ECB = ecb.AsParallelWriter(),
+            ColliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true),
+
             SpellDatabaseRef = spellDatabase.Blobs,
             SpellPrefabs = spellPrefabs
         };
@@ -41,11 +47,16 @@ public partial struct LightningStrikeSystem : ISystem
     [WithAll(typeof(CastSpellRequest), typeof(LightningStrikeRequestTag))]
     private partial struct CastSpellJob : IJobEntity
     {
+        public EntityCommandBuffer.ParallelWriter ECB;
+
+        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
-        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
+        [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
+
         [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
-        public EntityCommandBuffer.ParallelWriter ECB;
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
+
 
         void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
@@ -82,21 +93,52 @@ public partial struct LightningStrikeSystem : ISystem
             // Spell damage calculation
             float damage = spellData.BaseDamage + casterStats.Damage;
 
-            var fireballEntity = ECB.Instantiate(chunkIndex, spellPrefab);
-            ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
+            var projectileEntity = ECB.Instantiate(chunkIndex, spellPrefab);
+
+            ECB.SetComponent(chunkIndex, projectileEntity, new Projectile
+            {
+                Damage = damage,
+                Element = spellData.Element
+            });
+
+            ECB.SetComponent(chunkIndex, projectileEntity, new LocalTransform
             {
                 Position = casterTransform.Position,
                 Rotation = casterTransform.Rotation,
                 Scale = 5f
             });
 
-            ECB.SetComponent<LinearMovement>(chunkIndex, fireballEntity, new LinearMovement
+            bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
+            CollisionFilter collisionFilter;
+            if (isPlayerCaster)
+            {
+                collisionFilter = new CollisionFilter()
+                {
+                    BelongsTo = CollisionLayers.PlayerProjectile,
+                    CollidesWith = CollisionLayers.Enemy | CollisionLayers.Obstacle,
+                };
+            }
+            else
+            {
+                collisionFilter = new CollisionFilter()
+                {
+                    BelongsTo = CollisionLayers.EnemyProjectile,
+                    CollidesWith = CollisionLayers.Player | CollisionLayers.Obstacle,
+                };
+            }
+            PhysicsCollider collider = ColliderLookup[spellPrefab];
+            collider.Value.Value.SetCollisionFilter(collisionFilter);
+            ECB.SetComponent(chunkIndex, projectileEntity, collider);
+
+
+            ECB.SetComponent<LinearMovement>(chunkIndex, projectileEntity, new LinearMovement
             {
                 Direction = casterTransform.Forward(),
                 Speed = spellData.BaseSpeed
             });
 
-            ECB.AddComponent(chunkIndex, fireballEntity, new Lifetime
+
+            ECB.AddComponent(chunkIndex, projectileEntity, new Lifetime
             {
                 ElapsedTime = spellData.Lifetime,
                 Duration = spellData.Lifetime

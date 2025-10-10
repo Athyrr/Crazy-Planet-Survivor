@@ -108,15 +108,14 @@ MonoBehaviour:
     MaxHealth: 100
     Speed: 50
     Damage: 50
-    Armor: 5
+    Armor: 0
     FireResistance: 0
     IceResistance: 0
     LightningResistance: 0
     CooldownReduction: 0
     AreaSize: 0
     CollectRange: 0
-  InitialSpells:
-  - {fileID: 11400000, guid: a13ca1f0a33c36a46bac651b45432abc, type: 2}
+  InitialSpells: []
   InitialModifers: []
 --- !u!114 &4202536400600912654
 MonoBehaviour:
@@ -269,9 +268,9 @@ MonoBehaviour:
       m_Value:
         Category00: 0
         Category01: 0
-        Category02: 1
+        Category02: 0
         Category03: 1
-        Category04: 1
+        Category04: 0
         Category05: 0
         Category06: 0
         Category07: 0

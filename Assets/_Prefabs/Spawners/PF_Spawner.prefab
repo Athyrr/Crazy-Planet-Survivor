@@ -44,6 +44,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f95afcbbc4bb6e347b8fec784ae02fa9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpawnerAuthoring
-  Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-  Amount: 1000
+  Waves:
+  - SpawnDatas:
+    - Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 100
   TimeBetweenWaves: 30

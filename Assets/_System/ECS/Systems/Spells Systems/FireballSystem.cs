@@ -1,7 +1,7 @@
 using Unity.Burst;
+using Unity.Physics;
 using Unity.Entities;
 using Unity.Transforms;
-using Unity.Mathematics;
 using Unity.Collections;
 
 [BurstCompile]
@@ -31,9 +31,13 @@ public partial struct FireballSystem : ISystem
 
         var fireballJob = new CastFireballJob
         {
+            ECB = ecb.AsParallelWriter(),
+            
+            PlayerLookup = SystemAPI.GetComponentLookup<Player>(true),
             TransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true),
             StatsLookup = SystemAPI.GetComponentLookup<Stats>(true),
-            ECB = ecb.AsParallelWriter(),
+            ColliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true),
+          
             SpellDatabaseRef = spellDatabase.Blobs,
             SpellPrefabs = spellPrefabs
 
@@ -45,11 +49,16 @@ public partial struct FireballSystem : ISystem
     [WithAll(typeof(CastSpellRequest), typeof(FireballRequestTag))]
     private partial struct CastFireballJob : IJobEntity
     {
+        public EntityCommandBuffer.ParallelWriter ECB;
+
+        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
-        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
+        [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
+        
         [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
-        public EntityCommandBuffer.ParallelWriter ECB;
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
+
 
         void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
@@ -86,13 +95,11 @@ public partial struct FireballSystem : ISystem
 
             var fireballEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-
             ECB.SetComponent(chunkIndex, fireballEntity, new Projectile
             {
                 Damage = damage,
                 Element = spellData.Element
             });
-
 
             // Orbit movement version
             var orbitData = new OrbitMovement
@@ -113,7 +120,27 @@ public partial struct FireballSystem : ISystem
             ECB.RemoveComponent<LinearMovement>(chunkIndex, fireballEntity);
             ECB.AddComponent(chunkIndex, fireballEntity, orbitData);
 
-
+            bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
+            CollisionFilter collisionFilter;
+            if (isPlayerCaster)
+            {
+                collisionFilter = new CollisionFilter()
+                {
+                    BelongsTo = CollisionLayers.PlayerProjectile,
+                    CollidesWith = CollisionLayers.Enemy | CollisionLayers.Obstacle,
+                };
+            }
+            else
+            {
+                collisionFilter = new CollisionFilter()
+                {
+                    BelongsTo = CollisionLayers.EnemyProjectile,
+                    CollidesWith = CollisionLayers.Player | CollisionLayers.Obstacle,
+                };
+            }
+            PhysicsCollider collider = ColliderLookup[spellPrefab];
+            collider.Value.Value.SetCollisionFilter(collisionFilter);
+            ECB.SetComponent(chunkIndex, fireballEntity, collider);
 
             // Linear movement version
             //ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
