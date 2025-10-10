@@ -1,7 +1,7 @@
 using Unity.Burst;
 using Unity.Entities;
-using Unity.Mathematics;
 using Unity.Transforms;
+using Unity.Mathematics;
 
 [UpdateInGroup(typeof(InitializationSystemGroup))]
 [BurstCompile]

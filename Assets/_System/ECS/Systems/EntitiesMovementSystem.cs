@@ -1,9 +1,9 @@
-using Unity.Burst;
-using Unity.Collections;
-using Unity.Entities;
 using Unity.Jobs;
-using Unity.Mathematics;
+using Unity.Burst;
+using Unity.Entities;
 using Unity.Transforms;
+using Unity.Mathematics;
+using Unity.Collections;
 
 /// <summary>
 /// System that processes all entity movements on a planetary surface.
