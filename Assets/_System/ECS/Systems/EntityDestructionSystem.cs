@@ -1,6 +1,7 @@
 using Unity.Burst;
 using Unity.Entities;
 
+[UpdateAfter(typeof(DropExpOrbSystem))]
 [BurstCompile]
 public partial struct EntityDestructionSystem : ISystem
 {
