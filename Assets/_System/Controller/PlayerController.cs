@@ -5,7 +5,11 @@ using static UnityEngine.InputSystem.InputAction;
 
 public class PlayerController : MonoBehaviour
 {
+    public GameManager GameManager;
+
     private GameInputs _gameInputs;
+
+    private EntityQuery _inputQuery;
 
     private Vector2 _inputDirection = Vector2.zero;
 
@@ -15,10 +19,20 @@ public class PlayerController : MonoBehaviour
             _gameInputs = new GameInputs();
     }
 
+    private void Start()
+    {
+        var world = World.DefaultGameObjectInjectionWorld;
+
+        var entityManager = world.EntityManager;
+        _inputQuery = entityManager.CreateEntityQuery(typeof(InputData));
+    }
+
     void OnEnable()
     {
         _gameInputs.Player.Move.performed += HandleMoveInput;
         _gameInputs.Player.Move.canceled += HandleMoveInput;
+
+        _gameInputs.Player.Pause.started += HandlePauseInput;
 
         _gameInputs.Enable();
     }
@@ -28,14 +42,13 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Player.Move.performed -= HandleMoveInput;
         _gameInputs.Player.Move.canceled -= HandleMoveInput;
 
+        _gameInputs.Player.Pause.started -= HandlePauseInput;
+
         _gameInputs.Disable();
     }
     void Update()
     {
-        var world = World.DefaultGameObjectInjectionWorld;
-        var entityManager = world.EntityManager;
-
-        InjectInputDirectionToECS(ref entityManager, _inputDirection);
+        InjectInputDirectionToECS(_inputDirection);
     }
 
     private void HandleMoveInput(CallbackContext ctx)
@@ -46,14 +59,20 @@ public class PlayerController : MonoBehaviour
         _inputDirection = ctx.ReadValue<Vector2>();
     }
 
-    private void InjectInputDirectionToECS(ref EntityManager entityManager, Vector2 vec)
+    private void InjectInputDirectionToECS( Vector2 direction)
     {
-        var inputQuery = entityManager.CreateEntityQuery(typeof(InputData));
-
-        if (inputQuery.IsEmpty)
+        if (_inputQuery.IsEmpty)
             return;
 
-        var inputEntity = inputQuery.GetSingletonEntity();
-        entityManager.SetComponentData(inputEntity, new InputData { Value = _inputDirection });
+        var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+        var inputEntity = _inputQuery.GetSingletonEntity();
+
+        entityManager.SetComponentData(inputEntity, new InputData { Value = direction });
+    }
+
+    private void HandlePauseInput(CallbackContext ctx)
+    {
+        if (ctx.started)
+            GameManager.TogglePause();
     }
 }
