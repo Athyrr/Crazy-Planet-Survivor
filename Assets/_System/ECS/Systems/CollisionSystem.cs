@@ -90,8 +90,6 @@ public partial struct CollisionSystem : ISystem
         //    ECB.AddComponent(0, projectile, new DestroyEntityFlag());
         //}
 
-
-
         private bool TryResolveProjectileVsTarget(Entity entityA, Entity entityB, out Entity projectile, out Entity target, bool targetIsPlayer = false)
         {
             if (ProjectileLookup.HasComponent(entityA) && (targetIsPlayer ? PlayerLookup.HasComponent(entityB) : EnemyLookup.HasComponent(entityB)))

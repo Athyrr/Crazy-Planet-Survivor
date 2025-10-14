@@ -111,17 +111,17 @@ public partial struct FireballSystem : ISystem
             var orbitData = new OrbitMovement
             {
                 OrbitCenterEntity = caster,
-                OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 50f,
-                AngularSpeed = 3,
-                Radius = 50,
-                RelativeOffset = casterTransform.Forward() * 50f
+                OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 5, // @todo change distance by (2) by value  /!\ value same as radius
+                AngularSpeed = 4,
+                Radius = 5,
+                RelativeOffset = casterTransform.Forward() * 5
             };
             var spawnPosition = casterTransform.Position + casterTransform.Forward() * orbitData.Radius;
             ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
             {
                 Position = spawnPosition,
                 Rotation = casterTransform.Rotation,
-                Scale = 5f
+                Scale = 0.7f
             });
             ECB.RemoveComponent<LinearMovement>(chunkIndex, fireballEntity);
             ECB.AddComponent(chunkIndex, fireballEntity, orbitData);

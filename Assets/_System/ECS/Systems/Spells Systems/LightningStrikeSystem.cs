@@ -111,7 +111,7 @@ public partial struct LightningStrikeSystem : ISystem
             {
                 Position = casterTransform.Position,
                 Rotation = casterTransform.Rotation,
-                Scale = 5f
+                Scale = 1f
             });
 
             bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);

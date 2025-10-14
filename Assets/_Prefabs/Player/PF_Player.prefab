@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 285.2, z: -79.6}
-  m_LocalScale: {x: 10, y: 10, z: 10}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -106,7 +106,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAuthoring
   BaseStats:
     MaxHealth: 100
-    Speed: 50
+    Speed: 10
     Damage: 50
     Armor: 0
     FireResistance: 0
@@ -114,8 +114,9 @@ MonoBehaviour:
     LightningResistance: 0
     CooldownReduction: 0
     AreaSize: 0
-    CollectRange: 0
-  InitialSpells: []
+    CollectRange: 50
+  InitialSpells:
+  - {fileID: 11400000, guid: a13ca1f0a33c36a46bac651b45432abc, type: 2}
   InitialModifers: []
 --- !u!114 &4202536400600912654
 MonoBehaviour:
@@ -129,7 +130,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ccea9ea98e38942e0b0938c27ed1903e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Physics.Custom::Unity.Physics.Authoring.PhysicsBodyAuthoring
-  m_MotionType: 0
+  m_MotionType: 1
   m_Smoothing: 0
   m_Mass: 1
   m_LinearDamping: 0.01

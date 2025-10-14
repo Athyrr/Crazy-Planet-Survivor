@@ -47,7 +47,6 @@ public static partial class PlanetMovementUtils
         return;
     }
 
-
     [BurstCompile]
     public static void GetSurfaceStepTowardDirection(in float3 from, in float3 toDirection, float distance, in float3 planetCenter, float radius, out float3 resultPosition)
     {

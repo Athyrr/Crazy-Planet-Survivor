@@ -105,7 +105,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 ECB.SetComponent(i, entity, new LocalTransform
                 {
                     Position = spawnPosition,
-                    Scale = 5f,
+                    Scale = 1f,
                     Rotation = quaternion.LookRotationSafe(tangentDirection, normal)
                 });
 

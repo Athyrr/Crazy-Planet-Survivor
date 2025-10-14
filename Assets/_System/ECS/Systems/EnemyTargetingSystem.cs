@@ -93,7 +93,6 @@ public partial struct EnemyTargetingSystem : ISystem
                     {
                         Caster = entity,
                         Target = Player,
-                        //DatabaseRef = spellToCast.DatabaseRef,
                         DatabaseIndex = spell.DatabaseIndex
                     });
 

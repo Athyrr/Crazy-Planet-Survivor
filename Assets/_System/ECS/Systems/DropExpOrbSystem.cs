@@ -48,6 +48,7 @@ public partial struct DropExpOrbSystem : ISystem
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in ExperienceLoot loot)
         {
             var rand = Random.CreateFromIndex(Seed);
+            
             var dropChancePicked = rand.NextFloat();
             if (dropChancePicked > loot.DropChance)
             {
@@ -57,11 +58,12 @@ public partial struct DropExpOrbSystem : ISystem
 
             int totalExp = loot.ExperienceValue;
 
+            //@todo benchmark
             for (int i = 0; i < OrbDatabase.Length; i++)
             {
                 OrbDatabaseBufferElement orbDb = OrbDatabase[i];
 
-                if (orbDb.Value == 0)
+                if (orbDb.Value <= 0)
                     continue;
 
                 int numToDrop = totalExp / orbDb.Value;
@@ -78,7 +80,7 @@ public partial struct DropExpOrbSystem : ISystem
                         {
                             Position = spawnPos,
                             Rotation = quaternion.identity,
-                            Scale = 3,
+                            Scale = 0.3f,
                         });
 
                     }
