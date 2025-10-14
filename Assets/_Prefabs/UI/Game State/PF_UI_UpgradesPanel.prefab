@@ -149,6 +149,7 @@ GameObject:
   - component: {fileID: 3660644476963303025}
   - component: {fileID: 7275517111408218192}
   - component: {fileID: 3248068922219643276}
+  - component: {fileID: 5844805202481358804}
   m_Layer: 5
   m_Name: PF_UI_UpgradesPanel
   m_TagString: Untagged
@@ -215,6 +216,18 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &5844805202481358804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7082085965108815411}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4960646c6a0359b4e8194eefc1a633b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UpgradeSelectionComponent
 --- !u!1 &7984515343760756972
 GameObject:
   m_ObjectHideFlags: 0

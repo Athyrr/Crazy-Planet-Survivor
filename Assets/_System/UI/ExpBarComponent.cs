@@ -7,6 +7,7 @@ public class ExpBarComponent : MonoBehaviour
 {
     public Slider ExpSlider;
     public TMP_Text ExpText;
+    public TMP_Text LevelText;
 
     private EntityManager _entityManager;
     private EntityQuery _playerQuery;
@@ -32,7 +33,8 @@ public class ExpBarComponent : MonoBehaviour
 
         float ratio = Mathf.Clamp01(playerExperience.Experience / playerExperience.NextLevelExperienceRequired);
         ExpSlider.value = ratio;
-
+        LevelText.text = $"{playerExperience.Level}";
+        ;
         ExpText.text = $"{playerExperience.Experience} / {playerExperience.NextLevelExperienceRequired}";
     }
 }
