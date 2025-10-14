@@ -1,7 +1,7 @@
-using UnityEngine;
-using Unity.Entities;
-using UnityEngine.UI;
 using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using Unity.Entities;
 
 public class HealthBarComponent : MonoBehaviour
 {
