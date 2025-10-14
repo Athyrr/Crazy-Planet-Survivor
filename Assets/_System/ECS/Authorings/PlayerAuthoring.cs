@@ -64,6 +64,13 @@ public class PlayerAuthoring : MonoBehaviour
             }
 
             var expBuffer = AddBuffer<CollectedExperienceBufferElement>(entity);
+
+            AddComponent(entity, new PlayerExperience()
+            {
+                Experience = 0,
+                Level = 1,
+                NextLevelExperienceRequired = 500
+            });
         }
     }
 }

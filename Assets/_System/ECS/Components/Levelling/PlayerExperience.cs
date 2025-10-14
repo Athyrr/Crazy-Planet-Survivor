@@ -4,5 +4,5 @@ public struct PlayerExperience : IComponentData
 {
     public int Level;
     public float Experience;
-    public float NextLevelExperienceRequired;
+    public int NextLevelExperienceRequired;
 }
