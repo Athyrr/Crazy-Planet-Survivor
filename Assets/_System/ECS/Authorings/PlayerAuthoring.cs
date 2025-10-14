@@ -24,7 +24,7 @@ public class PlayerAuthoring : MonoBehaviour
 
             AddComponent(entity, new InputData() { Value = new float2(0, 0) });
 
-            AddComponent(entity, new Health() { Value = authoring.BaseStats.MaxHealth});
+            AddComponent(entity, new Health() { Value = authoring.BaseStats.MaxHealth });
 
             AddComponent(entity, new LinearMovement()
             {
@@ -61,8 +61,9 @@ public class PlayerAuthoring : MonoBehaviour
                 {
                     ID = spellSO.ID,
                 });
-
             }
+
+            var expBuffer = AddBuffer<CollectedExperienceBufferElement>(entity);
         }
     }
 }
