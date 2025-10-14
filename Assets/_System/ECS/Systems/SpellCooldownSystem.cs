@@ -28,6 +28,12 @@ public partial struct SpellCooldownSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+
+        if (gameState.State != EGameState.Running)
+            return;
+
         var deltaTime = SystemAPI.Time.DeltaTime;
         
         var spellDatabase = SystemAPI.GetSingleton<SpellsDatabase>();

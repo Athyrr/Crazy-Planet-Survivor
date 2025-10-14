@@ -15,6 +15,12 @@ public partial struct PlayerProgressionSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+
+        if (gameState.State != EGameState.Running)
+            return;
+
         if (!SystemAPI.TryGetSingletonEntity<Player>(out var player))
             return;
 
