@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewSpellData", menuName = "Survivor/Spell Data")]
+[CreateAssetMenu(fileName = "NewSpellData", menuName = "Survivor/Spell/Spell Data")]
 public class SpellDataSO : ScriptableObject
 {
     public string DisplayName;
