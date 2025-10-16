@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [ExecuteInEditMode] 
-public class SurfaceProjector : MonoBehaviour
+public class SurfaceProjectorController : MonoBehaviour
 {
     [Tooltip("Planet trasnform.")]
     public Transform PlanetTransform;

@@ -6,6 +6,7 @@ Shader "Unlit/SurfaceWrapShader"
         _BaseColor("Color", Color) = (0, 0.5, 1, 0.5)
         _ScrollSpeedU("Scroll Speed U", float) = 0.1
         _ScrollSpeedV("Scroll Speed V", float) = 0.1
+        _RotationSpeed("Rotation speed", float) = 0.1
         _Emissive("Emissive", float) = 1
     }
 
@@ -49,6 +50,7 @@ Shader "Unlit/SurfaceWrapShader"
             float _Emissive;
             float _ScrollSpeedU;
             float _ScrollSpeedV;
+            float _RotationSpeed;
 
 
             Varyings vert(Attributes IN)
@@ -72,6 +74,8 @@ Shader "Unlit/SurfaceWrapShader"
                 uv.x += _Time.y * _ScrollSpeedU;
                 uv.y += _Time.y * _ScrollSpeedV;
 
+                // @todo Rotation
+
                 // Set output uv
                 OUT.uv = TRANSFORM_TEX(uv, _MainTex);
 
@@ -88,8 +92,11 @@ Shader "Unlit/SurfaceWrapShader"
                 
                 //Set color on texture
                 half4 finalColor = texColor * _BaseColor;
+                
+                // Emissive
+                finalColor.rgb *= _Emissive;
 
-                return finalColor * _Emissive;
+                return finalColor;
             }
             ENDHLSL
         }
