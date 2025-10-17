@@ -6,7 +6,6 @@ using Unity.Collections;
 [BurstCompile]
 public partial struct ApplyUpgradeSystem : ISystem
 {
-
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -14,7 +13,6 @@ public partial struct ApplyUpgradeSystem : ISystem
         state.RequireForUpdate<UpgradesDatabase>();
         state.RequireForUpdate<ApplyUpgradeRequest>();
     }
-
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
@@ -66,22 +64,20 @@ public partial struct ApplyUpgradeSystem : ISystem
                     break;
 
                 case EUpgradeType.Spell:
-                    ECB.AppendToBuffer(chunkIndex, PlayerEntity, new ActiveSpell()
+                    ECB.AppendToBuffer(chunkIndex, PlayerEntity, new SpellActivationRequest()
                     {
-                        DatabaseIndex = upgradeIndex,
-                        CooldownTimer = 0,
-                        Level = 1
+                        ID = upgradeData.SpellID
                     });
-
-                    ECB.DestroyEntity(chunkIndex, requestEntity);
                     break;
 
                 default:
                     break;
             }
-
             // Clear upgrades selection buffer 
             ECB.SetBuffer<UpgradeSelectionElement>(chunkIndex, GameStateEntity);
+
+            // Destroy ApplyUpgradeRequest
+            ECB.DestroyEntity(chunkIndex, requestEntity);
         }
     }
 }

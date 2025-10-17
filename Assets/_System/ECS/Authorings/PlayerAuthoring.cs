@@ -51,13 +51,13 @@ public class PlayerAuthoring : MonoBehaviour
 
             DynamicBuffer<ActiveSpell> spellBuffer = AddBuffer<ActiveSpell>(entity);
 
-            DynamicBuffer<BaseSpell> baseSpellBuffer = AddBuffer<BaseSpell>(entity);
+            DynamicBuffer<SpellActivationRequest> baseSpellBuffer = AddBuffer<SpellActivationRequest>(entity);
             foreach (var spellSO in authoring.InitialSpells)
             {
                 if (spellSO == null || spellSO.SpellPrefab == null)
                     continue;
 
-                baseSpellBuffer.Add(new BaseSpell
+                baseSpellBuffer.Add(new SpellActivationRequest
                 {
                     ID = spellSO.ID,
                 });
