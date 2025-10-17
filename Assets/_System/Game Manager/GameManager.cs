@@ -7,11 +7,11 @@ public class GameManager : MonoBehaviour
     public GameObject PausePanel;
     public GameObject GameOverPanel;
 
+    public UpgradeSelectionComponent UpgradeSelectionUI;
+
     private EntityManager _entityManager;
     private EntityQuery _gameStateQuery;
-    private EntityQuery _levelUpFlagQuery;
     private EntityQuery _playerHealthQuery;
-    private EntityQuery _playerQuery;
 
     public bool SpacePressed;
 
@@ -25,8 +25,6 @@ public class GameManager : MonoBehaviour
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
-        _levelUpFlagQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(LevelUpFlag));
-        _playerQuery = _entityManager.CreateEntityQuery(typeof(Player));
         _playerHealthQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Health));
     }
 
@@ -43,25 +41,27 @@ public class GameManager : MonoBehaviour
             case EGameState.Running:
                 HandleRunningState(gameStateEntity);
                 break;
+
             case EGameState.Paused:
                 HandlePausedState(gameStateEntity);
                 break;
-            case EGameState.UpgradeSelection:
-                HandleUpgradeSelectionState(gameStateEntity);
+
+            default:
                 break;
         }
 
+        Debug.Log("Current state: " + currentGameState.State);
     }
 
     private void HandleRunningState(Entity gameStateEntity)
     {
-        // If player levelled up
-        if (!_levelUpFlagQuery.IsEmpty)
+        // If upgrades buffer is fullfiled.
+        var buffer = _entityManager.GetBuffer<UpgradeSelectionElement>(gameStateEntity, true);
+        if (buffer.Length > 0)
         {
-            ChangeState(gameStateEntity, EGameState.UpgradeSelection);
+            UpgradeSelectionUI.DisplaySelection(buffer);
 
-            var playerEntity = _playerQuery.GetSingletonEntity();
-            _entityManager.RemoveComponent<LevelUpFlag>(playerEntity);
+            ChangeState(gameStateEntity, EGameState.UpgradeSelection);
             return;
         }
 
@@ -75,10 +75,6 @@ public class GameManager : MonoBehaviour
                 return;
             }
         }
-    }
-
-    private void HandleUpgradeSelectionState(Entity gameStateEntity)
-    {
     }
 
     private void HandlePausedState(Entity gameStateEntity)
@@ -141,6 +137,7 @@ public class GameManager : MonoBehaviour
         }
         else if (currentGameState.State == EGameState.UpgradeSelection)
         {
+            Debug.Log("Toggle selection");
             ChangeState(gameStateEntity, EGameState.Running);
         }
     }

@@ -8,7 +8,7 @@ public class CameraSettingsAuthoring : MonoBehaviour
     public Camera Camera;
     public GameObject PlayerTarget;
 
-    [Header("Settings")] 
+    [Header("Settings")]
     [Min(1)] public float CameraDistance;
     [Range(0f, 90f)] public float CameraAngle;
     [Range(1f, 30f)] public float Smooth = 8f;
@@ -18,7 +18,8 @@ public class CameraSettingsAuthoring : MonoBehaviour
     {
         public override void Bake(CameraSettingsAuthoring authoring)
         {
-            if (authoring.Camera == null || authoring.PlayerTarget == null) return;
+            if (authoring.Camera == null || authoring.PlayerTarget == null) 
+                return;
 
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
 

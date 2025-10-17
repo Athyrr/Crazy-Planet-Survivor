@@ -65,7 +65,6 @@ public partial struct FireballSystem : ISystem
         [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
-
         void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
             if (!SpellDatabaseRef.IsCreated || !TransformLookup.HasComponent(request.Caster))

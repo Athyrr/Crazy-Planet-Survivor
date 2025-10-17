@@ -1,5 +1,10 @@
+using Unity.Entities;
+
 public struct UpgradeBlob
 {
+    public BlobString DisplayName;
+    public BlobString Description;
+
     public EUpgradeType UpgradeType;
 
     public EStatType StatType;

@@ -28,6 +28,9 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
 
                 ref UpgradeBlob upgradeBlobRoot = ref arrayBuilder[i];
 
+                builder.AllocateString(ref upgradeBlobRoot.DisplayName, upgradeSO.DisplayName);
+                builder.AllocateString(ref upgradeBlobRoot.Description, upgradeSO.Description);
+
                 upgradeBlobRoot.UpgradeType = upgradeSO.UpgradeType;
                 upgradeBlobRoot.StatType = upgradeSO.Stat;
                 upgradeBlobRoot.ModifierStrategy = upgradeSO.ModifierStrategy;
@@ -38,23 +41,7 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
             var upgradesDatabaseBlob = builder.CreateBlobAssetReference<UpgradeBlobs>(Allocator.Persistent);
             AddComponent(entity, new UpgradesDatabase { Blobs = upgradesDatabaseBlob });
 
-            builder.Dispose();
-
-
-            // Add upgrades prefab to buffer  
-            //@todo new Buffer element UpgradeUIPrefab to store upgrade UI card prefab for selection.
-            //@todo check if sending request from dots world to gameObject world worst it.
-            //var prefabBuffer = AddBuffer<UpgradeUIPrefab>(entity);
-            //foreach (var upgradeSO in authoring.UpgradesDatabase.Upgrades)
-            //{
-            //    if (upgradeSO == null || upgradeSO.UIPrefab == null)
-            //        continue;
-
-            //    prefabBuffer.Add(new UpgradeUIPrefab
-            //    {
-            //        Prefab = GetEntity(upgradeSO.UIPrefab, TransformUsageFlags.Dynamic)
-            //    });
-            //}
+            builder.Dispose();          
         }
     }
 }
