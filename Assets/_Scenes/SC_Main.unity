@@ -204,6 +204,7 @@ MonoBehaviour:
   UpgradesPanel: {fileID: 1012958783}
   PausePanel: {fileID: 2087372309}
   GameOverPanel: {fileID: 1408586701}
+  UpgradeSelectionUI: {fileID: 1012958785}
   SpacePressed: 0
 --- !u!4 &854452524
 Transform:
@@ -230,6 +231,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
   m_PrefabInstance: {fileID: 1261298548282284464}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1012958785 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5844805202481358804, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
+  m_PrefabInstance: {fileID: 1261298548282284464}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1012958783}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4960646c6a0359b4e8194eefc1a633b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UpgradeSelectionComponent
 --- !u!1 &1177978197
 GameObject:
   m_ObjectHideFlags: 0
@@ -852,7 +864,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_SizeDelta.y
-      value: -200
+      value: -225.00005
       objectReference: {fileID: 0}
     - target: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_LocalPosition.x
@@ -888,7 +900,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0
+      value: -12.5
       objectReference: {fileID: 0}
     - target: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -902,9 +914,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5844805202481358804, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
+      propertyPath: GameManager
+      value: 
+      objectReference: {fileID: 854452523}
     - target: {fileID: 7082085965108815411, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_Name
       value: PF_UI_UpgradesPanel
+      objectReference: {fileID: 0}
+    - target: {fileID: 7082085965108815411, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -20,6 +20,7 @@ public partial struct StatsCalculationSystem : ISystem
         if (gameState.State != EGameState.Running)
             return;
 
+        //@todo use RecalculateStatsRequest
         var job = new CalculateStatsJob();
         state.Dependency = job.ScheduleParallel(state.Dependency);
     }

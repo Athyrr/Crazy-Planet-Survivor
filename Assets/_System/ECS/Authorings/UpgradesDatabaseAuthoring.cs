@@ -28,6 +28,8 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
 
                 ref UpgradeBlob upgradeBlobRoot = ref arrayBuilder[i];
 
+                //upgradeBlobRoot.DisplayName = upgradeSO.DisplayName;
+                //upgradeBlobRoot.Description = upgradeSO.Description;
                 upgradeBlobRoot.UpgradeType = upgradeSO.UpgradeType;
                 upgradeBlobRoot.StatType = upgradeSO.Stat;
                 upgradeBlobRoot.ModifierStrategy = upgradeSO.ModifierStrategy;
@@ -40,6 +42,9 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
 
             builder.Dispose();
 
+
+            // log database length
+            Debug.Log("Upgrade database length: " + upgradesDatabaseBlob.Value.Upgrades.Length);
 
             // Add upgrades prefab to buffer  
             //@todo new Buffer element UpgradeUIPrefab to store upgrade UI card prefab for selection.
