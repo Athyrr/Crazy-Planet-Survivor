@@ -49,6 +49,8 @@ public class PlayerAuthoring : MonoBehaviour
             foreach (var modifier in authoring.InitialModifers)
                 modifierBuffer.Add(modifier);
 
+            AddComponent<RecalculateStatsRequest>(entity);
+
             DynamicBuffer<ActiveSpell> spellBuffer = AddBuffer<ActiveSpell>(entity);
 
             DynamicBuffer<SpellActivationRequest> baseSpellBuffer = AddBuffer<SpellActivationRequest>(entity);

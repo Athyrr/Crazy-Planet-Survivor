@@ -53,14 +53,15 @@ public partial struct ApplyUpgradeSystem : ISystem
             switch (upgradeData.UpgradeType)
             {
                 case EUpgradeType.Stat:
-                    ECB.AppendToBuffer(chunkIndex, PlayerEntity, new StatModifier()
+                    var stat = new StatModifier()
                     {
                         Type = upgradeData.StatType,
                         Strategy = upgradeData.ModifierStrategy,
                         Value = upgradeData.Value,
-                    });
+                    };
+                    ECB.AppendToBuffer(chunkIndex, PlayerEntity,stat );
 
-                    //ECB.AddComponent(chunkIndex, PlayerEntity, new RecalculateStatsRequest());
+                    ECB.AddComponent(chunkIndex, PlayerEntity, new RecalculateStatsRequest());
                     break;
 
                 case EUpgradeType.Spell:

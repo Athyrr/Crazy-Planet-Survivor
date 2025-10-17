@@ -79,6 +79,7 @@ public partial struct UpgradeSelectionSystem : ISystem
                     DatabaseIndex = index
                 });
             }
+            //@todo use SelectUpgrade Flag in GameManager instead of checking if the buffer is fullfiled
 
             ECB.RemoveComponent<PlayerLevelUpFlag>(PlayerEntity);
         }

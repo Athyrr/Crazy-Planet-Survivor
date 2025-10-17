@@ -44,6 +44,8 @@ public class EnemyAuthoring : MonoBehaviour
                 modifierBuffer.Add(modifier);
             }
 
+            AddComponent<RecalculateStatsRequest>(entity);
+
             AddBuffer<DamageBufferElement>(entity);
 
             DynamicBuffer<ActiveSpell> spellBuffer = AddBuffer<ActiveSpell>(entity);
