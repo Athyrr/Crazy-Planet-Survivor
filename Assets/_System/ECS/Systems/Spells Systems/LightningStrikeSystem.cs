@@ -63,8 +63,7 @@ public partial struct LightningStrikeSystem : ISystem
         [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
-
-        void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
+        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
             if (!SpellDatabaseRef.IsCreated || !TransformLookup.HasComponent(request.Caster))
             {
@@ -150,6 +149,7 @@ public partial struct LightningStrikeSystem : ISystem
                 Duration = spellData.Lifetime
             });
 
+            // Destroy request entity after spell instancing
             ECB.DestroyEntity(chunkIndex, requestEntity);
         }
     }
