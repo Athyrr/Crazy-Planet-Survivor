@@ -52,5 +52,7 @@ public struct BaseStats : IComponentData
     public float AreaSize;
 
     public float CollectRange;
+    public float MaxCollectRange;
+
     // etc
 }

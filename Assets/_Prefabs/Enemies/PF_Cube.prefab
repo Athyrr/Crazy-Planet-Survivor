@@ -11,9 +11,9 @@ GameObject:
   - component: {fileID: 834412683046234062}
   - component: {fileID: 7430232737262992792}
   - component: {fileID: 2295197189331311308}
-  - component: {fileID: -795139794179562712}
   - component: {fileID: 7172051252708795952}
   - component: {fileID: -809601175486125950}
+  - component: {fileID: -795139794179562712}
   - component: {fileID: 7077652745905088192}
   m_Layer: 0
   m_Name: PF_Cube
@@ -93,34 +93,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &-795139794179562712
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4960229139857780973}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 03db88175c3880e4d91f5497f684801e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
-  BaseStats:
-    MaxHealth: 80
-    Speed: 6
-    Damage: 5
-    Armor: 0
-    FireResistance: 50
-    IceResistance: 0
-    LightningResistance: 0
-    CooldownReduction: 0
-    AreaSize: 0
-    CollectRange: 0
-  InitialSpells: []
-  InitialModifers:
-  - Type: 0
-    Value: 0
-    Strategy: 0
 --- !u!114 &7172051252708795952
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -315,6 +287,34 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
+--- !u!114 &-795139794179562712
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4960229139857780973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03db88175c3880e4d91f5497f684801e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
+  BaseStats:
+    MaxHealth: 80
+    Speed: 6
+    Damage: 5
+    Armor: 0
+    FireResistance: 50
+    IceResistance: 0
+    LightningResistance: 0
+    CooldownReduction: 0
+    AreaSize: 0
+    CollectRange: 0
+  InitialSpells: []
+  InitialModifers:
+  - Type: 0
+    Value: 0
+    Strategy: 0
 --- !u!114 &7077652745905088192
 MonoBehaviour:
   m_ObjectHideFlags: 0

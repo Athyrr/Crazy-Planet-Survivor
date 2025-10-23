@@ -110,6 +110,7 @@ public class GameManager : MonoBehaviour
                 UpgradesPanel.SetActive(true);
                 PausePanel.SetActive(false);
                 GameOverPanel.SetActive(false);
+
                 break;
 
             case EGameState.GameOver:
