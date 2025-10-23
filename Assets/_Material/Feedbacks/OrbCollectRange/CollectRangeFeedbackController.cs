@@ -1,9 +1,8 @@
+using Unity.Mathematics;
+using Unity.Transforms;
 using Unity.Entities;
 using UnityEngine;
-using Unity.Mathematics;
-using Unity.Transforms; // Pour math.max
 
-// Assure qu'il y a un Renderer sur ce GameObject
 [RequireComponent(typeof(Renderer))]
 public class CollectRangeFeedbackController : MonoBehaviour
 {
@@ -51,16 +50,23 @@ public class CollectRangeFeedbackController : MonoBehaviour
         if (_playerStatsQuery.IsEmpty || _materialInstance == null)
             return;
 
+
+
         var playerEntity = _playerStatsQuery.GetSingletonEntity();
+
+        if (!_entityManager.HasComponent<BaseStats>(playerEntity))
+            return;
+
         var stats = _entityManager.GetComponentData<Stats>(playerEntity);
         var baseStats = _entityManager.GetComponentData<BaseStats>(playerEntity);
 
         float ratio = 0f;
         if (baseStats.MaxCollectRange > 0.001f)
         {
-            ratio = math.saturate(stats.CollectRange / baseStats.MaxCollectRange);
+            ratio = math.saturate(stats.CollectRange / baseStats.MaxCollectRange); // Clamp 01
         }
 
+        // If same, dont update shader
         if (!Mathf.Approximately(ratio, _lastKnownRatio))
         {
             _materialInstance.SetFloat(_radiusRatioPropertyID, ratio);
@@ -70,6 +76,9 @@ public class CollectRangeFeedbackController : MonoBehaviour
 
     public void RefreshPosition()
     {
+        if (_playerStatsQuery.IsEmpty || _materialInstance == null)
+            return;
+
         var playerEntity = _playerTransformQuery.GetSingletonEntity();
         var playerTransform = _entityManager.GetComponentData<LocalTransform>(playerEntity);
 
@@ -78,9 +87,7 @@ public class CollectRangeFeedbackController : MonoBehaviour
 
         // Rotation
         float3 worldForward = math.forward();
-
         var playerUp = playerTransform.Up();
-
         float3 projectedForward = worldForward - math.dot(worldForward, playerUp) * playerUp;
         projectedForward = math.normalize(projectedForward);
 
