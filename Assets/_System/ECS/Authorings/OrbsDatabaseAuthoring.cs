@@ -13,7 +13,7 @@ public class OrbsDatabaseAuthoring : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.None);
             var buffer = AddBuffer<OrbDatabaseBufferElement>(entity);
 
-            using var orderedOrbs = new NativeList<OrbDatabaseBufferElement>(Allocator.Temp);
+            var orderedOrbs = new NativeList<OrbDatabaseBufferElement>(Allocator.Temp);
 
             foreach (var orbPrefab in authoring.OrbPrefabs)
             {
@@ -23,7 +23,7 @@ public class OrbsDatabaseAuthoring : MonoBehaviour
                 orderedOrbs.Add(new OrbDatabaseBufferElement
                 {
                     Prefab = GetEntity(orbPrefab.gameObject, TransformUsageFlags.Dynamic),
-                    Value = orbPrefab.Value 
+                    Value = orbPrefab.Value
                 });
             }
 
@@ -32,6 +32,8 @@ public class OrbsDatabaseAuthoring : MonoBehaviour
 
             // Set buffer
             buffer.AddRange(orderedOrbs.AsArray());
+
+            orderedOrbs.Dispose();  
         }
     }
 }
