@@ -5,16 +5,19 @@ using Unity.Entities;
 
 public class HealthBarComponent : MonoBehaviour
 {
-    public Slider HealthSlider;
     public TMP_Text HealthText;
+    public Image HealthImage;
+
+    private Material _healthMaterial;
 
     private EntityManager _entityManager;
     private EntityQuery _playerQuery;
 
+
     void Start()
     {
-        if (HealthSlider == null)
-            HealthSlider = GetComponent<Slider>();
+        if (HealthImage == null)
+            Debug.LogError("Image not found", this);
 
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
@@ -23,6 +26,11 @@ public class HealthBarComponent : MonoBehaviour
             ComponentType.ReadOnly<Health>(),
             ComponentType.ReadOnly<Stats>()
             );
+
+        _healthMaterial = HealthImage.material;
+        if (_healthMaterial == null)
+            Debug.LogError("Image material not found", this);
+
     }
 
     void Update()
@@ -34,8 +42,10 @@ public class HealthBarComponent : MonoBehaviour
         var playerStats = _playerQuery.GetSingleton<Stats>();
 
         float ratio = Mathf.Clamp01(playerHealth.Value / playerStats.MaxHealth);
-        HealthSlider.value = ratio;
+
+        _healthMaterial.SetFloat("_Value", ratio);
 
         HealthText.text = $"{playerHealth.Value} / {playerStats.MaxHealth}";
+        //HealthText.text = $"{playerHealth.Value}";
     }
 }

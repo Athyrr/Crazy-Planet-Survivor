@@ -7,8 +7,8 @@ public struct CameraSettings : IComponentData
     public UnityObjectRef<Camera> Camera;
     public float Smooth;
     public float RotationSmooth;
-    public float CameraAngle;
     public float CameraDistance;
+    public quaternion CameraUpToOffset;
 
     public float3 LocalOffset;
     public quaternion LocalRotation;

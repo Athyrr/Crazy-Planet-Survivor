@@ -12,6 +12,7 @@ public class GameManager : MonoBehaviour
     private EntityManager _entityManager;
     private EntityQuery _gameStateQuery;
     private EntityQuery _playerHealthQuery;
+    private EntityQuery _displayUpgradeFlagQuery;
 
     public bool SpacePressed;
 
@@ -26,6 +27,7 @@ public class GameManager : MonoBehaviour
 
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _playerHealthQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Health));
+        _displayUpgradeFlagQuery = _entityManager.CreateEntityQuery(typeof(GameState), typeof(DisplayUpgradesFlag));
     }
 
     private void Update()
@@ -56,12 +58,14 @@ public class GameManager : MonoBehaviour
     private void HandleRunningState(Entity gameStateEntity)
     {
         // If upgrades buffer is fullfiled.
-        var buffer = _entityManager.GetBuffer<UpgradeSelectionElement>(gameStateEntity, true);
-        if (buffer.Length > 0)
+        // @todo handle request instead
+        if (!_displayUpgradeFlagQuery.IsEmpty)
         {
+            var buffer = _entityManager.GetBuffer<UpgradeSelectionElement>(gameStateEntity, true);
             UpgradeSelectionUI.DisplaySelection(buffer);
 
             ChangeState(gameStateEntity, EGameState.UpgradeSelection);
+            _entityManager.RemoveComponent<DisplayUpgradesFlag>(gameStateEntity);
             return;
         }
 
@@ -106,6 +110,7 @@ public class GameManager : MonoBehaviour
                 UpgradesPanel.SetActive(true);
                 PausePanel.SetActive(false);
                 GameOverPanel.SetActive(false);
+
                 break;
 
             case EGameState.GameOver:
@@ -127,17 +132,16 @@ public class GameManager : MonoBehaviour
         var gameStateEntity = _gameStateQuery.GetSingletonEntity();
         var currentGameState = _gameStateQuery.GetSingleton<GameState>();
 
-        if (currentGameState.State == EGameState.Running)
+        if (currentGameState.State == EGameState.UpgradeSelection)
+        {
+            ChangeState(gameStateEntity, EGameState.Running);
+        }
+        else if (currentGameState.State == EGameState.Running)
         {
             ChangeState(gameStateEntity, EGameState.Paused);
         }
         else if (currentGameState.State == EGameState.Paused)
         {
-            ChangeState(gameStateEntity, EGameState.Running);
-        }
-        else if (currentGameState.State == EGameState.UpgradeSelection)
-        {
-            Debug.Log("Toggle selection");
             ChangeState(gameStateEntity, EGameState.Running);
         }
     }

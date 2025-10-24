@@ -4,9 +4,12 @@ using Unity.Mathematics;
 /// <summary>
 /// Helper for planet based movement calculations. Burst compatible so can be used in Jobs.
 /// </summary>
+// @todo heightmap sampling
 [BurstCompile]
 public static partial class PlanetMovementUtils
 {
+    #region Fixed radius version API
+
     [BurstCompile]
     public static void ProjectDirectionOnSurface(in float3 direction, in float3 normal, out float3 projectedDirection)
     {
@@ -75,4 +78,119 @@ public static partial class PlanetMovementUtils
         result = distance <= range;
         return;
     }
+
+    #endregion
+
+
+    #region Height map version API
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="position">World position</param>
+    /// <param name="localUV">The cube face UV.</param>
+    /// <param name="faceIndex">Cube face index</param>
+    [BurstCompile]
+    private static void GetCubeFace(in float3 position, out float3 localUV, out int faceIndex)
+    {
+        localUV = float3.zero;
+        faceIndex = -1;
+
+        float absX = math.abs(position.x);
+        float absY = math.abs(position.y);
+        float absZ = math.abs(position.z);
+
+
+        // Get dominant axis
+
+        // +X / -X face
+        if (absX >= absY && absX >= absZ)
+        {
+            float inverseX = 1f / absX;
+            localUV = new float3(position.y * inverseX, position.z * inverseX, 0);
+
+            faceIndex = position.x > 0 ? 0 : 1;
+        }
+
+        // +Y / -Y face
+        else if (absY >= absX && absY >= absZ)
+        {
+            float inverseY = 1f / absY;
+            localUV = new float3(position.x * inverseY, position.z * inverseY, 0);
+
+            faceIndex = position.y > 0 ? 2 : 3;
+        }
+
+        // +Z / -Z face
+        else
+        {
+            float inverseZ = 1f / absZ;
+            localUV = new float3(position.x * inverseZ, position.y * inverseZ, 0);
+
+            faceIndex = position.z > 0 ? 4 : 5;
+        }
+    }
+
+    /// <summary>
+    /// Gets world positon to heightmap index (native array index)
+    /// </summary>
+    /// <param name="worldPosition">World position</param>
+    /// <param name="planetData">Planet data</param>
+    /// <param name="localUV">local uv coord for a face</param>
+    /// <param name="heightmapIndex">Output index for heightmap sampling</param>
+    [BurstCompile]
+    private static void GetHeightMapIndexFromPosition(in float3 worldPosition, in PlanetData planetData, out int heightmapIndex)
+    {
+        // Cube face index
+        GetCubeFace(worldPosition, out float3 localUV, out int faceIndex);
+
+        // Remap coord [-1,1] into [0,1]
+        float u = localUV.x * 0.5f + 0.5f;
+        float v = localUV.y * 0.5f + 0.5f;
+
+        int resolution = planetData.FaceResolution;
+
+        // UV coord using heightmap resolution
+        int uIndex = math.clamp((int)(u * (resolution - 1)), 0, resolution - 1); // Clamp
+        int vIndex = math.clamp((int)(v * (resolution - 1)), 0, resolution - 1); // Clamp
+
+        heightmapIndex = (faceIndex * (resolution * resolution)) + (vIndex * resolution) + uIndex;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="worldPosition"></param>
+    /// <param name="planetData"></param>
+    /// <param name="height"></param>
+    [BurstCompile]
+    public static void GetEntityHeightFromPositionInPlanet(in float3 worldPosition, in PlanetData planetData, out float height)
+    {
+        ref var heightMapBlob = ref planetData.HeightDataReference.Value;
+
+        GetHeightMapIndexFromPosition(worldPosition, planetData, out int index);
+
+        float heightmapValue = heightMapBlob.Heights[index];
+
+        height = heightmapValue * planetData.MaxHeight;
+    }
+
+    [BurstCompile]
+    public static void SnapToSurfaceHeightMap(in float3 position, in float3 planetCenter, in PlanetData planetData, out float3 snappedPosition)
+    {
+        GetSurfaceNormalAtPosition(position, planetCenter, out float3 normal);
+        GetEntityHeightFromPositionInPlanet(position, planetData, out float height);
+
+        snappedPosition = planetCenter + normal * (planetData.Radius + height);
+    }
+
+    [BurstCompile]
+    public static void GetSurfaceNormalAtPositionHeightMap(in float3 position, in float3 planetCenter, out float3 normal)
+    {
+        normal = math.normalize(position - planetCenter);
+        return;
+    }
+
+    #endregion
+
 }

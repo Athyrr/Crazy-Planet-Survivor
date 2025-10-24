@@ -41,7 +41,7 @@ public partial struct SpellCooldownSystem : ISystem
         EndSimulationEntityCommandBufferSystem.Singleton ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         EntityCommandBuffer ecbPlayer = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         
-        var spellCasterJob = new SpellCasterJob
+        var spellCasterJob = new CastPlayerSpellJob
         {
             DeltaTime = deltaTime,
             SpellDatabaseRef = spellDatabase.Blobs,
@@ -100,7 +100,7 @@ public partial struct SpellCooldownSystem : ISystem
 
     [BurstCompile]
     [WithAll(typeof(Stats), typeof(Player))]
-    private partial struct SpellCasterJob : IJobEntity
+    private partial struct CastPlayerSpellJob : IJobEntity
     {
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
         public float DeltaTime;

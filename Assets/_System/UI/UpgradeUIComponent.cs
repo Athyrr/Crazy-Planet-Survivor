@@ -8,10 +8,13 @@ public class UpgradeUIComponent : MonoBehaviour
     public Sprite Icon;
     public TMP_Text Data;
 
+
+
     public void SetData(ref UpgradeBlob upgradeData)
     {
         Label.text = upgradeData.DisplayName.ToString();
         //Description.text = upgradeData.Description.ToString();
+
 
         switch (upgradeData.UpgradeType)
         {

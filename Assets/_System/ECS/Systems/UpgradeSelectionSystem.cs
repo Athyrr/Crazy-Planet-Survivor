@@ -37,7 +37,6 @@ public partial struct UpgradeSelectionSystem : ISystem
 
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
         var gameState = SystemAPI.GetSingleton<GameState>();
-        var upgradesSelectionBuffer = SystemAPI.GetSingletonBuffer<UpgradeSelectionElement>();
 
         var upgradeSelectionJob = new SelectUpgradeJob()
         {
@@ -69,6 +68,8 @@ public partial struct UpgradeSelectionSystem : ISystem
 
             // Clear buffer
             ECB.SetBuffer<UpgradeSelectionElement>(GameStateEntity);
+
+            // Set upgrades selection
             for (int i = 0; i < upgradesChoicesCount; i++)
             {
                 int index = random.NextInt(0, upgradesDatabaseLength);
@@ -79,9 +80,13 @@ public partial struct UpgradeSelectionSystem : ISystem
                     DatabaseIndex = index
                 });
             }
-            //@todo use SelectUpgrade Flag in GameManager instead of checking if the buffer is fullfiled
 
+            // Add display upgrades flag 
+            ECB.AddComponent<DisplayUpgradesFlag>(GameStateEntity);
+
+            // Remove player lvl up flag
             ECB.RemoveComponent<PlayerLevelUpFlag>(PlayerEntity);
+
         }
     }
 }

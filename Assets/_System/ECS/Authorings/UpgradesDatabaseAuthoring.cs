@@ -13,7 +13,7 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
             Entity entity = GetEntity(TransformUsageFlags.None);
 
             // Create upgrade blobs for data
-            var builder = new BlobBuilder(Allocator.Persistent);
+            var builder = new BlobBuilder(Allocator.Temp);
 
             ref UpgradeBlobs root = ref builder.ConstructRoot<UpgradeBlobs>();
             int databaseLength = authoring.UpgradesDatabase.Upgrades.Length;
@@ -41,6 +41,10 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
             var upgradesDatabaseBlob = builder.CreateBlobAssetReference<UpgradeBlobs>(Allocator.Persistent);
             AddComponent(entity, new UpgradesDatabase { Blobs = upgradesDatabaseBlob });
 
+            // Register blob asset (auto free memory)
+            AddBlobAsset(ref upgradesDatabaseBlob, out var hash);
+
+            // Dispose builder
             builder.Dispose();          
         }
     }
