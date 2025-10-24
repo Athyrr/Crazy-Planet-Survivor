@@ -1,6 +1,5 @@
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Rendering;
 using UnityEngine;
 
 
@@ -43,6 +42,10 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
             var spellsDatabaseBlob = builder.CreateBlobAssetReference<SpellBlobs>(Allocator.Persistent);
             AddComponent(entity, new SpellsDatabase { Blobs = spellsDatabaseBlob });
 
+            // Register blob asset (auto free memory)
+            AddBlobAsset(ref spellsDatabaseBlob, out var hash);
+
+            // Dispose builder
             builder.Dispose();
 
 

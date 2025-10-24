@@ -24,6 +24,12 @@ public partial struct EnemyTargetingSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+
+        if (gameState.State != EGameState.Running)
+            return;
+
         if (!SystemAPI.TryGetSingletonEntity<Player>(out Entity playerEntity))
             return;
 
@@ -87,7 +93,6 @@ public partial struct EnemyTargetingSystem : ISystem
                     {
                         Caster = entity,
                         Target = Player,
-                        //DatabaseRef = spellToCast.DatabaseRef,
                         DatabaseIndex = spell.DatabaseIndex
                     });
 

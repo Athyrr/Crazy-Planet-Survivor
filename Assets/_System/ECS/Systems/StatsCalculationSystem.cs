@@ -1,27 +1,50 @@
 using Unity.Burst;
 using Unity.Entities;
+using Unity.Mathematics;
 
 [BurstCompile]
 public partial struct StatsCalculationSystem : ISystem
 {
+    private EntityQuery _calculateQuery;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<BaseStats>();
         state.RequireForUpdate<Stats>();
+
+        _calculateQuery = SystemAPI.QueryBuilder()
+            .WithAll<RecalculateStatsRequest, Stats, BaseStats, StatModifier>()
+            .Build();
+
+        state.RequireForUpdate(_calculateQuery); 
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        var job = new CalculateStatsJob();
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+
+        if (gameState.State != EGameState.Running)
+            return;
+
+        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+
+        var job = new CalculateStatsJob()
+        {
+            ECB = ecb.AsParallelWriter()
+        };
         state.Dependency = job.ScheduleParallel(state.Dependency);
     }
 
     [BurstCompile]
     private partial struct CalculateStatsJob : IJobEntity
     {
-        public void Execute(ref Stats stats, in BaseStats baseStats, in DynamicBuffer<StatModifier> modifiers)
+        public EntityCommandBuffer.ParallelWriter ECB;
+
+        public void Execute([ChunkIndexInQuery] int index, Entity entity, in RecalculateStatsRequest recalculateStatsRequest, ref Stats stats, ref Health health, in BaseStats baseStats, in DynamicBuffer<StatModifier> modifiers)
         {
             stats.MaxHealth = baseStats.MaxHealth;
             stats.Speed = baseStats.Speed;
@@ -31,6 +54,11 @@ public partial struct StatsCalculationSystem : ISystem
             stats.CooldownReduction = baseStats.CooldownReduction;
             stats.AreaSize = baseStats.AreaSize;
             stats.CollectRange = baseStats.CollectRange;
+
+
+            float oldMaxHealth = stats.MaxHealth > 0 ? stats.MaxHealth : baseStats.MaxHealth; // Avoid division by zero
+            if (oldMaxHealth <= 0) oldMaxHealth = 1;
+
 
             for (var i = 0; i < modifiers.Length; i++)
             {
@@ -69,6 +97,17 @@ public partial struct StatsCalculationSystem : ISystem
                         break;
                 }
             }
+
+            if (stats.MaxHealth != oldMaxHealth && stats.MaxHealth > 0)
+            {
+                float healthRatio = health.Value / oldMaxHealth;
+                health.Value = healthRatio * stats.MaxHealth;
+            }
+            // Ensure health doesn't exceed new max
+            health.Value = math.min(health.Value, stats.MaxHealth);
+
+            // remove RecalculateStatsRequest
+            ECB.RemoveComponent<RecalculateStatsRequest>(index, entity);
         }
     }
 

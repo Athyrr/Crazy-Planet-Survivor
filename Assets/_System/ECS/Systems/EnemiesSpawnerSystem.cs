@@ -19,6 +19,12 @@ public partial struct EnemiesSpawnerSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+
+        if (gameState.State != EGameState.Running)
+            return;
+
         ref var spawnerState = ref SystemAPI.GetSingletonRW<SpawnerState>().ValueRW;
         spawnerState.WaveTimer -= SystemAPI.Time.DeltaTime;
         if (spawnerState.WaveTimer > 0)
@@ -99,7 +105,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 ECB.SetComponent(i, entity, new LocalTransform
                 {
                     Position = spawnPosition,
-                    Scale = 5f,
+                    Scale = 1f,
                     Rotation = quaternion.LookRotationSafe(tangentDirection, normal)
                 });
 

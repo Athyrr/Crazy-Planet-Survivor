@@ -22,6 +22,12 @@ public partial struct FireballSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+
+        if (gameState.State != EGameState.Running)
+            return;
+
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
@@ -58,7 +64,6 @@ public partial struct FireballSystem : ISystem
         
         [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
-
 
         void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
@@ -105,17 +110,17 @@ public partial struct FireballSystem : ISystem
             var orbitData = new OrbitMovement
             {
                 OrbitCenterEntity = caster,
-                OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 50f,
-                AngularSpeed = 3,
-                Radius = 50,
-                RelativeOffset = casterTransform.Forward() * 50f
+                OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 5, // @todo change distance by (2) by value  /!\ value same as radius
+                AngularSpeed = 4,
+                Radius = 5,
+                RelativeOffset = casterTransform.Forward() * 5
             };
             var spawnPosition = casterTransform.Position + casterTransform.Forward() * orbitData.Radius;
             ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
             {
                 Position = spawnPosition,
                 Rotation = casterTransform.Rotation,
-                Scale = 5f
+                Scale = 0.7f
             });
             ECB.RemoveComponent<LinearMovement>(chunkIndex, fireballEntity);
             ECB.AddComponent(chunkIndex, fireballEntity, orbitData);

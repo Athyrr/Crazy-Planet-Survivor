@@ -1,10 +1,10 @@
 using Unity.Burst;
 using Unity.Entities;
 
+[UpdateAfter(typeof(DropExpOrbSystem))]
 [BurstCompile]
 public partial struct EntityDestructionSystem : ISystem
 {
-
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -14,6 +14,12 @@ public partial struct EntityDestructionSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+
+        if (gameState.State != EGameState.Running)
+            return;
+
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 

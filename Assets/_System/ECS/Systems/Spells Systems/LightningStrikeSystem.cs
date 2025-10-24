@@ -21,6 +21,12 @@ public partial struct LightningStrikeSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+
+        if (gameState.State != EGameState.Running)
+            return;
+
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
@@ -57,8 +63,7 @@ public partial struct LightningStrikeSystem : ISystem
         [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
-
-        void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
+        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
             if (!SpellDatabaseRef.IsCreated || !TransformLookup.HasComponent(request.Caster))
             {
@@ -105,7 +110,7 @@ public partial struct LightningStrikeSystem : ISystem
             {
                 Position = casterTransform.Position,
                 Rotation = casterTransform.Rotation,
-                Scale = 5f
+                Scale = 1f
             });
 
             bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
@@ -144,6 +149,7 @@ public partial struct LightningStrikeSystem : ISystem
                 Duration = spellData.Lifetime
             });
 
+            // Destroy request entity after spell instancing
             ECB.DestroyEntity(chunkIndex, requestEntity);
         }
     }

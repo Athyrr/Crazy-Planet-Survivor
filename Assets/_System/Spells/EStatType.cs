@@ -3,6 +3,7 @@
 /// </summary>
 public enum EStatType
 {
+    None,
     MaxHealth,
     Health,
     Speed,

@@ -21,6 +21,12 @@ public partial struct CollisionSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+
+        if (gameState.State != EGameState.Running)
+            return;
+
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
@@ -83,8 +89,6 @@ public partial struct CollisionSystem : ISystem
         //{
         //    ECB.AddComponent(0, projectile, new DestroyEntityFlag());
         //}
-
-
 
         private bool TryResolveProjectileVsTarget(Entity entityA, Entity entityB, out Entity projectile, out Entity target, bool targetIsPlayer = false)
         {
