@@ -7,7 +7,6 @@ using UnityEngine;
 [UpdateInGroup(typeof(LateSimulationSystemGroup))]
 public partial struct CameraFollowSystem : ISystem
 {
-    
     public void OnUpdate(ref SystemState state)
     {
         if (!SystemAPI.TryGetSingleton<CameraSettings>(out var settings))
@@ -22,22 +21,23 @@ public partial struct CameraFollowSystem : ISystem
         LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
         float deltaTime = SystemAPI.Time.DeltaTime;
         
+        float3 cameraOffset = float3.zero;
+        
         float3 playerPos = playerTransform.Position;
         float3 up = playerTransform.Up();
         
         float3 cameraForward = cameraTransform.forward;
         
-        float camAngle = math.TORADIANS * settings.CameraAngle;
-        
         float3 cameraTangentRight = math.normalizesafe(math.cross(cameraForward, up)); 
         float3 nextCameraForward = math.normalizesafe(cameraForward - math.dot(cameraForward, up)*up);
-        nextCameraForward = math.rotate(quaternion.AxisAngle(cameraTangentRight, -camAngle), nextCameraForward);
+
+        quaternion cameraOffsetRot =  quaternion.LookRotationSafe(nextCameraForward, up);
         
-        float3 relativePosition = math.rotate(quaternion.AxisAngle(cameraTangentRight, camAngle), up) * settings.CameraDistance;
+        float3 relativePosition = math.rotate(cameraOffsetRot,math.rotate(settings.CameraUpToOffset, new float3(0,1,0))) * settings.CameraDistance;
         float3 targetPosition = playerPos + relativePosition;
         
-        float3 camToPlayer = playerPos - (float3)cameraTransform.position;
-        quaternion targetRotation = math.normalizesafe(quaternion.LookRotation(math.normalizesafe(camToPlayer), -math.normalizesafe(math.cross(nextCameraForward, cameraTangentRight))));
+        float3 camToPlayer = playerPos - targetPosition;
+        quaternion targetRotation = math.normalizesafe(quaternion.LookRotation(math.normalizesafe(camToPlayer), -math.normalizesafe(math.cross(math.normalizesafe(camToPlayer), cameraTangentRight))));
         
         // Smooth
         float3 smoothedPosition = math.lerp(cameraTransform.position, targetPosition, math.min(deltaTime * settings.Smooth, 1));
@@ -63,8 +63,5 @@ public partial struct CameraFollowSystem : ISystem
             var cameraDataEntity = state.EntityManager.CreateEntity();
             state.EntityManager.AddComponentData(cameraDataEntity, cameraData);
         }
-
-
-
     }
 }
