@@ -164,7 +164,7 @@ public static partial class PlanetMovementUtils
     /// <param name="planetData"></param>
     /// <param name="height"></param>
     [BurstCompile]
-    public static void GetEntityHeightFromPositionInPlanet(in float3 worldPosition, in PlanetData planetData, out float height)
+    private static void GetSurfaceHeightAtPosition(in float3 worldPosition, in PlanetData planetData, out float height)
     {
         ref var heightMapBlob = ref planetData.HeightDataReference.Value;
 
@@ -179,7 +179,7 @@ public static partial class PlanetMovementUtils
     public static void SnapToSurfaceHeightMap(in float3 position, in float3 planetCenter, in PlanetData planetData, out float3 snappedPosition)
     {
         GetSurfaceNormalAtPosition(position, planetCenter, out float3 normal);
-        GetEntityHeightFromPositionInPlanet(position, planetData, out float height);
+        GetSurfaceHeightAtPosition(position, planetData, out float height);
 
         snappedPosition = planetCenter + normal * (planetData.Radius + height);
     }

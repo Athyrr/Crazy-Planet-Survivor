@@ -86,7 +86,6 @@ public partial struct UpgradeSelectionSystem : ISystem
 
             // Remove player lvl up flag
             ECB.RemoveComponent<PlayerLevelUpFlag>(PlayerEntity);
-
         }
     }
 }

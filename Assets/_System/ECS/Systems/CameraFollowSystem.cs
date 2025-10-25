@@ -16,7 +16,7 @@ public partial struct CameraFollowSystem : ISystem
             return;
         if (!settings.Camera.IsValid())
             return;
-        
+
         Camera camera = settings.Camera.Value;
         Transform cameraTransform = camera.transform;
         LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;

@@ -137,8 +137,12 @@ PrefabInstance:
       value: 50
       objectReference: {fileID: 0}
     - target: {fileID: 2693254250496633621, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
-      propertyPath: _autoFindPlanetRadius
+      propertyPath: _useHeightMap
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2693254250496633621, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
+      propertyPath: _autoFindPlanetRadius
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4804159904702695074, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
       propertyPath: m_LocalPosition.x
@@ -522,8 +526,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1752244733}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.6916443, y: -0.15486461, z: 0.6846913, w: -0.1698321}
-  m_LocalPosition: {x: -57.910213, y: -38.00432, z: -17.966713}
+  m_LocalRotation: {x: 0.5980203, y: -0.26957723, z: 0.39197734, w: -0.64502215}
+  m_LocalPosition: {x: -29.78571, y: 50.79342, z: -4.7435436}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
