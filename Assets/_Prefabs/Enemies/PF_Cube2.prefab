@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: -795139794179562712}
   - component: {fileID: 7077652745905088192}
   m_Layer: 0
-  m_Name: PF_Cube
+  m_Name: PF_Cube2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -70,7 +70,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 201ee5b12453e7144ae1f2fe3c9ec71b, type: 2}
+  - {fileID: 2100000, guid: ab20865b34d2ab44d8330ce45797b65e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -302,7 +302,7 @@ MonoBehaviour:
   BaseStats:
     MaxHealth: 80
     Speed: 6
-    Damage: 5
+    Damage: 2
     Armor: 5
     FireResistance: 50
     IceResistance: 0
@@ -311,7 +311,8 @@ MonoBehaviour:
     AreaSize: 0
     CollectRange: 0
     MaxCollectRange: 0
-  InitialSpells: []
+  InitialSpells:
+  - {fileID: 11400000, guid: 8938cdea3267e02449c0f0ea1beae59b, type: 2}
   InitialModifers:
   - Type: 0
     Value: 0
