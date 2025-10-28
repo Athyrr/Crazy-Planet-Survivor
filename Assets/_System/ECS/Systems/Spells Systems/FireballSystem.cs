@@ -3,6 +3,7 @@ using Unity.Physics;
 using Unity.Entities;
 using Unity.Transforms;
 using Unity.Collections;
+using Unity.Mathematics;
 
 [BurstCompile]
 [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -38,12 +39,12 @@ public partial struct FireballSystem : ISystem
         var fireballJob = new CastFireballJob
         {
             ECB = ecb.AsParallelWriter(),
-            
+
             PlayerLookup = SystemAPI.GetComponentLookup<Player>(true),
             TransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true),
             StatsLookup = SystemAPI.GetComponentLookup<Stats>(true),
             ColliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true),
-          
+
             SpellDatabaseRef = spellDatabase.Blobs,
             SpellPrefabs = spellPrefabs
 
@@ -61,7 +62,7 @@ public partial struct FireballSystem : ISystem
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
-        
+
         [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
@@ -87,13 +88,17 @@ public partial struct FireballSystem : ISystem
 
             var casterTransform = TransformLookup[request.Caster];
             var casterStats = StatsLookup[request.Caster];
-            //var targetTransform = TransformLookup[request.Target];
 
-            //float3 castDirection;
-            //if (target != Entity.Null && TransformLookup.HasComponent(target))
-            //    castDirection = math.normalize(TransformLookup[target].Position - casterTransform.Position);
-            //else
-            //    castDirection = casterTransform.Forward();
+            float3 castDirection;
+            if (target != Entity.Null && TransformLookup.HasComponent(target))
+            {
+                var targetTransform = TransformLookup[target]; 
+                castDirection = math.normalize(targetTransform.Position - casterTransform.Position);
+            }
+            else
+            {
+                castDirection = casterTransform.Forward();
+            }
 
             //Spell damage calculation
             float damage = spellData.BaseDamage + casterStats.Damage;
@@ -107,24 +112,40 @@ public partial struct FireballSystem : ISystem
             });
 
             // Orbit movement version
-            var orbitData = new OrbitMovement
-            {
-                OrbitCenterEntity = caster,
-                OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 5, // @todo change distance by (2) by value  /!\ value same as radius
-                AngularSpeed = 4,
-                Radius = 5,
-                RelativeOffset = casterTransform.Forward() * 5
-            };
-            var spawnPosition = casterTransform.Position + casterTransform.Forward() * orbitData.Radius;
+            //var orbitData = new OrbitMovement
+            //{
+            //    OrbitCenterEntity = caster,
+            //    OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 5, // @todo change distance by (2) by value  /!\ value same as radius
+            //    AngularSpeed = 4,
+            //    Radius = 5,
+            //    RelativeOffset = casterTransform.Forward() * 5
+            //};
+            //var spawnPosition = casterTransform.Position + casterTransform.Forward() * orbitData.Radius;
+            //ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
+            //{
+            //    Position = spawnPosition,
+            //    Rotation = casterTransform.Rotation,
+            //    Scale = 0.7f
+            //});
+            //ECB.RemoveComponent<LinearMovement>(chunkIndex, fireballEntity);
+            //ECB.AddComponent(chunkIndex, fireballEntity, orbitData);
+
+            // Linear movement version
             ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
             {
-                Position = spawnPosition,
+                Position = casterTransform.Position,
                 Rotation = casterTransform.Rotation,
-                Scale = 0.7f
+                Scale = 1f
             });
-            ECB.RemoveComponent<LinearMovement>(chunkIndex, fireballEntity);
-            ECB.AddComponent(chunkIndex, fireballEntity, orbitData);
 
+            ECB.SetComponent<LinearMovement>(chunkIndex, fireballEntity, new LinearMovement
+            {
+                //Direction = castDirection,
+                Direction = casterTransform.Forward(),
+                Speed = spellData.BaseSpeed
+            });
+
+            // Collision 
             bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
             CollisionFilter collisionFilter;
             if (isPlayerCaster)
@@ -146,21 +167,6 @@ public partial struct FireballSystem : ISystem
             PhysicsCollider collider = ColliderLookup[spellPrefab];
             collider.Value.Value.SetCollisionFilter(collisionFilter);
             ECB.SetComponent(chunkIndex, fireballEntity, collider);
-
-            // Linear movement version
-            //ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
-            //{
-            //    Position = casterTransform.Position,
-            //    Rotation = casterTransform.Rotation,
-            //    Scale = 100f
-            //});
-
-            //ECB.SetComponent<LinearMovement>(chunkIndex, fireballEntity, new LinearMovement
-            //{
-            //    Direction = casterTransform.Forward(),
-            //    Speed = spellData.BaseSpeed
-            //});
-
 
             ECB.SetComponent(chunkIndex, fireballEntity, new Lifetime
             {

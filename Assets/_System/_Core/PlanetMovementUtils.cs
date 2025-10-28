@@ -141,8 +141,11 @@ public static partial class PlanetMovementUtils
     [BurstCompile]
     private static void GetHeightMapIndexFromPosition(in float3 worldPosition, in PlanetData planetData, out int heightmapIndex)
     {
+        // Get relative position to planet center
+        float3 relativePosition = worldPosition - planetData.Center;
+
         // Cube face index
-        GetCubeFace(worldPosition, out float3 localUV, out int faceIndex);
+        GetCubeFace(relativePosition, out float3 localUV, out int faceIndex);
 
         // Remap coord [-1,1] into [0,1]
         float u = localUV.x * 0.5f + 0.5f;
@@ -164,7 +167,7 @@ public static partial class PlanetMovementUtils
     /// <param name="planetData"></param>
     /// <param name="height"></param>
     [BurstCompile]
-    private static void GetSurfaceHeightAtPosition(in float3 worldPosition, in PlanetData planetData, out float height)
+    private static void GetSurfaceHeightAtPosition(in float3 worldPosition, in PlanetData planetData ,out float height)
     {
         ref var heightMapBlob = ref planetData.HeightDataReference.Value;
 
@@ -192,5 +195,4 @@ public static partial class PlanetMovementUtils
     }
 
     #endregion
-
 }
