@@ -12,6 +12,8 @@ public class CameraSettingsAuthoring : MonoBehaviour
     private quaternion CameraUpToOffset;
     [Range(1f, 30f)] public float Smooth = 8f;
     [Range(1f, 30f)] public float RotationSmooth = 10f;
+    [SerializeField] private float3 CameraDefaultLocation;
+    [SerializeField] private float3 CameraDefaultRotation;
 
     private void OnValidate()
     {
@@ -36,6 +38,9 @@ public class CameraSettingsAuthoring : MonoBehaviour
         CameraUpToOffset.value.w = math.sqrt(math.square(CameraDistance) * math.square(math.length(up))) + math.dot(up, cameraOffset);
 
         CameraUpToOffset = math.normalizesafe(CameraUpToOffset);
+        
+        Camera.transform.position =CameraDefaultLocation;
+        Camera.transform.rotation = quaternion.EulerXYZ(CameraDefaultRotation);
     }
 
     class Baker : Baker<CameraSettingsAuthoring>
@@ -62,6 +67,8 @@ public class CameraSettingsAuthoring : MonoBehaviour
                 RotationSmooth = authoring.RotationSmooth,
                 CameraDistance = authoring.CameraDistance,
                 CameraUpToOffset = authoring.CameraUpToOffset,
+                CameraDefaultPosition = authoring.CameraDefaultLocation,
+                CameraDefaultRotation = quaternion.EulerXYZ( authoring.CameraDefaultRotation),
                 LocalOffset = localOffset,
                 LocalRotation = localRotation
             });

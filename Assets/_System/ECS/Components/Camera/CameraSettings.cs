@@ -9,6 +9,9 @@ public struct CameraSettings : IComponentData
     public float RotationSmooth;
     public float CameraDistance;
     public quaternion CameraUpToOffset;
+    
+    public float3 CameraDefaultPosition;
+    public quaternion CameraDefaultRotation;
 
     public float3 LocalOffset;
     public quaternion LocalRotation;
