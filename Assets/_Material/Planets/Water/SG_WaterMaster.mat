@@ -24,6 +24,14 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _GlobalNormalTexture:
+        m_Texture: {fileID: 2800000, guid: 8cfa3b63a27c4bf44860972d827d4844, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _GlobalNormalTextureDistortion:
+        m_Texture: {fileID: 2800000, guid: cf8cf12aac22b6d4cabdd721691e72d8, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _SampleTexture2D_0ffc2783052843a08d7407c8850ee7ea_Texture_1_Texture2D:
         m_Texture: {fileID: 2800000, guid: 911fd8b51e726e44f9a2e6be75db5f72, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -44,6 +52,10 @@ Material:
     m_Floats:
     - _ColorFoamExp: 1
     - _Distance: 1
+    - _GlobalNormalSize: 4.42
+    - _GlobalNormalStrenght: 0.015
+    - _NtSpeed: 0.005
+    - _NtdSpeed: 0.00025
     - _QueueControl: 0
     - _QueueOffset: 0
     - _Waves: 3
