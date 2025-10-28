@@ -15,7 +15,6 @@ public partial struct SpellActivationSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-
         // Create entity for Spell to Index Mapper
         // Done in update, ensure that SpellToIndexMap is baked well
         if (!SystemAPI.HasSingleton<SpellToIndexMap>())
@@ -32,6 +31,7 @@ public partial struct SpellActivationSystem : ISystem
             var mapEntity = state.EntityManager.CreateEntity();
             state.EntityManager.AddComponentData(mapEntity, new SpellToIndexMap { Map = map });
         }
+
 
         var spellIndexMap = SystemAPI.GetSingleton<SpellToIndexMap>().Map;
         var database = SystemAPI.GetSingleton<SpellsDatabase>();

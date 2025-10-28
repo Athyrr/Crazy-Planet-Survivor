@@ -53,6 +53,8 @@ public partial struct CollisionSystem : ISystem
 
         public void Execute(CollisionEvent collisionEvent)
         {
+
+
             Entity entityA = collisionEvent.EntityA;
             Entity entityB = collisionEvent.EntityB;
 

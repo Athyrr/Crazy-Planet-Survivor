@@ -75,6 +75,7 @@ public class PlanetDataAuthoring : MonoBehaviour
 
         /// <summary>
         /// Reads heightmap atlas and generate a NativeArray 1D with its values.
+        /// Assumes that the heightmap altas is organized as a T shape with 6 faces. Like UV mapping for cube.
         /// </summary>
         /// <param name="R">Face resolution (just one axis).</param>
         /// <param name="atlas">Atlas texture.</param>

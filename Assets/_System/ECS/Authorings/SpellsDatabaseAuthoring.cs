@@ -1,5 +1,6 @@
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Entities.UniversalDelegates;
 using UnityEngine;
 
 
@@ -9,6 +10,10 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
 
     private class Baker : Baker<SpellsDatabaseAuthoring>
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="authoring"></param>
         public override void Bake(SpellsDatabaseAuthoring authoring)
         {
             Entity entity = GetEntity(TransformUsageFlags.None);
@@ -48,7 +53,6 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
             // Dispose builder
             builder.Dispose();
 
-
             // Add spell prefabs to buffer  
             var prefabBuffer = AddBuffer<SpellPrefab>(entity);
             foreach (var spellSO in authoring.SpellDatabase.Spells)
@@ -62,6 +66,17 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 });
             }
 
+            // Create entity for spell to index map
+            //int dbLength = authoring.SpellDatabase.Spells.Length;
+            //var spellIndexMap = CreateAdditionalEntity(TransformUsageFlags.None, false, nameof(SpellToIndexMap));
+
+            //NativeHashMap<SpellKey, int> map = new NativeHashMap<SpellKey, int>(dbLength, Allocator.Persistent);
+            //for (int i = 0; i < dbLength; i++)
+            //{
+            //    var spellData = authoring.SpellDatabase.Spells[i];
+            //    map.TryAdd(new SpellKey { Value = spellData.ID }, i);
+            //}
+            //AddComponent(spellIndexMap, new SpellToIndexMap { Map = map });
         }
     }
 }
