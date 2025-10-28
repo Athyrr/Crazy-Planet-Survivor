@@ -50,7 +50,7 @@ public partial struct EntitiesMovementSystem : ISystem
         // Linear movement job
         var linearJob = new MoveLinearJob
         {
-            deltaTime = delta,
+            DeltaTime = delta,
             PlanetCenter = planetTransform.Position,
             PlanetRadius = planetData.Radius,
             StatsLookup = SystemAPI.GetComponentLookup<Stats>(true)
@@ -65,8 +65,8 @@ public partial struct EntitiesMovementSystem : ISystem
         {
             var followJob = new MoveFollowJob
             {
-                playerPosition = playerPos,
-                deltaTime = delta,
+                PlayerPosition = playerPos,
+                DeltaTime = delta,
                 PlanetCenter = planetTransform.Position,
                 PlanetRadius = planetData.Radius,
                 StatsLookup = SystemAPI.GetComponentLookup<Stats>(true)
@@ -103,7 +103,7 @@ public partial struct EntitiesMovementSystem : ISystem
     [WithNone(typeof(FollowTargetMovement), typeof(OrbitMovement))]
     private partial struct MoveLinearJob : IJobEntity
     {
-        [ReadOnly] public float deltaTime;
+        [ReadOnly] public float DeltaTime;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
 
@@ -119,7 +119,7 @@ public partial struct EntitiesMovementSystem : ISystem
             PlanetMovementUtils.GetSurfaceNormalAtPosition(in transform.Position, in PlanetCenter, out var normal);
             PlanetMovementUtils.ProjectDirectionOnSurface(in movement.Direction, in normal, out float3 tangentDirection);
 
-            float3 newPosition = transform.Position + tangentDirection * (speed * deltaTime);
+            float3 newPosition = transform.Position + tangentDirection * (speed * DeltaTime);
             PlanetMovementUtils.SnapToSurface(in newPosition, in PlanetCenter, PlanetRadius, out float3 snappedPosition);
 
             PlanetMovementUtils.GetRotationOnSurface(in tangentDirection, in normal, out quaternion rotation);
@@ -136,8 +136,8 @@ public partial struct EntitiesMovementSystem : ISystem
     [WithNone(typeof(LinearMovement), typeof(OrbitMovement))]
     private partial struct MoveFollowJob : IJobEntity
     {
-        [ReadOnly] public float deltaTime;
-        [ReadOnly] public float3 playerPosition;
+        [ReadOnly] public float DeltaTime;
+        [ReadOnly] public float3 PlayerPosition;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
 
@@ -148,7 +148,7 @@ public partial struct EntitiesMovementSystem : ISystem
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].Speed : movement.Speed;
 
             PlanetMovementUtils.GetSurfaceNormalAtPosition(in transform.Position, in PlanetCenter, out var normal);
-            PlanetMovementUtils.GetSurfaceStepTowardPosition(in transform.Position, in playerPosition, speed * deltaTime, in PlanetCenter, PlanetRadius, out float3 targetPosition);
+            PlanetMovementUtils.GetSurfaceStepTowardPosition(in transform.Position, in PlayerPosition, speed * DeltaTime, in PlanetCenter, PlanetRadius, out float3 targetPosition);
 
             float3 actualDirection = math.normalize(targetPosition - transform.Position);
             if (math.lengthsq(actualDirection) < 0.001f) actualDirection = transform.Forward();
