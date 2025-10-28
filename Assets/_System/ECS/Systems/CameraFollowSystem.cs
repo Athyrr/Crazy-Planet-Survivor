@@ -7,6 +7,20 @@ using UnityEngine;
 [UpdateInGroup(typeof(LateSimulationSystemGroup))]
 public partial struct CameraFollowSystem : ISystem
 {
+    public void OnCreate(ref SystemState state)
+    {
+        if (!SystemAPI.TryGetSingleton<CameraSettings>(out var settings))
+            return;
+        if (!settings.Camera.IsValid())
+            return;
+
+        Camera camera = settings.Camera.Value;
+        Transform cameraTransform = camera.transform;
+        
+        cameraTransform.position = settings.CameraDefaultPosition;
+        cameraTransform.rotation = settings.CameraDefaultRotation;
+    }
+
     public void OnUpdate(ref SystemState state)
     {
         if (!SystemAPI.TryGetSingleton<CameraSettings>(out var settings))
