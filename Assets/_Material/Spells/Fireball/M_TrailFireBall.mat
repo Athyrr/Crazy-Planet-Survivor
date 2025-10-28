@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-3079414421214746024
+--- !u!114 &-4612299505865136444
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
@@ -16,18 +16,18 @@ MonoBehaviour:
 --- !u!21 &2100000
 Material:
   serializedVersion: 8
-  m_ObjectHideFlags: 0
+  m_ObjectHideFlags: 32
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: TrailMat
+  m_Name: M_TrailFireBall
   m_Shader: {fileID: -6465566751694194690, guid: dfa79f51b59f82944a44d73e0921d4ad, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords: []
-  m_LightmapFlags: 2
-  m_EnableInstancingVariants: 0
+  m_LightmapFlags: 0
+  m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
@@ -58,19 +58,15 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _DecalMeshBiasType: 0
-    - _DecalMeshDepthBias: 0
-    - _DecalMeshViewBias: 0
-    - _DrawOrder: 0
     - _QueueControl: 0
     - _QueueOffset: 0
     - _disolveScale: 2
     - _emissiveIntensity: 1
-    - _mainTextureSpeed: -2
+    - _mainTextureSpeed: -0.1
     m_Colors:
     - _Vector2: {r: 1, g: 1, b: 0, a: 0}
-    - _color1: {r: 1.4980394, g: 0.12135069, b: 0.005874664, a: 1}
-    - _color2: {r: 0.017924502, g: 0.000642574, b: 0.000642574, a: 1}
-    - _disolveSpeed: {r: 30.2, g: 0, b: 0, a: 0}
+    - _color1: {r: 16, g: 0.07547188, b: 0.07547188, a: 1}
+    - _color2: {r: 0.00288915, g: 0.0001689879, b: 0.0002898376, a: 1}
+    - _disolveSpeed: {r: -0.5, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
