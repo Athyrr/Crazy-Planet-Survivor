@@ -4,6 +4,7 @@ using Unity.Physics;
 using Unity.Entities;
 using Unity.Collections;
 using Unity.Physics.Systems;
+using UnityEngine;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [UpdateAfter(typeof(PhysicsSystemGroup))]
@@ -53,8 +54,6 @@ public partial struct CollisionSystem : ISystem
 
         public void Execute(CollisionEvent collisionEvent)
         {
-
-
             Entity entityA = collisionEvent.EntityA;
             Entity entityB = collisionEvent.EntityB;
 
@@ -112,6 +111,28 @@ public partial struct CollisionSystem : ISystem
             target = Entity.Null;
             return false;
         }
+
+        //private bool TryResolveEnemyVsPlayer(Entity entityA, Entity entityB, out Entity enemy, out Entity player)
+        //{
+        //    if (EnemyLookup.HasComponent(entityA) && PlayerLookup.HasComponent(entityB))
+        //    {
+        //        enemy = entityA;
+        //        player = entityB;
+        //        return true;
+        //    }
+
+        //    if (EnemyLookup.HasComponent(entityB) && PlayerLookup.HasComponent(entityA))
+        //    {
+        //        enemy = entityB;
+        //        player = entityA;
+        //        return true;
+        //    }
+
+        //    enemy = Entity.Null;
+        //    player = Entity.Null;
+        //    return false;
+        //}
+
 
         //private bool TryResolveProjectileVsObstacle(Entity entityA, Entity entityB, out Entity projectile, out Entity obstacle)
         //{

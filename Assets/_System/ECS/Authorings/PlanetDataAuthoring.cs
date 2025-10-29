@@ -59,6 +59,7 @@ public class PlanetDataAuthoring : MonoBehaviour
             // Set component
             AddComponent(entity, new PlanetData()
             {
+                Center = authoring.transform.position,
                 Radius = authoring._radius,
                 MaxHeight = authoring._maxPlanetHeight,
                 FaceResolution = R,
@@ -107,14 +108,24 @@ public class PlanetDataAuthoring : MonoBehaviour
             Color[] atlasData = atlas.GetPixels();
             int atlasWidth = atlas.width;
 
+            //int2[] faceOffsets = new int2[]
+            //{
+            //    new int2(1 * R, 2 * R), // Index 0: X+ (Grid 1, 2)
+            //    new int2(1 * R, 0 * R), // Index 1: X- (Grid 1, 0)
+            //    new int2(2 * R, 2 * R), // Index 2: Y+ (Grid 2, 2)
+            //    new int2(0 * R, 2 * R), // Index 3: Y- (Grid 0, 2)
+            //    new int2(1 * R, 1 * R), // Index 4: Z+ (Grid 1, 1)
+            //    new int2(1 * R, 3 * R)  // Index 5: Z- (Grid 1, 3)
+            //};
+
             int2[] faceOffsets = new int2[]
             {
-                new int2(1 * R, 2 * R), // Index 0: X+ (Grid 1, 2)
-                new int2(1 * R, 0 * R), // Index 1: X- (Grid 1, 0)
-                new int2(2 * R, 2 * R), // Index 2: Y+ (Grid 2, 2)
-                new int2(0 * R, 2 * R), // Index 3: Y- (Grid 0, 2)
-                new int2(1 * R, 1 * R), // Index 4: Z+ (Grid 1, 1)
-                new int2(1 * R, 3 * R)  // Index 5: Z- (Grid 1, 3)
+                new int2((int) 1.5f * R, 2 * R), // Index 0: X+ (Grid 1, 2)
+                new int2((int) 1.5f * R, 0 * R), // Index 1: X- (Grid 1, 0)
+                new int2((int) 2.5f * R, 2 * R), // Index 2: Y+ (Grid 2, 2)
+                new int2((int) 0.5f * R, 2 * R), // Index 3: Y- (Grid 0, 2)
+                new int2((int) 1.5f * R, 1 * R), // Index 4: Z+ (Grid 1, 1)
+                new int2((int) 1.5 * R, 3 * R)  // Index 5: Z- (Grid 1, 3)
             };
 
             int dataIndex = 0;
