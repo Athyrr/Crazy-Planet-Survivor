@@ -41,6 +41,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Texture2D:
+        m_Texture: {fileID: 2800000, guid: 80663d9e8f9ff044981688eaba6bf122, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _Triplanar_b7592468d8eb433d8d492ede533f558b_Texture_1_Texture2D:
         m_Texture: {fileID: 2800000, guid: daedcfd2b7ffa554682d12afa251b2b9, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -69,6 +73,7 @@ Material:
     m_Floats:
     - _QueueControl: 0
     - _QueueOffset: 0
+    - _StepTransition: 0.07
     - _XRMotionVectorsPass: 1
     m_Colors: []
   m_BuildTextureStacks: []
