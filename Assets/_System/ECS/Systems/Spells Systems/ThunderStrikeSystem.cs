@@ -1,13 +1,13 @@
 using Unity.Burst;
-using Unity.Physics;
-using Unity.Entities;
-using Unity.Transforms;
 using Unity.Collections;
+using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Physics;
+using Unity.Transforms;
 
 [BurstCompile]
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-public partial struct LightningStrikeSystem : ISystem
+partial struct ThunderStrikeSystem : ISystem
 {
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -15,8 +15,9 @@ public partial struct LightningStrikeSystem : ISystem
         state.RequireForUpdate<Stats>();
         state.RequireForUpdate<SpellPrefab>();
         state.RequireForUpdate<ActiveSpell>();
+        state.RequireForUpdate<SpellsDatabase>();
         state.RequireForUpdate<CastSpellRequest>();
-        state.RequireForUpdate<LightningStrikeRequestTag>();
+        state.RequireForUpdate<ThunderStrikeRequestTag>();
     }
 
     [BurstCompile]
@@ -35,7 +36,7 @@ public partial struct LightningStrikeSystem : ISystem
         var spellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
         var spellDatabase = SystemAPI.GetComponent<SpellsDatabase>(spellDatabaseEntity);
 
-        var job = new CastSpellJob
+        var thunderStrikeJob = new CastThunderStrikeJob
         {
             ECB = ecb.AsParallelWriter(),
 
@@ -46,13 +47,14 @@ public partial struct LightningStrikeSystem : ISystem
 
             SpellDatabaseRef = spellDatabase.Blobs,
             SpellPrefabs = spellPrefabs
+
         };
-        state.Dependency = job.ScheduleParallel(state.Dependency);
+        state.Dependency = thunderStrikeJob.ScheduleParallel(state.Dependency);
     }
 
     [BurstCompile]
-    [WithAll(typeof(CastSpellRequest), typeof(LightningStrikeRequestTag))]
-    private partial struct CastSpellJob : IJobEntity
+    [WithAll(typeof(CastSpellRequest), typeof(ThunderStrikeRequestTag))]
+    private partial struct CastThunderStrikeJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
@@ -64,7 +66,7 @@ public partial struct LightningStrikeSystem : ISystem
         [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
-        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
+        void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
             if (!SpellDatabaseRef.IsCreated || !TransformLookup.HasComponent(request.Caster))
             {
@@ -75,10 +77,8 @@ public partial struct LightningStrikeSystem : ISystem
             var caster = request.Caster;
             var target = request.Target;
 
-            //var spellData = request.GetSpellData();
             ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
             var spellPrefab = SpellPrefabs[request.DatabaseIndex].Prefab;
-
 
             if (spellPrefab == Entity.Null)
             {
@@ -88,32 +88,64 @@ public partial struct LightningStrikeSystem : ISystem
 
             var casterTransform = TransformLookup[request.Caster];
             var casterStats = StatsLookup[request.Caster];
-            //var targetTransform = TransformLookup[request.Target];
 
-            //float3 castDirection;
-            //if (target != Entity.Null && TransformLookup.HasComponent(target))
-            //    castDirection = math.normalize(TransformLookup[target].Position - casterTransform.Position);
-            //else
-            //    castDirection = casterTransform.Forward();
+            float3 castDirection;
+            if (target != Entity.Null && TransformLookup.HasComponent(target))
+            {
+                var targetTransform = TransformLookup[target];
+                castDirection = math.normalize(targetTransform.Position - casterTransform.Position);
+            }
+            else
+            {
+                castDirection = casterTransform.Forward();
+            }
 
-            // Spell damage calculation
+            //Spell damage calculation
             float damage = spellData.BaseDamage + casterStats.Damage;
 
-            var projectileEntity = ECB.Instantiate(chunkIndex, spellPrefab);
+            var ThunderStrikeEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-            ECB.SetComponent(chunkIndex, projectileEntity, new Projectile()
+            ECB.SetComponent(chunkIndex, ThunderStrikeEntity, new FallingAttack()
             {
                 Damage = damage,
                 Element = spellData.Element
             });
 
-            ECB.SetComponent(chunkIndex, projectileEntity, new LocalTransform
+            // Orbit movement version
+            var orbitData = new OrbitMovement
+            {
+                OrbitCenterEntity = caster,
+                OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 5, // @todo change distance by (2) by value  /!\ value same as radius
+                AngularSpeed = 4,
+                Radius = 5,
+                RelativeOffset = casterTransform.Forward() * 5
+            };
+            var spawnPosition = casterTransform.Position + casterTransform.Forward() * orbitData.Radius;
+            ECB.SetComponent(chunkIndex, ThunderStrikeEntity, new LocalTransform
+            {
+                Position = spawnPosition,
+                Rotation = casterTransform.Rotation,
+                Scale = 0.7f
+            });
+            ECB.RemoveComponent<LinearMovement>(chunkIndex, ThunderStrikeEntity);
+            ECB.AddComponent(chunkIndex, ThunderStrikeEntity, orbitData);
+
+            // Linear movement version
+            /*ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
             {
                 Position = casterTransform.Position,
                 Rotation = casterTransform.Rotation,
                 Scale = 1f
             });
 
+            ECB.SetComponent<LinearMovement>(chunkIndex, fireballEntity, new LinearMovement
+            {
+                //Direction = castDirection,
+                Direction = casterTransform.Forward(),
+                Speed = spellData.BaseSpeed
+            });*/
+
+            // Collision
             bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
             CollisionFilter collisionFilter;
             if (isPlayerCaster)
@@ -134,23 +166,15 @@ public partial struct LightningStrikeSystem : ISystem
             }
             PhysicsCollider collider = ColliderLookup[spellPrefab];
             collider.Value.Value.SetCollisionFilter(collisionFilter);
-            ECB.SetComponent(chunkIndex, projectileEntity, collider);
+            ECB.SetComponent(chunkIndex, ThunderStrikeEntity, collider);
 
-
-            ECB.SetComponent<LinearMovement>(chunkIndex, projectileEntity, new LinearMovement
-            {
-                Direction = casterTransform.Forward(),
-                Speed = spellData.BaseSpeed
-            });
-
-
-            ECB.AddComponent(chunkIndex, projectileEntity, new Lifetime
+            ECB.SetComponent(chunkIndex, ThunderStrikeEntity, new Lifetime
             {
                 ElapsedTime = spellData.Lifetime,
                 Duration = spellData.Lifetime
             });
 
-            // Destroy request entity after spell instancing
+            // Destroy request
             ECB.DestroyEntity(chunkIndex, requestEntity);
         }
     }

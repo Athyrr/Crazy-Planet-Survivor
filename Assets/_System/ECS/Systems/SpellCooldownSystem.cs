@@ -137,6 +137,10 @@ public partial struct SpellCooldownSystem : ISystem
                         case ESpellID.LightningStrike:
                             ECB.AddComponent<LightningStrikeRequestTag>(chunkIndex, request);
                             break;
+
+                        case ESpellID.ThunderStrike:
+                            ECB.AddComponent<ThunderStrikeRequestTag>(chunkIndex, request);
+                            break;
                     }
 
                     float cooldown = spellData.BaseCooldown * (1 - stats.CooldownReduction);
