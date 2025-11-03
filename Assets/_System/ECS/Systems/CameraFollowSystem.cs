@@ -16,7 +16,7 @@ public partial struct CameraFollowSystem : ISystem
 
         Camera camera = settings.Camera.Value;
         Transform cameraTransform = camera.transform;
-        
+
         cameraTransform.position = settings.CameraDefaultPosition;
         cameraTransform.rotation = settings.CameraDefaultRotation;
     }
@@ -34,29 +34,29 @@ public partial struct CameraFollowSystem : ISystem
         Transform cameraTransform = camera.transform;
         LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
         float deltaTime = SystemAPI.Time.DeltaTime;
-        
+
         float3 cameraOffset = float3.zero;
-        
+
         float3 playerPos = playerTransform.Position;
         float3 up = playerTransform.Up();
-        
-        float3 cameraForward = cameraTransform.forward;
-        
-        float3 cameraTangentRight = math.normalizesafe(math.cross(cameraForward, up)); 
-        float3 nextCameraForward = math.normalizesafe(cameraForward - math.dot(cameraForward, up)*up);
 
-        quaternion cameraOffsetRot =  quaternion.LookRotationSafe(nextCameraForward, up);
-        
-        float3 relativePosition = math.rotate(cameraOffsetRot,math.rotate(settings.CameraUpToOffset, new float3(0,1,0))) * settings.CameraDistance;
+        float3 cameraForward = cameraTransform.forward;
+
+        float3 cameraTangentRight = math.normalizesafe(math.cross(cameraForward, up));
+        float3 nextCameraForward = math.normalizesafe(cameraForward - math.dot(cameraForward, up) * up);
+
+        quaternion cameraOffsetRot = quaternion.LookRotationSafe(nextCameraForward, up);
+
+        float3 relativePosition = math.rotate(cameraOffsetRot, math.rotate(settings.CameraUpToOffset, new float3(0, 1, 0))) * settings.CameraDistance;
         float3 targetPosition = playerPos + relativePosition;
-        
+
         float3 camToPlayer = playerPos - targetPosition;
         quaternion targetRotation = math.normalizesafe(quaternion.LookRotation(math.normalizesafe(camToPlayer), -math.normalizesafe(math.cross(math.normalizesafe(camToPlayer), cameraTangentRight))));
-        
+
         // Smooth
         float3 smoothedPosition = math.lerp(cameraTransform.position, targetPosition, math.min(deltaTime * settings.Smooth, 1));
         quaternion smoothedRotation = math.slerp(cameraTransform.rotation, targetRotation, math.min(deltaTime * settings.RotationSmooth, 1));
-        
+
         cameraTransform.position = smoothedPosition;
         cameraTransform.rotation = smoothedRotation;
 

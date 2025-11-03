@@ -2,6 +2,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using Unity.Entities;
 using UnityEngine;
+using System.IO;
 
 public class PlanetDataAuthoring : MonoBehaviour
 {
@@ -22,6 +23,12 @@ public class PlanetDataAuthoring : MonoBehaviour
 
     [SerializeField]
     private bool _autoFindPlanetRadius;
+
+    [SerializeField]
+    private bool _findWaterLevel = false;
+
+    [SerializeField]
+    private GameObject _waterLevelObject;
 
     [SerializeField]
     private bool _useHeightMap = true;
@@ -46,6 +53,7 @@ public class PlanetDataAuthoring : MonoBehaviour
             var blobBuilder = new BlobBuilder(Allocator.Temp);
             ref PlanetHeightMapBlob root = ref blobBuilder.ConstructRoot<PlanetHeightMapBlob>();
 
+            //BlobBuilderArray<float> heightsArray = blobBuilder.Allocate(ref root.Heights, tempHeightMapData.Length);
             BlobBuilderArray<float> heightsArray = blobBuilder.Allocate(ref root.Heights, tempHeightMapData.Length);
 
             // Fullfill blob array
@@ -104,28 +112,18 @@ public class PlanetDataAuthoring : MonoBehaviour
 
             // Init height map data
             NativeArray<float> heightMapData = new NativeArray<float>(totalSize, Allocator.TempJob);
-
             Color[] atlasData = atlas.GetPixels();
             int atlasWidth = atlas.width;
 
-            //int2[] faceOffsets = new int2[]
-            //{
-            //    new int2(1 * R, 2 * R), // Index 0: X+ (Grid 1, 2)
-            //    new int2(1 * R, 0 * R), // Index 1: X- (Grid 1, 0)
-            //    new int2(2 * R, 2 * R), // Index 2: Y+ (Grid 2, 2)
-            //    new int2(0 * R, 2 * R), // Index 3: Y- (Grid 0, 2)
-            //    new int2(1 * R, 1 * R), // Index 4: Z+ (Grid 1, 1)
-            //    new int2(1 * R, 3 * R)  // Index 5: Z- (Grid 1, 3)
-            //};
 
             int2[] faceOffsets = new int2[]
             {
-                new int2((int) 1.5f * R, 2 * R), // Index 0: X+ (Grid 1, 2)
-                new int2((int) 1.5f * R, 0 * R), // Index 1: X- (Grid 1, 0)
+                new int2((int) 1.5f * R, 0 * R), // Index 0: X+ (Grid 1, 0)
+                new int2((int) 1.5f * R, 2 * R), // Index 1: X- (Grid 1, 2)
                 new int2((int) 2.5f * R, 2 * R), // Index 2: Y+ (Grid 2, 2)
                 new int2((int) 0.5f * R, 2 * R), // Index 3: Y- (Grid 0, 2)
-                new int2((int) 1.5f * R, 1 * R), // Index 4: Z+ (Grid 1, 1)
-                new int2((int) 1.5 * R, 3 * R)  // Index 5: Z- (Grid 1, 3)
+                new int2((int) 1.5 * R, 3 * R),  // Index 4: Z+ (Grid 1, 3)
+                new int2((int) 1.5f * R, 1 * R)  // Index 5: Z- (Grid 1, 1)
             };
 
             int dataIndex = 0;
@@ -141,18 +139,65 @@ public class PlanetDataAuthoring : MonoBehaviour
                     // Horizontal (U) left to right
                     for (int x = 0; x < R; x++)
                     {
-                        int pixelX = faceOffsetX + x;
-                        int pixelY = faceOffsetY + y;
+                        int tx = x; // X coord transformed local to face
+                        int ty = y; // Y coord transformed local to face
+
+                        switch (face)
+                        {
+                            case 0: // X+
+                                tx =y ;
+                                ty = R - 1 - x;
+                                break;
+
+                            case 1: // X-
+                                tx = R - 1 - y;
+                                ty = x;
+
+                                break;
+
+                            case 2: // Y+
+                                tx = R - 1 - y;
+                                ty = y - 1 - x;
+                                break;
+
+                            case 3: // Y-
+                                tx = x;
+                                ty = y;
+                                break;
+
+                            case 4: // Z+
+                                tx = y;
+                                ty = R - 1 - x;
+                                break;
+
+                            case 5: // Z-
+                                tx = x;
+                                ty = y;
+                                break;
+
+                            default:
+                                break;
+                        }
+
+                        int pixelX = faceOffsetX + tx;
+                        int pixelY = faceOffsetY + ty;
 
                         int atlasIndex = pixelY * atlasWidth + pixelX;
-                        Color pixelColor = atlasData[atlasIndex];
 
-                        float heightValue = pixelColor.r;
-                        heightMapData[dataIndex] = heightValue;
+                        if (atlasIndex < 0 || atlasIndex >= atlasData.Length)
+                            heightMapData[dataIndex] = 0;
+                        else
+                            heightMapData[dataIndex] = atlasData[atlasIndex].r;
+
                         dataIndex++;
                     }
                 }
             }
+
+            Debug.Log("HM data length: " + heightMapData.Length);
+
+            //string json = JsonUtility.ToJson(heightMapData.ToArray(), true);
+            //File.WriteAllText(Application.dataPath + "/_Content/heightmapData.json", json);
 
             return heightMapData;
         }
@@ -160,6 +205,14 @@ public class PlanetDataAuthoring : MonoBehaviour
 
     private void OnValidate()
     {
+        if (_findWaterLevel && _waterLevelObject != null)
+        {
+            var mesh = _waterLevelObject.GetComponent<MeshFilter>();
+            if (mesh && mesh.sharedMesh)
+                _radius = 0.5f * mesh.sharedMesh.bounds.size.x * _waterLevelObject.transform.lossyScale.x;
+            return;
+        }
+
         if (_autoFindPlanetRadius)
         {
             var mesh = GetComponent<MeshFilter>();

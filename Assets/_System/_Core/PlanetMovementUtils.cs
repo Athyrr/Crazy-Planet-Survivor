@@ -1,5 +1,7 @@
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Mathematics;
+using UnityEngine;
 
 /// <summary>
 /// Helper for planet based movement calculations. Burst compatible so can be used in Jobs.
@@ -139,10 +141,10 @@ public static partial class PlanetMovementUtils
     /// <param name="localUV">local uv coord for a face</param>
     /// <param name="heightmapIndex">Output index for heightmap sampling</param>
     [BurstCompile]
-    private static void GetHeightMapIndexFromPosition(in float3 worldPosition, in PlanetData planetData, out int heightmapIndex)
+    private static void GetHeightMapIndexFromPosition(in float3 worldPosition, in float3 planetCenter, in PlanetData planetData, out int heightmapIndex)
     {
         // Get relative position to planet center
-        float3 relativePosition = worldPosition - planetData.Center;
+        float3 relativePosition = worldPosition - planetCenter;
 
         // Cube face index
         GetCubeFace(relativePosition, out float3 localUV, out int faceIndex);
@@ -158,6 +160,7 @@ public static partial class PlanetMovementUtils
         int vIndex = math.clamp((int)(v * (resolution - 1)), 0, resolution - 1); // Clamp
 
         heightmapIndex = (faceIndex * (resolution * resolution)) + (vIndex * resolution) + uIndex;
+        Debug.LogWarning($"Face: {faceIndex} | UV: {uIndex},{vIndex} | Index: {heightmapIndex}");
     }
 
     /// <summary>
@@ -167,24 +170,28 @@ public static partial class PlanetMovementUtils
     /// <param name="planetData"></param>
     /// <param name="height"></param>
     [BurstCompile]
-    private static void GetSurfaceHeightAtPosition(in float3 worldPosition, in PlanetData planetData ,out float height)
+    private static void GetSurfaceHeightAtPosition(in float3 worldPosition, in float3 planetCenter, [ReadOnly] ref PlanetData planetData, out float height)
     {
         ref var heightMapBlob = ref planetData.HeightDataReference.Value;
 
-        GetHeightMapIndexFromPosition(worldPosition, planetData, out int index);
+        GetHeightMapIndexFromPosition(worldPosition, planetCenter, planetData, out int index);
 
+        index = math.clamp(index, 0, heightMapBlob.Heights.Length - 1);
         float heightmapValue = heightMapBlob.Heights[index];
+        //Debug.LogWarning($"Heightmap value at index {index}: {heightmapValue}");
 
         height = heightmapValue * planetData.MaxHeight;
     }
 
     [BurstCompile]
-    public static void SnapToSurfaceHeightMap(in float3 position, in float3 planetCenter, in PlanetData planetData, out float3 snappedPosition)
+    public static void SnapToSurfaceHeightMap(in float3 position, in float3 planetCenter, [ReadOnly] ref PlanetData planetData, out float3 snappedPosition)
     {
         GetSurfaceNormalAtPosition(position, planetCenter, out float3 normal);
-        GetSurfaceHeightAtPosition(position, planetData, out float height);
+        GetSurfaceHeightAtPosition(position, planetCenter, ref planetData, out float height);
 
-        snappedPosition = planetCenter + normal * (planetData.Radius + height);
+        snappedPosition = planetData.Center + normal * (planetData.Radius + height);
+
+        //Debug.LogWarning($"SnapToSurfaceHeightMap: Height={height} | SnappedPos={snappedPosition}");
     }
 
     [BurstCompile]

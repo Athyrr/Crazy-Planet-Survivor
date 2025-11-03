@@ -61,8 +61,8 @@ public partial struct CollisionSystem : ISystem
             if (TryResolveProjectileVsTarget(entityA, entityB, out var projectileEntity, out var enemyEntity))
             {
                 HandleProjectileHitTarget(projectileEntity, enemyEntity);
-            }
-            // Case Projectile hits player
+            }            // Case Projectile hits player
+
             else if (TryResolveProjectileVsTarget(entityA, entityB, out projectileEntity, out var playerEntity, true))
             {
                 HandleProjectileHitTarget(projectileEntity, playerEntity);

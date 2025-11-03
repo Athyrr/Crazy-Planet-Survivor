@@ -4,6 +4,7 @@ using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
 using Unity.Collections;
+using System.Diagnostics;
 
 /// <summary>
 /// System that processes all entity movements on a planetary surface.
@@ -52,6 +53,7 @@ public partial struct EntitiesMovementSystem : ISystem
         {
             DeltaTime = delta,
             PlanetCenter = planetTransform.Position,
+            PlanetData = planetData,
             PlanetRadius = planetData.Radius,
             StatsLookup = SystemAPI.GetComponentLookup<Stats>(true)
         };
@@ -98,12 +100,13 @@ public partial struct EntitiesMovementSystem : ISystem
     }
 
 
-    [BurstCompile]
+    //[BurstCompile]
     [WithAll(typeof(LinearMovement))]
     [WithNone(typeof(FollowTargetMovement), typeof(OrbitMovement))]
     private partial struct MoveLinearJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;
+        [ReadOnly] public PlanetData PlanetData;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
 
@@ -111,8 +114,8 @@ public partial struct EntitiesMovementSystem : ISystem
 
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
         {
-            if (math.lengthsq(movement.Direction) < 0.001f)
-                return;
+            //if (math.lengthsq(movement.Direction) < 0.001f)
+            //    return;
 
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].Speed : movement.Speed;
 
@@ -120,8 +123,9 @@ public partial struct EntitiesMovementSystem : ISystem
             PlanetMovementUtils.ProjectDirectionOnSurface(in movement.Direction, in normal, out float3 tangentDirection);
 
             float3 newPosition = transform.Position + tangentDirection * (speed * DeltaTime);
-            PlanetMovementUtils.SnapToSurface(in newPosition, in PlanetCenter, PlanetRadius, out float3 snappedPosition);
 
+            //PlanetMovementUtils.SnapToSurface(in newPosition, in PlanetCenter, PlanetRadius, out float3 snappedPosition);
+            PlanetMovementUtils.SnapToSurfaceHeightMap(in newPosition,in PlanetCenter, ref PlanetData, out float3 snappedPosition);
             PlanetMovementUtils.GetRotationOnSurface(in tangentDirection, in normal, out quaternion rotation);
 
             //movement.Direction = tangentDirection;
@@ -151,7 +155,8 @@ public partial struct EntitiesMovementSystem : ISystem
             PlanetMovementUtils.GetSurfaceStepTowardPosition(in transform.Position, in PlayerPosition, speed * DeltaTime, in PlanetCenter, PlanetRadius, out float3 targetPosition);
 
             float3 actualDirection = math.normalize(targetPosition - transform.Position);
-            if (math.lengthsq(actualDirection) < 0.001f) actualDirection = transform.Forward();
+            if (math.lengthsq(actualDirection) < 0.001f) 
+                actualDirection = transform.Forward();
 
             PlanetMovementUtils.GetRotationOnSurface(in actualDirection, in normal, out quaternion rotation);
 
