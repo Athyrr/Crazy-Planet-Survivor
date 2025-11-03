@@ -3,6 +3,9 @@ using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
 
+/// <summary>
+/// System that reads player input and updates the player's movement direction accordingly.
+/// </summary>
 [UpdateInGroup(typeof(InitializationSystemGroup))]
 [BurstCompile]
 public partial struct PlayerInputSystem : ISystem
