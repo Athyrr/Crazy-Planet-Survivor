@@ -75,7 +75,7 @@ public partial struct EntitiesMovementSystem : ISystem
                 PlanetCenter = planetTransform.Position,
                 StatsLookup = statsLookup
             };
-            JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearHandle);
+            JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(followHandle);
 
             var followBareJob = new MoveFollowBareJob 
             {
@@ -85,7 +85,7 @@ public partial struct EntitiesMovementSystem : ISystem
                 PlanetRadius = planetData.Radius,
                 StatsLookup = statsLookup
             };
-            JobHandle followBareHandle = followBareJob.ScheduleParallel(linearHandle);
+            JobHandle followBareHandle = followBareJob.ScheduleParallel(followSnappedHandle);
 
             // Combine follow movement handles
             followHandle = JobHandle.CombineDependencies(followSnappedHandle, followBareHandle);
@@ -113,7 +113,7 @@ public partial struct EntitiesMovementSystem : ISystem
             PlanetCenter = planetTransform.Position,
             PlanetRadius = planetData.Radius
         };
-        JobHandle orbitBareHandle = orbitBareJob.ScheduleParallel(updateOrbitCenterHandle);
+        JobHandle orbitBareHandle = orbitBareJob.ScheduleParallel(orbitSnappedHandle);
 
         // Combine orbit movement handles
         state.Dependency = JobHandle.CombineDependencies(orbitSnappedHandle, orbitBareHandle);
@@ -121,7 +121,6 @@ public partial struct EntitiesMovementSystem : ISystem
     }
 
     #region Jobs
-
 
     [BurstCompile]
     [WithAll(typeof(LinearMovement), typeof(HardSnappedMovement))]
