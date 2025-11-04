@@ -84,7 +84,7 @@ public partial struct EnemyTargetingSystem : ISystem
                 var spell = readySpells[i].Spell;
                 ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[spell.DatabaseIndex];
 
-                PlanetMovementUtils.GetSurfaceDistanceBetweenPoints(in transform.Position, in PlayerPosition, PlanetPosition, PlanetRadius, out float distance);
+                PlanetMovementUtils.GetSurfaceDistanceRadius(in transform.Position, in PlayerPosition, PlanetPosition, PlanetRadius, out float distance);
 
                 if (distance <= spellData.BaseRange)
                 {

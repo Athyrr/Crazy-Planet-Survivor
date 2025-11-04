@@ -79,11 +79,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, in ExperienceOrb orb, ref LocalTransform transform, in FollowTargetMovement followMovement)
         {
-            //PlanetMovementUtils.GetSurfaceDistanceBetweenPoints(PlayerTransform.Position, transform.Position, PlanetTransform.Position, PlanetRadius, out var dist);
-            //if (dist > followMovement.StopDistance)
-            //    return;
-
-            var dist = math.distance(PlayerTransform.Position, transform.Position);
+            PlanetMovementUtils.GetDistanceEuclidean(PlayerTransform.Position, transform.Position, out var dist);
             if (dist > followMovement.StopDistance)
                 return;
 
@@ -112,7 +108,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, in ExperienceOrb orb, ref LocalTransform transform)
         {
-            PlanetMovementUtils.GetSurfaceDistanceBetweenPoints(PlayerTransform.Position, transform.Position, PlanetTransform.Position, PlanetRadius, out var dist);
+            PlanetMovementUtils.GetSurfaceDistanceRadius(PlayerTransform.Position, transform.Position, PlanetTransform.Position, PlanetRadius, out var dist);
 
             if (dist > CollectRange)
                 return;
@@ -121,7 +117,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
             {
                 Target = PlayerEntity,
                 Speed = PlayerSpeed * 1.25f,
-                StopDistance = 0.5f
+                StopDistance = 1f
             });
         }
     }
