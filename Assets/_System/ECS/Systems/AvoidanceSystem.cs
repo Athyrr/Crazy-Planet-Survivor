@@ -11,6 +11,8 @@ using UnityEngine;
 [BurstCompile]
 public partial struct AvoidanceSystem : ISystem
 {
+    private float _lastTickTimer;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -27,13 +29,21 @@ public partial struct AvoidanceSystem : ISystem
         if (!SystemAPI.TryGetSingletonEntity<PlanetData>(out Entity planetEntity))
             return;
 
+        //_lastTickTimer -= SystemAPI.Time.DeltaTime;
+        //if (_lastTickTimer > 0)
+        //    return;
+        //_lastTickTimer = 0.15f; // Tick every 0.25 seconds
+
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().PhysicsWorld;
         var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
+        var playerEntity = SystemAPI.GetSingletonEntity<Player>();
+        var playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
 
         var avoidanceJob = new AvoidanceJob
         {
             PhysicsWorld = physicsWorld,
-            PlanetCenter = planetTransform.Position
+            PlanetCenter = planetTransform.Position,
+            PlayerPosition = planetTransform.Position
         };
         state.Dependency = avoidanceJob.ScheduleParallel(state.Dependency);
     }
@@ -47,9 +57,19 @@ public partial struct AvoidanceSystem : ISystem
     {
         [ReadOnly] public PhysicsWorld PhysicsWorld;
         [ReadOnly] public float3 PlanetCenter;
+        [ReadOnly] public float3 PlayerPosition;
+
+        private const float MaxAvoidanceDistance = 50f * 50f; // Squared distance
 
         public void Execute(Entity entity, in Avoidance avoidance, in LocalTransform transform, ref SteeringForce steering)
         {
+            // Return early if entity is too far from the player
+            if (math.distancesq(transform.Position, PlayerPosition) > MaxAvoidanceDistance)
+            {
+                steering.Value = float3.zero;
+                return;
+            }
+
             // Temporary list to store Overlap sphere hits
             var hits = new NativeList<DistanceHit>(Allocator.TempJob);
 
