@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: -809601175486125950}
   - component: {fileID: -795139794179562712}
   - component: {fileID: 7077652745905088192}
+  - component: {fileID: -6272738867424008012}
   m_Layer: 0
   m_Name: PF_Cube2
   m_TagString: Untagged
@@ -280,3 +281,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ExperienceLootAuthoring
   ExperienceValue: 60
   DropChance: 0.7
+--- !u!114 &-6272738867424008012
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4960229139857780973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 569916e10732eba4caf53ace7f5ac10d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
+  _avoidanceDetectionRadius: 15
+  _avoidanceWeight: 10

@@ -5,6 +5,7 @@ using Unity.Entities;
 using Unity.Physics;
 using Unity.Burst;
 using Unity.Jobs;
+using UnityEngine.Rendering.Universal.Internal;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -77,7 +78,7 @@ public partial struct EntitiesMovementSystem : ISystem
             };
             JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(followHandle);
 
-            var followBareJob = new MoveFollowBareJob 
+            var followBareJob = new MoveFollowBareJob
             {
                 PlayerPosition = playerPosition,
                 DeltaTime = delta,
@@ -107,7 +108,7 @@ public partial struct EntitiesMovementSystem : ISystem
         };
         JobHandle orbitSnappedHandle = orbitSnappedJob.ScheduleParallel(updateOrbitCenterHandle);
 
-        var orbitBareJob = new MoveOrbitBareJob 
+        var orbitBareJob = new MoveOrbitBareJob
         {
             DeltaTime = delta,
             PlanetCenter = planetTransform.Position,
@@ -230,31 +231,45 @@ public partial struct EntitiesMovementSystem : ISystem
 
         private const float SNAP_DISTANCE = 10.0f;
 
-        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
+        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, in SteeringForce steering, Entity entity)
         {
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].Speed : movement.Speed;
-            float3 currentNrmal;
+
+            float3 currentNormal;
             if (PlanetMovementUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, transform.Position, PlanetCenter,
                     new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape }, // Votre nouveau filtre est bon
                     SNAP_DISTANCE, out Unity.Physics.RaycastHit currentHit))
-            { currentNrmal = currentHit.SurfaceNormal; }
-            else { currentNrmal = math.normalize(transform.Position - PlanetCenter); }
+            { currentNormal = currentHit.SurfaceNormal; }
+            else { currentNormal = math.normalize(transform.Position - PlanetCenter); }
 
             float3 directionToPlayer = PlayerPosition - transform.Position;
-            PlanetMovementUtils.ProjectDirectionOnSurface(in directionToPlayer, in currentNrmal, out float3 tangentDirection);
-            if (math.lengthsq(tangentDirection) < 0.001f) tangentDirection = transform.Forward();
-            float3 newPosition = transform.Position + tangentDirection * (speed * DeltaTime);
+            PlanetMovementUtils.ProjectDirectionOnSurface(in directionToPlayer, in currentNormal, out float3 tangentDirection);
 
+            // Combine direction with steering
+            float3 finalDirection = tangentDirection + steering.Value;
+
+            if (math.lengthsq(finalDirection) < 0.001f)
+                finalDirection = transform.Forward();
+
+            // Calculate new position
+            float3 newPosition = transform.Position + finalDirection * (speed * DeltaTime);
+
+            // Snap to surface
             if (PlanetMovementUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, newPosition, PlanetCenter,
-                    new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape },
-                    SNAP_DISTANCE, out Unity.Physics.RaycastHit hit))
+                            new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape },
+                            SNAP_DISTANCE, out Unity.Physics.RaycastHit hit))
             {
                 transform.Position = hit.Position;
                 var n = hit.SurfaceNormal;
-                PlanetMovementUtils.GetRotationOnSurface(in tangentDirection, in n, out quaternion rotation);
+
+                // Rotate to face movement direction
+                PlanetMovementUtils.GetRotationOnSurface(in directionToPlayer, in n, out quaternion rotation);
                 transform.Rotation = rotation;
             }
-            else { transform.Position = newPosition; }
+            else
+            {
+                transform.Position = newPosition;
+            }
         }
     }
 
@@ -269,26 +284,33 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float PlanetRadius;
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
-        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
+        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, in SteeringForce steering, Entity entity)
         {
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].Speed : movement.Speed;
 
             PlanetMovementUtils.GetSurfaceNormalRadius(in transform.Position, in PlanetCenter, out var normal);
-            PlanetMovementUtils.GetSurfaceStepTowardPositionRadius(in transform.Position, in PlayerPosition, speed * DeltaTime, in PlanetCenter, PlanetRadius, out float3 targetPosition);
 
-            float3 actualDirection = math.normalize(targetPosition - transform.Position);
-            if (math.lengthsq(actualDirection) < 0.001f)
-                actualDirection = transform.Forward();
+            float3 directionToTarget = PlayerPosition - transform.Position;
+            PlanetMovementUtils.ProjectDirectionOnSurface(in directionToTarget, in normal, out float3 directionToPlayer);
 
-            PlanetMovementUtils.GetRotationOnSurface(in actualDirection, in normal, out quaternion rotation);
+            // Combine direction with steering
+            float3 finalDirection = directionToPlayer + steering.Value;
 
-            transform.Position = targetPosition;
+            if (math.lengthsq(finalDirection) < 0.001f)
+                finalDirection = transform.Forward();
+
+            float3 newPosition = transform.Position + finalDirection * (speed * DeltaTime);
+            PlanetMovementUtils.SnapToSurfaceRadius(newPosition, PlanetCenter, PlanetRadius, out var snappedPosition);
+
+            PlanetMovementUtils.GetRotationOnSurface(in directionToPlayer, in normal, out quaternion rotation);
+
+            transform.Position = newPosition;
             transform.Rotation = rotation;
         }
     }
 
     [BurstCompile]
-    [WithAll(typeof(OrbitMovement), typeof(HardSnappedMovement))] 
+    [WithAll(typeof(OrbitMovement), typeof(HardSnappedMovement))]
     [WithNone(typeof(LinearMovement), typeof(FollowTargetMovement))]
     private partial struct MoveOrbitSnappedJob : IJobEntity
     {
@@ -329,7 +351,7 @@ public partial struct EntitiesMovementSystem : ISystem
 
     [BurstCompile]
     [WithAll(typeof(OrbitMovement))]
-    [WithNone(typeof(LinearMovement), typeof(FollowTargetMovement), typeof(HardSnappedMovement))] 
+    [WithNone(typeof(LinearMovement), typeof(FollowTargetMovement), typeof(HardSnappedMovement))]
     private partial struct MoveOrbitBareJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;

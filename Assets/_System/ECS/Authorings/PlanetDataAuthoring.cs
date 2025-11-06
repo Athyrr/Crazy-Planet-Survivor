@@ -194,8 +194,6 @@ public class PlanetDataAuthoring : MonoBehaviour
                 }
             }
 
-            Debug.Log("HM data length: " + heightMapData.Length);
-
             //string json = JsonUtility.ToJson(heightMapData.ToArray(), true);
             //File.WriteAllText(Application.dataPath + "/_Content/heightmapData.json", json);
 
