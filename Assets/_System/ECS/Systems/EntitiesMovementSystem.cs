@@ -5,7 +5,6 @@ using Unity.Entities;
 using Unity.Physics;
 using Unity.Burst;
 using Unity.Jobs;
-using UnityEngine.Rendering.Universal.Internal;
 
 //[UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateInGroup(typeof(TestUpdateGroup))]
@@ -41,6 +40,7 @@ public partial struct EntitiesMovementSystem : ISystem
         float3 playerPosition = playerExists ? playerTransform.Position : float3.zero;
 
         ComponentLookup<Stats> statsLookup = SystemAPI.GetComponentLookup<Stats>(true);
+        ComponentLookup<SteeringForce> steeringLookup = SystemAPI.GetComponentLookup<SteeringForce>(true);
 
         // Linear snapped movement job
         var linearSnappedJob = new MoveLinearSnappedJob
@@ -75,7 +75,8 @@ public partial struct EntitiesMovementSystem : ISystem
                 PlayerPosition = playerPosition,
                 DeltaTime = delta,
                 PlanetCenter = planetTransform.Position,
-                StatsLookup = statsLookup
+                StatsLookup = statsLookup,
+                SteeringLookup = steeringLookup
             };
             JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(followHandle);
 
@@ -85,7 +86,8 @@ public partial struct EntitiesMovementSystem : ISystem
                 DeltaTime = delta,
                 PlanetCenter = planetTransform.Position,
                 PlanetRadius = planetData.Radius,
-                StatsLookup = statsLookup
+                StatsLookup = statsLookup,
+                SteeringLookup = steeringLookup
             };
             JobHandle followBareHandle = followBareJob.ScheduleParallel(followSnappedHandle);
 
@@ -134,6 +136,8 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public PlanetData PlanetData;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
+
+        [NativeDisableParallelForRestriction]
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
         private const float SNAP_DISTANCE = 10f;
@@ -196,6 +200,8 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public PlanetData PlanetData;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
+
+        [NativeDisableParallelForRestriction]
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
@@ -229,11 +235,13 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public float3 PlayerPosition;
         [ReadOnly] public float3 PlanetCenter;
+
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
+        [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
 
         private const float SNAP_DISTANCE = 10.0f;
 
-        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, in SteeringForce steering, Entity entity)
+        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
         {
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].Speed : movement.Speed;
 
@@ -247,8 +255,12 @@ public partial struct EntitiesMovementSystem : ISystem
             float3 directionToPlayer = PlayerPosition - transform.Position;
             PlanetMovementUtils.ProjectDirectionOnSurface(in directionToPlayer, in currentNormal, out float3 tangentDirection);
 
+            float3 steeringForce = float3.zero;
+            if (SteeringLookup.HasComponent(entity))
+                steeringForce = SteeringLookup[entity].Value;
+
             // Combine direction with steering
-            float3 finalDirection = tangentDirection + steering.Value;
+            float3 finalDirection = tangentDirection + steeringForce;
 
             if (math.lengthsq(finalDirection) < 0.001f)
                 finalDirection = transform.Forward();
@@ -284,9 +296,11 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float3 PlayerPosition;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
-        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, in SteeringForce steering, Entity entity)
+        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
+        [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
+
+        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
         {
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].Speed : movement.Speed;
 
@@ -295,8 +309,12 @@ public partial struct EntitiesMovementSystem : ISystem
             float3 directionToTarget = PlayerPosition - transform.Position;
             PlanetMovementUtils.ProjectDirectionOnSurface(in directionToTarget, in normal, out float3 directionToPlayer);
 
+            float3 steeringForce = float3.zero;
+            if (SteeringLookup.HasComponent(entity))
+                steeringForce = SteeringLookup[entity].Value;
+
             // Combine direction with steering
-            float3 finalDirection = directionToPlayer + steering.Value;
+            float3 finalDirection = directionToPlayer + steeringForce;
 
             if (math.lengthsq(finalDirection) < 0.001f)
                 finalDirection = transform.Forward();
@@ -306,7 +324,7 @@ public partial struct EntitiesMovementSystem : ISystem
 
             PlanetMovementUtils.GetRotationOnSurface(in directionToPlayer, in normal, out quaternion rotation);
 
-            transform.Position = newPosition;
+            transform.Position = snappedPosition;
             transform.Rotation = rotation;
         }
     }

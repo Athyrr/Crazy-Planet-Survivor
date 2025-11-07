@@ -4,7 +4,6 @@ using Unity.Physics;
 using Unity.Entities;
 using Unity.Collections;
 using Unity.Physics.Systems;
-using UnityEngine;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [UpdateAfter(typeof(PhysicsSystemGroup))]
@@ -61,8 +60,9 @@ public partial struct CollisionSystem : ISystem
             if (TryResolveProjectileVsTarget(entityA, entityB, out var projectileEntity, out var enemyEntity))
             {
                 HandleProjectileHitTarget(projectileEntity, enemyEntity);
-            }            // Case Projectile hits player
+            }
 
+            // Case Projectile hits player
             else if (TryResolveProjectileVsTarget(entityA, entityB, out projectileEntity, out var playerEntity, true))
             {
                 HandleProjectileHitTarget(projectileEntity, playerEntity);
@@ -84,6 +84,9 @@ public partial struct CollisionSystem : ISystem
             });
 
             ECB.AddComponent(0, projectile, new DestroyEntityFlag());
+
+            var feedabckEntity = ECB.CreateEntity(0);
+            ECB.AddComponent(0, feedabckEntity, new ShakeFeedbackRequest());
         }
 
         //private void HandleProjectileHitObstacle(Entity projectile)
