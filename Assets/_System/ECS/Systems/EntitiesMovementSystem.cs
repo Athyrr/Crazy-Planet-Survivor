@@ -7,7 +7,8 @@ using Unity.Burst;
 using Unity.Jobs;
 using UnityEngine.Rendering.Universal.Internal;
 
-[UpdateInGroup(typeof(SimulationSystemGroup))]
+//[UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateInGroup(typeof(TestUpdateGroup))]
 [BurstCompile]
 public partial struct EntitiesMovementSystem : ISystem
 {

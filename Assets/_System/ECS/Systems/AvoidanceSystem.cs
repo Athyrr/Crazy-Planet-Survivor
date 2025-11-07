@@ -5,8 +5,9 @@ using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
 
-[UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateBefore(typeof(EntitiesMovementSystem))]
+//[UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateInGroup(typeof(TestUpdateGroup))]
+//[UpdateBefore(typeof(EntitiesMovementSystem))]
 [BurstCompile]
 public partial struct AvoidanceSystem : ISystem
 {
