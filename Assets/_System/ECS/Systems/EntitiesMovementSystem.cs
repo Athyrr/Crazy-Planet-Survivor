@@ -5,7 +5,7 @@ using Unity.Entities;
 using Unity.Physics;
 using Unity.Burst;
 using Unity.Jobs;
-using UnityEngine.Rendering.Universal.Internal;
+using Unity.Collections.LowLevel.Unsafe;
 
 //[UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateInGroup(typeof(TestUpdateGroup))]
@@ -134,6 +134,8 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public PlanetData PlanetData;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
+
+        [NativeDisableParallelForRestriction]
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
         private const float SNAP_DISTANCE = 10f;
@@ -196,6 +198,8 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public PlanetData PlanetData;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
+
+        [NativeDisableParallelForRestriction]
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
@@ -229,6 +233,8 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public float3 PlayerPosition;
         [ReadOnly] public float3 PlanetCenter;
+
+        [NativeDisableParallelForRestriction]
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
         private const float SNAP_DISTANCE = 10.0f;

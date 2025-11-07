@@ -169,6 +169,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlanetFirstPass
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
@@ -208,11 +212,11 @@ MonoBehaviour:
   _heightMapTexture: {fileID: 2800000, guid: 80663d9e8f9ff044981688eaba6bf122, type: 3}
   _atlasPixelWidth: 2048
   _maxPlanetHeight: 1
-  _radius: 39
+  _radius: 61.83464
   _autoFindPlanetRadius: 0
   _findWaterLevel: 0
   _waterLevelObject: {fileID: 4676242776458079911}
-  _useHeightMap: 1
+  _useHeightMap: 0
 --- !u!114 &2613562405231561207
 MonoBehaviour:
   m_ObjectHideFlags: 0

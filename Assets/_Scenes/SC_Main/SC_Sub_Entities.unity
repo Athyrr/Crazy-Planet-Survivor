@@ -127,18 +127,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 7883575868643578281, guid: 2fa591c7a6db1624087a18e08d5d6b02, type: 3}
-      propertyPath: _radius
-      value: 61.83464
-      objectReference: {fileID: 0}
-    - target: {fileID: 7883575868643578281, guid: 2fa591c7a6db1624087a18e08d5d6b02, type: 3}
-      propertyPath: _useHeightMap
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7883575868643578281, guid: 2fa591c7a6db1624087a18e08d5d6b02, type: 3}
-      propertyPath: _autoFindPlanetRadius
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 8073100260919343806, guid: 2fa591c7a6db1624087a18e08d5d6b02, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -182,10 +170,6 @@ PrefabInstance:
     - target: {fileID: 8881865127885119492, guid: 2fa591c7a6db1624087a18e08d5d6b02, type: 3}
       propertyPath: m_Name
       value: PlanetFirstPass
-      objectReference: {fileID: 0}
-    - target: {fileID: 8881865127885119492, guid: 2fa591c7a6db1624087a18e08d5d6b02, type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -245,24 +229,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7253456827867490842, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
-      propertyPath: m_Material.m_Friction.m_Value.Value
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7253456827867490842, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
-      propertyPath: m_Material.m_CollisionResponse.m_Value
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 7431055858490708449, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
       propertyPath: m_Name
       value: PF_Planet
       objectReference: {fileID: 0}
-    - target: {fileID: 7431055858490708449, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 8685317041004886736, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
@@ -665,30 +636,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_Spawner
       objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[0].SpawnDatas.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[0].SpawnDatas.Array.data[0].Amount
-      value: 600
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[0].SpawnDatas.Array.data[0].Prefab
-      value: 
-      objectReference: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[0].SpawnDatas.Array.data[1].Amount
-      value: 200
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[0].SpawnDatas.Array.data[1].Prefab
-      value: 
-      objectReference: {fileID: 4960229139857780973, guid: a997dccf2610efa4f80801c2b9eeff9b, type: 3}
     - target: {fileID: 5966468792438554073, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
