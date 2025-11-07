@@ -4,7 +4,6 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
-using UnityEngine;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateBefore(typeof(EntitiesMovementSystem))]
@@ -26,15 +25,18 @@ public partial struct AvoidanceSystem : ISystem
         if (gameState.State != EGameState.Running)
             return;
 
+        if (!SystemAPI.TryGetSingleton<PhysicsWorldSingleton>(out var physicsWorldSingleton))
+            return;
+
         if (!SystemAPI.TryGetSingletonEntity<PlanetData>(out Entity planetEntity))
             return;
 
         //_lastTickTimer -= SystemAPI.Time.DeltaTime;
         //if (_lastTickTimer > 0)
         //    return;
-        //_lastTickTimer = 0.15f; // Tick every 0.25 seconds
+        //_lastTickTimer = 0.1f; // Tick every 0.25 seconds
 
-        var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().PhysicsWorld;
+        var physicsWorld = physicsWorldSingleton.PhysicsWorld;
         var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
         var playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
@@ -51,7 +53,7 @@ public partial struct AvoidanceSystem : ISystem
     /// <summary>
     /// Job that processes avoidance behavior for enemy entities with the Avoidance component.
     /// </summary>
-    //[BurstCompile]
+    [BurstCompile]
     [WithAll(typeof(Enemy), typeof(Avoidance))]
     private partial struct AvoidanceJob : IJobEntity
     {

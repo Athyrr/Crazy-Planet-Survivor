@@ -186,6 +186,7 @@ public partial struct EntitiesMovementSystem : ISystem
         }
     }
 
+    [BurstCompile]
     [WithAll(typeof(LinearMovement))]
     [WithNone(typeof(FollowTargetMovement), typeof(OrbitMovement), typeof(HardSnappedMovement))]
     private partial struct MoveLinearBareJob : IJobEntity
