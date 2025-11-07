@@ -16,12 +16,17 @@ public partial struct AvoidanceSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<PhysicsWorldSingleton>();
+        state.RequireForUpdate<GameState>();
+        state.RequireForUpdate<PlanetData>();
+        state.RequireForUpdate<Player>();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        var gameState = SystemAPI.GetSingleton<GameState>();
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+        
         if (gameState.State != EGameState.Running)
             return;
 
