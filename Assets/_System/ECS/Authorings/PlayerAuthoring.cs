@@ -4,6 +4,10 @@ using UnityEngine;
 
 public class PlayerAuthoring : MonoBehaviour
 {
+    [Header("Movement precision")]
+    [Tooltip("If true, the player will be snapped perfectyl on the ground following the terrain height. Otherwise, it will follow the base radius.")]
+    public bool UseSnappedMovement = true;
+
     [Header("Stats \n" +
         "Resistances are value in %.")]
     public BaseStats BaseStats;
@@ -31,6 +35,9 @@ public class PlayerAuthoring : MonoBehaviour
                 Direction = float3.zero,
                 Speed = authoring.BaseStats.Speed
             });
+
+            if (authoring.UseSnappedMovement)
+                AddComponent<HardSnappedMovement>(entity);
 
             AddBuffer<DamageBufferElement>(entity);
 

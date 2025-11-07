@@ -4,12 +4,12 @@ using Unity.Entities;
 using Unity.Jobs;
 
 /// <summary>
-/// System that handles spell cooldown and sends request or notify if a spell can be casted.
+/// System that handles spell cooldown and sends request for player or notify if a spell can be casted for enemies.
 /// <para>
 /// Player will send request to be handle by spells systems.
 /// </para>
 /// <para>
-/// Enemies will notify spell ready to be handle by <see cref="EnemyTargetingSystem"/>.
+/// Enemies will be notified with a spell ready comp to be handled by <see cref="EnemyTargetingSystem"/>.
 /// </para>
 /// <para>@todo AI system to decide which spell to cast or how to move.</para> 
 /// </summary>

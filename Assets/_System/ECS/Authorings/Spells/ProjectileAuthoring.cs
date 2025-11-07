@@ -20,7 +20,7 @@ public class ProjectileAuthoring : MonoBehaviour
                 Direction = Vector3.forward
             });
 
-            //AddComponent<DamageOnContact>(entity); 
+            //AddComponent<DamageOnContact>(entity); // @todo 
 
             AddComponent(entity, new Lifetime { });
         }

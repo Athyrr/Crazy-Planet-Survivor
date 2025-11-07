@@ -1,30 +1,40 @@
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Mathematics;
+using Unity.Physics;
 
 /// <summary>
-/// Helper for planet based movement calculations. Burst compatible so can be used in Jobs.
+/// Helper class for planet-based movement calculations.
+/// This class is static, Burst-compatible, and can be used in jobs.
+/// It provides multiple APIs for different planet surface models:
+/// 1. Fixed Radius: A perfect sphere.
+/// 2. Collision: A complex mesh, queried using raycasts (Unity.Physics).
+/// 3. Heightmap: A perfect sphere offset by a heightmap (Blob Asset).
 /// </summary>
-// @todo heightmap sampling
 [BurstCompile]
 public static partial class PlanetMovementUtils
 {
-    #region Fixed radius version API
+    #region Core
 
+    /// <summary>
+    /// Projects a direction vector onto a surface tangent, defined by its normal.
+    /// </summary>
+    /// <param name="direction">The world-space direction to project.</param>
+    /// <param name="normal">The "up" vector (normal) of the surface.</param>
+    /// <param name="projectedDirection">The resulting projected direction.</param>
     [BurstCompile]
     public static void ProjectDirectionOnSurface(in float3 direction, in float3 normal, out float3 projectedDirection)
     {
         float3 tangent = direction - math.dot(direction, normal) * normal;
         projectedDirection = math.lengthsq(tangent) > 0.001f ? math.normalize(tangent) : float3.zero;
-        return;
     }
 
-    [BurstCompile]
-    public static void SnapToSurface(in float3 position, in float3 planetCenter, float planetRadius, out float3 snappedPosition)
-    {
-        snappedPosition = planetCenter + math.normalize(position - planetCenter) * planetRadius;
-        return;
-    }
-
+    /// <summary>
+    /// Gets a quaternion rotation that aligns an entity to a surface.
+    /// </summary>
+    /// <param name="forward">The desired "forward" direction, tangent to the surface.</param>
+    /// <param name="normal">The desired "up" direction (the surface normal).</param>
+    /// <param name="rotation">The resulting object rotation.</param>
     [BurstCompile]
     public static void GetRotationOnSurface(in float3 to, in float3 normal, out quaternion rotation)
     {
@@ -32,119 +42,224 @@ public static partial class PlanetMovementUtils
         return;
     }
 
+    #endregion
+
+
+    #region Fixed Radius API (Perfect Sphere)
+
+    /// <summary>
+    /// Snaps a world position to the surface of a perfect sphere.
+    /// </summary>
+    /// <param name="position">The world position.</param>
+    /// <param name="planetCenter">The center of the planet.</param>
+    /// <param name="planetRadius">The radius of the planet.</param>
+    /// <param name="snappedPosition">The resulting position on the sphere's surface.</param>
     [BurstCompile]
-    public static void GetSurfaceNormalAtPosition(in float3 position, in float3 center, out float3 normal)
+    public static void SnapToSurfaceRadius(in float3 position, in float3 planetCenter, float planetRadius, out float3 snappedPosition)
+    {
+        snappedPosition = planetCenter + math.normalize(position - planetCenter) * planetRadius;
+    }
+
+    /// <summary>
+    /// Gets the surface normal (up vector) at a position on a perfect sphere.
+    /// </summary>
+    /// <param name="position">The world position to check from.</param>
+    /// <param name="center">The center of the planet.</param>
+    /// <param name="normal">The resulting "up" vector (normal).</param>
+    [BurstCompile]
+    public static void GetSurfaceNormalRadius(in float3 position, in float3 center, out float3 normal)
     {
         normal = math.normalize(position - center);
-        return;
     }
 
+    /// <summary>
+    /// Calculates a new position after moving a set distance towards a target, following a perfect sphere's curvature.
+    /// </summary>
     [BurstCompile]
-    public static void GetSurfaceStepTowardPosition(in float3 from, in float3 toPosition, float distance, in float3 planetCenter, float radius, out float3 resultPosition)
+    public static void GetSurfaceStepTowardPositionRadius(in float3 from, in float3 toPosition, float distance, in float3 planetCenter, float radius, out float3 resultPosition)
     {
-        GetSurfaceNormalAtPosition(in from, in planetCenter, out var normal);
+        GetSurfaceNormalRadius(in from, in planetCenter, out var normal);
         ProjectDirectionOnSurface(math.normalize(toPosition - from), in normal, out float3 tangentDirection);
         float3 newPosition = from + tangentDirection * distance;
-        SnapToSurface(newPosition, planetCenter, radius, out var snapped);
-        resultPosition = snapped;
+
+        SnapToSurfaceRadius(newPosition, planetCenter, radius, out resultPosition);
         return;
     }
 
+    /// <summary>
+    /// Calculates a new position after moving a set distance in a direction, following a perfect sphere's curvature.
+    /// </summary>
     [BurstCompile]
-    public static void GetSurfaceStepTowardDirection(in float3 from, in float3 toDirection, float distance, in float3 planetCenter, float radius, out float3 resultPosition)
+    public static void GetSurfaceStepTowardDirectionRadius(in float3 from, in float3 toDirection, float distance, in float3 planetCenter, float radius, out float3 resultPosition)
     {
-        GetSurfaceNormalAtPosition(from, planetCenter, out var normal);
+        GetSurfaceNormalRadius(from, planetCenter, out var normal);
         ProjectDirectionOnSurface(math.normalize(toDirection), normal, out float3 tangentDirection);
         float3 newPosition = from + tangentDirection * distance;
-        SnapToSurface(newPosition, planetCenter, radius, out var snappedPosition);
-        resultPosition = snappedPosition;
-        return;
+        SnapToSurfaceRadius(newPosition, planetCenter, radius, out resultPosition);
     }
 
+    /// <summary>
+    /// Gets the "arc" distance between two points on a perfect sphere's surface.
+    /// </summary>
     [BurstCompile]
-    public static void GetSurfaceDistanceBetweenPoints(in float3 from, in float3 to, in float3 planetCenter, float planetRadius, out float distance)
+    public static void GetSurfaceDistanceRadius(in float3 from, in float3 to, in float3 planetCenter, float planetRadius, out float distance)
     {
         float3 fromDir = math.normalize(from - planetCenter);
         float3 toDir = math.normalize(to - planetCenter);
         float angle = math.acos(math.clamp(math.dot(fromDir, toDir), -1f, 1f));
         distance = angle * planetRadius;
-        return;
     }
 
+    /// <summary>
+    /// Checks if a target is within a given "arc" distance on a perfect sphere.
+    /// </summary>
     [BurstCompile]
-    public static void IsWithinRange(in float3 center, in float3 target, float range, in float3 planetCenter, float planetRadius, out bool result)
+    public static void IsWithinRangeRadius(in float3 center, in float3 target, float range, in float3 planetCenter, float planetRadius, out bool result)
     {
-        GetSurfaceDistanceBetweenPoints(center, target, planetCenter, planetRadius, out var distance);
+        GetSurfaceDistanceRadius(center, target, planetCenter, planetRadius, out var distance);
         result = distance <= range;
-        return;
     }
 
     #endregion
 
 
-    #region Height map version API
+    #region Collision API (Physics Mesh)
 
     /// <summary>
-    /// 
+    /// Snaps a position to the ground by raycasting towards planet center.
+    /// /!\ For mesh-based planets.
     /// </summary>
-    /// <param name="position">World position</param>
-    /// <param name="localUV">The cube face UV.</param>
-    /// <param name="faceIndex">Cube face index</param>
+    /// <param name="collisionWorld">The physics world to raycast against.</param>
+    /// <param name="position">The world position to snap from.</param>
+    /// <param name="planetCenter">The center of the planet.</param>
+    /// <param name="filter">The collision filter (The planet layer).</param>
+    /// <param name="rayLength">How far to cast the ray.</param>
+    /// <param name="hit">The resulting RaycastHit.</param>
+    /// <returns>True if the raycast hit the planet.</returns>
     [BurstCompile]
-    private static void GetCubeFace(in float3 position, out float3 localUV, out int faceIndex)
+    public static bool SnapToSurfaceRaycast(
+        [ReadOnly] ref CollisionWorld collisionWorld,
+       in float3 position,
+        in float3 planetCenter,
+       in CollisionFilter filter,
+        float rayLength,
+        out RaycastHit hit)
     {
-        localUV = float3.zero;
-        faceIndex = -1;
+        // Define "down" as the vector towards the planet center
+        float3 normal = math.normalize(position - planetCenter);
 
-        float absX = math.abs(position.x);
-        float absY = math.abs(position.y);
-        float absZ = math.abs(position.z);
+        // Start ray slightly "above" the position to avoid starting inside the mesh
+        float3 rayStart = position + normal * 0.2f;
 
+        // End ray below the position
+        float3 rayEnd = position - normal * rayLength;
 
-        // Get dominant axis
-
-        // +X / -X face
-        if (absX >= absY && absX >= absZ)
+        var rayInput = new RaycastInput
         {
-            float inverseX = 1f / absX;
-            localUV = new float3(position.y * inverseX, position.z * inverseX, 0);
+            Start = rayStart,
+            End = rayEnd,
+            Filter = filter
+        };
 
-            faceIndex = position.x > 0 ? 0 : 1;
-        }
-
-        // +Y / -Y face
-        else if (absY >= absX && absY >= absZ)
-        {
-            float inverseY = 1f / absY;
-            localUV = new float3(position.x * inverseY, position.z * inverseY, 0);
-
-            faceIndex = position.y > 0 ? 2 : 3;
-        }
-
-        // +Z / -Z face
-        else
-        {
-            float inverseZ = 1f / absZ;
-            localUV = new float3(position.x * inverseZ, position.y * inverseZ, 0);
-
-            faceIndex = position.z > 0 ? 4 : 5;
-        }
+        return collisionWorld.CastRay(rayInput, out hit);
     }
 
     /// <summary>
-    /// Gets world positon to heightmap index (native array index)
+    /// Gets the euclidean (straight-line) distance between two points.
     /// </summary>
-    /// <param name="worldPosition">World position</param>
-    /// <param name="planetData">Planet data</param>
-    /// <param name="localUV">local uv coord for a face</param>
-    /// <param name="heightmapIndex">Output index for heightmap sampling</param>
     [BurstCompile]
-    private static void GetHeightMapIndexFromPosition(in float3 worldPosition, in PlanetData planetData, out int heightmapIndex)
+    public static void GetDistanceEuclidean(in float3 from, in float3 to, out float distance)
     {
-        // Get relative position to planet center
-        float3 relativePosition = worldPosition - planetData.Center;
+        distance = math.distance(from, to);
+    }
 
-        // Cube face index
+    /// <summary>
+    /// Checks if a target is within a given euclidean (straight-line) distance.
+    /// </summary>
+    [BurstCompile]
+    public static void IsWithinRangeEuclidean(in float3 center, in float3 target, float range, out bool result)
+    {
+        result = math.distancesq(center, target) <= range * range;
+    }
+
+    #endregion
+
+
+    #region Heightmap API (BlobArray)
+
+    /// <summary>
+    /// Snaps a world position to the surface of a sphere modified by a heightmap.
+    /// </summary>
+    [BurstCompile]
+    public static void SnapToSurfaceHeightMap(in float3 position, in float3 planetCenter, [ReadOnly] ref PlanetData planetData, out float3 snappedPosition)
+    {
+        // Get the "ideal sphere" normal
+        GetSurfaceNormalRadius(position, planetCenter, out float3 normal);
+
+        // Get the height data at this position
+        GetSurfaceHeightAtPosition(position, planetCenter, ref planetData, out float height);
+
+        // The final position is the ideal sphere + height
+        snappedPosition = planetData.Center + normal * (planetData.Radius + height);
+    }
+
+    /// <summary>
+    /// Gets the surface normal.
+    /// </summary>
+    /// <remarks>    
+    /// This is a "cheap" version that returns the normal of the perfect sphere.
+    /// A "true" normal would require sampling adjacent heightmap points and calculating
+    /// the cross-product, which is much more expensive.
+    /// </remarks>
+    [BurstCompile]
+    public static void GetSurfaceNormalHeightMap(in float3 position, in float3 planetCenter, out float3 normal)
+    {
+        // This is the "cheap" normal. It ignores slopes from the heightmap.
+        normal = math.normalize(position - planetCenter);
+    }
+
+    /// <summary>
+    /// Calculates a new position after moving a set distance in a direction, following the heightmap curvature.
+    /// </summary>
+    [BurstCompile]
+    public static void GetSurfaceStepTowardDirectionHeightMap(in float3 from, in float3 toDirection, float distance, in float3 planetCenter, [ReadOnly] ref PlanetData planetData, out float3 resultPosition)
+    {
+        GetSurfaceNormalHeightMap(from, planetCenter, out var normal);
+        ProjectDirectionOnSurface(math.normalize(toDirection), normal, out float3 tangentDirection);
+        float3 newPosition = from + tangentDirection * distance;
+        SnapToSurfaceHeightMap(newPosition, planetCenter, ref planetData, out resultPosition);
+    }
+
+    // --- Internal Heightmap Helpers ---
+
+    /// <summary>
+    /// Gets the height value (0-1) from the heightmap blob at a given world position.
+    /// </summary>
+    [BurstCompile]
+    private static void GetSurfaceHeightAtPosition(in float3 worldPosition, in float3 planetCenter, [ReadOnly] ref PlanetData planetData, out float height)
+    {
+        ref var heightMapBlob = ref planetData.HeightDataReference.Value;
+        if (heightMapBlob.Heights.Length == 0)
+        {
+            height = 0;
+            return;
+        }
+
+        GetHeightMapIndexFromPosition(worldPosition, planetCenter, planetData, out int index);
+
+        index = math.clamp(index, 0, heightMapBlob.Heights.Length - 1);
+        float heightmapValue = heightMapBlob.Heights[index];
+
+        height = heightmapValue * planetData.MaxHeight;
+    }
+
+    /// <summary>
+    /// Converts a world position into a 1D index for the heightmap blob array.
+    /// </summary>
+    [BurstCompile]
+    private static void GetHeightMapIndexFromPosition(in float3 worldPosition, in float3 planetCenter, in PlanetData planetData, out int heightmapIndex)
+    {
+        float3 relativePosition = worldPosition - planetCenter;
         GetCubeFace(relativePosition, out float3 localUV, out int faceIndex);
 
         // Remap coord [-1,1] into [0,1]
@@ -152,46 +267,40 @@ public static partial class PlanetMovementUtils
         float v = localUV.y * 0.5f + 0.5f;
 
         int resolution = planetData.FaceResolution;
-
-        // UV coord using heightmap resolution
-        int uIndex = math.clamp((int)(u * (resolution - 1)), 0, resolution - 1); // Clamp
-        int vIndex = math.clamp((int)(v * (resolution - 1)), 0, resolution - 1); // Clamp
+        int uIndex = math.clamp((int)(u * (resolution - 1)), 0, resolution - 1);
+        int vIndex = math.clamp((int)(v * (resolution - 1)), 0, resolution - 1);
 
         heightmapIndex = (faceIndex * (resolution * resolution)) + (vIndex * resolution) + uIndex;
     }
 
     /// <summary>
-    /// 
+    /// Identifies which face of a cube a 3D vector is pointing at.
     /// </summary>
-    /// <param name="worldPosition"></param>
-    /// <param name="planetData"></param>
-    /// <param name="height"></param>
     [BurstCompile]
-    private static void GetSurfaceHeightAtPosition(in float3 worldPosition, in PlanetData planetData ,out float height)
+    private static void GetCubeFace(in float3 position, out float3 localUV, out int faceIndex)
     {
-        ref var heightMapBlob = ref planetData.HeightDataReference.Value;
+        float absX = math.abs(position.x);
+        float absY = math.abs(position.y);
+        float absZ = math.abs(position.z);
 
-        GetHeightMapIndexFromPosition(worldPosition, planetData, out int index);
-
-        float heightmapValue = heightMapBlob.Heights[index];
-
-        height = heightmapValue * planetData.MaxHeight;
-    }
-
-    [BurstCompile]
-    public static void SnapToSurfaceHeightMap(in float3 position, in float3 planetCenter, in PlanetData planetData, out float3 snappedPosition)
-    {
-        GetSurfaceNormalAtPosition(position, planetCenter, out float3 normal);
-        GetSurfaceHeightAtPosition(position, planetData, out float height);
-
-        snappedPosition = planetCenter + normal * (planetData.Radius + height);
-    }
-
-    [BurstCompile]
-    public static void GetSurfaceNormalAtPositionHeightMap(in float3 position, in float3 planetCenter, out float3 normal)
-    {
-        normal = math.normalize(position - planetCenter);
-        return;
+        if (absX >= absY && absX >= absZ) // +X / -X face
+        {
+            float inverseX = 1f / position.x;
+            localUV = new float3(position.z * inverseX, position.y * inverseX, 0); // (u, v)
+            faceIndex = position.x > 0 ? 0 : 1;
+        }
+        else if (absY >= absX && absY >= absZ) // +Y / -Y face
+        {
+            float inverseY = 1f / position.y;
+            localUV = new float3(position.x * inverseY, position.z * inverseY, 0);
+            faceIndex = position.y > 0 ? 2 : 3;
+        }
+        else // +Z / -Z face
+        {
+            float inverseZ = 1f / position.z;
+            localUV = new float3(position.x * inverseZ, position.y * inverseZ, 0);
+            faceIndex = position.z > 0 ? 4 : 5;
+        }
     }
 
     #endregion
