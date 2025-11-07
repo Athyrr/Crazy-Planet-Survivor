@@ -1,6 +1,5 @@
 using Unity.Entities;
 
-[UpdateBefore(typeof(SimulationSystemGroup))]
 public partial class TestUpdateGroup : ComponentSystemGroup
 {
     public TestUpdateGroup()
