@@ -7,7 +7,8 @@ public struct Stats : IComponentData
 {
     public float MaxHealth;
 
-    public float Speed;
+    public float MoveSpeed;
+    public float ProjectileSpeedMultiplier;
 
     public float Damage;
 
@@ -23,6 +24,9 @@ public struct Stats : IComponentData
     public float AreaSize;
 
     public float CollectRange;
+
+    // Bounces
+    public int BouncesAdded;
 
     // Same as BaseStats 
 }

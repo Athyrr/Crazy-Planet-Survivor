@@ -47,7 +47,7 @@ public partial struct StatsCalculationSystem : ISystem
         public void Execute([ChunkIndexInQuery] int index, Entity entity, in RecalculateStatsRequest recalculateStatsRequest, ref Stats stats, ref Health health, in BaseStats baseStats, in DynamicBuffer<StatModifier> modifiers)
         {
             stats.MaxHealth = baseStats.MaxHealth;
-            stats.Speed = baseStats.Speed;
+            stats.MoveSpeed = baseStats.Speed;
             stats.Damage = baseStats.Damage;
             stats.Armor = baseStats.Armor;
             stats.FireResistance = baseStats.FireResistance;
@@ -69,7 +69,7 @@ public partial struct StatsCalculationSystem : ISystem
                         break;
 
                     case EStatType.Speed:
-                        ApplyModifier(ref stats.Speed, modifiers[i]);
+                        ApplyModifier(ref stats.MoveSpeed, modifiers[i]);
                         break;
 
                     case EStatType.Damage:

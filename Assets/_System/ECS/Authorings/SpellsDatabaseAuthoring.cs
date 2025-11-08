@@ -42,6 +42,8 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlobRoot.BaseSpeed = spellSO.BaseSpeed;
                 spellBlobRoot.Element = spellSO.Element;
                 spellBlobRoot.Lifetime = spellSO.Lifetime;
+                spellBlobRoot.Bounces = spellSO.Bounces;
+                spellBlobRoot.BouncesSearchRadius = spellSO.BouncesSearchRadius;
             }
 
             var spellsDatabaseBlob = builder.CreateBlobAssetReference<SpellBlobs>(Allocator.Persistent);

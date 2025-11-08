@@ -39,7 +39,7 @@ public class EnemyAuthoring : MonoBehaviour
             AddComponent(entity, new Stats()
             {
                 MaxHealth = authoring.BaseStats.MaxHealth,
-                Speed = authoring.BaseStats.Speed,
+                MoveSpeed = authoring.BaseStats.Speed,
                 Damage = authoring.BaseStats.Damage,
                 Armor = authoring.BaseStats.Armor,
                 CooldownReduction = authoring.BaseStats.CooldownReduction

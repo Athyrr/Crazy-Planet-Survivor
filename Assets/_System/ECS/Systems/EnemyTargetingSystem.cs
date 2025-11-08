@@ -105,6 +105,10 @@ public partial struct EnemyTargetingSystem : ISystem
                         case ESpellID.LightningStrike:
                             ECB.AddComponent<LightningStrikeRequestTag>(chunkIndex, request);
                             break;
+
+                        case ESpellID.RicochetShot:
+                            ECB.AddComponent<RichochetShotRequestTag>(chunkIndex, request);
+                            break;
                     }
                 }
             }

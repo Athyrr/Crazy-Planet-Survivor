@@ -3,9 +3,6 @@ using UnityEngine;
 
 public class ProjectileAuthoring : MonoBehaviour
 {
-
-    //@todo lifetime + damage on collision component
-
     class Baker : Baker<ProjectileAuthoring>
     {
         public override void Bake(ProjectileAuthoring authoring)
@@ -20,7 +17,6 @@ public class ProjectileAuthoring : MonoBehaviour
                 Direction = Vector3.forward
             });
 
-            //AddComponent<DamageOnContact>(entity); // @todo 
 
             AddComponent(entity, new Lifetime { });
         }

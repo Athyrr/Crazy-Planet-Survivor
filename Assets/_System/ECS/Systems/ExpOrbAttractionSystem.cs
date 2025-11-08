@@ -38,7 +38,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
 
         LocalTransform playerTransform = SystemAPI.GetComponent<LocalTransform>(playerEntity);
         float playerCollectRange = SystemAPI.GetComponentRO<Stats>(playerEntity).ValueRO.CollectRange;
-        float playerSpeed = SystemAPI.GetComponentRO<Stats>(playerEntity).ValueRO.Speed;
+        float playerSpeed = SystemAPI.GetComponentRO<Stats>(playerEntity).ValueRO.MoveSpeed;
 
         var attractJob = new AttractOrbJob()
         {

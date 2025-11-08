@@ -5,7 +5,8 @@ public enum ESpellID : byte
     None,
     Fireball,
     LightningStrike,
-    FrozenZone
+    FrozenZone,
+    RicochetShot,
 }
 
 /// <summary>
