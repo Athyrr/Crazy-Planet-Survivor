@@ -5,16 +5,25 @@ using Unity.Entities;
 using Unity.Physics;
 using Unity.Burst;
 using Unity.Jobs;
-using UnityEngine.Rendering.Universal.Internal;
+using Unity.Collections.LowLevel.Unsafe;
 
-[UpdateInGroup(typeof(SimulationSystemGroup))]
+//[UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateInGroup(typeof(TestUpdateGroup))]
 [BurstCompile]
 public partial struct EntitiesMovementSystem : ISystem
 {
+    [ReadOnly] private ComponentLookup<Stats> _statsLookup;
+    [ReadOnly] private ComponentLookup<SteeringForce> _steeringLookup;
+    [ReadOnly] private ComponentLookup<LocalTransform> _transformLookup;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<PlanetData>();
+
+        _statsLookup = state.GetComponentLookup<Stats>(true);
+        _steeringLookup = state.GetComponentLookup<SteeringForce>(true);
+        _transformLookup = state.GetComponentLookup<LocalTransform>(true);
     }
 
     [BurstCompile]
@@ -35,11 +44,13 @@ public partial struct EntitiesMovementSystem : ISystem
         var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
         var planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
 
-        bool playerExists = SystemAPI.TryGetSingletonEntity<Player>(out var player);
-        LocalTransform playerTransform = playerExists ? SystemAPI.GetComponentRO<LocalTransform>(player).ValueRO : default;
-        float3 playerPosition = playerExists ? playerTransform.Position : float3.zero;
+        //ComponentLookup<Stats> statsLookup = SystemAPI.GetComponentLookup<Stats>(true);
+        //ComponentLookup<SteeringForce> steeringLookup = SystemAPI.GetComponentLookup<SteeringForce>(true);
+        //ComponentLookup<LocalTransform> transformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true);
 
-        ComponentLookup<Stats> statsLookup = SystemAPI.GetComponentLookup<Stats>(true);
+        _statsLookup.Update(ref state);
+        _steeringLookup.Update(ref state);
+        _transformLookup.Update(ref state);
 
         // Linear snapped movement job
         var linearSnappedJob = new MoveLinearSnappedJob
@@ -47,7 +58,7 @@ public partial struct EntitiesMovementSystem : ISystem
             DeltaTime = delta,
             PhysicsCollisionWorld = collisionWorld,
             PlanetCenter = planetTransform.Position,
-            StatsLookup = statsLookup
+            StatsLookup = _statsLookup
         };
         JobHandle linearSnappedHandle = linearSnappedJob.ScheduleParallel(state.Dependency);
 
@@ -57,7 +68,7 @@ public partial struct EntitiesMovementSystem : ISystem
             DeltaTime = delta,
             PlanetCenter = planetTransform.Position,
             PlanetRadius = planetData.Radius,
-            StatsLookup = statsLookup
+            StatsLookup = _statsLookup
         };
         JobHandle linearBareHandle = linearBareJob.ScheduleParallel(linearSnappedHandle);
 
@@ -65,37 +76,36 @@ public partial struct EntitiesMovementSystem : ISystem
         JobHandle linearHandle = JobHandle.CombineDependencies(linearSnappedHandle, linearBareHandle);
 
         // Follow movement job
-        JobHandle followHandle = linearBareHandle;
-        if (playerExists)
+        var followSnappedJob = new MoveFollowSnappedJob
         {
-            var followSnappedJob = new MoveFollowSnappedJob
-            {
-                PhysicsCollisionWorld = collisionWorld,
-                PlayerPosition = playerPosition,
-                DeltaTime = delta,
-                PlanetCenter = planetTransform.Position,
-                StatsLookup = statsLookup
-            };
-            JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(followHandle);
+            PhysicsCollisionWorld = collisionWorld,
+            DeltaTime = delta,
+            PlanetCenter = planetTransform.Position,
+            StatsLookup = _statsLookup,
+            SteeringLookup = _steeringLookup,
+            TransformLookup = _transformLookup
+        };
+        JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearHandle);
 
-            var followBareJob = new MoveFollowBareJob
-            {
-                PlayerPosition = playerPosition,
-                DeltaTime = delta,
-                PlanetCenter = planetTransform.Position,
-                PlanetRadius = planetData.Radius,
-                StatsLookup = statsLookup
-            };
-            JobHandle followBareHandle = followBareJob.ScheduleParallel(followSnappedHandle);
+        var followBareJob = new MoveFollowBareJob
+        {
+            DeltaTime = delta,
+            PlanetCenter = planetTransform.Position,
+            PlanetRadius = planetData.Radius,
+            StatsLookup = _statsLookup,
+            SteeringLookup = _steeringLookup,
+            TransformLookup = _transformLookup
+        };
+        JobHandle followBareHandle = followBareJob.ScheduleParallel(followSnappedHandle);
 
-            // Combine follow movement handles
-            followHandle = JobHandle.CombineDependencies(followSnappedHandle, followBareHandle);
-        }
+        // Combine follow movement handles
+        var followHandle = JobHandle.CombineDependencies(followSnappedHandle, followBareHandle);
 
         // Update orbit center position job
         var updateOrbitCenterJob = new UpdateOrbitCenterPositionJob
         {
-            LocalTransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true)
+            //LocalTransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true)
+            LocalTransformLookup = _transformLookup
         };
         JobHandle updateOrbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(followHandle);
 
@@ -133,13 +143,15 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public PlanetData PlanetData;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
+
+        [NativeDisableParallelForRestriction]
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
         private const float SNAP_DISTANCE = 10f;
 
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
         {
-            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].Speed : movement.Speed;
+            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
 
             float3 currentNormal;
             if (PlanetMovementUtils.SnapToSurfaceRaycast(
@@ -186,6 +198,7 @@ public partial struct EntitiesMovementSystem : ISystem
         }
     }
 
+    [BurstCompile]
     [WithAll(typeof(LinearMovement))]
     [WithNone(typeof(FollowTargetMovement), typeof(OrbitMovement), typeof(HardSnappedMovement))]
     private partial struct MoveLinearBareJob : IJobEntity
@@ -194,11 +207,13 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public PlanetData PlanetData;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
+
+        [NativeDisableParallelForRestriction]
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
         {
-            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].Speed : movement.Speed;
+            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
 
             // Get current normal
             PlanetMovementUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out var currentNormal);
@@ -225,15 +240,24 @@ public partial struct EntitiesMovementSystem : ISystem
     {
         [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
         [ReadOnly] public float DeltaTime;
-        [ReadOnly] public float3 PlayerPosition;
         [ReadOnly] public float3 PlanetCenter;
+
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
+        [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
+
+        [NativeDisableContainerSafetyRestriction]
+        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
 
         private const float SNAP_DISTANCE = 10.0f;
 
-        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, in SteeringForce steering, Entity entity)
+        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
         {
-            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].Speed : movement.Speed;
+            if (movement.Target == Entity.Null || !TransformLookup.HasComponent(movement.Target))
+                return;
+
+            float3 targetPosition = TransformLookup[movement.Target].Position;
+
+            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
 
             float3 currentNormal;
             if (PlanetMovementUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, transform.Position, PlanetCenter,
@@ -242,11 +266,15 @@ public partial struct EntitiesMovementSystem : ISystem
             { currentNormal = currentHit.SurfaceNormal; }
             else { currentNormal = math.normalize(transform.Position - PlanetCenter); }
 
-            float3 directionToPlayer = PlayerPosition - transform.Position;
+            float3 directionToPlayer = targetPosition - transform.Position;
             PlanetMovementUtils.ProjectDirectionOnSurface(in directionToPlayer, in currentNormal, out float3 tangentDirection);
 
+            float3 steeringForce = float3.zero;
+            if (SteeringLookup.HasComponent(entity))
+                steeringForce = SteeringLookup[entity].Value;
+
             // Combine direction with steering
-            float3 finalDirection = tangentDirection + steering.Value;
+            float3 finalDirection = tangentDirection + steeringForce;
 
             if (math.lengthsq(finalDirection) < 0.001f)
                 finalDirection = transform.Forward();
@@ -279,22 +307,35 @@ public partial struct EntitiesMovementSystem : ISystem
     private partial struct MoveFollowBareJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;
-        [ReadOnly] public float3 PlayerPosition;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
-        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, in SteeringForce steering, Entity entity)
+        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
+        [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
+
+        [NativeDisableContainerSafetyRestriction]
+        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
+
+        public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
         {
-            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].Speed : movement.Speed;
+            if (movement.Target == Entity.Null || !TransformLookup.HasComponent(movement.Target))
+                return;
+
+            float3 targetPosition = TransformLookup[movement.Target].Position;
+
+            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
 
             PlanetMovementUtils.GetSurfaceNormalRadius(in transform.Position, in PlanetCenter, out var normal);
 
-            float3 directionToTarget = PlayerPosition - transform.Position;
+            float3 directionToTarget = targetPosition - transform.Position;
             PlanetMovementUtils.ProjectDirectionOnSurface(in directionToTarget, in normal, out float3 directionToPlayer);
 
+            float3 steeringForce = float3.zero;
+            if (SteeringLookup.HasComponent(entity))
+                steeringForce = SteeringLookup[entity].Value;
+
             // Combine direction with steering
-            float3 finalDirection = directionToPlayer + steering.Value;
+            float3 finalDirection = directionToPlayer + steeringForce;
 
             if (math.lengthsq(finalDirection) < 0.001f)
                 finalDirection = transform.Forward();
@@ -304,7 +345,7 @@ public partial struct EntitiesMovementSystem : ISystem
 
             PlanetMovementUtils.GetRotationOnSurface(in directionToPlayer, in normal, out quaternion rotation);
 
-            transform.Position = newPosition;
+            transform.Position = snappedPosition;
             transform.Rotation = rotation;
         }
     }
@@ -317,6 +358,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
+
         private const float SNAP_DISTANCE = 10.0f;
 
         public void Execute(ref LocalTransform transform, ref OrbitMovement movement)

@@ -50,8 +50,6 @@ public class CollectRangeFeedbackController : MonoBehaviour
         if (_playerStatsQuery.IsEmpty || _materialInstance == null)
             return;
 
-
-
         var playerEntity = _playerStatsQuery.GetSingletonEntity();
 
         if (!_entityManager.HasComponent<BaseStats>(playerEntity))

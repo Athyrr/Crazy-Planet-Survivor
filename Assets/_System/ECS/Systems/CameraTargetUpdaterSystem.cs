@@ -15,6 +15,11 @@ public partial class CameraTargetUpdaterSystem : SystemBase
         if (CameraTargetComponent.Instance != null)
             _cameraTargetTransform = CameraTargetComponent.Instance.transform;
     }
+    
+    public void OnCreate(ref SystemState state)
+    {
+        state.RequireForUpdate<Player>();
+    }
 
     protected override void OnUpdate()
     {

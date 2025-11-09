@@ -12,4 +12,5 @@ public struct FireballRequestTag : IComponentData { }
 public struct IceBoltRequestTag : IComponentData { }
 public struct LightningStrikeRequestTag : IComponentData { }
 public struct MagicMissileRequestTag : IComponentData { }
+public struct RichochetShotRequestTag : IComponentData { }
 public struct ThunderStrikeRequestTag : IComponentData { }

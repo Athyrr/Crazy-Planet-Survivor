@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using UnityEditor.Experimental.GraphView;
 
 /// <summary>
 /// System that handles spell cooldown and sends request for player or notify if a spell can be casted for enemies.
@@ -35,12 +36,12 @@ public partial struct SpellCooldownSystem : ISystem
             return;
 
         var deltaTime = SystemAPI.Time.DeltaTime;
-        
+
         var spellDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
 
         EndSimulationEntityCommandBufferSystem.Singleton ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         EntityCommandBuffer ecbPlayer = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-        
+
         var spellCasterJob = new CastPlayerSpellJob
         {
             DeltaTime = deltaTime,
@@ -138,6 +139,8 @@ public partial struct SpellCooldownSystem : ISystem
                             ECB.AddComponent<LightningStrikeRequestTag>(chunkIndex, request);
                             break;
 
+                        case ESpellID.RicochetShot:
+                            ECB.AddComponent<RichochetShotRequestTag>(chunkIndex, request);
                         case ESpellID.ThunderStrike:
                             ECB.AddComponent<ThunderStrikeRequestTag>(chunkIndex, request);
                             break;
