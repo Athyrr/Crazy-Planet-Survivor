@@ -7,7 +7,7 @@ using Unity.Transforms;
 
 [BurstCompile]
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-partial struct ThunderStrikeSystem : ISystem
+partial struct TrucQuiTourneSystem : ISystem
 {
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -105,7 +105,7 @@ partial struct ThunderStrikeSystem : ISystem
 
             var ThunderStrikeEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-            ECB.SetComponent(chunkIndex, ThunderStrikeEntity, new FallingAttack()
+            ECB.SetComponent(chunkIndex, ThunderStrikeEntity, new Projectile()
             {
                 Damage = damage,
                 Element = spellData.Element
