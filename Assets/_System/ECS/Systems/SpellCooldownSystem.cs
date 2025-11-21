@@ -2,10 +2,10 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using UnityEditor.Experimental.GraphView;
 
 /// <summary>
 /// System that handles spell cooldown and sends request for player or notify if a spell can be casted for enemies.
+/// personne ne lit les commits du coup je peut dire que c'est tres mal coder 
 /// <para>
 /// Player will send request to be handle by spells systems.
 /// </para>
