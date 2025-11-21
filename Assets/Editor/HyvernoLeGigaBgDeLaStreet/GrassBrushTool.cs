@@ -4,18 +4,24 @@ using UnityEngine.Rendering;
 
 public class PlanetFoliagePainter : EditorWindow
 {
+    [Header("Prefab & Planet")]
     public GameObject grassPrefab;
     public GameObject planet;
-    public int proceduralCount = 1000;
-    public float radius = 2f;
+
+    [Header("Manual Brush Settings")]
+    public float brushRadius = 2f;
+    public int brushDensity = 30;
+    public float offset = 0.0f; // offset au-dessus de la surface
+    public bool eraseMode = false;
+
+    [Header("Foliage Settings")]
     public float randomScale = 0.2f;
     public Vector3 localRotation = Vector3.zero;
     public bool castShadows = true;
-    public float eraseRadius = 2f;
+    public int proceduralCount = 1000;
 
-    bool active;
-    bool eraseMode = false;
     GameObject parentObject;
+    bool active;
 
     [MenuItem("Tools/Planet Foliage Painter")]
     public static void Init()
@@ -25,17 +31,26 @@ public class PlanetFoliagePainter : EditorWindow
 
     void OnGUI()
     {
-        EditorGUILayout.LabelField("Foliage Settings", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("Foliage Painter", EditorStyles.boldLabel);
+
         grassPrefab = (GameObject)EditorGUILayout.ObjectField("Grass Prefab", grassPrefab, typeof(GameObject), false);
         planet = (GameObject)EditorGUILayout.ObjectField("Planet", planet, typeof(GameObject), true);
-        proceduralCount = EditorGUILayout.IntField("Procedural Count", proceduralCount);
+
+        brushRadius = EditorGUILayout.Slider("Brush Radius", brushRadius, 0.1f, 10f);
+        brushDensity = EditorGUILayout.IntSlider("Brush Density", brushDensity, 1, 500);
+        offset = EditorGUILayout.Slider("Offset", offset, -2f, 2f);
+
+        eraseMode = GUILayout.Toggle(eraseMode, "Erase Mode (brush)");
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Foliage Properties", EditorStyles.boldLabel);
+
         randomScale = EditorGUILayout.Slider("Random Scale", randomScale, 0f, 1f);
         localRotation = EditorGUILayout.Vector3Field("Local Rotation", localRotation);
         castShadows = EditorGUILayout.Toggle("Cast Shadows", castShadows);
-        radius = EditorGUILayout.Slider("Brush Radius", radius, 0.1f, 10f);
-        eraseRadius = EditorGUILayout.Slider("Erase Radius", eraseRadius, 0.1f, 10f);
+        proceduralCount = EditorGUILayout.IntField("Procedural Count", proceduralCount);
 
-        eraseMode = GUILayout.Toggle(eraseMode, "Erase Mode (brush)");
+        EditorGUILayout.Space();
 
         if (!active)
         {
@@ -80,36 +95,49 @@ public class PlanetFoliagePainter : EditorWindow
         if (!active || grassPrefab == null) return;
 
         Event e = Event.current;
-
         if (e.type == EventType.Layout)
             HandleUtility.AddDefaultControl(GUIUtility.GetControlID(FocusType.Passive));
 
         if (!TryGetMouseHit(out Vector3 hit, out Vector3 normal)) return;
 
         Handles.color = eraseMode ? new Color(1, 0, 0, 0.3f) : new Color(0, 1, 0, 0.3f);
-        Handles.DrawSolidDisc(hit, normal, eraseMode ? eraseRadius : radius);
+        Handles.DrawSolidDisc(hit, normal, brushRadius);
 
         if ((e.type == EventType.MouseDown || e.type == EventType.MouseDrag) && e.button == 0 && !e.alt)
         {
             if (eraseMode)
                 EraseGrass(hit);
             else
-                Paint(hit, normal);
+                PaintBrush(hit, normal);
             e.Use();
+        }
+    }
+
+    void PaintBrush(Vector3 center, Vector3 normal)
+    {
+        EnsureParent();
+
+        for (int i = 0; i < brushDensity; i++)
+        {
+            Vector2 rnd = Random.insideUnitCircle * brushRadius;
+            Vector3 pos = center + new Vector3(rnd.x, 0f, rnd.y) + normal * offset;
+
+            if (Physics.Raycast(pos + normal * 10f, -normal, out RaycastHit hit, 20f))
+            {
+                Paint(hit.point, hit.normal);
+            }
         }
     }
 
     void Paint(Vector3 position, Vector3 normal)
     {
-        EnsureParent();
-
         GameObject g = (GameObject)PrefabUtility.InstantiatePrefab(grassPrefab) as GameObject;
         g.transform.position = position;
 
         float s = 1f + Random.Range(-randomScale, randomScale);
         g.transform.localScale = Vector3.one * s;
 
-        // rotation alignée à la normale + rotation locale + rotation Z aléatoire
+        // rotation alignée sur la normale + rotation locale + Z aléatoire
         Vector3 tangent = Vector3.Cross(normal, Vector3.up);
         if (tangent == Vector3.zero) tangent = Vector3.Cross(normal, Vector3.right);
         Quaternion rot = Quaternion.LookRotation(tangent.normalized, normal);
@@ -136,10 +164,8 @@ public class PlanetFoliagePainter : EditorWindow
         for (int i = parentObject.transform.childCount - 1; i >= 0; i--)
         {
             Transform t = parentObject.transform.GetChild(i);
-            if (Vector3.Distance(center, t.position) <= eraseRadius)
-            {
+            if (Vector3.Distance(center, t.position) <= brushRadius)
                 Undo.DestroyObjectImmediate(t.gameObject);
-            }
         }
 
         Undo.CollapseUndoOperations(Undo.GetCurrentGroup());
@@ -153,9 +179,7 @@ public class PlanetFoliagePainter : EditorWindow
         Undo.SetCurrentGroupName("Clear All Foliage");
 
         for (int i = parentObject.transform.childCount - 1; i >= 0; i--)
-        {
             Undo.DestroyObjectImmediate(parentObject.transform.GetChild(i).gameObject);
-        }
 
         Undo.CollapseUndoOperations(Undo.GetCurrentGroup());
     }
@@ -166,30 +190,21 @@ public class PlanetFoliagePainter : EditorWindow
         EnsureParent();
 
         MeshFilter mf = planet.GetComponent<MeshFilter>();
-        if (mf == null)
-        {
-            Debug.LogError("Planet must have a MeshFilter");
-            return;
-        }
+        if (mf == null) return;
 
         Mesh mesh = mf.sharedMesh;
         Vector3[] vertices = mesh.vertices;
         Vector3[] normals = mesh.normals;
         int[] triangles = mesh.triangles;
+        Vector3 planetCenter = planet.transform.position;
 
         for (int i = 0; i < proceduralCount; i++)
         {
-            // triangle aléatoire
             int triIndex = Random.Range(0, triangles.Length / 3) * 3;
-            Vector3 v0 = vertices[triangles[triIndex + 0]];
-            Vector3 v1 = vertices[triangles[triIndex + 1]];
-            Vector3 v2 = vertices[triangles[triIndex + 2]];
+            Vector3 v0 = planet.transform.TransformPoint(vertices[triangles[triIndex + 0]]);
+            Vector3 v1 = planet.transform.TransformPoint(vertices[triangles[triIndex + 1]]);
+            Vector3 v2 = planet.transform.TransformPoint(vertices[triangles[triIndex + 2]]);
 
-            Vector3 n0 = normals[triangles[triIndex + 0]];
-            Vector3 n1 = normals[triangles[triIndex + 1]];
-            Vector3 n2 = normals[triangles[triIndex + 2]];
-
-            // coordonnées barycentriques aléatoires
             float r1 = Random.value;
             float r2 = Random.value;
             if (r1 + r2 > 1f)
@@ -199,13 +214,10 @@ public class PlanetFoliagePainter : EditorWindow
             }
             float r3 = 1f - r1 - r2;
 
-            Vector3 localPos = v0 * r1 + v1 * r2 + v2 * r3;
-            Vector3 localNormal = (n0 * r1 + n1 * r2 + n2 * r3).normalized;
+            Vector3 pos = v0 * r1 + v1 * r2 + v2 * r3 + (v0 * r1 + v1 * r2 + v2 * r3 - planetCenter).normalized * offset;
+            Vector3 normal = (pos - planetCenter).normalized;
 
-            Vector3 worldPos = planet.transform.TransformPoint(localPos);
-            Vector3 worldNormal = planet.transform.TransformDirection(localNormal);
-
-            Paint(worldPos, worldNormal);
+            Paint(pos, normal);
         }
     }
 
