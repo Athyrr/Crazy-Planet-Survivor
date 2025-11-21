@@ -5,9 +5,7 @@ using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
 
-[BurstCompile]
-[UpdateInGroup(typeof(SimulationSystemGroup))]
-partial struct TrucQuiTourneSystem : ISystem
+partial struct RotatingBlade : ISystem
 {
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -17,7 +15,7 @@ partial struct TrucQuiTourneSystem : ISystem
         state.RequireForUpdate<ActiveSpell>();
         state.RequireForUpdate<SpellsDatabase>();
         state.RequireForUpdate<CastSpellRequest>();
-        state.RequireForUpdate<ThunderStrikeRequestTag>();
+        state.RequireForUpdate<RotatingBladeRequestTag>();
     }
 
     [BurstCompile]
@@ -36,7 +34,7 @@ partial struct TrucQuiTourneSystem : ISystem
         var spellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
         var spellDatabase = SystemAPI.GetComponent<SpellsDatabase>(spellDatabaseEntity);
 
-        var thunderStrikeJob = new CastThunderStrikeJob
+        var RotatingBladeJob = new CastRotatingBladeJob
         {
             ECB = ecb.AsParallelWriter(),
 
@@ -49,12 +47,12 @@ partial struct TrucQuiTourneSystem : ISystem
             SpellPrefabs = spellPrefabs
 
         };
-        state.Dependency = thunderStrikeJob.ScheduleParallel(state.Dependency);
+        state.Dependency = RotatingBladeJob.ScheduleParallel(state.Dependency);
     }
 
     [BurstCompile]
-    [WithAll(typeof(CastSpellRequest), typeof(ThunderStrikeRequestTag))]
-    private partial struct CastThunderStrikeJob : IJobEntity
+    [WithAll(typeof(CastSpellRequest), typeof(RotatingBladeRequestTag))]
+    private partial struct CastRotatingBladeJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
@@ -103,9 +101,9 @@ partial struct TrucQuiTourneSystem : ISystem
             //Spell damage calculation
             float damage = spellData.BaseDamage + casterStats.Damage;
 
-            var ThunderStrikeEntity = ECB.Instantiate(chunkIndex, spellPrefab);
+            var fireballEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-            ECB.SetComponent(chunkIndex, ThunderStrikeEntity, new Projectile()
+            ECB.SetComponent(chunkIndex, fireballEntity, new Projectile
             {
                 Damage = damage,
                 Element = spellData.Element
@@ -121,14 +119,14 @@ partial struct TrucQuiTourneSystem : ISystem
                 RelativeOffset = casterTransform.Forward() * 5
             };
             var spawnPosition = casterTransform.Position + casterTransform.Forward() * orbitData.Radius;
-            ECB.SetComponent(chunkIndex, ThunderStrikeEntity, new LocalTransform
+            ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
             {
                 Position = spawnPosition,
                 Rotation = casterTransform.Rotation,
                 Scale = 0.7f
             });
-            ECB.RemoveComponent<LinearMovement>(chunkIndex, ThunderStrikeEntity);
-            ECB.AddComponent(chunkIndex, ThunderStrikeEntity, orbitData);
+            ECB.RemoveComponent<LinearMovement>(chunkIndex, fireballEntity);
+            ECB.AddComponent(chunkIndex, fireballEntity, orbitData);
 
             // Linear movement version
             /*ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
@@ -166,9 +164,9 @@ partial struct TrucQuiTourneSystem : ISystem
             }
             PhysicsCollider collider = ColliderLookup[spellPrefab];
             collider.Value.Value.SetCollisionFilter(collisionFilter);
-            ECB.SetComponent(chunkIndex, ThunderStrikeEntity, collider);
+            ECB.SetComponent(chunkIndex, fireballEntity, collider);
 
-            ECB.SetComponent(chunkIndex, ThunderStrikeEntity, new Lifetime
+            ECB.SetComponent(chunkIndex, fireballEntity, new Lifetime
             {
                 ElapsedTime = spellData.Lifetime,
                 Duration = spellData.Lifetime

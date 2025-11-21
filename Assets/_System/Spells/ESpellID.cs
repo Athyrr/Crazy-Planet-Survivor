@@ -7,7 +7,7 @@ public enum ESpellID : byte
     LightningStrike,
     FrozenZone,
     RicochetShot,
-    ThunderStrike
+    RotatingBlade
 }
 
 /// <summary>

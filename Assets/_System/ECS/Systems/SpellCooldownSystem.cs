@@ -141,8 +141,10 @@ public partial struct SpellCooldownSystem : ISystem
 
                         case ESpellID.RicochetShot:
                             ECB.AddComponent<RichochetShotRequestTag>(chunkIndex, request);
-                        case ESpellID.ThunderStrike:
-                            ECB.AddComponent<ThunderStrikeRequestTag>(chunkIndex, request);
+                            break;
+
+                        case ESpellID.RotatingBlade:
+                            ECB.AddComponent<RotatingBladeRequestTag>(chunkIndex, request);
                             break;
                     }
 

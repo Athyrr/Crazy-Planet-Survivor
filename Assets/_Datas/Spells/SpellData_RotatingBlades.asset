@@ -10,15 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
-  m_Name: SpellData_ThunderStrike
+  m_Name: SpellData_RotatingBlades
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  DisplayName: Thunder Strike
+  DisplayName: Rotating Blade
   SpellPrefab: {fileID: 5560325983370933078, guid: c46a8980eb0d6aa4d8e41b998aa0b540, type: 3}
-  ID: 4
-  BaseCooldown: 5.06
-  BaseDamage: 10
+  ID: 5
+  BaseCooldown: 1
+  BaseDamage: 100
   BaseArea: 1
   BaseRange: 5
   BaseSpeed: 5
-  Element: 3
-  Lifetime: 10
+  Element: 0
+  Lifetime: 1000
+  Bounces: 0
+  BouncesSearchRadius: 0
