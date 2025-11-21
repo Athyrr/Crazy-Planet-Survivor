@@ -142,6 +142,10 @@ public partial struct SpellCooldownSystem : ISystem
                         case ESpellID.RicochetShot:
                             ECB.AddComponent<RichochetShotRequestTag>(chunkIndex, request);
                             break;
+
+                        case ESpellID.RotatingBlade:
+                            ECB.AddComponent<RotatingBladeRequestTag>(chunkIndex, request);
+                            break;
                     }
 
                     float cooldown = spellData.BaseCooldown * (1 - stats.CooldownReduction);
