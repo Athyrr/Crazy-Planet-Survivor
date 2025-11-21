@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEngine.Rendering;
 
 public class GrassBrushLegacy : EditorWindow
 {
@@ -8,6 +9,7 @@ public class GrassBrushLegacy : EditorWindow
     public int countPerPaint = 30;
     public float randomScale = 0.2f;
     public Vector3 localRotation = Vector3.zero;
+    public bool castShadows = true; // toggle shadow casting
 
     bool active;
     GameObject parentObject;
@@ -25,6 +27,7 @@ public class GrassBrushLegacy : EditorWindow
         countPerPaint = EditorGUILayout.IntSlider("Density per Paint", countPerPaint, 1, 500);
         randomScale = EditorGUILayout.Slider("Random Scale", randomScale, 0f, 1f);
         localRotation = EditorGUILayout.Vector3Field("Local Rotation", localRotation);
+        castShadows = EditorGUILayout.Toggle("Cast Shadows", castShadows);
 
         if (!active)
         {
@@ -33,9 +36,7 @@ public class GrassBrushLegacy : EditorWindow
                 active = true;
                 SceneView.duringSceneGui += OnSceneGUI;
                 if (parentObject == null)
-                {
                     parentObject = new GameObject("GrassParent");
-                }
             }
         }
         else
@@ -48,9 +49,7 @@ public class GrassBrushLegacy : EditorWindow
         }
 
         if (parentObject != null)
-        {
             EditorGUILayout.LabelField($"Total Grass Instances: {parentObject.transform.childCount}");
-        }
     }
 
     void OnSceneGUI(SceneView view)
@@ -93,12 +92,18 @@ public class GrassBrushLegacy : EditorWindow
                 float s = 1f + Random.Range(-randomScale, randomScale);
                 g.transform.localScale = Vector3.one * s;
 
-                Quaternion rot = Quaternion.FromToRotation(Vector3.up, hit.normal) * Quaternion.Euler(localRotation);
-
+                // Rotation normale + rotation locale + rotation aléatoire sur Z
+                Quaternion rot = Quaternion.FromToRotation(Vector3.up, hit.normal);
+                rot *= Quaternion.Euler(localRotation);
                 rot *= Quaternion.AngleAxis(Random.Range(0f, 360f), Vector3.forward);
                 g.transform.rotation = rot;
 
                 g.transform.parent = parentObject.transform;
+
+                // Appliquer les shadows selon toggle
+                MeshRenderer mr = g.GetComponent<MeshRenderer>();
+                if (mr != null)
+                    mr.shadowCastingMode = castShadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
 
                 Undo.RegisterCreatedObjectUndo(g, "Paint Grass");
             }
