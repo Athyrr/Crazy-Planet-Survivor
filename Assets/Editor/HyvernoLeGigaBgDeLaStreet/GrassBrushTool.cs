@@ -94,7 +94,8 @@ public class GrassBrushLegacy : EditorWindow
                 g.transform.localScale = Vector3.one * s;
 
                 Quaternion rot = Quaternion.FromToRotation(Vector3.up, hit.normal) * Quaternion.Euler(localRotation);
-                rot *= Quaternion.Euler(0, Random.Range(0f, 360f), 0);
+
+                rot *= Quaternion.AngleAxis(Random.Range(0f, 360f), Vector3.forward);
                 g.transform.rotation = rot;
 
                 g.transform.parent = parentObject.transform;
