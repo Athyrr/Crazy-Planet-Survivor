@@ -9,9 +9,10 @@ public class GrassBrushLegacy : EditorWindow
     public int countPerPaint = 30;
     public float randomScale = 0.2f;
     public Vector3 localRotation = Vector3.zero;
-    public bool castShadows = true; // toggle shadow casting
+    public bool castShadows = true;
 
     bool active;
+    bool eraseMode = false;
     GameObject parentObject;
 
     [MenuItem("Tools/Grass Brush Legacy")]
@@ -22,12 +23,17 @@ public class GrassBrushLegacy : EditorWindow
 
     void OnGUI()
     {
+        EditorGUILayout.LabelField("Grass Brush Settings", EditorStyles.boldLabel);
         grassPrefab = (GameObject)EditorGUILayout.ObjectField("Grass Prefab", grassPrefab, typeof(GameObject), false);
         radius = EditorGUILayout.Slider("Brush Radius", radius, 0.1f, 10f);
         countPerPaint = EditorGUILayout.IntSlider("Density per Paint", countPerPaint, 1, 500);
         randomScale = EditorGUILayout.Slider("Random Scale", randomScale, 0f, 1f);
         localRotation = EditorGUILayout.Vector3Field("Local Rotation", localRotation);
         castShadows = EditorGUILayout.Toggle("Cast Shadows", castShadows);
+
+        GUILayout.Space(5);
+
+        eraseMode = GUILayout.Toggle(eraseMode, "Erase Mode (brush)");
 
         if (!active)
         {
@@ -48,6 +54,11 @@ public class GrassBrushLegacy : EditorWindow
             }
         }
 
+        if (GUILayout.Button("Clear All Grass"))
+        {
+            ClearAllGrass();
+        }
+
         if (parentObject != null)
             EditorGUILayout.LabelField($"Total Grass Instances: {parentObject.transform.childCount}");
     }
@@ -62,12 +73,15 @@ public class GrassBrushLegacy : EditorWindow
         if (!TryGetMouseHit(out Vector3 hit, out Vector3 normal))
             return;
 
-        Handles.color = new Color(0, 1, 0, 0.3f);
+        Handles.color = eraseMode ? new Color(1, 0, 0, 0.3f) : new Color(0, 1, 0, 0.3f);
         Handles.DrawSolidDisc(hit, normal, radius);
 
         if ((e.type == EventType.MouseDown || e.type == EventType.MouseDrag) && e.button == 0 && !e.alt)
         {
-            Paint(hit, normal);
+            if (eraseMode)
+                EraseGrass(hit);
+            else
+                Paint(hit, normal);
             e.Use();
         }
     }
@@ -92,7 +106,6 @@ public class GrassBrushLegacy : EditorWindow
                 float s = 1f + Random.Range(-randomScale, randomScale);
                 g.transform.localScale = Vector3.one * s;
 
-                // Rotation normale + rotation locale + rotation aléatoire sur Z
                 Quaternion rot = Quaternion.FromToRotation(Vector3.up, hit.normal);
                 rot *= Quaternion.Euler(localRotation);
                 rot *= Quaternion.AngleAxis(Random.Range(0f, 360f), Vector3.forward);
@@ -100,13 +113,46 @@ public class GrassBrushLegacy : EditorWindow
 
                 g.transform.parent = parentObject.transform;
 
-                // Appliquer les shadows selon toggle
                 MeshRenderer mr = g.GetComponent<MeshRenderer>();
                 if (mr != null)
                     mr.shadowCastingMode = castShadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
 
                 Undo.RegisterCreatedObjectUndo(g, "Paint Grass");
             }
+        }
+
+        Undo.CollapseUndoOperations(Undo.GetCurrentGroup());
+    }
+
+    void EraseGrass(Vector3 center)
+    {
+        if (parentObject == null) return;
+
+        Undo.IncrementCurrentGroup();
+        Undo.SetCurrentGroupName("Erase Grass");
+
+        for (int i = parentObject.transform.childCount - 1; i >= 0; i--)
+        {
+            Transform t = parentObject.transform.GetChild(i);
+            if (Vector3.Distance(center, t.position) <= radius)
+            {
+                Undo.DestroyObjectImmediate(t.gameObject);
+            }
+        }
+
+        Undo.CollapseUndoOperations(Undo.GetCurrentGroup());
+    }
+
+    void ClearAllGrass()
+    {
+        if (parentObject == null) return;
+
+        Undo.IncrementCurrentGroup();
+        Undo.SetCurrentGroupName("Clear All Grass");
+
+        for (int i = parentObject.transform.childCount - 1; i >= 0; i--)
+        {
+            Undo.DestroyObjectImmediate(parentObject.transform.GetChild(i).gameObject);
         }
 
         Undo.CollapseUndoOperations(Undo.GetCurrentGroup());
