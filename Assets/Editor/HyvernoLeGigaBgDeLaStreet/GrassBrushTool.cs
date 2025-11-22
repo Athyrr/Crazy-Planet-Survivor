@@ -1,206 +1,256 @@
-using UnityEngine;
+// PlanetFoliagePainterWindow.cs
 using UnityEditor;
-using UnityEngine.Rendering;
+using UnityEngine;
+using System.Collections.Generic;
 
-public class PlanetFoliagePainter : EditorWindow
+public class PlanetFoliagePainterWindow : EditorWindow
 {
-    [Header("Prefab & Planet")]
-    public GameObject grassPrefab;
+    [Header("Target")]
     public GameObject planet;
+    public Mesh instanceMesh; // mesh rendered (ex: grass mesh)
+    public Material instanceMaterial;
 
-    [Header("Manual Brush Settings")]
+    [Header("Brush")]
     public float brushRadius = 2f;
     public int brushDensity = 30;
-    public float offset = 0.0f; // offset au-dessus de la surface
+    public float offset = 0.0f;
     public bool eraseMode = false;
 
-    [Header("Foliage Settings")]
+    [Header("Foliage")]
     public float globalScale = 1f;
     public float randomScale = 0.2f;
-    public Vector3 localRotation = Vector3.zero;
-    public bool castShadows = true;
+    public Vector3 localRotation = Vector3.zero; // not used by GPU directly, kept for future
     public int proceduralCount = 1000;
 
-    GameObject parentObject;
+    public FoliageData targetData;
+
     bool active;
 
-    [MenuItem("Tools/Planet Foliage Painter")]
-    public static void Init()
-    {
-        GetWindow<PlanetFoliagePainter>("Planet Foliage Painter");
-    }
+    [MenuItem("Tools/Planet Foliage Painter (Indirect)")]
+    public static void Open() => GetWindow<PlanetFoliagePainterWindow>("Planet Foliage Painter");
 
     void OnGUI()
     {
-        EditorGUILayout.LabelField("Foliage Painter", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("Painter (stores instances only)", EditorStyles.boldLabel);
 
-        grassPrefab = (GameObject)EditorGUILayout.ObjectField("Grass Prefab", grassPrefab, typeof(GameObject), false);
         planet = (GameObject)EditorGUILayout.ObjectField("Planet", planet, typeof(GameObject), true);
+        instanceMesh = (Mesh)EditorGUILayout.ObjectField("Instance Mesh", instanceMesh, typeof(Mesh), false);
+        instanceMaterial = (Material)EditorGUILayout.ObjectField("Instance Material", instanceMaterial, typeof(Material), false);
 
-        brushRadius = EditorGUILayout.Slider("Brush Radius", brushRadius, 0.1f, 10f);
-        brushDensity = EditorGUILayout.IntSlider("Brush Density", brushDensity, 1, 500);
-        offset = EditorGUILayout.Slider("Offset", offset, -2f, 2f);
-
-        eraseMode = GUILayout.Toggle(eraseMode, "Erase Mode (brush)");
+        targetData = (FoliageData)EditorGUILayout.ObjectField("Foliage Data (SO)", targetData, typeof(FoliageData), false);
 
         EditorGUILayout.Space();
-        EditorGUILayout.LabelField("Foliage Properties", EditorStyles.boldLabel);
+        brushRadius = EditorGUILayout.Slider("Brush Radius", brushRadius, 0.05f, 50f);
+        brushDensity = EditorGUILayout.IntSlider("Brush Density", brushDensity, 1, 200);
+        offset = EditorGUILayout.Slider("Offset", offset, -5f, 5f);
+        eraseMode = EditorGUILayout.Toggle("Erase Mode", eraseMode);
 
-        globalScale = EditorGUILayout.Slider("Global Scale", globalScale, 0f, 15f);
-        randomScale = EditorGUILayout.Slider("Random Scale", randomScale, 0f, 1f);
-        localRotation = EditorGUILayout.Vector3Field("Local Rotation", localRotation);
-        castShadows = EditorGUILayout.Toggle("Cast Shadows", castShadows);
+        EditorGUILayout.Space();
+        globalScale = EditorGUILayout.Slider("Global Scale", globalScale, 0f, 10f);
+        randomScale = EditorGUILayout.Slider("Random Scale", randomScale, 0f, 2f);
         proceduralCount = EditorGUILayout.IntField("Procedural Count", proceduralCount);
 
         EditorGUILayout.Space();
-        
 
         if (!active)
         {
-            if (GUILayout.Button("Start Manual Painting"))
+            if (GUILayout.Button("Start Painting (SceneView)"))
             {
                 active = true;
                 SceneView.duringSceneGui += OnSceneGUI;
-                EnsureParent();
+                if (targetData == null) CreateOrSelectData();
             }
         }
         else
         {
-            if (GUILayout.Button("Stop Manual Painting"))
+            if (GUILayout.Button("Stop Painting"))
             {
                 active = false;
                 SceneView.duringSceneGui -= OnSceneGUI;
             }
         }
 
-        if (GUILayout.Button("Place Procedural Foliage"))
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("Place Procedural"))
         {
-            PlaceProceduralFoliageOnSurface();
+            if (planet != null) PlaceProcedural();
         }
-
-        if (GUILayout.Button("Clear All Foliage"))
+        if (GUILayout.Button("Clear Data"))
         {
-            ClearAllFoliage();
+            if (targetData != null)
+            {
+                Undo.RecordObject(targetData, "Clear FoliageData");
+                targetData.instances.Clear();
+                EditorUtility.SetDirty(targetData);
+            }
         }
+        GUILayout.EndHorizontal();
 
-        if (parentObject != null)
-            EditorGUILayout.LabelField($"Total Instances: {parentObject.transform.childCount}");
+        if (GUILayout.Button("Create/Select FoliageData Asset"))
+            CreateOrSelectData();
+
+        EditorGUILayout.Space();
+        if (targetData != null)
+            EditorGUILayout.LabelField($"Instances: {targetData.instances.Count}");
+
+        EditorGUILayout.Space();
+        EditorGUILayout.HelpBox("Painter stores instance data only. Use a runtime FoliageRenderer to draw with DrawMeshInstancedIndirect.", MessageType.Info);
     }
 
-    void EnsureParent()
+    void CreateOrSelectData()
     {
-        if (parentObject == null)
-            parentObject = new GameObject("FoliageParent");
+        string path = "Assets/FoliageData.asset";
+        var so = AssetDatabase.LoadAssetAtPath<FoliageData>(path);
+        if (so == null)
+        {
+            so = CreateInstance<FoliageData>();
+            AssetDatabase.CreateAsset(so, path);
+            AssetDatabase.SaveAssets();
+        }
+        targetData = so;
+        Selection.activeObject = so;
     }
 
-    void OnSceneGUI(SceneView view)
+    void OnSceneGUI(SceneView sv)
     {
-        if (!active || grassPrefab == null) return;
+        if (!active) return;
+        if (targetData == null) CreateOrSelectData();
+        if (planet == null) return;
 
         Event e = Event.current;
-        if (e.type == EventType.Layout)
-            HandleUtility.AddDefaultControl(GUIUtility.GetControlID(FocusType.Passive));
+        HandleUtility.AddDefaultControl(GUIUtility.GetControlID(FocusType.Passive));
 
-        if (!TryGetMouseHit(out Vector3 hit, out Vector3 normal)) return;
+        if (!TryGetMouseOnPlanet(out Vector3 hit, out Vector3 normal)) return;
 
-        Handles.color = eraseMode ? new Color(1, 0, 0, 0.3f) : new Color(0, 1, 0, 0.3f);
+        Handles.color = eraseMode ? new Color(1, 0, 0, 0.25f) : new Color(0, 1, 0, 0.25f);
         Handles.DrawSolidDisc(hit, normal, brushRadius);
 
         if ((e.type == EventType.MouseDown || e.type == EventType.MouseDrag) && e.button == 0 && !e.alt)
         {
             if (eraseMode)
-                EraseGrass(hit);
+                EraseAt(hit);
             else
                 PaintBrush(hit, normal);
             e.Use();
         }
     }
 
+    bool TryGetMouseOnPlanet(out Vector3 point, out Vector3 normal)
+    {
+        point = Vector3.zero; normal = Vector3.up;
+        Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
+        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
+        {
+            // ensure it hits the planet collider
+            if (hit.collider != null && planet != null && hit.collider.gameObject == planet)
+            {
+                point = hit.point;
+                normal = hit.normal;
+                return true;
+            }
+        }
+
+        // fallback: project to planet surface along ray using planet center
+        if (planet != null)
+        {
+            Vector3 center = planet.transform.position;
+            // intersect ray with sphere approximated by bounds
+            float radius = planet.GetComponent<MeshFilter>()?.sharedMesh?.bounds.max.magnitude * planet.transform.lossyScale.x ?? 1f;
+            Vector3 oc = ray.origin - center;
+            float b = Vector3.Dot(ray.direction, oc);
+            float c = Vector3.Dot(oc, oc) - radius * radius;
+            float disc = b * b - c;
+            if (disc >= 0)
+            {
+                float t = -b - Mathf.Sqrt(disc);
+                if (t > 0)
+                {
+                    Vector3 p = ray.origin + ray.direction * t;
+                    point = p;
+                    normal = (p - center).normalized;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     void PaintBrush(Vector3 center, Vector3 normal)
     {
-        EnsureParent();
+        if (targetData == null) return;
+        Undo.RecordObject(targetData, "Paint Foliage");
 
         for (int i = 0; i < brushDensity; i++)
         {
             Vector2 rnd = Random.insideUnitCircle * brushRadius;
-            Vector3 pos = center + new Vector3(rnd.x, 0f, rnd.y) + normal * offset;
+            // generate point in tangent plane
+            Vector3 right = Vector3.Cross(normal, Vector3.up);
+            if (right.sqrMagnitude < 1e-6f) right = Vector3.Cross(normal, Vector3.right);
+            right.Normalize();
+            Vector3 forward = Vector3.Cross(right, normal);
 
-            if (Physics.Raycast(pos + normal * 10f, -normal, out RaycastHit hit, 20f))
+            Vector3 pos = center + right * rnd.x + forward * rnd.y;
+            // raycast along radial direction to snap precisely to surface
+            Vector3 dir = (pos - planet.transform.position).normalized;
+            if (Physics.Raycast(pos + dir * 10f, -dir, out RaycastHit hit, 20f))
             {
-                Paint(hit.point, hit.normal);
+                AddInstance(hit.point, hit.normal);
+            }
+            else
+            {
+                // fallback: project to sphere surface
+                Vector3 bary = pos;
+                Vector3 p = (bary - planet.transform.position).normalized * GetPlanetRadiusWorld() + planet.transform.position + (bary - planet.transform.position).normalized * offset;
+                AddInstance(p, (p - planet.transform.position).normalized);
             }
         }
+
+        EditorUtility.SetDirty(targetData);
     }
 
-    void Paint(Vector3 position, Vector3 normal)
+    void AddInstance(Vector3 pos, Vector3 normal)
     {
-        GameObject g = (GameObject)PrefabUtility.InstantiatePrefab(grassPrefab) as GameObject;
-        g.transform.position = position;
-
-        float s = 1f + Random.Range(-randomScale, randomScale);
-        g.transform.localScale = Vector3.one * (globalScale + s);
-
-        // rotation alignée sur la normale + rotation locale + Z aléatoire
-        Vector3 tangent = Vector3.Cross(normal, Vector3.up);
-        if (tangent == Vector3.zero) tangent = Vector3.Cross(normal, Vector3.right);
-        Quaternion rot = Quaternion.LookRotation(tangent.normalized, normal);
-        rot *= Quaternion.Euler(localRotation);
-        rot *= Quaternion.AngleAxis(Random.Range(0f, 360f), Vector3.forward);
-        g.transform.rotation = rot;
-
-        g.transform.parent = parentObject.transform;
-
-        MeshRenderer mr = g.GetComponent<MeshRenderer>();
-        if (mr != null)
-            mr.shadowCastingMode = castShadows ? ShadowCastingMode.On : ShadowCastingMode.Off;
-
-        Undo.RegisterCreatedObjectUndo(g, "Paint Foliage");
-    }
-
-    void EraseGrass(Vector3 center)
-    {
-        if (parentObject == null) return;
-
-        Undo.IncrementCurrentGroup();
-        Undo.SetCurrentGroupName("Erase Grass");
-
-        for (int i = parentObject.transform.childCount - 1; i >= 0; i--)
+        FoliageInstance inst = new FoliageInstance
         {
-            Transform t = parentObject.transform.GetChild(i);
-            if (Vector3.Distance(center, t.position) <= brushRadius)
-                Undo.DestroyObjectImmediate(t.gameObject);
-        }
-
-        Undo.CollapseUndoOperations(Undo.GetCurrentGroup());
+            position = pos,
+            normal = normal,
+            scale = globalScale + Random.Range(-randomScale, randomScale),
+            rotation = Random.Range(0f, 360f)
+        };
+        targetData.instances.Add(inst);
     }
 
-    void ClearAllFoliage()
+    void EraseAt(Vector3 center)
     {
-        if (parentObject == null) return;
-
-        Undo.IncrementCurrentGroup();
-        Undo.SetCurrentGroupName("Clear All Foliage");
-
-        for (int i = parentObject.transform.childCount - 1; i >= 0; i--)
-            Undo.DestroyObjectImmediate(parentObject.transform.GetChild(i).gameObject);
-
-        Undo.CollapseUndoOperations(Undo.GetCurrentGroup());
+        if (targetData == null) return;
+        Undo.RecordObject(targetData, "Erase Foliage");
+        float r2 = brushRadius * brushRadius;
+        targetData.instances.RemoveAll(i => (i.position - center).sqrMagnitude <= r2);
+        EditorUtility.SetDirty(targetData);
     }
 
-    void PlaceProceduralFoliageOnSurface()
+    float GetPlanetRadiusWorld()
     {
-        if (grassPrefab == null || planet == null) return;
-        EnsureParent();
+        MeshFilter mf = planet.GetComponent<MeshFilter>();
+        if (mf == null) return 1f;
+        var mesh = mf.sharedMesh;
+        float max = 0f;
+        foreach (var v in mesh.vertices) max = Mathf.Max(max, v.magnitude);
+        return max * planet.transform.lossyScale.x;
+    }
 
+    void PlaceProcedural()
+    {
+        if (planet == null || targetData == null) return;
         MeshFilter mf = planet.GetComponent<MeshFilter>();
         if (mf == null) return;
-
         Mesh mesh = mf.sharedMesh;
         Vector3[] vertices = mesh.vertices;
-        
-        Vector3[] normals = mesh.normals;
         int[] triangles = mesh.triangles;
-        Vector3 planetCenter = planet.transform.position;
+        Vector3 center = planet.transform.position;
+
+        Undo.RecordObject(targetData, "Procedural Foliage");
 
         for (int i = 0; i < proceduralCount; i++)
         {
@@ -209,34 +259,17 @@ public class PlanetFoliagePainter : EditorWindow
             Vector3 v1 = planet.transform.TransformPoint(vertices[triangles[triIndex + 1]]);
             Vector3 v2 = planet.transform.TransformPoint(vertices[triangles[triIndex + 2]]);
 
-            float r1 = Random.value;
-            float r2 = Random.value;
-            if (r1 + r2 > 1f)
-            {
-                r1 = 1f - r1;
-                r2 = 1f - r2;
-            }
+            float r1 = Random.value, r2 = Random.value;
+            if (r1 + r2 > 1f) { r1 = 1 - r1; r2 = 1 - r2; }
             float r3 = 1f - r1 - r2;
+            Vector3 bary = v0 * r1 + v1 * r2 + v2 * r3;
+            Vector3 normal = (bary - center).normalized;
+            Vector3 pos = bary + normal * offset;
 
-            Vector3 pos = v0 * r1 + v1 * r2 + v2 * r3 + (v0 * r1 + v1 * r2 + v2 * r3 - planetCenter).normalized * offset;
-            Vector3 normal = (pos - planetCenter).normalized;
-
-            Paint(pos, normal);
+            AddInstance(pos, normal);
         }
-    }
 
-    bool TryGetMouseHit(out Vector3 point, out Vector3 normal)
-    {
-        point = Vector3.zero;
-        normal = Vector3.up;
-
-        Ray ray = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit hit))
-        {
-            point = hit.point;
-            normal = hit.normal;
-            return true;
-        }
-        return false;
+        Debug.Log("hyv; PlaceProcedural");
+        EditorUtility.SetDirty(targetData);
     }
 }
