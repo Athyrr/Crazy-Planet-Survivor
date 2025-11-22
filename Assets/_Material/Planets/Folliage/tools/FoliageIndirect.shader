@@ -1,91 +1,77 @@
-// FoliageIndirect.shader
-Shader "Foliage/Indirect"
+Shader "Foliage/Indirect_Rotation"
 {
     Properties
     {
-        _MainTex("Albedo", 2D) = "white" {}
+        _MainTex ("Texture", 2D) = "white" {}
     }
+
     SubShader
     {
         Tags { "RenderType"="Opaque" }
+
         Pass
         {
             CGPROGRAM
+            #pragma target 4.5
             #pragma vertex vert
             #pragma fragment frag
-            #pragma target 4.5
-
             #include "UnityCG.cginc"
-
-            sampler2D _MainTex;
-            StructuredBuffer<float4> _Dummy; // keep header neat if needed
 
             struct FoliageInstance
             {
                 float3 position;
                 float3 normal;
-                float scale;
-                float3 rotation;
+                float  scale;
+                float4 rotation;   // quaternion
             };
+
             StructuredBuffer<FoliageInstance> _Instances;
+            sampler2D _MainTex;
 
             struct appdata
             {
-                float4 vertex : POSITION;
+                float3 vertex : POSITION;
                 float3 normal : NORMAL;
-                float2 uv : TEXCOORD0;
+                float2 uv     : TEXCOORD0;
             };
 
             struct v2f
             {
                 float4 pos : SV_POSITION;
-                float2 uv : TEXCOORD0;
-                float3 worldNormal : TEXCOORD1;
+                float2 uv  : TEXCOORD0;
+                float3 nrm : TEXCOORD1;
             };
 
-            // rotate a vector around axis by angle (radians)
-            float3 rotateAroundAxis(float3 v, float3 axis, float angle)
+            // Rotation quaternion → float3
+            float3 qmul(float4 q, float3 v)
             {
-                float s = sin(angle);
-                float c = cos(angle);
-                return v * c + cross(axis, v) * s + axis * (dot(axis, v) * (1 - c));
+                return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
             }
 
-            v2f vert(appdata v, uint instanceID : SV_InstanceID)
+            v2f vert(appdata v, uint id : SV_InstanceID)
             {
+                FoliageInstance inst = _Instances[id];
                 v2f o;
-                FoliageInstance inst = _Instances[instanceID];
 
-                // build tangent basis so that mesh's up(0,1,0) maps to inst.normal
-                float3 up = float3(0,1,0);
-                float3 n = normalize(inst.normal);
-                float3 tangent = normalize(cross(up, n));
-                if (all(tangent == 0)) tangent = normalize(cross(float3(1,0,0), n));
-                float3 bitangent = cross(n, tangent);
+                float3 local = v.vertex * inst.scale;
 
-                // rotate vertex around normal by inst.rotation (degrees -> radians)
-                float3 localVertex = v.vertex.xyz * inst.scale;
+                float3 rotated = qmul(inst.rotation, local);
 
-                // convert local vertex to tangent space (x->tangent, y->normal, z->bitangent)
-                float3 v_t = localVertex.x * tangent + localVertex.y * n + localVertex.z * bitangent;
+                float3 worldPos = inst.position + rotated;
 
-                // apply rotation around normal
-                float3 v_rot = rotateAroundAxis(v_t, n, inst.rotation);
+                o.pos = mul(UNITY_MATRIX_VP, float4(worldPos, 1.0));
 
-                float3 worldPos = inst.position + v_rot;
-                o.pos = UnityObjectToClipPos(float4(worldPos,1));
+                o.nrm = normalize(qmul(inst.rotation, v.normal));
                 o.uv = v.uv;
-                o.worldNormal = normalize(mul((float3x3)unity_WorldToObject, v.normal)); // best effort
+
                 return o;
             }
-
+            
             fixed4 frag(v2f i) : SV_Target
             {
-                fixed4 col = tex2D(_MainTex, i.uv);
-                return col;
+                return tex2D(_MainTex, i.uv);
             }
             ENDCG
         }
     }
-    FallBack "Diffuse"
 }

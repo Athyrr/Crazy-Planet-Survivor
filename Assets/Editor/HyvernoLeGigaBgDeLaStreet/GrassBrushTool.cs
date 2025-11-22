@@ -19,7 +19,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
     [Header("Foliage")]
     public float globalScale = 1f;
     public float randomScale = 0.2f;
-    public Vector3 localRotation = Vector3.zero; // not used by GPU directly, kept for future
+    public Vector3 localRotation = Vector3.zero;
     public int proceduralCount = 1000;
 
     public FoliageData targetData;
@@ -212,18 +212,23 @@ public class PlanetFoliagePainterWindow : EditorWindow
 
     void AddInstance(Vector3 pos, Vector3 normal)
     {
+        Quaternion rotation = Quaternion.FromToRotation(Vector3.up, normal + localRotation);
         Quaternion rot = Quaternion.Euler(localRotation);
-        rot *= Quaternion.AngleAxis(Random.Range(0f, 360f), Vector3.forward);
+        rot *= Quaternion.AngleAxis(Random.Range(0f, 1f), Vector3.forward);
         
         FoliageInstance inst = new FoliageInstance
         {
             position = pos,
             normal = normal,
             scale = globalScale + Random.Range(-randomScale, randomScale),
-            rotation = rot.eulerAngles
+            rotation = new Vector4(rot.x, rot.y, rot.z, rot.w)
         };
+
+        Debug.DrawLine(pos, pos + rot.eulerAngles, Color.green, 10f);
+
         targetData.instances.Add(inst);
     }
+
 
     void EraseAt(Vector3 center)
     {
