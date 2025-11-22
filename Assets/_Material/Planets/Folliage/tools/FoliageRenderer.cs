@@ -13,7 +13,7 @@ public class FoliageRenderer : MonoBehaviour
 
     // Struct = float3 pos + float3 normal + float scale + float3 rotation (float4 mtn flemme de refaire les maths)
     // GPU stride = 48 bytes (float3 aligned on 16 bytes)
-    const int STRIDE = 44;
+    const int STRIDE = 40;
 
     void OnEnable()
     {

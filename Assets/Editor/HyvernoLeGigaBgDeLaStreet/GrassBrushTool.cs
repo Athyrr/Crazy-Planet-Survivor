@@ -212,19 +212,19 @@ public class PlanetFoliagePainterWindow : EditorWindow
 
     void AddInstance(Vector3 pos, Vector3 normal)
     {
-        Quaternion rotation = Quaternion.FromToRotation(Vector3.up, normal + localRotation);
-        Quaternion rot = Quaternion.Euler(localRotation);
-        rot *= Quaternion.AngleAxis(Random.Range(0f, 1f), Vector3.forward);
+        // Quaternion rot = Quaternion.FromToRotation(Vector3.up, normal);
+        // Quaternion rot = Quaternion.Euler(localRotation);
+        // rot *= Quaternion.AngleAxis(Random.Range(0f, 1f), Vector3.forward);
         
         FoliageInstance inst = new FoliageInstance
         {
             position = pos,
             normal = normal,
             scale = globalScale + Random.Range(-randomScale, randomScale),
-            rotation = new Vector4(rot.x, rot.y, rot.z, rot.w)
+            rotation = normal
         };
 
-        Debug.DrawLine(pos, pos + rot.eulerAngles, Color.green, 10f);
+        Debug.DrawLine(pos, pos + normal, Color.green, 1f);
 
         targetData.instances.Add(inst);
     }

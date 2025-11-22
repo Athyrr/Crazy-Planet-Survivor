@@ -22,7 +22,7 @@ Shader "Foliage/Indirect_Rotation"
                 float3 position;
                 float3 normal;
                 float  scale;
-                float4 rotation;   // quaternion
+                float3 rotation;
             };
 
             StructuredBuffer<FoliageInstance> _Instances;
@@ -42,10 +42,64 @@ Shader "Foliage/Indirect_Rotation"
                 float3 nrm : TEXCOORD1;
             };
 
-            // Rotation quaternion → float3
-            float3 qmul(float4 q, float3 v)
+            // Convert Euler (degrees) to rotation matrix
+            float3x3 EulerToMatrix(float3 euler)
             {
-                return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
+                float3 rad = radians(euler);
+                float cx = cos(rad.x); float sx = sin(rad.x);
+                float cy = cos(rad.y); float sy = sin(rad.y);
+                float cz = cos(rad.z); float sz = sin(rad.z);
+
+                float3x3 mx = float3x3(
+                    1, 0, 0,
+                    0, cx, -sx,
+                    0, sx, cx
+                );
+                float3x3 my = float3x3(
+                    cy, 0, sy,
+                    0, 1, 0,
+                    -sy, 0, cy
+                );
+                float3x3 mz = float3x3(
+                    cz, -sz, 0,
+                    sz, cz, 0,
+                    0, 0, 1
+                );
+
+                return mul(mz, mul(my, mx));
+            }
+
+            // Create rotation matrix from normal (up vector)
+            float3x3 CreateRotationFromNormal(float3 normal)
+            {
+                float3 up = normalize(normal);
+                float3 forward = float3(0, 0, 1);
+                
+                if (abs(up.y) > 0.999)
+                {
+                    forward = float3(0, 0, 1);
+                }
+                else
+                {
+                    forward = normalize(cross(up, float3(0, 1, 0)));
+                }
+                
+                float3 right = normalize(cross(forward, up));
+                forward = normalize(cross(up, right)); // Re-orthogonalize
+                
+                return float3x3(
+                    right.x, up.x, forward.x,
+                    right.y, up.y, forward.y,
+                    right.z, up.z, forward.z
+                );
+            }
+
+            float3x3 CreateCombinedRotation(float3 eulerRotation, float3 normal)
+            {
+                float3x3 instanceRot = EulerToMatrix(eulerRotation);
+                float3x3 normalRot = CreateRotationFromNormal(normal);
+                
+                return mul(normalRot, instanceRot);
             }
 
             v2f vert(appdata v, uint id : SV_InstanceID)
@@ -53,15 +107,13 @@ Shader "Foliage/Indirect_Rotation"
                 FoliageInstance inst = _Instances[id];
                 v2f o;
 
-                float3 local = v.vertex * inst.scale;
-
-                float3 rotated = qmul(inst.rotation, local);
-
-                float3 worldPos = inst.position + rotated;
+                float3x3 rotationMatrix = CreateCombinedRotation(inst.rotation, inst.normal);
+                float3 rotatedVertex = mul(rotationMatrix, v.vertex * inst.scale);
+                float3 worldPos = rotatedVertex + inst.position;
 
                 o.pos = mul(UNITY_MATRIX_VP, float4(worldPos, 1.0));
 
-                o.nrm = normalize(qmul(inst.rotation, v.normal));
+                o.nrm = normalize(mul(rotationMatrix, v.normal));
                 o.uv = v.uv;
 
                 return o;
