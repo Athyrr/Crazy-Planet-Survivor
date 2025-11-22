@@ -15,6 +15,7 @@ public class PlanetFoliagePainter : EditorWindow
     public bool eraseMode = false;
 
     [Header("Foliage Settings")]
+    public float globalScale = 1f;
     public float randomScale = 0.2f;
     public Vector3 localRotation = Vector3.zero;
     public bool castShadows = true;
@@ -45,12 +46,14 @@ public class PlanetFoliagePainter : EditorWindow
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Foliage Properties", EditorStyles.boldLabel);
 
+        globalScale = EditorGUILayout.Slider("Global Scale", globalScale, 0f, 15f);
         randomScale = EditorGUILayout.Slider("Random Scale", randomScale, 0f, 1f);
         localRotation = EditorGUILayout.Vector3Field("Local Rotation", localRotation);
         castShadows = EditorGUILayout.Toggle("Cast Shadows", castShadows);
         proceduralCount = EditorGUILayout.IntField("Procedural Count", proceduralCount);
 
         EditorGUILayout.Space();
+        
 
         if (!active)
         {
@@ -135,7 +138,7 @@ public class PlanetFoliagePainter : EditorWindow
         g.transform.position = position;
 
         float s = 1f + Random.Range(-randomScale, randomScale);
-        g.transform.localScale = Vector3.one * s;
+        g.transform.localScale = Vector3.one * (globalScale + s);
 
         // rotation alignée sur la normale + rotation locale + Z aléatoire
         Vector3 tangent = Vector3.Cross(normal, Vector3.up);
@@ -194,6 +197,7 @@ public class PlanetFoliagePainter : EditorWindow
 
         Mesh mesh = mf.sharedMesh;
         Vector3[] vertices = mesh.vertices;
+        
         Vector3[] normals = mesh.normals;
         int[] triangles = mesh.triangles;
         Vector3 planetCenter = planet.transform.position;
