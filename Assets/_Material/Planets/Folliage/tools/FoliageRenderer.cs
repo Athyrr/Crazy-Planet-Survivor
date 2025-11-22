@@ -11,9 +11,9 @@ public class FoliageRenderer : MonoBehaviour
     ComputeBuffer instanceBuffer;
     ComputeBuffer argsBuffer;
 
-    // stride: 3 floats pos + 3 floats normal + 1 float scale + 1 float rotation = 8 floats = 32 bytes
-    const int FLOATS_PER_INSTANCE = 8;
-    const int STRIDE = FLOATS_PER_INSTANCE * 4;
+    // Struct = float3 pos + float3 normal + float scale + float3 rotation
+    // GPU stride = 48 bytes (float3 aligned on 16 bytes)
+    const int STRIDE = 40;
 
     void OnEnable()
     {

@@ -25,7 +25,7 @@ Shader "Foliage/Indirect"
                 float3 position;
                 float3 normal;
                 float scale;
-                float rotation;
+                float3 rotation;
             };
             StructuredBuffer<FoliageInstance> _Instances;
 
@@ -64,14 +64,13 @@ Shader "Foliage/Indirect"
                 float3 bitangent = cross(n, tangent);
 
                 // rotate vertex around normal by inst.rotation (degrees -> radians)
-                float angle = radians(inst.rotation);
                 float3 localVertex = v.vertex.xyz * inst.scale;
 
                 // convert local vertex to tangent space (x->tangent, y->normal, z->bitangent)
                 float3 v_t = localVertex.x * tangent + localVertex.y * n + localVertex.z * bitangent;
 
                 // apply rotation around normal
-                float3 v_rot = rotateAroundAxis(v_t, n, angle);
+                float3 v_rot = rotateAroundAxis(v_t, n, inst.rotation);
 
                 float3 worldPos = inst.position + v_rot;
                 o.pos = UnityObjectToClipPos(float4(worldPos,1));

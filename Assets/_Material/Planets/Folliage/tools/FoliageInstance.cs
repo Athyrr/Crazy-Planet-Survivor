@@ -7,5 +7,5 @@ public struct FoliageInstance
     public Vector3 position;
     public Vector3 normal;
     public float scale;
-    public float rotation; // degrees
+    public Vector3 rotation; // degrees
 }

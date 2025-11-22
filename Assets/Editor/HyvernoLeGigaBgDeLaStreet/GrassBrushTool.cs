@@ -47,6 +47,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
 
         EditorGUILayout.Space();
         globalScale = EditorGUILayout.Slider("Global Scale", globalScale, 0f, 10f);
+        localRotation = EditorGUILayout.Vector3Field("Local Rotation", localRotation);
         randomScale = EditorGUILayout.Slider("Random Scale", randomScale, 0f, 2f);
         proceduralCount = EditorGUILayout.IntField("Procedural Count", proceduralCount);
 
@@ -211,12 +212,15 @@ public class PlanetFoliagePainterWindow : EditorWindow
 
     void AddInstance(Vector3 pos, Vector3 normal)
     {
+        Quaternion rot = Quaternion.Euler(localRotation);
+        rot *= Quaternion.AngleAxis(Random.Range(0f, 360f), Vector3.forward);
+        
         FoliageInstance inst = new FoliageInstance
         {
             position = pos,
             normal = normal,
             scale = globalScale + Random.Range(-randomScale, randomScale),
-            rotation = Random.Range(0f, 360f)
+            rotation = rot.eulerAngles
         };
         targetData.instances.Add(inst);
     }
