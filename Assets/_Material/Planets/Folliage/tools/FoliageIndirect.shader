@@ -42,7 +42,6 @@ Shader "Foliage/Indirect_Rotation"
                 float3 nrm : TEXCOORD1;
             };
 
-            // Convert Euler (degrees) to rotation matrix
             float3x3 EulerToMatrix(float3 euler)
             {
                 float3 rad = radians(euler);
@@ -69,7 +68,6 @@ Shader "Foliage/Indirect_Rotation"
                 return mul(mz, mul(my, mx));
             }
 
-            // Create rotation matrix from normal (up vector)
             float3x3 CreateRotationFromNormal(float3 normal)
             {
                 float3 up = normalize(normal);
@@ -85,7 +83,7 @@ Shader "Foliage/Indirect_Rotation"
                 }
                 
                 float3 right = normalize(cross(forward, up));
-                forward = normalize(cross(up, right)); // Re-orthogonalize
+                forward = normalize(cross(up, right));
                 
                 return float3x3(
                     right.x, up.x, forward.x,
@@ -97,6 +95,7 @@ Shader "Foliage/Indirect_Rotation"
             float3x3 CreateCombinedRotation(float3 eulerRotation, float3 normal)
             {
                 float3x3 instanceRot = EulerToMatrix(eulerRotation);
+                
                 float3x3 normalRot = CreateRotationFromNormal(normal);
                 
                 return mul(normalRot, instanceRot);
@@ -108,7 +107,9 @@ Shader "Foliage/Indirect_Rotation"
                 v2f o;
 
                 float3x3 rotationMatrix = CreateCombinedRotation(inst.rotation, inst.normal);
+                
                 float3 rotatedVertex = mul(rotationMatrix, v.vertex * inst.scale);
+                
                 float3 worldPos = rotatedVertex + inst.position;
 
                 o.pos = mul(UNITY_MATRIX_VP, float4(worldPos, 1.0));
