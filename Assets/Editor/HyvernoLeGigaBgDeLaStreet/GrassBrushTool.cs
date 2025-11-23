@@ -307,28 +307,35 @@ public class PlanetFoliagePainterWindow : EditorWindow
             Vector3 rayStart = center + randomDirection * (planetRadius * 2f);
             Vector3 rayDirection = -randomDirection;
             
+            
             Ray ray = new Ray(rayStart, rayDirection);
             
             // Raycast against ALL colliders in the planet hierarchy
             List<RaycastHit> hits = Physics.RaycastAll(ray, planetRadius * 3f).ToList();
-            hits.OrderBy(el => el.distance);
+            hits = hits.OrderBy(el => Vector3.Distance(rayStart, el.point)).ToList();
             bool hitFound = false;
             
             foreach (RaycastHit hit in hits)
             {
                 // Check if the hit object is part of the planet hierarchy
-                if (hit.collider != null && hit.collider.transform.IsChildOf(planet.transform))
+                if (hit.collider != null)
                 {
                     // Check material if filtering is enabled
                     if (useMaterialFiltering)
                     {
                         Material hitMaterial = GetMaterialAtHit(hit);
+                        Debug.Log(hitMaterial.name);
                         if (!IsValidMaterialForPlacement(hitMaterial))
-                            continue;
+                        {
+                            Debug.Log($"{hitMaterial.name} hit rejected by material filtering");
+                            break;
+                        }
                     }
+                    
+                    Debug.DrawLine(rayStart, hit.point, Color.red, 2f);
 
                     Vector3 normal = hit.normal;
-                    Vector3 pos = hit.point + normal * offset;
+                    Vector3 pos = hit.point + Vector3.up * offset;
                     
                     AddInstance(pos, normal);
                     placedCount++;
@@ -382,8 +389,6 @@ public class PlanetFoliagePainterWindow : EditorWindow
     // Method to validate if placement is allowed on this material
     public bool IsValidMaterialForPlacement(Material material)
     {
-        Debug.Log($"{material.name} == {blockedMaterialNames.FirstOrDefault()}");
-
         if (!useMaterialFiltering || material == null) 
             return true;
         
