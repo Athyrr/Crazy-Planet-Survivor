@@ -1,9 +1,20 @@
-Shader "Foliage/Indirect_Rotation"
+Shader "Foliage/Indirect_Rotation_Wind"
 {
     Properties
     {
         _ColorA ("Color A", Color) = (1,0,0,1)
         _ColorB ("Color B", Color) = (1,1,1,1)
+        
+        // Wind properties
+        _WindStrength ("Wind Strength", Range(0, 2)) = 0.5
+        _WindFrequency ("Wind Frequency", Range(0, 5)) = 1.0
+        _WindTurbulence ("Wind Turbulence", Range(0, 3)) = 1.0
+        _WindWaveScale ("Wind Wave Scale", Range(0.1, 10)) = 2.0
+        _WindDirection ("Wind Direction", Vector) = (1,0,0,0)
+        
+        // Stem properties
+        _StemStiffness ("Stem Stiffness", Range(0, 1)) = 0.7
+        _LeafFlutter ("Leaf Flutter", Range(0, 2)) = 0.5
     }
 
     SubShader
@@ -29,6 +40,15 @@ Shader "Foliage/Indirect_Rotation"
             StructuredBuffer<FoliageInstance> _Instances;
             float4 _ColorA;
             float4 _ColorB;
+            
+            // Wind properties
+            float _WindStrength;
+            float _WindFrequency;
+            float _WindTurbulence;
+            float _WindWaveScale;
+            float4 _WindDirection;
+            float _StemStiffness;
+            float _LeafFlutter;
 
             struct appdata
             {
@@ -43,6 +63,47 @@ Shader "Foliage/Indirect_Rotation"
                 float2 uv  : TEXCOORD0;
                 float3 nrm : TEXCOORD1;
             };
+
+            // Simple noise function for wind variation
+            float noise(float2 uv)
+            {
+                return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453);
+            }
+
+            // Smooth noise for more natural wind
+            float smoothNoise(float2 uv)
+            {
+                float2 i = floor(uv);
+                float2 f = frac(uv);
+                
+                float a = noise(i);
+                float b = noise(i + float2(1.0, 0.0));
+                float c = noise(i + float2(0.0, 1.0));
+                float d = noise(i + float2(1.0, 1.0));
+                
+                float2 u = f * f * (3.0 - 2.0 * f);
+                
+                return lerp(a, b, u.x) + 
+                      (c - a) * u.y * (1.0 - u.x) + 
+                      (d - b) * u.x * u.y;
+            }
+
+            // Multi-octave noise for more interesting wind patterns
+            float fractalNoise(float2 uv, int octaves)
+            {
+                float value = 0.0;
+                float amplitude = 0.5;
+                float frequency = 1.0;
+                
+                for (int i = 0; i < octaves; i++)
+                {
+                    value += amplitude * smoothNoise(uv * frequency);
+                    amplitude *= 0.5;
+                    frequency *= 2.0;
+                }
+                
+                return value;
+            }
 
             float3x3 EulerToMatrix(float3 euler)
             {
@@ -97,10 +158,41 @@ Shader "Foliage/Indirect_Rotation"
             float3x3 CreateCombinedRotation(float3 eulerRotation, float3 normal)
             {
                 float3x3 instanceRot = EulerToMatrix(eulerRotation);
-                
                 float3x3 normalRot = CreateRotationFromNormal(normal);
-                
                 return mul(normalRot, instanceRot);
+            }
+
+            // Calculate wind offset for vertex
+            float3 CalculateWindOffset(float3 worldPos, float3 vertex, float2 uv, float instanceScale)
+            {
+                // Base wind movement
+                float time = _Time.y * _WindFrequency;
+                
+                // Global wind wave
+                float2 windUV = worldPos.xz / _WindWaveScale + _WindDirection.xz * time;
+                float globalWind = fractalNoise(windUV, 3) * 2.0 - 1.0;
+                
+                // Local turbulence based on vertex position
+                float2 localUV = (worldPos.xz + vertex.xz) / (_WindWaveScale * 0.5) + _WindDirection.xz * time * 1.3;
+                float localTurbulence = fractalNoise(localUV, 2) * 2.0 - 1.0;
+                
+                // Combine wind effects
+                float windPower = globalWind * _WindStrength + localTurbulence * _WindTurbulence * 0.3;
+                
+                // Stem stiffness - less movement at the bottom
+                float stemInfluence = pow(uv.y, _StemStiffness * 4.0);
+                
+                // Leaf flutter - high frequency movement for leaves
+                float leafFlutter = sin(time * 8.0 + worldPos.x * 2.0 + worldPos.z * 2.0) * _LeafFlutter;
+                
+                // Calculate final wind offset
+                float3 windOffset = _WindDirection.xyz * windPower * stemInfluence;
+                windOffset += float3(leafFlutter * 0.1, 0, leafFlutter * 0.1) * uv.y;
+                
+                // Scale by instance size
+                windOffset *= instanceScale;
+                
+                return windOffset;
             }
 
             v2f vert(appdata v, uint id : SV_InstanceID)
@@ -108,14 +200,23 @@ Shader "Foliage/Indirect_Rotation"
                 FoliageInstance inst = _Instances[id];
                 v2f o;
 
+                // Create base rotation
                 float3x3 rotationMatrix = CreateCombinedRotation(inst.rotation, inst.normal);
                 
-                float3 rotatedVertex = mul(rotationMatrix, v.vertex * inst.scale);
+                // Transform vertex without wind
+                float3 baseVertex = mul(rotationMatrix, v.vertex * inst.scale);
+                float3 worldPos = baseVertex + inst.position;
                 
-                float3 worldPos = rotatedVertex + inst.position;
-
+                // Calculate wind offset
+                float3 windOffset = CalculateWindOffset(worldPos, v.vertex, v.uv, inst.scale);
+                
+                // Apply wind to world position
+                worldPos += windOffset;
+                
+                // Transform to clip space
                 o.pos = mul(UNITY_MATRIX_VP, float4(worldPos, 1.0));
 
+                // Simple normal adjustment (you could make this more accurate)
                 o.nrm = normalize(mul(rotationMatrix, v.normal));
                 o.uv = v.uv;
 
