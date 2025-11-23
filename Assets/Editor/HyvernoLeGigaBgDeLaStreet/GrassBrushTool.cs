@@ -2,6 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class PlanetFoliagePainterWindow : EditorWindow
 {
@@ -21,6 +22,11 @@ public class PlanetFoliagePainterWindow : EditorWindow
     public float randomScale = 0.2f;
     public Vector3 localRotation = Vector3.zero;
     public int proceduralCount = 1000;
+
+    [Header("Material Filtering")]
+    public bool useMaterialFiltering = false;
+    public string[] allowedMaterialNames = new string[0];
+    public string[] blockedMaterialNames = new string[0];
 
     public FoliageData targetData;
 
@@ -50,6 +56,25 @@ public class PlanetFoliagePainterWindow : EditorWindow
         localRotation = EditorGUILayout.Vector3Field("Local Rotation", localRotation);
         randomScale = EditorGUILayout.Slider("Random Scale", randomScale, 0f, 2f);
         proceduralCount = EditorGUILayout.IntField("Procedural Count", proceduralCount);
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Material Filtering", EditorStyles.boldLabel);
+        useMaterialFiltering = EditorGUILayout.Toggle("Use Material Filtering", useMaterialFiltering);
+        
+        if (useMaterialFiltering)
+        {
+            EditorGUILayout.LabelField("Allowed Materials (contains):");
+            ScriptableObject target = this;
+            SerializedObject so = new SerializedObject(target);
+            SerializedProperty allowedMaterials = so.FindProperty("allowedMaterialNames");
+            EditorGUILayout.PropertyField(allowedMaterials, true);
+            
+            EditorGUILayout.LabelField("Blocked Materials (contains):");
+            SerializedProperty blockedMaterials = so.FindProperty("blockedMaterialNames");
+            EditorGUILayout.PropertyField(blockedMaterials, true);
+            
+            so.ApplyModifiedProperties();
+        }
 
         EditorGUILayout.Space();
 
@@ -196,6 +221,13 @@ public class PlanetFoliagePainterWindow : EditorWindow
             Vector3 dir = (pos - planet.transform.position).normalized;
             if (Physics.Raycast(pos + dir * 10f, -dir, out RaycastHit hit, 20f))
             {
+                // Check material if filtering is enabled
+                if (useMaterialFiltering)
+                {
+                    Material hitMaterial = GetMaterialAtHit(hit);
+                    if (!IsValidMaterialForPlacement(hitMaterial))
+                        continue;
+                }
                 AddInstance(hit.point, hit.normal);
             }
             else
@@ -225,7 +257,6 @@ public class PlanetFoliagePainterWindow : EditorWindow
         targetData.instances.Add(inst);
     }
 
-
     void EraseAt(Vector3 center)
     {
         if (targetData == null) return;
@@ -248,33 +279,142 @@ public class PlanetFoliagePainterWindow : EditorWindow
     void PlaceProcedural()
     {
         if (planet == null || targetData == null) return;
-        MeshFilter mf = planet.GetComponent<MeshFilter>();
-        if (mf == null) return;
-        Mesh mesh = mf.sharedMesh;
-        Vector3[] vertices = mesh.vertices;
-        int[] triangles = mesh.triangles;
-        Vector3 center = planet.transform.position;
-
+        
+        // Get all mesh colliders in the planet and its children
+        MeshCollider[] meshColliders = planet.GetComponentsInChildren<MeshCollider>();
+        if (meshColliders == null || meshColliders.Length == 0) 
+        {
+            Debug.LogError("Planet or its children require MeshColliders for procedural placement");
+            return;
+        }
+        
         Undo.RecordObject(targetData, "Procedural Foliage");
 
-        for (int i = 0; i < proceduralCount; i++)
+        int placedCount = 0;
+        int attempts = 0;
+        int maxAttempts = proceduralCount * 10;
+
+        while (placedCount < proceduralCount && attempts < maxAttempts)
         {
-            int triIndex = Random.Range(0, triangles.Length / 3) * 3;
-            Vector3 v0 = planet.transform.TransformPoint(vertices[triangles[triIndex + 0]]);
-            Vector3 v1 = planet.transform.TransformPoint(vertices[triangles[triIndex + 1]]);
-            Vector3 v2 = planet.transform.TransformPoint(vertices[triangles[triIndex + 2]]);
+            attempts++;
+            
+            // Generate random direction from center
+            Vector3 randomDirection = Random.onUnitSphere;
+            
+            // Start ray from outside the planet pointing inward
+            Vector3 center = planet.transform.position;
+            float planetRadius = GetPlanetRadiusWorld();
+            Vector3 rayStart = center + randomDirection * (planetRadius * 2f);
+            Vector3 rayDirection = -randomDirection;
+            
+            
+            Ray ray = new Ray(rayStart, rayDirection);
+            
+            // Raycast against ALL colliders in the planet hierarchy
+            List<RaycastHit> hits = Physics.RaycastAll(ray, planetRadius * 3f).ToList();
+            hits = hits.OrderBy(el => Vector3.Distance(rayStart, el.point)).ToList();
+            bool hitFound = false;
+            
+            foreach (RaycastHit hit in hits)
+            {
+                // Check if the hit object is part of the planet hierarchy
+                if (hit.collider != null)
+                {
+                    // Check material if filtering is enabled
+                    if (useMaterialFiltering)
+                    {
+                        Material hitMaterial = GetMaterialAtHit(hit);
+                        Debug.Log(hitMaterial.name);
+                        if (!IsValidMaterialForPlacement(hitMaterial))
+                        {
+                            Debug.Log($"{hitMaterial.name} hit rejected by material filtering");
+                            break;
+                        }
+                    }
+                    
+                    Debug.DrawLine(rayStart, hit.point, Color.red, 2f);
 
-            float r1 = Random.value, r2 = Random.value;
-            if (r1 + r2 > 1f) { r1 = 1 - r1; r2 = 1 - r2; }
-            float r3 = 1f - r1 - r2;
-            Vector3 bary = v0 * r1 + v1 * r2 + v2 * r3;
-            Vector3 normal = (bary - center).normalized;
-            Vector3 pos = bary + normal * offset;
-
-            AddInstance(pos, normal);
+                    Vector3 normal = hit.normal;
+                    Vector3 pos = hit.point + Vector3.up * offset;
+                    
+                    AddInstance(pos, normal);
+                    placedCount++;
+                    hitFound = true;
+                    break; // We found a valid hit, break the loop
+                }
+            }
+            
+            // If no valid hit was found, continue to next attempt
+            if (!hitFound) continue;
         }
 
-        Debug.Log("hyv; PlaceProcedural");
+        Debug.Log($"Placed {placedCount} procedural objects out of {proceduralCount} attempted");
         EditorUtility.SetDirty(targetData);
+    }
+
+    // Helper method to get material at a specific hit point
+    private Material GetMaterialAtHit(RaycastHit hit)
+    {
+        MeshRenderer renderer = hit.collider.GetComponent<MeshRenderer>();
+        if (renderer == null || renderer.sharedMaterials == null) 
+            return null;
+    
+        Mesh mesh = hit.collider.GetComponent<MeshFilter>()?.sharedMesh;
+        if (mesh == null) return null;
+    
+        // Determine which submesh this triangle belongs to
+        int triangleIndex = hit.triangleIndex;
+        int subMeshCount = mesh.subMeshCount;
+        int accumulatedTriangles = 0;
+    
+        for (int i = 0; i < subMeshCount; i++)
+        {
+            int triangleCount = mesh.GetTriangles(i).Length / 3;
+            if (triangleIndex < accumulatedTriangles + triangleCount)
+            {
+                // Return the material for this submesh
+                if (i < renderer.sharedMaterials.Length)
+                {
+                    return renderer.sharedMaterials[i];
+                }
+                break;
+            }
+            accumulatedTriangles += triangleCount;
+        }
+    
+        // Fallback to first material
+        return renderer.sharedMaterial;
+    }
+
+    // Method to validate if placement is allowed on this material
+    public bool IsValidMaterialForPlacement(Material material)
+    {
+        if (!useMaterialFiltering || material == null) 
+            return true;
+        
+        string materialName = material.name;
+        
+        // Check blocked materials
+        if (blockedMaterialNames != null)
+        {
+            foreach (string blockedName in blockedMaterialNames)
+            {
+                if (!string.IsNullOrEmpty(blockedName) && materialName.ToLower().Contains(blockedName.ToLower()))
+                    return false;
+            }
+        }
+        
+        // Check allowed materials (if specified)
+        if (allowedMaterialNames != null && allowedMaterialNames.Length > 0)
+        {
+            foreach (string allowedName in allowedMaterialNames)
+            {
+                if (!string.IsNullOrEmpty(allowedName) && materialName.ToLower().Contains(allowedName.ToLower()))
+                    return true;
+            }
+            return false; // Material not in allowed list
+        }
+        
+        return true;
     }
 }

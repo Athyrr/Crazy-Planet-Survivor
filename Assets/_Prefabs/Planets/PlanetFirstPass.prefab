@@ -181,6 +181,9 @@ PrefabInstance:
       addedObject: {fileID: 1809887356493509877}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
+      insertIndex: 1
+      addedObject: {fileID: 3048832367368614624}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7883575868643578281}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
@@ -197,6 +200,24 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
   m_PrefabInstance: {fileID: 8611956261409824085}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &3048832367368614624
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8881865127885119492}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8684a6a8f36b4f29978520710e23860f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoliageRenderer
+  data: {fileID: 11400000, guid: ac10b938b685f904db878d4193b6d870, type: 2}
+  mesh: {fileID: 2931178734877319190, guid: 4dfe686ae138ffb4fa7572b5ae68e04c, type: 3}
+  material: {fileID: 2100000, guid: dc3c2090bc358644fb684229bc8ed6eb, type: 2}
+  renderBounds:
+    m_Center: {x: -1.0144848, y: -2.4137616, z: -1.5612686}
+    m_Extent: {x: 137.89394, y: 137.89394, z: 137.89394}
 --- !u!114 &7883575868643578281
 MonoBehaviour:
   m_ObjectHideFlags: 0
