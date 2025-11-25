@@ -52,7 +52,7 @@ public class GameManager : MonoBehaviour
                 break;
         }
 
-        Debug.Log("Current state: " + currentGameState.State);
+        // Debug.Log("Current state: " + currentGameState.State);
     }
 
     private void HandleRunningState(Entity gameStateEntity)

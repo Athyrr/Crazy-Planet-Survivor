@@ -2,41 +2,59 @@ using Unity.Transforms;
 using Unity.Entities;
 using UnityEngine;
 
-/// <summary>
-/// System that updates the CameraTargetComponent's transform (GameObject) to follow the player's position and rotation set by ECS Movement system.
-/// </summary>
 [UpdateInGroup(typeof(LateSimulationSystemGroup))]
 public partial class CameraTargetUpdaterSystem : SystemBase
 {
     private Transform _cameraTargetTransform;
+    private bool _initialized;
 
-    public void OnStartRunning(ref SystemState state)
+    protected override void OnCreate()
     {
-        if (CameraTargetComponent.Instance != null)
-            _cameraTargetTransform = CameraTargetComponent.Instance.transform;
-    }
-    
-    public void OnCreate(ref SystemState state)
-    {
-        state.RequireForUpdate<Player>();
+        RequireForUpdate<Player>();
+        _initialized = false;
     }
 
     protected override void OnUpdate()
     {
-        if (_cameraTargetTransform == null)
+        if (!_initialized || _cameraTargetTransform == null)
         {
             if (CameraTargetComponent.Instance != null)
-                this._cameraTargetTransform = CameraTargetComponent.Instance.transform;
+            {
+                _cameraTargetTransform = CameraTargetComponent.Instance.transform;
+                _initialized = true;
+            }
             else
-                return;
+            {
+                Debug.LogWarning("CameraTargetComponent instance not found. Searching for camera target...");
+                var cameraTarget = GameObject.FindObjectOfType<CameraTargetComponent>();
+                if (cameraTarget != null)
+                {
+                    _cameraTargetTransform = cameraTarget.transform;
+                    _initialized = true;
+                }
+                else
+                {
+                    Debug.LogError("No CameraTargetComponent found in scene!");
+                    return;
+                }
+            }
         }
 
-        Entity playerEntity = SystemAPI.GetSingletonEntity<Player>();
-        LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
+        if (SystemAPI.TryGetSingletonEntity<Player>(out Entity playerEntity))
+        {
+            if (SystemAPI.HasComponent<LocalTransform>(playerEntity))
+            {
+                LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
 
-        // Update CameraTarget transform to follow the player
-        _cameraTargetTransform.position = playerTransform.Position;
-        //_cameraTargetTransform.rotation = playerTransform.Rotation;
-        _cameraTargetTransform.up = playerTransform.Up();
+                _cameraTargetTransform.position = playerTransform.Position;
+                _cameraTargetTransform.up = playerTransform.Up();
+            }
+        }
+    }
+
+    protected override void OnDestroy()
+    {
+        _cameraTargetTransform = null;
+        _initialized = false;
     }
 }
