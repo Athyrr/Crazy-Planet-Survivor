@@ -29,7 +29,7 @@ public class PlayerController : MonoBehaviour
 
     void OnEnable()
     {
-        _gameInputs.Player.Move.performed += HandleMoveInput;
+        _gameInputs.Player.Move.performed += sssssssssssssssssssssssssssssssssssss;
         _gameInputs.Player.Move.canceled += HandleMoveInput;
 
         _gameInputs.Player.Pause.started += HandlePauseInput;
