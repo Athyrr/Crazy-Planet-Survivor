@@ -2,6 +2,13 @@ Shader "Foliage/Indirect_Rotation_Wind"
 {
     Properties
     {
+        // Added Culling Property (Default to 0 = Off for double-sided foliage)
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Culling", Float) = 0
+        
+        // Distance Culling
+        _CullDistance ("Cull Distance", Float) = 100.0
+        _CullFade ("Cull Fade Range", Float) = 10.0
+
         _ColorA ("Color A", Color) = (1,0,0,1)
         _ColorB ("Color B", Color) = (1,1,1,1)
         
@@ -23,6 +30,9 @@ Shader "Foliage/Indirect_Rotation_Wind"
 
         Pass
         {
+            // Apply the Culling mode defined in Properties
+            Cull [_Cull]
+
             CGPROGRAM
             #pragma target 4.5
             #pragma vertex vert
@@ -49,6 +59,9 @@ Shader "Foliage/Indirect_Rotation_Wind"
             float4 _WindDirection;
             float _StemStiffness;
             float _LeafFlutter;
+
+            float _CullDistance;
+            float _CullFade;
 
             struct appdata
             {
@@ -200,15 +213,47 @@ Shader "Foliage/Indirect_Rotation_Wind"
                 FoliageInstance inst = _Instances[id];
                 v2f o;
 
+                // --- OPTIMIZATION CULLING ---
+                float dist = distance(_WorldSpaceCameraPos, inst.position);
+                
+                // Culling complet au-delà de la distance
+                if (dist >= _CullDistance)
+                {
+                    // Place le vertex hors de l'écran pour qu'il soit clipé
+                    o.pos = float4(0, 0, 10000, 1); // Position hors écran
+                    o.uv = float2(0,0);
+                    o.nrm = float3(0,0,0);
+                    return o; 
+                }
+
+                // Fade progressif avant la disparition complète
+                float cullScale = 1.0;
+                if (dist > _CullDistance - _CullFade)
+                {
+                    cullScale = 1.0 - smoothstep(_CullDistance - _CullFade, _CullDistance, dist);
+                    
+                    // Si l'échelle est quasi nulle, on cull aussi
+                    if (cullScale < 0.01)
+                    {
+                        o.pos = float4(0, 0, 10000, 1);
+                        o.uv = float2(0,0);
+                        o.nrm = float3(0,0,0);
+                        return o;
+                    }
+                }
+
+                // Application de l'échelle de culling
+                float finalScale = inst.scale * cullScale;
+
                 // Create base rotation
                 float3x3 rotationMatrix = CreateCombinedRotation(inst.rotation, inst.normal);
                 
                 // Transform vertex without wind
-                float3 baseVertex = mul(rotationMatrix, v.vertex * inst.scale);
+                float3 baseVertex = mul(rotationMatrix, v.vertex * finalScale);
                 float3 worldPos = baseVertex + inst.position;
                 
                 // Calculate wind offset
-                float3 windOffset = CalculateWindOffset(worldPos, v.vertex, v.uv, inst.scale);
+                float3 windOffset = CalculateWindOffset(worldPos, v.vertex, v.uv, finalScale);
                 
                 // Apply wind to world position
                 worldPos += windOffset;
@@ -216,7 +261,7 @@ Shader "Foliage/Indirect_Rotation_Wind"
                 // Transform to clip space
                 o.pos = mul(UNITY_MATRIX_VP, float4(worldPos, 1.0));
 
-                // Simple normal adjustment (you could make this more accurate)
+                // Simple normal adjustment
                 o.nrm = normalize(mul(rotationMatrix, v.normal));
                 o.uv = v.uv;
 
