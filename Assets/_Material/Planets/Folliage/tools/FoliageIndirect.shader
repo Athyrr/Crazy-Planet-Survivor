@@ -11,6 +11,7 @@ Shader "Foliage/Indirect_Rotation_Wind"
 
         _ColorA ("Color A", Color) = (1,0,0,1)
         _ColorB ("Color B", Color) = (1,1,1,1)
+        _ZoneColor ("Zone Color", Color) = (0,1,0,1) // Couleur dans les zones d'influence
         
         // Wind properties
         _WindStrength ("Wind Strength", Range(0, 2)) = 0.5
@@ -22,6 +23,10 @@ Shader "Foliage/Indirect_Rotation_Wind"
         // Stem properties
         _StemStiffness ("Stem Stiffness", Range(0, 1)) = 0.7
         _LeafFlutter ("Leaf Flutter", Range(0, 2)) = 0.5
+        
+        // Zone properties
+        _ZoneBlend ("Zone Blend Smoothness", Range(0.1, 10)) = 2.0
+        _ZoneIntensity ("Zone Color Intensity", Range(0, 2)) = 1.0
     }
 
     SubShader
@@ -50,6 +55,7 @@ Shader "Foliage/Indirect_Rotation_Wind"
             StructuredBuffer<FoliageInstance> _Instances;
             float4 _ColorA;
             float4 _ColorB;
+            float4 _ZoneColor;
             
             // Wind properties
             float _WindStrength;
@@ -60,8 +66,19 @@ Shader "Foliage/Indirect_Rotation_Wind"
             float _StemStiffness;
             float _LeafFlutter;
 
+            // Culling properties
             float _CullDistance;
             float _CullFade;
+
+            // Zone properties
+            float _ZoneBlend;
+            float _ZoneIntensity;
+
+            // Liste des zones d'influence (position + radius)
+            #define MAX_ZONES 32
+            int _ZoneCount;
+            float4 _ZonePositions[MAX_ZONES]; // xyz = position, w = radius
+            float _ZoneRadii[MAX_ZONES];
 
             struct appdata
             {
@@ -75,6 +92,7 @@ Shader "Foliage/Indirect_Rotation_Wind"
                 float4 pos : SV_POSITION;
                 float2 uv  : TEXCOORD0;
                 float3 nrm : TEXCOORD1;
+                float3 worldPos : TEXCOORD2; // Position mondiale pour les calculs de zone
             };
 
             // Simple noise function for wind variation
@@ -208,6 +226,31 @@ Shader "Foliage/Indirect_Rotation_Wind"
                 return windOffset;
             }
 
+            // Calcule l'influence des zones sur la position actuelle
+            float CalculateZoneInfluence(float3 worldPos)
+            {
+                float totalInfluence = 0.0;
+                
+                for (int i = 0; i < _ZoneCount && i < MAX_ZONES; i++)
+                {
+                    float4 zone = _ZonePositions[i];
+                    float radius = _ZoneRadii[i];
+                    
+                    // Distance au centre de la zone
+                    float distanceToZone = distance(worldPos, zone.xyz);
+                    
+                    // Calcul de l'influence (1 au centre, 0 au bord et au-delà)
+                    float influence = 1.0 - smoothstep(0.0, radius, distanceToZone);
+                    
+                    // Appliquer un lissage supplémentaire si souhaité
+                    influence = pow(influence, _ZoneBlend);
+                    
+                    totalInfluence = max(totalInfluence, influence);
+                }
+                
+                return saturate(totalInfluence);
+            }
+
             v2f vert(appdata v, uint id : SV_InstanceID)
             {
                 FoliageInstance inst = _Instances[id];
@@ -223,6 +266,7 @@ Shader "Foliage/Indirect_Rotation_Wind"
                     o.pos = float4(0, 0, 10000, 1); // Position hors écran
                     o.uv = float2(0,0);
                     o.nrm = float3(0,0,0);
+                    o.worldPos = float3(0,0,0);
                     return o; 
                 }
 
@@ -238,6 +282,7 @@ Shader "Foliage/Indirect_Rotation_Wind"
                         o.pos = float4(0, 0, 10000, 1);
                         o.uv = float2(0,0);
                         o.nrm = float3(0,0,0);
+                        o.worldPos = float3(0,0,0);
                         return o;
                     }
                 }
@@ -264,6 +309,7 @@ Shader "Foliage/Indirect_Rotation_Wind"
                 // Simple normal adjustment
                 o.nrm = normalize(mul(rotationMatrix, v.normal));
                 o.uv = v.uv;
+                o.worldPos = worldPos; // Stocke la position mondiale pour le fragment shader
 
                 return o;
             }
@@ -272,10 +318,19 @@ Shader "Foliage/Indirect_Rotation_Wind"
             {
                 float2 uv = i.uv;
 
-                float blendFactor = pow(saturate(uv.y), 2.0); // Quadratic curve
-                fixed4 color = lerp(_ColorA, _ColorB, blendFactor);
+                // Calcul de l'influence des zones
+                float zoneInfluence = CalculateZoneInfluence(i.worldPos);
                 
-                return color;
+                // Blend factor original basé sur la hauteur UV
+                float blendFactor = pow(saturate(uv.y), 2.0); // Quadratic curve
+                
+                // Couleur de base
+                fixed4 baseColor = lerp(_ColorA, _ColorB, blendFactor);
+                
+                // Mélange avec la couleur de zone
+                fixed4 finalColor = lerp(baseColor, _ZoneColor * _ZoneIntensity, zoneInfluence);
+                
+                return finalColor;
             }
             ENDCG
         }
