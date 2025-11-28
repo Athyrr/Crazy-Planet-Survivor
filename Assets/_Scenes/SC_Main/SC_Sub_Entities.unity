@@ -244,8 +244,28 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7867096471209253954, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: BaseStats.Speed
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 7867096471209253954, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: BaseStats.Damage
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7867096471209253954, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: BaseStats.MaxHealth
+      value: 1e+24
+      objectReference: {fileID: 0}
+    - target: {fileID: 7867096471209253954, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: BaseStats.CollectRange
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7867096471209253954, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
       propertyPath: InitialSpells.Array.size
-      value: 2
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7867096471209253954, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+      propertyPath: BaseStats.MaxCollectRange
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7867096471209253954, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
       propertyPath: 'InitialSpells.Array.data[0]'
@@ -344,8 +364,8 @@ MonoBehaviour:
   mesh: {fileID: 2931178734877319190, guid: 4dfe686ae138ffb4fa7572b5ae68e04c, type: 3}
   material: {fileID: 2100000, guid: dc3c2090bc358644fb684229bc8ed6eb, type: 2}
   renderBounds:
-    m_Center: {x: 0, y: 0, z: 0}
-    m_Extent: {x: 500, y: 500, z: 500}
+    m_Center: {x: 35.235134, y: 28.857637, z: 19.615986}
+    m_Extent: {x: 69.204285, y: 69.204285, z: 69.204285}
 --- !u!64 &1011968484
 MeshCollider:
   m_ObjectHideFlags: 0
