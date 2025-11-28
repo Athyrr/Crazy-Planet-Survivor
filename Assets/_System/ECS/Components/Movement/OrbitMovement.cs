@@ -8,6 +8,7 @@ public struct OrbitMovement : IComponentData
     public float AngularSpeed;
     public float Radius;
     public float3 RelativeOffset; // Relative position to the orbit center
+    public float InitialAngle { get; set; }
 }
 
 

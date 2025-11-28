@@ -12,4 +12,6 @@ public struct SpellBlob
     // Ricochet settings
     public int Bounces;
     public float BouncesSearchRadius;
+
+    public bool InstanciateOnce;
 }

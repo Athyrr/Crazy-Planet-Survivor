@@ -18,4 +18,6 @@ public class SpellDataSO : ScriptableObject
     // Ricochet settings
     public int Bounces;
     public float BouncesSearchRadius;
+
+    public bool InstantiateOnce = false;
 }

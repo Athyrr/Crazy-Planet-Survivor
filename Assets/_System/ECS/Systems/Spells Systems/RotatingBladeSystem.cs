@@ -1,11 +1,15 @@
+using System.Threading;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
 
-partial struct RotatingBlade : ISystem
+[BurstCompile]
+[UpdateInGroup(typeof(SimulationSystemGroup))]
+internal partial struct RotatingBladeSystem : ISystem
 {
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -34,9 +38,16 @@ partial struct RotatingBlade : ISystem
         var spellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
         var spellDatabase = SystemAPI.GetComponent<SpellsDatabase>(spellDatabaseEntity);
 
+        var bladeQuery = SystemAPI.QueryBuilder()
+            .WithAll<RotatingBladeIndex>()
+            .Build();
+
+        int existingBladeCount = bladeQuery.CalculateEntityCount();
+
         var RotatingBladeJob = new CastRotatingBladeJob
         {
             ECB = ecb.AsParallelWriter(),
+            ExistingBladeCount = existingBladeCount,
 
             PlayerLookup = SystemAPI.GetComponentLookup<Player>(true),
             TransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true),
@@ -45,7 +56,6 @@ partial struct RotatingBlade : ISystem
 
             SpellDatabaseRef = spellDatabase.Blobs,
             SpellPrefabs = spellPrefabs
-
         };
         state.Dependency = RotatingBladeJob.ScheduleParallel(state.Dependency);
     }
@@ -55,17 +65,22 @@ partial struct RotatingBlade : ISystem
     private partial struct CastRotatingBladeJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
+        public int ExistingBladeCount;
+
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
 
+
         [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
-        void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
+        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
+
+
             if (!SpellDatabaseRef.IsCreated || !TransformLookup.HasComponent(request.Caster))
             {
                 ECB.DestroyEntity(chunkIndex, requestEntity);
@@ -77,6 +92,12 @@ partial struct RotatingBlade : ISystem
 
             ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
             var spellPrefab = SpellPrefabs[request.DatabaseIndex].Prefab;
+
+            // if (spellData.InstanciateOnce)
+            //     return;
+
+
+
 
             if (spellPrefab == Entity.Null)
             {
@@ -99,74 +120,91 @@ partial struct RotatingBlade : ISystem
             }
 
             //Spell damage calculation
-            float damage = spellData.BaseDamage + casterStats.Damage;
+            var damage = spellData.BaseDamage + casterStats.Damage;
 
-            var fireballEntity = ECB.Instantiate(chunkIndex, spellPrefab);
+            var rotatingBladeEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-            ECB.SetComponent(chunkIndex, fireballEntity, new Projectile
+            ECB.SetComponent(chunkIndex, rotatingBladeEntity, new Projectile
             {
                 Damage = damage,
                 Element = spellData.Element
             });
 
             // Orbit movement version
+            // Compter le nombre total de blades actives pour ce caster
+
+            int bladeIndex = ExistingBladeCount + chunkIndex;
+            int totalBlades = ExistingBladeCount + 1; // Estimation
+
+            float angleOffset = totalBlades > 0 ? (2f * math.PI * bladeIndex) / totalBlades : 0f;
+
             var orbitData = new OrbitMovement
             {
                 OrbitCenterEntity = caster,
-                OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 5, // @todo change distance by (2) by value  /!\ value same as radius
+                OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 5,
                 AngularSpeed = 4,
                 Radius = 5,
-                RelativeOffset = casterTransform.Forward() * 5
+                RelativeOffset = casterTransform.Forward() * 5,
+                //InitialAngle = angleOffset
             };
-            var spawnPosition = casterTransform.Position + casterTransform.Forward() * orbitData.Radius;
-            ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
+
+            // // Position initiale basée sur l'angle
+            var offset = new float3(
+                math.cos(angleOffset) * orbitData.Radius,
+                0,
+                math.sin(angleOffset) * orbitData.Radius
+            );
+            var spawnPosition = casterTransform.Position + offset;
+            ECB.SetComponent(chunkIndex, rotatingBladeEntity, new LocalTransform
             {
                 Position = spawnPosition,
                 Rotation = casterTransform.Rotation,
                 Scale = 0.7f
             });
-            ECB.RemoveComponent<LinearMovement>(chunkIndex, fireballEntity);
-            ECB.AddComponent(chunkIndex, fireballEntity, orbitData);
+            ECB.RemoveComponent<LinearMovement>(chunkIndex, rotatingBladeEntity);
+            ECB.AddComponent(chunkIndex, rotatingBladeEntity, orbitData);
+
+            ECB.AddComponent(chunkIndex, rotatingBladeEntity, new RotatingBladeIndex
+            {
+                Index = bladeIndex,
+                TotalBlades = totalBlades
+            });
 
             // Linear movement version
             /*ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
-            {
-                Position = casterTransform.Position,
-                Rotation = casterTransform.Rotation,
-                Scale = 1f
-            });
+        {
+            Position = casterTransform.Position,
+            Rotation = casterTransform.Rotation,
+            Scale = 1f
+        });
 
-            ECB.SetComponent<LinearMovement>(chunkIndex, fireballEntity, new LinearMovement
-            {
-                //Direction = castDirection,
-                Direction = casterTransform.Forward(),
-                Speed = spellData.BaseSpeed
-            });*/
+        ECB.SetComponent<LinearMovement>(chunkIndex, fireballEntity, new LinearMovement
+        {
+            //Direction = castDirection,
+            Direction = casterTransform.Forward(),
+            Speed = spellData.BaseSpeed
+        });*/
 
             // Collision
-            bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
+            var isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
             CollisionFilter collisionFilter;
             if (isPlayerCaster)
-            {
-                collisionFilter = new CollisionFilter()
+                collisionFilter = new CollisionFilter
                 {
                     BelongsTo = CollisionLayers.PlayerProjectile,
-                    CollidesWith = CollisionLayers.Enemy | CollisionLayers.Obstacle,
+                    CollidesWith = CollisionLayers.Enemy | CollisionLayers.Obstacle
                 };
-            }
             else
-            {
-                collisionFilter = new CollisionFilter()
+                collisionFilter = new CollisionFilter
                 {
                     BelongsTo = CollisionLayers.EnemyProjectile,
-                    CollidesWith = CollisionLayers.Player | CollisionLayers.Obstacle,
+                    CollidesWith = CollisionLayers.Player | CollisionLayers.Obstacle
                 };
-            }
-            PhysicsCollider collider = ColliderLookup[spellPrefab];
+            var collider = ColliderLookup[spellPrefab];
             collider.Value.Value.SetCollisionFilter(collisionFilter);
-            ECB.SetComponent(chunkIndex, fireballEntity, collider);
+            ECB.SetComponent(chunkIndex, rotatingBladeEntity, collider);
 
-            ECB.SetComponent(chunkIndex, fireballEntity, new Lifetime
+            ECB.SetComponent(chunkIndex, rotatingBladeEntity, new Lifetime
             {
                 ElapsedTime = spellData.Lifetime,
                 Duration = spellData.Lifetime
