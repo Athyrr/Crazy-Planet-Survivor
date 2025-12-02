@@ -1,8 +1,8 @@
 using Unity.Collections;
+using Unity.Transforms;
 using Unity.Entities;
 using Unity.Physics;
 using Unity.Burst;
-using Unity.Transforms;
 
 [BurstCompile]
 public partial struct AuraDamageSystem : ISystem
@@ -59,5 +59,11 @@ public partial struct AuraDamageSystem : ISystem
 
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
+
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in DamageOnTick damageOnTick, in LocalTransform transform)
+        {
+
+
+        }
     }
 }
