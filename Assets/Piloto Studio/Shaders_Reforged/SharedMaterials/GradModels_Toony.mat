@@ -51,6 +51,7 @@ Material:
   stringTagMap:
     IgnoreProjection: False
     MotionVector: User
+    RenderType: Opaque
   disabledShaderPasses:
   - TransparentBackface
   - TransparentDepthPostpass
@@ -439,7 +440,7 @@ Material:
     - _PPDMinSamples: 5
     - _PPDPrimitiveLength: 1
     - _PPDPrimitiveWidth: 1
-    - _QueueControl: -1
+    - _QueueControl: 1
     - _QueueOffset: 0
     - _RayTracing: 0
     - _ReceivesSSR: 0
@@ -529,6 +530,7 @@ Material:
     - _UseShadowThreshold: 0
     - _Use_1stAs2nd: 1
     - _Use_BaseAs1st: 1
+    - _XRMotionVectorsPass: 1
     - _ZOverDrawMode: 0
     - _ZTest: 4
     - _ZTestDepthEqualForOpaque: 3
