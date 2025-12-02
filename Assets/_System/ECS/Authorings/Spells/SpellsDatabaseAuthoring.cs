@@ -1,6 +1,5 @@
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Entities.UniversalDelegates;
 using UnityEngine;
 
 
@@ -16,7 +15,7 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
         /// <param name="authoring"></param>
         public override void Bake(SpellsDatabaseAuthoring authoring)
         {
-            Entity entity = GetEntity(TransformUsageFlags.None);
+            Entity dbEntity = GetEntity(TransformUsageFlags.None);
 
             // Create spell blobs for data
             //BlobBuilder builder = new BlobBuilder(Allocator.Temp);
@@ -45,10 +44,11 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlobRoot.Bounces = spellSO.Bounces;
                 spellBlobRoot.BouncesSearchRadius = spellSO.BouncesSearchRadius;
                 spellBlobRoot.InstanciateOnce = spellSO.InstantiateOnce;
+                spellBlobRoot.IsInvincible = spellSO.IsInvincible;
             }
 
             var spellsDatabaseBlob = builder.CreateBlobAssetReference<SpellBlobs>(Allocator.Persistent);
-            AddComponent(entity, new SpellsDatabase { Blobs = spellsDatabaseBlob });
+            AddComponent(dbEntity, new SpellsDatabase { Blobs = spellsDatabaseBlob });
 
             // Register blob asset (auto free memory)
             AddBlobAsset(ref spellsDatabaseBlob, out var hash);
@@ -57,7 +57,7 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
             builder.Dispose();
 
             // Add spell prefabs to buffer  
-            var prefabBuffer = AddBuffer<SpellPrefab>(entity);
+            var prefabBuffer = AddBuffer<SpellPrefab>(dbEntity);
             foreach (var spellSO in authoring.SpellDatabase.Spells)
             {
                 if (spellSO == null || spellSO.SpellPrefab == null)

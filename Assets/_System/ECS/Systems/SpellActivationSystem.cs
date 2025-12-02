@@ -2,6 +2,9 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Burst;
 
+/// <summary>
+/// System that handles activation of spells when requested. Activate Initial spells for entities then when a new spell is unlocked..
+/// </summary>
 [UpdateInGroup(typeof(InitializationSystemGroup))]
 [BurstCompile]
 public partial struct SpellActivationSystem : ISystem

@@ -11,12 +11,11 @@ public class ProjectileAuthoring : MonoBehaviour
 
             AddComponent<Projectile>(entity);
 
-            AddComponent(entity, new LinearMovement
-            {
-                Speed = 1,
-                Direction = Vector3.forward
-            });
-
+            //AddComponent(entity, new LinearMovement
+            //{
+            //    Speed = 1,
+            //    Direction = Vector3.forward
+            //});
 
             AddComponent(entity, new Lifetime { });
         }
