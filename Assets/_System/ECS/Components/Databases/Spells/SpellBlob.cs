@@ -14,4 +14,5 @@ public struct SpellBlob
     public float BouncesSearchRadius;
 
     public bool InstanciateOnce;
+    public bool IsInvincible;
 }

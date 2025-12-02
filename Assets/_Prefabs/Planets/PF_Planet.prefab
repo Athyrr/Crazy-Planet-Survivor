@@ -11,8 +11,10 @@ GameObject:
   - component: {fileID: 4804159904702695074}
   - component: {fileID: 3995231814262822588}
   - component: {fileID: 4621067963375093220}
-  - component: {fileID: 2693254250496633621}
   - component: {fileID: 7253456827867490842}
+  - component: {fileID: 1207441189779327318}
+  - component: {fileID: 2693254250496633621}
+  - component: {fileID: 4383303850947694623}
   m_Layer: 0
   m_Name: PF_Planet
   m_TagString: Untagged
@@ -91,26 +93,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &2693254250496633621
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7431055858490708449}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5075d250c6a932b44900fd1ab8740d9c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlanetConfigAuthoring
-  _heightMapTexture: {fileID: 0}
-  _atlasPixelWidth: 2048
-  _maxPlanetHeight: 10
-  _radius: 50
-  _autoFindPlanetRadius: 1
-  _findWaterLevel: 0
-  _waterLevelObject: {fileID: 0}
-  _useHeightMap: 0
 --- !u!114 &7253456827867490842
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -254,3 +236,63 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
+--- !u!64 &1207441189779327318
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7431055858490708449}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2693254250496633621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7431055858490708449}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5075d250c6a932b44900fd1ab8740d9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlanetConfigAuthoring
+  _heightMapTexture: {fileID: 0}
+  _atlasPixelWidth: 2048
+  _maxPlanetHeight: 10
+  _radius: 50
+  _autoFindPlanetRadius: 1
+  _findWaterLevel: 0
+  _waterLevelObject: {fileID: 0}
+  _useHeightMap: 0
+--- !u!114 &4383303850947694623
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7431055858490708449}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8684a6a8f36b4f29978520710e23860f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoliageRenderer
+  data: {fileID: 11400000, guid: 8138c995ee9057242929c9d3cfaa41b3, type: 2}
+  mesh: {fileID: 2931178734877319190, guid: 4dfe686ae138ffb4fa7572b5ae68e04c, type: 3}
+  material: {fileID: 2100000, guid: dc3c2090bc358644fb684229bc8ed6eb, type: 2}
+  renderBounds:
+    m_Center: {x: -0.07108547, y: 0.08297, z: -0.0059291353}
+    m_Extent: {x: 62.19952, y: 62.19952, z: 62.19952}

@@ -112,6 +112,7 @@ public partial struct RicochetShotSystem : ISystem
             {
                 Damage = damage,
                 Element = spellData.Element
+
             });
 
             // Linear movement version
@@ -155,18 +156,16 @@ public partial struct RicochetShotSystem : ISystem
 
             // Set Ricochet component
             int bouncesCount = spellData.Bounces + casterStats.BouncesAdded;
-            ECB.AddComponent(chunkIndex, ricochetEntity, new RicochetData
+            ECB.SetComponent(chunkIndex, ricochetEntity, new Ricochet
             {
                 RemainingBounces = bouncesCount,
-                SearchRadius = math.max(1, spellData.BouncesSearchRadius),
-                Speed = spellData.BaseSpeed * math.max(1, casterStats.ProjectileSpeedMultiplier),
+                BounceRange = math.max(1, spellData.BouncesSearchRadius),
+                BounceSpeed = spellData.BaseSpeed * math.max(1, casterStats.ProjectileSpeedMultiplier),
             });
-            //ECB.SetComponent(chunkIndex, ricochetEntity, new RicochetData
-            //{
-            //    RemainingBounces = bouncesCount,
-            //    SearchRadius = spellData.BouncesSearchRadius,
-            //    Speed = spellData.BaseSpeed * casterStats.ProjectileSpeedMultiplier,
-            //});
+
+            // Invincibility
+            if (spellData.IsInvincible)
+                ECB.AddComponent<Invincible>(chunkIndex, ricochetEntity);
 
             // Lifetime
             ECB.SetComponent(chunkIndex, ricochetEntity, new Lifetime

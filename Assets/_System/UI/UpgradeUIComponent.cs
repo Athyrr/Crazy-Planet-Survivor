@@ -34,7 +34,7 @@ public class UpgradeUIComponent : MonoBehaviour
                 }
                 break;
 
-            case EUpgradeType.Spell:
+            case EUpgradeType.UnlockSpell:
                 Data.text = $"Unlock: {upgradeData.SpellID}";
                 break;
 

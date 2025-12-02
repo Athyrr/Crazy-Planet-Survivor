@@ -19,5 +19,7 @@ public class SpellDataSO : ScriptableObject
     public int Bounces;
     public float BouncesSearchRadius;
 
+    public bool IsInvincible;
+
     public bool InstantiateOnce = false;
 }

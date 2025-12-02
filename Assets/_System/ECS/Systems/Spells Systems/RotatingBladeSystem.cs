@@ -1,7 +1,5 @@
-using System.Threading;
 using Unity.Burst;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
@@ -73,7 +71,6 @@ internal partial struct RotatingBladeSystem : ISystem
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
 
-
         [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
@@ -95,8 +92,6 @@ internal partial struct RotatingBladeSystem : ISystem
 
             // if (spellData.InstanciateOnce)
             //     return;
-
-
 
 
             if (spellPrefab == Entity.Null)
@@ -203,6 +198,9 @@ internal partial struct RotatingBladeSystem : ISystem
             var collider = ColliderLookup[spellPrefab];
             collider.Value.Value.SetCollisionFilter(collisionFilter);
             ECB.SetComponent(chunkIndex, rotatingBladeEntity, collider);
+
+            if (spellData.IsInvincible)
+                ECB.AddComponent<Invincible>(chunkIndex, rotatingBladeEntity);
 
             ECB.SetComponent(chunkIndex, rotatingBladeEntity, new Lifetime
             {
