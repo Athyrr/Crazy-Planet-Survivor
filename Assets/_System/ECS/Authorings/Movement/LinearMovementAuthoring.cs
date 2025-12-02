@@ -13,9 +13,7 @@ public class LinearMovementAuthoring : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
             AddComponent<LinearMovement>(entity);
-
-            if (!authoring.EnabledOnInit)
-                SetComponentEnabled<LinearMovement>(entity, false);
+            SetComponentEnabled<LinearMovement>(entity, authoring.EnabledOnInit);
         }
     }
 }

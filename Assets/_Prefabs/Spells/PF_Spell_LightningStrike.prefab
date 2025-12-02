@@ -13,7 +13,10 @@ GameObject:
   - component: {fileID: 2991863156490213269}
   - component: {fileID: 1617985317442812095}
   - component: {fileID: -8656549718899842169}
-  - component: {fileID: -619302568336933054}
+  - component: {fileID: -544298165790496251}
+  - component: {fileID: -25037534898820844}
+  - component: {fileID: -1122021280280150147}
+  - component: {fileID: -3161422996106231680}
   m_Layer: 0
   m_Name: PF_Spell_LightningStrike
   m_TagString: Untagged
@@ -286,7 +289,7 @@ MonoBehaviour:
     Tag05: 0
     Tag06: 0
     Tag07: 0
---- !u!114 &-619302568336933054
+--- !u!114 &-544298165790496251
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -295,6 +298,43 @@ MonoBehaviour:
   m_GameObject: {fileID: 5138817672301412260}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d89f0340604f03649a28ed4836a46c10, type: 3}
+  m_Script: {fileID: 11500000, guid: 6e68958eb03ae2642a796d252020255b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FireballAuthoring
+  m_EditorClassIdentifier: Assembly-CSharp::LinearMovementAuthoring
+  EnabledOnInit: 1
+--- !u!114 &-25037534898820844
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5138817672301412260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5640ef44bda7e8e458075717de2dfbe1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageOnContactAuthoring
+--- !u!114 &-1122021280280150147
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5138817672301412260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2b84fa8e8cbd674c8acfb417a3276e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LifetimeAuthoring
+--- !u!114 &-3161422996106231680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5138817672301412260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3340c3376cd3294d9e8613d09ce72cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PierceAuthoring

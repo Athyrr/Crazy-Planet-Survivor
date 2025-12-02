@@ -25,7 +25,7 @@ public class EnemyAuthoring : MonoBehaviour
 
             AddComponent(entity, new Enemy() { });
 
-            AddComponent(entity, new FollowTargetMovement() { Speed = authoring.BaseStats.Speed });
+            AddComponent(entity, new FollowTargetMovement() { Speed = authoring.BaseStats.MoveSpeed});
 
             if (authoring.UseSnappedMovement)
                 AddComponent<HardSnappedMovement>(entity);
@@ -39,7 +39,7 @@ public class EnemyAuthoring : MonoBehaviour
             AddComponent(entity, new Stats()
             {
                 MaxHealth = authoring.BaseStats.MaxHealth,
-                MoveSpeed = authoring.BaseStats.Speed,
+                MoveSpeed = authoring.BaseStats.MoveSpeed,
                 Damage = authoring.BaseStats.Damage,
                 Armor = authoring.BaseStats.Armor,
                 CooldownReduction = authoring.BaseStats.CooldownReduction

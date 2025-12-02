@@ -33,7 +33,7 @@ public class PlayerAuthoring : MonoBehaviour
             AddComponent(entity, new LinearMovement()
             {
                 Direction = float3.zero,
-                Speed = authoring.BaseStats.Speed
+                Speed = authoring.BaseStats.MoveSpeed
             });
 
             if (authoring.UseSnappedMovement)
@@ -46,7 +46,7 @@ public class PlayerAuthoring : MonoBehaviour
             AddComponent(entity, new Stats()
             {
                 MaxHealth = authoring.BaseStats.MaxHealth,
-                MoveSpeed = authoring.BaseStats.Speed,
+                MoveSpeed = authoring.BaseStats.MoveSpeed,
                 Damage = authoring.BaseStats.Damage,
                 Armor = authoring.BaseStats.Armor,
                 CooldownReduction = authoring.BaseStats.CooldownReduction

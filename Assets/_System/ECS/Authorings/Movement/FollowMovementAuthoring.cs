@@ -13,9 +13,7 @@ public class FollowMovementAuthoring : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
             AddComponent<FollowTargetMovement>(entity);
-
-            if (!authoring.EnabledOnInit)
-                SetComponentEnabled<FollowTargetMovement>(entity, false);
+            SetComponentEnabled<FollowTargetMovement>(entity, authoring.EnabledOnInit);
         }
     }
 }

@@ -13,7 +13,7 @@ public partial struct CollisionSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
-    private ComponentLookup<Projectile> _projectileLookup;
+    private ComponentLookup<DamageOnContact> _damageOnContactLookup;
 
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<Ricochet> _ricochetLookup;
@@ -34,7 +34,7 @@ public partial struct CollisionSystem : ISystem
 
         _playerLookup = state.GetComponentLookup<Player>(true);
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
-        _projectileLookup = state.GetComponentLookup<Projectile>(true);
+        _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _ricochetLookup = state.GetComponentLookup<Ricochet>(false);
         _pierceLookup = state.GetComponentLookup<Pierce>(false);
@@ -55,7 +55,7 @@ public partial struct CollisionSystem : ISystem
 
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
-        _projectileLookup.Update(ref state);
+        _damageOnContactLookup.Update(ref state);
         _transformLookup.Update(ref state);
         _ricochetLookup.Update(ref state);
         _pierceLookup.Update(ref state);
@@ -78,7 +78,7 @@ public partial struct CollisionSystem : ISystem
 
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
-            ProjectileLookup = _projectileLookup,
+            DamageOnContactLookup = _damageOnContactLookup,
 
             LocalTransformLookup = _transformLookup,
             LinearMovementLookup = _linearMovementLookup,
@@ -102,7 +102,7 @@ public partial struct CollisionSystem : ISystem
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
-        [ReadOnly] public ComponentLookup<Projectile> ProjectileLookup;
+        [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
 
         [ReadOnly] public ComponentLookup<LocalTransform> LocalTransformLookup;
         public ComponentLookup<LinearMovement> LinearMovementLookup;
@@ -119,12 +119,12 @@ public partial struct CollisionSystem : ISystem
             Entity entityB = triggerEvent.EntityB;
 
             // Case Projectile hits target (enemy or player)
-            if (TryResolveProjectileVsTarget(entityA, entityB, out Entity projectile, out Entity target))
+            if (TryResolveDamagerVsTarget(entityA, entityB, out Entity damagerEntity, out Entity target))
             {
                 // Update Hit Memory Buffer
-                if (HitMemoryLookup.HasBuffer(projectile))
+                if (HitMemoryLookup.HasBuffer(damagerEntity))
                 {
-                    var history = HitMemoryLookup[projectile];
+                    var history = HitMemoryLookup[damagerEntity];
                     foreach (var hit in history)
                     {
                         // Skip if this target was already hit
@@ -136,12 +136,16 @@ public partial struct CollisionSystem : ISystem
                 }
 
                 // Apply on-hit damages
-                var projectileData = ProjectileLookup[projectile];
-                ECB.AppendToBuffer(0, target, new DamageBufferElement
+                bool isInvincible = InvincibleLookup.HasComponent(target);
+                if (!isInvincible)
                 {
-                    Damage = projectileData.Damage,
-                    Element = projectileData.Element
-                });
+                    var damageData = DamageOnContactLookup[damagerEntity];
+                    ECB.AppendToBuffer(0, target, new DamageBufferElement
+                    {
+                        Damage = damageData.Damage,
+                        Element = damageData.Element
+                    });
+                }
 
                 // Handle cases Ricochet and Piercing before destroying the projectile
 
@@ -149,63 +153,61 @@ public partial struct CollisionSystem : ISystem
                 bool shouldDestroy = true;
 
                 // Handle Ricochet
-                if (RicochetLookup.HasComponent(projectile))
+                if (RicochetLookup.HasComponent(damagerEntity))
                 {
-                    var ricochet = RicochetLookup[projectile];
+                    var ricochet = RicochetLookup[damagerEntity];
                     if (ricochet.RemainingBounces > 0)
                     {
-                        if (TryFindNextTarget(projectile, target, ricochet.BounceRange, out Entity newTarget, out float3 newDirection))
+                        if (TryFindNextTarget(damagerEntity, target, ricochet.BounceRange, out Entity newTarget, out float3 newDirection))
                         {
-                            if (LinearMovementLookup.IsComponentEnabled(projectile))
+                            if (LinearMovementLookup.IsComponentEnabled(damagerEntity))
                             {
-                                ECB.SetComponentEnabled<LinearMovement>(0, projectile, false);
-                                ECB.SetComponentEnabled<FollowTargetMovement>(0, projectile, true);
-
-                   
+                                ECB.SetComponentEnabled<LinearMovement>(0, damagerEntity, false);
+                                ECB.SetComponentEnabled<FollowTargetMovement>(0, damagerEntity, true);
                             }
-                            else if (FollowMovementLookup.IsComponentEnabled(projectile))
+                            else if (FollowMovementLookup.IsComponentEnabled(damagerEntity))
                             {
                                 // Update projectile movement target
-                                var followMove = FollowMovementLookup[projectile];
+                                var followMove = FollowMovementLookup[damagerEntity];
                                 followMove.Target = newTarget;
                                 followMove.Speed = ricochet.BounceSpeed;
                                 followMove.StopDistance = 0;
-                                FollowMovementLookup[projectile] = followMove;
+                                FollowMovementLookup[damagerEntity] = followMove;
                             }
 
                             // Decrease remaining bounces
                             ricochet.RemainingBounces--;
-                            RicochetLookup[projectile] = ricochet;
+                            RicochetLookup[damagerEntity] = ricochet;
 
                             // Do not destroy the projectile
                             shouldDestroy = false;
+
+                            // Create camera shake feedback request
+                            var feedbackReqEntity = ECB.CreateEntity(0);
+                            ECB.AddComponent<ShakeFeedbackRequest>(0, feedbackReqEntity);
                         }
                     }
                 }
 
-
                 // Handle Piercing
                 // Apply Piercing logic only if not Ricochet
-                else if (PierceLookup.HasComponent(projectile))
+                else if (PierceLookup.HasComponent(damagerEntity))
                 {
-                    var pierce = PierceLookup[projectile];
+                    var pierce = PierceLookup[damagerEntity];
                     if (pierce.RemainingPierces > 0)
                     {
                         // Decrease remaining pierces
                         pierce.RemainingPierces--;
-                        PierceLookup[projectile] = pierce;
+                        PierceLookup[damagerEntity] = pierce;
 
                         // Do not destroy the projectile
                         shouldDestroy = false;
                     }
                 }
 
-                // Destroy the projectile if applicable
-                bool isInvincible = InvincibleLookup.HasComponent(projectile);
-
-                if (shouldDestroy && !isInvincible)
+                if (shouldDestroy)
                 {
-                    ECB.AddComponent(0, projectile, new DestroyEntityFlag());
+                    ECB.AddComponent(0, damagerEntity, new DestroyEntityFlag());
 
                     // If needed, create AoE damage effect on projectile destroyed (ExplosionLookup etc)
                     // If needed, create feedback request 
@@ -214,46 +216,46 @@ public partial struct CollisionSystem : ISystem
         }
 
         /// <summary>
-        /// Try to resolve which entity is the projectile and which is the target (enemy or player).
+        /// Try to resolve which entity is the damager and which is the target (enemy or player).
         /// </summary>
         /// <param name="entityA"></param>
         /// <param name="entityB"></param>
-        /// <param name="projectile"></param>
+        /// <param name="damager"></param>
         /// <param name="target"></param>
         /// <param name="targetIsPlayer"></param>
         /// <returns></returns>
-        private bool TryResolveProjectileVsTarget(Entity entityA, Entity entityB, out Entity projectile, out Entity target, bool targetIsPlayer = false)
+        private bool TryResolveDamagerVsTarget(Entity entityA, Entity entityB, out Entity damager, out Entity target, bool targetIsPlayer = false)
         {
-            if (ProjectileLookup.HasComponent(entityA) && (targetIsPlayer ? PlayerLookup.HasComponent(entityB) : EnemyLookup.HasComponent(entityB)))
+            if (DamageOnContactLookup.HasComponent(entityA) && (targetIsPlayer ? PlayerLookup.HasComponent(entityB) : EnemyLookup.HasComponent(entityB)))
             {
-                projectile = entityA;
+                damager = entityA;
                 target = entityB;
                 return true;
             }
 
-            if (ProjectileLookup.HasComponent(entityB) && (targetIsPlayer ? PlayerLookup.HasComponent(entityA) : EnemyLookup.HasComponent(entityA)))
+            if (DamageOnContactLookup.HasComponent(entityB) && (targetIsPlayer ? PlayerLookup.HasComponent(entityA) : EnemyLookup.HasComponent(entityA)))
             {
-                projectile = entityB;
+                damager = entityB;
                 target = entityA;
                 return true;
             }
 
-            projectile = Entity.Null;
+            damager = Entity.Null;
             target = Entity.Null;
             return false;
         }
 
         /// <summary>
-        /// Try to find the next target for a ricochet projectile.
+        /// Try to find the next target for a ricochet spell.
         /// </summary>
-        /// <param name="projectile"></param>
+        /// <param name="ricochetEntity"></param>
         /// <param name="currentTarget"></param>
         /// <param name="range"></param>
         /// <param name="direction"></param>
         /// <returns></returns>
-        private bool TryFindNextTarget(Entity projectile, Entity currentTarget, float range, out Entity newTarget, out float3 direction)
+        private bool TryFindNextTarget(Entity ricochetEntity, Entity currentTarget, float range, out Entity newTarget, out float3 direction)
         {
-            var currentPos = LocalTransformLookup[projectile].Position;
+            var currentPos = LocalTransformLookup[ricochetEntity].Position;
             var hits = new NativeList<DistanceHit>(Allocator.Temp);
 
             // @todo set proper collision layers based on caster
@@ -263,7 +265,6 @@ public partial struct CollisionSystem : ISystem
                 BelongsTo = CollisionLayers.Raycast,
                 CollidesWith = CollisionLayers.Enemy
             };
-
 
             CollisionWorld.OverlapSphere(currentPos, range, ref hits, filter);
 
@@ -275,7 +276,7 @@ public partial struct CollisionSystem : ISystem
             foreach (var hit in hits)
             {
                 // Skip current target and self
-                if (hit.Entity == currentTarget || hit.Entity == projectile)
+                if (hit.Entity == currentTarget || hit.Entity == ricochetEntity)
                     continue;
 
                 // Ensure it's an enemy

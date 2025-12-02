@@ -119,7 +119,7 @@ internal partial struct RotatingBladeSystem : ISystem
 
             var rotatingBladeEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-            ECB.SetComponent(chunkIndex, rotatingBladeEntity, new Projectile
+            ECB.SetComponent(chunkIndex, rotatingBladeEntity, new DamageOnContact
             {
                 Damage = damage,
                 Element = spellData.Element
@@ -198,13 +198,10 @@ internal partial struct RotatingBladeSystem : ISystem
             var collider = ColliderLookup[spellPrefab];
             collider.Value.Value.SetCollisionFilter(collisionFilter);
             ECB.SetComponent(chunkIndex, rotatingBladeEntity, collider);
-
-            if (spellData.IsInvincible)
-                ECB.AddComponent<Invincible>(chunkIndex, rotatingBladeEntity);
-
+          
             ECB.SetComponent(chunkIndex, rotatingBladeEntity, new Lifetime
             {
-                ElapsedTime = spellData.Lifetime,
+                TimeLeft = spellData.Lifetime,
                 Duration = spellData.Lifetime
             });
 

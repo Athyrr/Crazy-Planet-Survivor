@@ -14,8 +14,11 @@ GameObject:
   - component: {fileID: -2270420446039416495}
   - component: {fileID: 8571963054993361669}
   - component: {fileID: 1463328779786239502}
-  - component: {fileID: 2159997162540861870}
   - component: {fileID: 4812080029562788471}
+  - component: {fileID: -8487747740836865413}
+  - component: {fileID: -1432415074452656385}
+  - component: {fileID: 6547550216343406221}
+  - component: {fileID: -7452462195076325619}
   m_Layer: 0
   m_Name: PF_Spell_Fireball
   m_TagString: Untagged
@@ -332,18 +335,6 @@ VisualEffect:
       m_Array: []
     m_Bool:
       m_Array: []
---- !u!114 &2159997162540861870
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 486797506737824905}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d89f0340604f03649a28ed4836a46c10, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectileAuthoring
 --- !u!73398921 &4812080029562788471
 VFXRenderer:
   serializedVersion: 1
@@ -390,3 +381,52 @@ VFXRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+--- !u!114 &-8487747740836865413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486797506737824905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e68958eb03ae2642a796d252020255b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LinearMovementAuthoring
+  EnabledOnInit: 1
+--- !u!114 &-1432415074452656385
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486797506737824905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5640ef44bda7e8e458075717de2dfbe1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageOnContactAuthoring
+--- !u!114 &6547550216343406221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486797506737824905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f544015d288fe2d4cb3f9267d7f55e2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DestroyOnContactAuthoring
+--- !u!114 &-7452462195076325619
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486797506737824905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2b84fa8e8cbd674c8acfb417a3276e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LifetimeAuthoring

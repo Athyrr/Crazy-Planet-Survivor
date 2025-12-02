@@ -1,11 +1,16 @@
 public struct SpellBlob
 {
     public ESpellID ID;
-    public float BaseCooldown;
     public float BaseDamage;
-    public float BaseArea;
-    public float BaseRange;
     public float BaseSpeed;
+
+    public float BaseCooldown;
+    
+    public float BaseCastRange;
+    public float BaseEffectArea;
+    
+    public float BaseSpawnOffset;
+
     public ESpellElement Element;
     public float Lifetime;
 
@@ -13,6 +18,7 @@ public struct SpellBlob
     public int Bounces;
     public float BouncesSearchRadius;
 
+    public int Pierces;
+
     public bool InstanciateOnce;
-    public bool IsInvincible;
 }

@@ -47,12 +47,12 @@ public partial struct StatsCalculationSystem : ISystem
         public void Execute([ChunkIndexInQuery] int index, Entity entity, in RecalculateStatsRequest recalculateStatsRequest, ref Stats stats, ref Health health, in BaseStats baseStats, in DynamicBuffer<StatModifier> modifiers)
         {
             stats.MaxHealth = baseStats.MaxHealth;
-            stats.MoveSpeed = baseStats.Speed;
+            stats.MoveSpeed = baseStats.MoveSpeed;
             stats.Damage = baseStats.Damage;
             stats.Armor = baseStats.Armor;
             stats.FireResistance = baseStats.FireResistance;
             stats.CooldownReduction = baseStats.CooldownReduction;
-            stats.AreaSize = baseStats.AreaSize;
+            stats.EffectAreaRadiusMult = baseStats.EffectAreaRadiusMult;
             stats.CollectRange = baseStats.CollectRange;
 
 
@@ -89,7 +89,7 @@ public partial struct StatsCalculationSystem : ISystem
                         break;
 
                     case EStatType.AreaSize:
-                        ApplyModifier(ref stats.AreaSize, modifiers[i]);
+                        ApplyModifier(ref stats.EffectAreaRadiusMult, modifiers[i]);
                         break;
 
                     case EStatType.CollectRange:

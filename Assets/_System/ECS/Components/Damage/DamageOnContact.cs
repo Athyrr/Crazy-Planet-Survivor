@@ -1,7 +1,8 @@
 using Unity.Entities;
 
-public struct Projectile : IComponentData
+public struct DamageOnContact : IComponentData
 {
     public float Damage;
     public ESpellElement Element;
+    public float AreaRadius;
 }

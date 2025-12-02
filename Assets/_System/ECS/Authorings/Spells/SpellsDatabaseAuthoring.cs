@@ -36,15 +36,17 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlobRoot.ID = spellSO.ID;
                 spellBlobRoot.BaseCooldown = spellSO.BaseCooldown;
                 spellBlobRoot.BaseDamage = spellSO.BaseDamage;
-                spellBlobRoot.BaseArea = spellSO.BaseArea;
-                spellBlobRoot.BaseRange = spellSO.BaseRange;
+                spellBlobRoot.BaseEffectArea = spellSO.BaseEffectArea;
+                spellBlobRoot.BaseCastRange = spellSO.BaseRange;
                 spellBlobRoot.BaseSpeed = spellSO.BaseSpeed;
                 spellBlobRoot.Element = spellSO.Element;
                 spellBlobRoot.Lifetime = spellSO.Lifetime;
-                spellBlobRoot.Bounces = spellSO.Bounces;
                 spellBlobRoot.BouncesSearchRadius = spellSO.BouncesSearchRadius;
                 spellBlobRoot.InstanciateOnce = spellSO.InstantiateOnce;
-                spellBlobRoot.IsInvincible = spellSO.IsInvincible;
+                spellBlobRoot.BaseSpawnOffset = spellSO.BaseSpawnOffset;
+
+                spellBlobRoot.Bounces = spellSO.Bounces;
+                spellBlobRoot.Pierces = spellSO.Pierces;
             }
 
             var spellsDatabaseBlob = builder.CreateBlobAssetReference<SpellBlobs>(Allocator.Persistent);

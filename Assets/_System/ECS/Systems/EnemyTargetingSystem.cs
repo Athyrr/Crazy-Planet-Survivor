@@ -86,7 +86,7 @@ public partial struct EnemyTargetingSystem : ISystem
 
                 PlanetMovementUtils.GetSurfaceDistanceRadius(in transform.Position, in PlayerPosition, PlanetPosition, PlanetRadius, out float distance);
 
-                if (distance <= spellData.BaseRange)
+                if (distance <= spellData.BaseCastRange)
                 {
                     var request = ECB.CreateEntity(chunkIndex);
                     ECB.AddComponent(chunkIndex, request, new CastSpellRequest

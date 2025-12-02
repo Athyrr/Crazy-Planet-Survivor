@@ -44,9 +44,9 @@ public partial struct LifetimeSystem : ISystem
         void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref Lifetime lifetime)
         {
             // Decrease time to live
-            lifetime.ElapsedTime -= DeltaTime;
+            lifetime.TimeLeft -= DeltaTime;
 
-            if (lifetime.ElapsedTime <= 0f)
+            if (lifetime.TimeLeft <= 0f)
             {
                 ECB.AddComponent(chunkIndex, entity, new DestroyEntityFlag());
             }

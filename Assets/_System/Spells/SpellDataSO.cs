@@ -9,7 +9,8 @@ public class SpellDataSO : ScriptableObject
     public ESpellID ID;
     public float BaseCooldown = 5f;
     public float BaseDamage = 10f;
-    public float BaseArea = 1f;
+    public float BaseEffectArea = 1f;
+    public float BaseSpawnOffset = 1f;
     public float BaseRange = 5f;
     public float BaseSpeed = 5f;
     public ESpellElement Element;
@@ -19,7 +20,7 @@ public class SpellDataSO : ScriptableObject
     public int Bounces;
     public float BouncesSearchRadius;
 
-    public bool IsInvincible;
+    public int Pierces;
 
     public bool InstantiateOnce = false;
 }

@@ -21,12 +21,17 @@ public struct Stats : IComponentData
 
     public float CooldownReduction;
 
-    public float AreaSize;
+    // @todo cast range mult
+    public float EffectAreaRadiusMult;
 
     public float CollectRange;
+    public float MaxCollectRange;
 
     // Bounces
     public int BouncesAdded;
+
+    //Piece
+    public int PierceAdded;
 
     // Same as BaseStats 
 }
@@ -41,7 +46,8 @@ public struct BaseStats : IComponentData
 {
     public float MaxHealth;
 
-    public float Speed;
+    public float MoveSpeed;
+    public float ProjectileSpeedMultiplier;
 
     public float Damage;
 
@@ -50,13 +56,21 @@ public struct BaseStats : IComponentData
     public float FireResistance;
     public float IceResistance;
     public float LightningResistance;
+    public float ArcaneResistance;
 
     public float CooldownReduction;
 
-    public float AreaSize;
+    // @todo cast range mult
+    public float EffectAreaRadiusMult;
 
     public float CollectRange;
     public float MaxCollectRange;
+
+    // Bounces
+    public int BouncesAdded;
+
+    //Piece
+    public int PierceAdded;
 
     // etc
 }
