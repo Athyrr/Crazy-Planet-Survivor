@@ -20,7 +20,7 @@ GameObject:
   - component: {fileID: 6547550216343406221}
   - component: {fileID: -7452462195076325619}
   m_Layer: 0
-  m_Name: PF_Spell_Fireball
+  m_Name: PF_Spell_Fireball_old
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -38,8 +38,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 6121860607037621370}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &9113122118686666786
@@ -57,7 +56,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 486797506737824905}
-  m_Enabled: 0
+  m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -299,7 +298,7 @@ VisualEffect:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 486797506737824905}
-  m_Enabled: 0
+  m_Enabled: 1
   m_Asset: {fileID: 8926484042661614526, guid: 06c336f8af217bf40b2aa98caab4ef14, type: 3}
   m_InitialEventName: OnPlay
   m_InitialEventNameOverriden: 0
@@ -344,7 +343,7 @@ VFXRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 486797506737824905}
-  m_Enabled: 0
+  m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
@@ -431,65 +430,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2b84fa8e8cbd674c8acfb417a3276e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LifetimeAuthoring
---- !u!1001 &399961476817678126
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 3588715369837785758}
-    m_Modifications:
-    - target: {fileID: 1992815801676329838, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-      propertyPath: m_Name
-      value: Projectile_Fire
-      objectReference: {fileID: 0}
-    - target: {fileID: 5870940267860831060, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5870940267860831060, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5870940267860831060, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5870940267860831060, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5870940267860831060, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5870940267860831060, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5870940267860831060, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5870940267860831060, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5870940267860831060, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5870940267860831060, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
---- !u!4 &6121860607037621370 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5870940267860831060, guid: 6331677ac9e26f34eb8db03c576d09bf, type: 3}
-  m_PrefabInstance: {fileID: 399961476817678126}
-  m_PrefabAsset: {fileID: 0}
