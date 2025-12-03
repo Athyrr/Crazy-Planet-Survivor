@@ -47,6 +47,10 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
 
                 spellBlobRoot.Bounces = spellSO.Bounces;
                 spellBlobRoot.Pierces = spellSO.Pierces;
+
+                // Tick effects (for auras)
+                spellBlobRoot.BaseDamagePerTick = spellSO.BaseDamagePerTick;
+                spellBlobRoot.TickRate = spellSO.TickRate;
             }
 
             var spellsDatabaseBlob = builder.CreateBlobAssetReference<SpellBlobs>(Allocator.Persistent);

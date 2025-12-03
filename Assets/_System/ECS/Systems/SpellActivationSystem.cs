@@ -35,7 +35,6 @@ public partial struct SpellActivationSystem : ISystem
             state.EntityManager.AddComponentData(mapEntity, new SpellToIndexMap { Map = map });
         }
 
-
         var spellIndexMap = SystemAPI.GetSingleton<SpellToIndexMap>().Map;
         var database = SystemAPI.GetSingleton<SpellsDatabase>();
 

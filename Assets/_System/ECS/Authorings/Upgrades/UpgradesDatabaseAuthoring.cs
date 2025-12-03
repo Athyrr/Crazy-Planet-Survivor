@@ -32,10 +32,11 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
                 builder.AllocateString(ref upgradeBlobRoot.Description, upgradeSO.Description);
 
                 upgradeBlobRoot.UpgradeType = upgradeSO.UpgradeType;
-                upgradeBlobRoot.StatType = upgradeSO.Stat;
+                upgradeBlobRoot.Stat = upgradeSO.Stat;
                 upgradeBlobRoot.ModifierStrategy = upgradeSO.ModifierStrategy;
                 upgradeBlobRoot.Value = upgradeSO.Value;
-                upgradeBlobRoot.SpellID = upgradeSO.Spell;
+                upgradeBlobRoot.SpellID = upgradeSO.SpellID;
+                upgradeBlobRoot.SpellType = upgradeSO.SpellType;
             }
 
             var upgradesDatabaseBlob = builder.CreateBlobAssetReference<UpgradeBlobs>(Allocator.Persistent);

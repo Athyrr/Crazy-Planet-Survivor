@@ -20,7 +20,12 @@ public class SpellDataSO : ScriptableObject
     public int Bounces;
     public float BouncesSearchRadius;
 
+    // Pierce settings
     public int Pierces;
+
+    // Tick Effects (for auras)
+    public float BaseDamagePerTick = 1;
+    public float TickRate = 1f;
 
     public bool InstantiateOnce = false;
 }

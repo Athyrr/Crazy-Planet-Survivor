@@ -62,37 +62,37 @@ public partial struct StatsCalculationSystem : ISystem
 
             for (var i = 0; i < modifiers.Length; i++)
             {
-                switch (modifiers[i].Type)
+                switch (modifiers[i].StatID)
                 {
-                    case EStatType.MaxHealth:
+                    case EStatID.MaxHealth:
                         StatsCalculationSystem.ApplyModifier(ref stats.MaxHealth, modifiers[i]);
                         break;
 
-                    case EStatType.Speed:
+                    case EStatID.Speed:
                         ApplyModifier(ref stats.MoveSpeed, modifiers[i]);
                         break;
 
-                    case EStatType.Damage:
+                    case EStatID.Damage:
                         ApplyModifier(ref stats.Damage, modifiers[i]);
                         break;
 
-                    case EStatType.Armor:
+                    case EStatID.Armor:
                         ApplyModifier(ref stats.Armor, modifiers[i]);
                         break;
 
-                    case EStatType.FireResistance:
+                    case EStatID.FireResistance:
                         ApplyModifier(ref stats.FireResistance, modifiers[i]);
                         break;
 
-                    case EStatType.CooldownReduction:
+                    case EStatID.CooldownReduction:
                         ApplyModifier(ref stats.CooldownReduction, modifiers[i]);
                         break;
 
-                    case EStatType.AreaSize:
+                    case EStatID.AreaSize:
                         ApplyModifier(ref stats.EffectAreaRadiusMult, modifiers[i]);
                         break;
 
-                    case EStatType.CollectRange:
+                    case EStatID.CollectRange:
                         ApplyModifier(ref stats.CollectRange, modifiers[i]);
                         break;
                 }

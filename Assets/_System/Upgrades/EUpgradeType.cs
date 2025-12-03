@@ -1,6 +1,6 @@
 public enum EUpgradeType
 {
     Stat,
-    Spell,
+    UpgradeSpell,
     UnlockSpell
 }

@@ -6,6 +6,8 @@ public struct DamageOnTick : IComponentData
     public ESpellElement Element;
 
     public float TickRate;
+    public float ElapsedTime;
 
     public Entity Caster;
+    public float AreaRadius;
 }

@@ -10,10 +10,11 @@ public class UpgradeDataSO : ScriptableObject
 
     public EUpgradeType UpgradeType;
 
-    public EStatType Stat;
+    public EStatID Stat;
     public EStatModiferStrategy ModifierStrategy;
     public float Value;
 
-    public ESpellID Spell;
+    public ESpellID SpellID;
+    public ESpellType SpellType;
 
 }

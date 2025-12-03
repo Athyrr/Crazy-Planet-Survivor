@@ -5,20 +5,25 @@ public struct SpellBlob
     public float BaseSpeed;
 
     public float BaseCooldown;
-    
+
     public float BaseCastRange;
     public float BaseEffectArea;
-    
+
     public float BaseSpawnOffset;
 
     public ESpellElement Element;
     public float Lifetime;
 
-    // Ricochet settings
+    // Ricochet 
     public int Bounces;
     public float BouncesSearchRadius;
 
+    // Pierce
     public int Pierces;
+
+    // Tick Effects (for auras)
+    public float BaseDamagePerTick;
+    public float TickRate;
 
     public bool InstanciateOnce;
 }

@@ -5,6 +5,8 @@ using Unity.Transforms;
 using Unity.Collections;
 using Unity.Mathematics;
 
+[UpdateInGroup(typeof(SimulationSystemGroup))]
+[BurstCompile]
 public partial struct SpellCastingSystem : ISystem
 {
     [BurstCompile]
@@ -148,7 +150,7 @@ public partial struct SpellCastingSystem : ISystem
                 bool isPlayerCaster = PlayerLookup.HasComponent(caster);
                 CollisionFilter filter = new CollisionFilter
                 {
-                    BelongsTo = isPlayerCaster ? CollisionLayers.PlayerProjectile : CollisionLayers.EnemyProjectile,
+                    BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
                     CollidesWith = (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) | CollisionLayers.Obstacle,
                 };
                 var collider = ColliderLookup[spellPrefab];

@@ -186,13 +186,13 @@ internal partial struct RotatingBladeSystem : ISystem
             if (isPlayerCaster)
                 collisionFilter = new CollisionFilter
                 {
-                    BelongsTo = CollisionLayers.PlayerProjectile,
+                    BelongsTo = CollisionLayers.PlayerSpell,
                     CollidesWith = CollisionLayers.Enemy | CollisionLayers.Obstacle
                 };
             else
                 collisionFilter = new CollisionFilter
                 {
-                    BelongsTo = CollisionLayers.EnemyProjectile,
+                    BelongsTo = CollisionLayers.EnemySpell,
                     CollidesWith = CollisionLayers.Player | CollisionLayers.Obstacle
                 };
             var collider = ColliderLookup[spellPrefab];
