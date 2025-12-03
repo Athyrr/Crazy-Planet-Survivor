@@ -14,6 +14,7 @@ public partial struct AuraDamageSystem : ISystem
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
     private ComponentLookup<Stats> _statsLookup;
+    private BufferLookup<DamageBufferElement> _damageBufferLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -23,6 +24,7 @@ public partial struct AuraDamageSystem : ISystem
         _playerLookup = state.GetComponentLookup<Player>(true);
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
         _statsLookup = state.GetComponentLookup<Stats>(true);
+        _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
     }
 
     [BurstCompile]
@@ -42,6 +44,7 @@ public partial struct AuraDamageSystem : ISystem
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
         _statsLookup.Update(ref state);
+        _damageBufferLookup.Update(ref state);
 
         var auraTickJob = new AuraTickJob
         {
@@ -53,6 +56,7 @@ public partial struct AuraDamageSystem : ISystem
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
             StatsLookup = _statsLookup,
+            DamageBufferLookup = _damageBufferLookup,
         };
 
         state.Dependency = auraTickJob.ScheduleParallel(state.Dependency);
@@ -69,6 +73,7 @@ public partial struct AuraDamageSystem : ISystem
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
+        [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity auraSpellEntity, ref DamageOnTick damageOnTick, in LocalToWorld worldPositionMatrix)
         {
@@ -101,12 +106,14 @@ public partial struct AuraDamageSystem : ISystem
                 if (!EnemyLookup.HasComponent(hit.Entity) && !PlayerLookup.HasComponent(hit.Entity))
                     continue;
 
-                // @todo check if hit entity is alive
-                ECB.AppendToBuffer(chunkIndex, hit.Entity, new DamageBufferElement
+                if (DamageBufferLookup.HasBuffer(hit.Entity))
                 {
-                    Damage = damage,
-                    Element = damageOnTick.Element,
-                });
+                    ECB.AppendToBuffer(chunkIndex, hit.Entity, new DamageBufferElement
+                    {
+                        Damage = damage,
+                        Element = damageOnTick.Element,
+                    });
+                }
             }
 
             hits.Dispose();
