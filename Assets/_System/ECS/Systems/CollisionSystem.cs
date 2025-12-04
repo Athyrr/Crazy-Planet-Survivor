@@ -1,10 +1,10 @@
-using Unity.Burst;
-using Unity.Collections;
-using Unity.Entities;
-using Unity.Mathematics;
-using Unity.Physics;
 using Unity.Physics.Systems;
+using Unity.Collections;
+using Unity.Mathematics;
 using Unity.Transforms;
+using Unity.Entities;
+using Unity.Physics;
+using Unity.Burst;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [UpdateAfter(typeof(PhysicsSystemGroup))]
@@ -13,7 +13,9 @@ public partial struct CollisionSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
+
     private ComponentLookup<DamageOnContact> _damageOnContactLookup;
+    private ComponentLookup<DestroyOnContact> _destroyOnContactLookup;
 
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<Ricochet> _ricochetLookup;
@@ -35,6 +37,7 @@ public partial struct CollisionSystem : ISystem
         _playerLookup = state.GetComponentLookup<Player>(true);
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
         _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
+        _destroyOnContactLookup = state.GetComponentLookup<DestroyOnContact>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _ricochetLookup = state.GetComponentLookup<Ricochet>(false);
         _pierceLookup = state.GetComponentLookup<Pierce>(false);
@@ -56,6 +59,7 @@ public partial struct CollisionSystem : ISystem
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
         _damageOnContactLookup.Update(ref state);
+        _destroyOnContactLookup.Update(ref state);
         _transformLookup.Update(ref state);
         _ricochetLookup.Update(ref state);
         _pierceLookup.Update(ref state);
@@ -78,7 +82,9 @@ public partial struct CollisionSystem : ISystem
 
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
+
             DamageOnContactLookup = _damageOnContactLookup,
+            DestroyOnContactLookup = _destroyOnContactLookup,
 
             LocalTransformLookup = _transformLookup,
             LinearMovementLookup = _linearMovementLookup,
@@ -102,7 +108,9 @@ public partial struct CollisionSystem : ISystem
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
+
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
+        [ReadOnly] public ComponentLookup<DestroyOnContact> DestroyOnContactLookup;
 
         [ReadOnly] public ComponentLookup<LocalTransform> LocalTransformLookup;
         public ComponentLookup<LinearMovement> LinearMovementLookup;
@@ -149,8 +157,13 @@ public partial struct CollisionSystem : ISystem
 
                 // Handle cases Ricochet and Piercing before destroying the projectile
 
-                // By default destroy the projectile on hit
-                bool shouldDestroy = true;
+                // By default do not destroy the projectile on hit
+                bool shouldDestroy = false;
+
+                if (DestroyOnContactLookup.HasComponent(damagerEntity))
+                {
+                    shouldDestroy = true;
+                }
 
                 // Handle Ricochet
                 if (RicochetLookup.HasComponent(damagerEntity))
@@ -170,7 +183,7 @@ public partial struct CollisionSystem : ISystem
                                 // Update projectile movement target
                                 var followMove = FollowMovementLookup[damagerEntity];
                                 followMove.Target = newTarget;
-                                followMove.Speed = ricochet.BounceSpeed;
+                                followMove.Speed = math.max(1, ricochet.BounceSpeed);
                                 followMove.StopDistance = 0;
                                 FollowMovementLookup[damagerEntity] = followMove;
                             }
@@ -179,14 +192,18 @@ public partial struct CollisionSystem : ISystem
                             ricochet.RemainingBounces--;
                             RicochetLookup[damagerEntity] = ricochet;
 
-                            // Do not destroy the projectile
-                            shouldDestroy = false;
-
                             // Create camera shake feedback request
                             var feedbackReqEntity = ECB.CreateEntity(0);
                             ECB.AddComponent<ShakeFeedbackRequest>(0, feedbackReqEntity);
+
+                            // Do not destroy the projectile
+                            shouldDestroy = false;
                         }
                     }
+                    //else
+                    //{
+                    //    shouldDestroy = true;
+                    //}
                 }
 
                 // Handle Piercing
@@ -203,6 +220,10 @@ public partial struct CollisionSystem : ISystem
                         // Do not destroy the projectile
                         shouldDestroy = false;
                     }
+                    //else
+                    //{
+                    //    shouldDestroy = true;
+                    //}
                 }
 
                 if (shouldDestroy)
@@ -256,7 +277,7 @@ public partial struct CollisionSystem : ISystem
         private bool TryFindNextTarget(Entity ricochetEntity, Entity currentTarget, float range, out Entity newTarget, out float3 direction)
         {
             var currentPos = LocalTransformLookup[ricochetEntity].Position;
-            var hits = new NativeList<DistanceHit>(Allocator.Temp);
+            var hits = new NativeList<DistanceHit>(Allocator.TempJob);
 
             // @todo set proper collision layers based on caster
             // Set filter only for enemies

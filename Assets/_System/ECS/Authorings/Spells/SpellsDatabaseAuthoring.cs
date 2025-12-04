@@ -37,12 +37,11 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlobRoot.BaseCooldown = spellSO.BaseCooldown;
                 spellBlobRoot.BaseDamage = spellSO.BaseDamage;
                 spellBlobRoot.BaseEffectArea = spellSO.BaseEffectArea;
-                spellBlobRoot.BaseCastRange = spellSO.BaseRange;
+                spellBlobRoot.BaseCastRange = spellSO.BaseCastRange;
                 spellBlobRoot.BaseSpeed = spellSO.BaseSpeed;
                 spellBlobRoot.Element = spellSO.Element;
                 spellBlobRoot.Lifetime = spellSO.Lifetime;
                 spellBlobRoot.BouncesSearchRadius = spellSO.BouncesSearchRadius;
-                spellBlobRoot.InstanciateOnce = spellSO.InstantiateOnce;
                 spellBlobRoot.BaseSpawnOffset = spellSO.BaseSpawnOffset;
 
                 spellBlobRoot.Bounces = spellSO.Bounces;

@@ -13,8 +13,8 @@ GameObject:
   - component: {fileID: 7711835811279960328}
   - component: {fileID: 142942994520814270}
   - component: {fileID: 3441943677278397248}
+  - component: {fileID: -265294187505055864}
   - component: {fileID: -6050103193654127076}
-  - component: {fileID: -3096342412745767226}
   m_Layer: 0
   m_Name: PF_Spell_RotatingBlade
   m_TagString: Untagged
@@ -31,7 +31,7 @@ Transform:
   m_GameObject: {fileID: 5560325983370933078}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -27.81013, y: 0, z: 37.52299}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 2.53, y: 4.17, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -287,19 +287,7 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
---- !u!114 &-6050103193654127076
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5560325983370933078}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5640ef44bda7e8e458075717de2dfbe1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DamageOnContactAuthoring
---- !u!114 &-3096342412745767226
+--- !u!114 &-265294187505055864
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -312,3 +300,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OrbitalMovementAuthoring
   EnabledOnInit: 1
+--- !u!114 &-6050103193654127076
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5560325983370933078}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5640ef44bda7e8e458075717de2dfbe1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageOnContactAuthoring

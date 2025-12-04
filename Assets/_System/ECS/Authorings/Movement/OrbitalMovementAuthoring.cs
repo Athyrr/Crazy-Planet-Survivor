@@ -13,6 +13,7 @@ public class OrbitalMovementAuthoring : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
             AddComponent<OrbitMovement>(entity);
+
             if (!authoring.EnabledOnInit)
                 SetComponentEnabled<OrbitMovement>(entity, false);
         }

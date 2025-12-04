@@ -10,7 +10,6 @@ using Unity.Burst;
 [BurstCompile]
 public partial struct AuraDamageSystem : ISystem
 {
-
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
     private ComponentLookup<Stats> _statsLookup;
@@ -55,6 +54,7 @@ public partial struct AuraDamageSystem : ISystem
 
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
+
             StatsLookup = _statsLookup,
             DamageBufferLookup = _damageBufferLookup,
         };
@@ -72,6 +72,7 @@ public partial struct AuraDamageSystem : ISystem
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
+
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
 
@@ -106,14 +107,22 @@ public partial struct AuraDamageSystem : ISystem
                 if (!EnemyLookup.HasComponent(hit.Entity) && !PlayerLookup.HasComponent(hit.Entity))
                     continue;
 
-                if (DamageBufferLookup.HasBuffer(hit.Entity))
+                if (!DamageBufferLookup.HasBuffer(hit.Entity))
                 {
-                    ECB.AppendToBuffer(chunkIndex, hit.Entity, new DamageBufferElement
-                    {
-                        Damage = damage,
-                        Element = damageOnTick.Element,
-                    });
+                    // Si ce message s'affiche, c'est que la protection fonctionne
+                    // Si le jeu plante SANS afficher ce message, c'est un problème de compilation/cache
+                    UnityEngine.Debug.LogWarning($"Entité {hit.Entity.Index} touchée par l'aura mais n'a pas de DamageBuffer !");
+                    continue;
                 }
+
+                if (!DamageBufferLookup.HasBuffer(hit.Entity))
+                    continue;
+
+                ECB.AppendToBuffer(chunkIndex, hit.Entity, new DamageBufferElement
+                {
+                    Damage = damage,
+                    Element = damageOnTick.Element,
+                });
             }
 
             hits.Dispose();

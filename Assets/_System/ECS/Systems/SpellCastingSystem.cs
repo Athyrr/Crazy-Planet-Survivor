@@ -1,9 +1,9 @@
-using Unity.Burst;
-using Unity.Physics;
-using Unity.Entities;
-using Unity.Transforms;
 using Unity.Collections;
 using Unity.Mathematics;
+using Unity.Transforms;
+using Unity.Entities;
+using Unity.Physics;
+using Unity.Burst;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -53,6 +53,10 @@ public partial struct SpellCastingSystem : ISystem
             StatsLookup = SystemAPI.GetComponentLookup<Stats>(true),
             LifetimeLookup = SystemAPI.GetComponentLookup<Lifetime>(true),
             ColliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true),
+            AttachLookup = SystemAPI.GetComponentLookup<AttachToCaster>(true),
+
+            DamageOnContactLookup = SystemAPI.GetComponentLookup<DamageOnContact>(true),
+            DamageOnTickLookup = SystemAPI.GetComponentLookup<DamageOnTick>(true),
 
             LinearMovementLookup = SystemAPI.GetComponentLookup<LinearMovement>(true),
             OrbitMovementLookup = SystemAPI.GetComponentLookup<OrbitMovement>(true),
@@ -80,6 +84,10 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
         [ReadOnly] public ComponentLookup<Lifetime> LifetimeLookup;
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
+        [ReadOnly] public ComponentLookup<AttachToCaster> AttachLookup;
+
+        [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
+        [ReadOnly] public ComponentLookup<DamageOnTick> DamageOnTickLookup;
 
         [ReadOnly] public ComponentLookup<LinearMovement> LinearMovementLookup;
         [ReadOnly] public ComponentLookup<OrbitMovement> OrbitMovementLookup;
@@ -111,28 +119,123 @@ public partial struct SpellCastingSystem : ISystem
             var caster = request.Caster;
             var casterTransform = TransformLookup[request.Caster];
 
-            float bonusDamage = 0f;
-            float bonusSpellSpeedMult = 1f;
-            float bonusAreaRadiusMult = 1f;
-
             // Get caster stats bonus
             //if (StatsLookup.HasComponent(caster))
             //{
             var stats = StatsLookup[caster];
-            bonusDamage = stats.Damage;
-            bonusSpellSpeedMult = stats.ProjectileSpeedMultiplier;
+            float bonusDamage = stats.Damage;
+            float bonusSpellSpeedMult = stats.ProjectileSpeedMultiplier;
+            float bonusAreaRadiusMult = math.max(1, stats.EffectAreaRadiusMult);
             //}
 
             // Instanciate spell entity
             var spellEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-            // Set Damages
-            ECB.SetComponent(chunkIndex, spellPrefab, new DamageOnContact
+            float3 spawnPosition = float3.zero;
+            quaternion spawnRotation = quaternion.identity;
+
+            // Set Attach to Caster if applicable
+            if (AttachLookup.HasComponent(spellPrefab))
             {
-                Damage = spellData.BaseDamage + bonusDamage,
-                Element = spellData.Element,
-                AreaRadius = spellData.BaseEffectArea * bonusAreaRadiusMult,
+                ECB.AddComponent(chunkIndex, spellEntity, new Parent { Value = request.Caster });
+
+                spawnPosition = float3.zero;
+                spawnRotation = quaternion.identity;
+            }
+            else
+            {
+                spawnPosition = casterTransform.Position + casterTransform.Forward() * spellData.BaseSpawnOffset;
+                spawnRotation = casterTransform.Rotation;
+            }
+
+            // Set initial transform
+            ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
+            {
+                Position = spawnPosition,
+                Rotation = spawnRotation,
+                Scale = 1f
             });
+
+            // Set Linear Movement if applicable
+            if (LinearMovementLookup.HasComponent(spellPrefab) && LinearMovementLookup.IsComponentEnabled(spellPrefab))
+            {
+                ECB.SetComponent(chunkIndex, spellEntity, new LinearMovement
+                {
+                    Direction = casterTransform.Forward(), // @todo handle direction toward target if exists
+                    Speed = spellData.BaseSpeed * math.max(1, bonusSpellSpeedMult)
+                });
+            }
+
+            // Set Orbit Movement if applicable
+            else if (OrbitMovementLookup.HasComponent(spellPrefab) && OrbitMovementLookup.IsComponentEnabled(spellPrefab))
+            {
+                float radius = spellData.BaseSpawnOffset;
+                float3 relativeOffset = new float3(0, 0, radius);
+
+                ECB.SetComponent(chunkIndex, spellEntity, new OrbitMovement
+                {
+                    OrbitCenterEntity = request.Caster,
+                    Radius = radius,
+                    RelativeOffset = relativeOffset,
+                    AngularSpeed = spellData.BaseSpeed * math.max(1, bonusSpellSpeedMult),
+                    OrbitCenterPosition = casterTransform.Position
+                });
+
+                // If AttachToCaster, set relative offset
+                if (AttachLookup.HasComponent(spellPrefab))
+                {
+                    ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
+                    {
+                        Position = relativeOffset,
+                        Rotation = spawnRotation,
+                        Scale = 1f
+                    });
+                }
+            }
+
+            // Set Follow Movement if applicable
+            else if (FollowMovementLookup.HasComponent(spellPrefab) && FollowMovementLookup.IsComponentEnabled(spellPrefab))
+            {
+                ECB.SetComponent(chunkIndex, spellEntity, new FollowTargetMovement
+                {
+                    Target = request.Target,
+                    Speed = spellData.BaseSpeed * math.max(1, bonusSpellSpeedMult),
+                    StopDistance = 0f
+                });
+            }
+
+            // Set Damage On Contact
+            if (DamageOnContactLookup.HasComponent(spellPrefab))
+            {
+                ECB.SetComponent(chunkIndex, spellEntity, new DamageOnContact
+                {
+                    Damage = spellData.BaseDamage + bonusDamage,
+                    Element = spellData.Element,
+                    AreaRadius = spellData.BaseEffectArea * math.max(1, bonusAreaRadiusMult)
+                });
+            }
+
+            // Set Damage On Tick 
+            if (DamageOnTickLookup.HasComponent(spellPrefab))
+            {
+                ECB.SetComponent(chunkIndex, spellEntity, new DamageOnTick
+                {
+                    Caster = request.Caster,
+                    TickRate = spellData.TickRate,
+                    DamagePerTick = spellData.BaseDamagePerTick + bonusDamage,
+                    ElapsedTime = 0f,
+                    AreaRadius = spellData.BaseEffectArea * bonusAreaRadiusMult,
+                    Element = spellData.Element
+                });
+
+                // @todo REMOVE AND USE SHADER
+                ECB.SetComponent<LocalTransform>(chunkIndex, spellEntity, new LocalTransform
+                {
+                    Position = spawnPosition,
+                    Rotation = spawnRotation,
+                    Scale = spellData.BaseEffectArea * bonusAreaRadiusMult * 2
+                });
+            }
 
             // Set Lifetime
             if (LifetimeLookup.HasComponent(spellPrefab))
@@ -156,74 +259,6 @@ public partial struct SpellCastingSystem : ISystem
                 var collider = ColliderLookup[spellPrefab];
                 collider.Value.Value.SetCollisionFilter(filter);
                 ECB.SetComponent(chunkIndex, spellEntity, collider);
-            }
-
-            // Calculate spawn position
-            float3 spawnPosition = casterTransform.Position + casterTransform.Forward() * spellData.BaseSpawnOffset;
-            float radius = spellData.BaseSpawnOffset;
-            float3 relativeOffset = casterTransform.Forward() * radius;
-
-            // Set Linear Movement if applicable
-            if (LinearMovementLookup.HasComponent(spellPrefab) && LinearMovementLookup.IsComponentEnabled(spellPrefab))
-            {
-                ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
-                {
-                    Position = spawnPosition,
-                    Rotation = casterTransform.Rotation,
-                    Scale = 1f
-                });
-
-                ECB.SetComponent(chunkIndex, spellEntity, new LinearMovement
-                {
-                    Direction = casterTransform.Forward(), // @todo handle target direction
-                    Speed = spellData.BaseSpeed * math.max(1, bonusSpellSpeedMult)
-                });
-            }
-            // Set Orbit Movement if applicable
-            else if (OrbitMovementLookup.HasComponent(spellPrefab) && OrbitMovementLookup.IsComponentEnabled(spellPrefab))
-            {
-                ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
-                {
-                    Position = casterTransform.Position + relativeOffset,
-                    Rotation = casterTransform.Rotation,
-                    Scale = 1f
-                });
-
-                ECB.SetComponent(chunkIndex, spellEntity, new OrbitMovement
-                {
-                    OrbitCenterEntity = caster,
-                    Radius = radius,
-                    RelativeOffset = relativeOffset,
-                    AngularSpeed = spellData.BaseSpeed * bonusSpellSpeedMult
-                });
-            }
-
-            // Set Follow Movement if applicable
-            else if (FollowMovementLookup.HasComponent(spellPrefab) && FollowMovementLookup.IsComponentEnabled(spellPrefab))
-            {
-                ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
-                {
-                    Position = casterTransform.Position + relativeOffset,
-                    Rotation = casterTransform.Rotation,
-                    Scale = 1f
-                });
-
-                ECB.SetComponent(chunkIndex, spellEntity, new FollowTargetMovement
-                {
-                    Target = request.Target,
-                    Speed = spellData.BaseSpeed * math.max(1, bonusSpellSpeedMult),
-                    StopDistance = 0f
-                });
-            }
-            // If no movement component, just set position
-            else
-            {
-                ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
-                {
-                    Position = spawnPosition,
-                    Rotation = casterTransform.Rotation,
-                    Scale = 1f
-                });
             }
 
             // Set Ricochet if applicable

@@ -1,9 +1,7 @@
-using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Mathematics;
 using Unity.Physics;
-using Unity.Transforms;
+using Unity.Burst;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -92,43 +90,10 @@ public partial struct ApplyUpgradeSystem : ISystem
                     break;
 
                 case EUpgradeType.UnlockSpell:
-
-                    if (upgradeData.SpellType == ESpellType.Passive)
+                    ECB.AppendToBuffer<SpellActivationRequest>(chunkIndex, PlayerEntity, new SpellActivationRequest()
                     {
-                        SpellIndexMap.TryGetValue(new SpellKey { Value = upgradeData.SpellID }, out var spellDbIndex);
-                        var spellData = SpellsDatabaseRef.Value.Spells[spellDbIndex];
-                        var spellPrefab = SpellPrefabs[spellDbIndex].Prefab;
-                        var auraEntity = ECB.Instantiate(chunkIndex, spellPrefab);
-
-                        ECB.AddComponent(chunkIndex, auraEntity, new Parent { Value = PlayerEntity });
-                        ECB.AddComponent(chunkIndex, auraEntity, new LocalTransform { Position = float3.zero, Scale = 20, Rotation = quaternion.identity });
-
-                        CollisionFilter filter = new CollisionFilter
-                        {
-                            BelongsTo =  CollisionLayers.PlayerSpell,
-                            CollidesWith =  CollisionLayers.Enemy | CollisionLayers.Obstacle,
-                        };
-                        var collider = ColliderLookup[spellPrefab];
-                        collider.Value.Value.SetCollisionFilter(filter);
-                        ECB.SetComponent(chunkIndex, auraEntity, collider);
-
-                        //@todo check if DamageOnTick component exists in the spell prefab
-                        ECB.SetComponent(chunkIndex, auraEntity, new DamageOnTick()
-                        {
-                            AreaRadius = spellData.BaseEffectArea,
-                            DamagePerTick = spellData.BaseDamagePerTick,
-                            ElapsedTime = 0f,
-                            TickRate = spellData.TickRate,
-                            Caster = PlayerEntity,
-                        });
-                    }
-                    else
-                    {
-                        ECB.AppendToBuffer<SpellActivationRequest>(chunkIndex, PlayerEntity, new SpellActivationRequest()
-                        {
-                            ID = upgradeData.SpellID
-                        });
-                    }
+                        ID = upgradeData.SpellID
+                    });
                     break;
 
                 case EUpgradeType.UpgradeSpell:
@@ -138,6 +103,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                 default:
                     break;
             }
+
             // Clear upgrades selection buffer 
             ECB.SetBuffer<UpgradeSelectionElement>(chunkIndex, GameStateEntity);
 

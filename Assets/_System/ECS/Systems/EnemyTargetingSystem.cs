@@ -95,25 +95,6 @@ public partial struct EnemyTargetingSystem : ISystem
                         Target = Player,
                         DatabaseIndex = spell.DatabaseIndex
                     });
-
-                    switch (spellData.ID)
-                    {
-                        case ESpellID.Fireball:
-                            ECB.AddComponent<FireballRequestTag>(chunkIndex, request);
-                            break;
-
-                        case ESpellID.LightningStrike:
-                            ECB.AddComponent<LightningStrikeRequestTag>(chunkIndex, request);
-                            break;
-
-                        case ESpellID.RicochetShot:
-                            ECB.AddComponent<RichochetShotRequestTag>(chunkIndex, request);
-                            break;
-
-                        case ESpellID.RotatingBlade:
-                            ECB.AddComponent<RotatingBladeRequestTag>(chunkIndex, request);
-                            break;
-                    }
                 }
             }
 

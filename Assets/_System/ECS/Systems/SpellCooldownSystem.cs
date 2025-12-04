@@ -1,6 +1,6 @@
-using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Burst;
 using Unity.Jobs;
 
 /// <summary>
@@ -103,15 +103,12 @@ public partial struct SpellCooldownSystem : ISystem
     [WithAll(typeof(Stats), typeof(Player))]
     private partial struct CastPlayerSpellJob : IJobEntity
     {
-        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
-        public float DeltaTime;
+        [ReadOnly] public float DeltaTime;
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        void Execute([ChunkIndexInQuery] int chunkIndex,
-            Entity entity,
-            ref DynamicBuffer<ActiveSpell> spells,
-            in Stats stats,
-            in Player player)
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
+
+        void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref DynamicBuffer<ActiveSpell> spells, in Stats stats, in Player player)
         {
             if (!spells.IsCreated || spells.IsEmpty)
                 return;
@@ -128,25 +125,6 @@ public partial struct SpellCooldownSystem : ISystem
                 {
                     var request = ECB.CreateEntity(chunkIndex);
                     ECB.AddComponent(chunkIndex, request, new CastSpellRequest { Caster = entity, Target = Entity.Null, /*DatabaseRef = spell.DatabaseRef,*/ DatabaseIndex = spell.DatabaseIndex });
-
-                    switch (spellData.ID)
-                    {
-                        case ESpellID.Fireball:
-                            ECB.AddComponent<FireballRequestTag>(chunkIndex, request);
-                            break;
-
-                        case ESpellID.LightningStrike:
-                            ECB.AddComponent<LightningStrikeRequestTag>(chunkIndex, request);
-                            break;
-
-                        case ESpellID.RicochetShot:
-                            ECB.AddComponent<RichochetShotRequestTag>(chunkIndex, request);
-                            break;
-
-                        case ESpellID.RotatingBlade:
-                            ECB.AddComponent<RotatingBladeRequestTag>(chunkIndex, request);
-                            break;
-                    }
 
                     float cooldown = spellData.BaseCooldown * (1 - stats.CooldownReduction);
                     spell.CooldownTimer = cooldown;

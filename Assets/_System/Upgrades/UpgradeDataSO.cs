@@ -15,6 +15,4 @@ public class UpgradeDataSO : ScriptableObject
     public float Value;
 
     public ESpellID SpellID;
-    public ESpellType SpellType;
-
 }

@@ -1,212 +1,212 @@
-using Unity.Burst;
-using Unity.Collections;
-using Unity.Entities;
-using Unity.Mathematics;
-using Unity.Physics;
-using Unity.Transforms;
+//using Unity.Burst;
+//using Unity.Collections;
+//using Unity.Entities;
+//using Unity.Mathematics;
+//using Unity.Physics;
+//using Unity.Transforms;
 
-[BurstCompile]
-[UpdateInGroup(typeof(SimulationSystemGroup))]
-internal partial struct RotatingBladeSystem : ISystem
-{
-    [BurstCompile]
-    public void OnCreate(ref SystemState state)
-    {
-        state.RequireForUpdate<Stats>();
-        state.RequireForUpdate<SpellPrefab>();
-        state.RequireForUpdate<ActiveSpell>();
-        state.RequireForUpdate<SpellsDatabase>();
-        state.RequireForUpdate<CastSpellRequest>();
-        state.RequireForUpdate<RotatingBladeRequestTag>();
-    }
+//[BurstCompile]
+//[UpdateInGroup(typeof(SimulationSystemGroup))]
+//internal partial struct RotatingBladeSystem : ISystem
+//{
+//    [BurstCompile]
+//    public void OnCreate(ref SystemState state)
+//    {
+//        state.RequireForUpdate<Stats>();
+//        state.RequireForUpdate<SpellPrefab>();
+//        state.RequireForUpdate<ActiveSpell>();
+//        state.RequireForUpdate<SpellsDatabase>();
+//        state.RequireForUpdate<CastSpellRequest>();
+//        state.RequireForUpdate<RotatingBladeRequestTag>();
+//    }
 
-    [BurstCompile]
-    public void OnUpdate(ref SystemState state)
-    {
-        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
-            return;
+//    [BurstCompile]
+//    public void OnUpdate(ref SystemState state)
+//    {
+//        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+//            return;
 
-        if (gameState.State != EGameState.Running)
-            return;
+//        if (gameState.State != EGameState.Running)
+//            return;
 
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+//        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+//        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-        var spellDatabaseEntity = SystemAPI.GetSingletonEntity<SpellsDatabase>();
-        var spellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
-        var spellDatabase = SystemAPI.GetComponent<SpellsDatabase>(spellDatabaseEntity);
+//        var spellDatabaseEntity = SystemAPI.GetSingletonEntity<SpellsDatabase>();
+//        var spellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
+//        var spellDatabase = SystemAPI.GetComponent<SpellsDatabase>(spellDatabaseEntity);
 
-        var bladeQuery = SystemAPI.QueryBuilder()
-            .WithAll<RotatingBladeIndex>()
-            .Build();
+//        var bladeQuery = SystemAPI.QueryBuilder()
+//            .WithAll<RotatingBladeIndex>()
+//            .Build();
 
-        int existingBladeCount = bladeQuery.CalculateEntityCount();
+//        int existingBladeCount = bladeQuery.CalculateEntityCount();
 
-        var RotatingBladeJob = new CastRotatingBladeJob
-        {
-            ECB = ecb.AsParallelWriter(),
-            ExistingBladeCount = existingBladeCount,
+//        var RotatingBladeJob = new CastRotatingBladeJob
+//        {
+//            ECB = ecb.AsParallelWriter(),
+//            ExistingBladeCount = existingBladeCount,
 
-            PlayerLookup = SystemAPI.GetComponentLookup<Player>(true),
-            TransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true),
-            StatsLookup = SystemAPI.GetComponentLookup<Stats>(true),
-            ColliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true),
+//            PlayerLookup = SystemAPI.GetComponentLookup<Player>(true),
+//            TransformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true),
+//            StatsLookup = SystemAPI.GetComponentLookup<Stats>(true),
+//            ColliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true),
 
-            SpellDatabaseRef = spellDatabase.Blobs,
-            SpellPrefabs = spellPrefabs
-        };
-        state.Dependency = RotatingBladeJob.ScheduleParallel(state.Dependency);
-    }
+//            SpellDatabaseRef = spellDatabase.Blobs,
+//            SpellPrefabs = spellPrefabs
+//        };
+//        state.Dependency = RotatingBladeJob.ScheduleParallel(state.Dependency);
+//    }
 
-    [BurstCompile]
-    [WithAll(typeof(CastSpellRequest), typeof(RotatingBladeRequestTag))]
-    private partial struct CastRotatingBladeJob : IJobEntity
-    {
-        public EntityCommandBuffer.ParallelWriter ECB;
-        public int ExistingBladeCount;
-
-
-        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
-        [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
-
-        [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
-        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
-
-        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
-        {
+//    [BurstCompile]
+//    [WithAll(typeof(CastSpellRequest), typeof(RotatingBladeRequestTag))]
+//    private partial struct CastRotatingBladeJob : IJobEntity
+//    {
+//        public EntityCommandBuffer.ParallelWriter ECB;
+//        public int ExistingBladeCount;
 
 
-            if (!SpellDatabaseRef.IsCreated || !TransformLookup.HasComponent(request.Caster))
-            {
-                ECB.DestroyEntity(chunkIndex, requestEntity);
-                return;
-            }
+//        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
+//        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
+//        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
+//        [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
 
-            var caster = request.Caster;
-            var target = request.Target;
+//        [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
+//        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
-            ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
-            var spellPrefab = SpellPrefabs[request.DatabaseIndex].Prefab;
-
-            // if (spellData.InstanciateOnce)
-            //     return;
+//        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
+//        {
 
 
-            if (spellPrefab == Entity.Null)
-            {
-                ECB.DestroyEntity(chunkIndex, requestEntity);
-                return;
-            }
+//            if (!SpellDatabaseRef.IsCreated || !TransformLookup.HasComponent(request.Caster))
+//            {
+//                ECB.DestroyEntity(chunkIndex, requestEntity);
+//                return;
+//            }
 
-            var casterTransform = TransformLookup[request.Caster];
-            var casterStats = StatsLookup[request.Caster];
+//            var caster = request.Caster;
+//            var target = request.Target;
 
-            float3 castDirection;
-            if (target != Entity.Null && TransformLookup.HasComponent(target))
-            {
-                var targetTransform = TransformLookup[target];
-                castDirection = math.normalize(targetTransform.Position - casterTransform.Position);
-            }
-            else
-            {
-                castDirection = casterTransform.Forward();
-            }
+//            ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
+//            var spellPrefab = SpellPrefabs[request.DatabaseIndex].Prefab;
 
-            //Spell damage calculation
-            var damage = spellData.BaseDamage + casterStats.Damage;
+//            // if (spellData.InstanciateOnce)
+//            //     return;
 
-            var rotatingBladeEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-            ECB.SetComponent(chunkIndex, rotatingBladeEntity, new DamageOnContact
-            {
-                Damage = damage,
-                Element = spellData.Element
-            });
+//            if (spellPrefab == Entity.Null)
+//            {
+//                ECB.DestroyEntity(chunkIndex, requestEntity);
+//                return;
+//            }
 
-            // Orbit movement version
-            // Compter le nombre total de blades actives pour ce caster
+//            var casterTransform = TransformLookup[request.Caster];
+//            var casterStats = StatsLookup[request.Caster];
 
-            int bladeIndex = ExistingBladeCount + chunkIndex;
-            int totalBlades = ExistingBladeCount + 1; // Estimation
+//            float3 castDirection;
+//            if (target != Entity.Null && TransformLookup.HasComponent(target))
+//            {
+//                var targetTransform = TransformLookup[target];
+//                castDirection = math.normalize(targetTransform.Position - casterTransform.Position);
+//            }
+//            else
+//            {
+//                castDirection = casterTransform.Forward();
+//            }
 
-            float angleOffset = totalBlades > 0 ? (2f * math.PI * bladeIndex) / totalBlades : 0f;
+//            //Spell damage calculation
+//            var damage = spellData.BaseDamage + casterStats.Damage;
 
-            var orbitData = new OrbitMovement
-            {
-                OrbitCenterEntity = caster,
-                OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 5,
-                AngularSpeed = 4,
-                Radius = 5,
-                RelativeOffset = casterTransform.Forward() * 5,
-                //InitialAngle = angleOffset
-            };
+//            var rotatingBladeEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-            // // Position initiale basée sur l'angle
-            var offset = new float3(
-                math.cos(angleOffset) * orbitData.Radius,
-                0,
-                math.sin(angleOffset) * orbitData.Radius
-            );
-            var spawnPosition = casterTransform.Position + offset;
-            ECB.SetComponent(chunkIndex, rotatingBladeEntity, new LocalTransform
-            {
-                Position = spawnPosition,
-                Rotation = casterTransform.Rotation,
-                Scale = 0.7f
-            });
-            ECB.RemoveComponent<LinearMovement>(chunkIndex, rotatingBladeEntity);
-            ECB.AddComponent(chunkIndex, rotatingBladeEntity, orbitData);
+//            ECB.SetComponent(chunkIndex, rotatingBladeEntity, new DamageOnContact
+//            {
+//                Damage = damage,
+//                Element = spellData.Element
+//            });
 
-            ECB.AddComponent(chunkIndex, rotatingBladeEntity, new RotatingBladeIndex
-            {
-                Index = bladeIndex,
-                TotalBlades = totalBlades
-            });
+//            // Orbit movement version
+//            // Compter le nombre total de blades actives pour ce caster
 
-            // Linear movement version
-            /*ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
-        {
-            Position = casterTransform.Position,
-            Rotation = casterTransform.Rotation,
-            Scale = 1f
-        });
+//            int bladeIndex = ExistingBladeCount + chunkIndex;
+//            int totalBlades = ExistingBladeCount + 1; // Estimation
 
-        ECB.SetComponent<LinearMovement>(chunkIndex, fireballEntity, new LinearMovement
-        {
-            //Direction = castDirection,
-            Direction = casterTransform.Forward(),
-            Speed = spellData.BaseSpeed
-        });*/
+//            float angleOffset = totalBlades > 0 ? (2f * math.PI * bladeIndex) / totalBlades : 0f;
 
-            // Collision
-            var isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
-            CollisionFilter collisionFilter;
-            if (isPlayerCaster)
-                collisionFilter = new CollisionFilter
-                {
-                    BelongsTo = CollisionLayers.PlayerSpell,
-                    CollidesWith = CollisionLayers.Enemy | CollisionLayers.Obstacle
-                };
-            else
-                collisionFilter = new CollisionFilter
-                {
-                    BelongsTo = CollisionLayers.EnemySpell,
-                    CollidesWith = CollisionLayers.Player | CollisionLayers.Obstacle
-                };
-            var collider = ColliderLookup[spellPrefab];
-            collider.Value.Value.SetCollisionFilter(collisionFilter);
-            ECB.SetComponent(chunkIndex, rotatingBladeEntity, collider);
+//            var orbitData = new OrbitMovement
+//            {
+//                OrbitCenterEntity = caster,
+//                OrbitCenterPosition = casterTransform.Position + casterTransform.Forward() * 5,
+//                AngularSpeed = 4,
+//                Radius = 5,
+//                RelativeOffset = casterTransform.Forward() * 5,
+//                //InitialAngle = angleOffset
+//            };
+
+//            // // Position initiale basée sur l'angle
+//            var offset = new float3(
+//                math.cos(angleOffset) * orbitData.Radius,
+//                0,
+//                math.sin(angleOffset) * orbitData.Radius
+//            );
+//            var spawnPosition = casterTransform.Position + offset;
+//            ECB.SetComponent(chunkIndex, rotatingBladeEntity, new LocalTransform
+//            {
+//                Position = spawnPosition,
+//                Rotation = casterTransform.Rotation,
+//                Scale = 0.7f
+//            });
+//            ECB.RemoveComponent<LinearMovement>(chunkIndex, rotatingBladeEntity);
+//            ECB.AddComponent(chunkIndex, rotatingBladeEntity, orbitData);
+
+//            ECB.AddComponent(chunkIndex, rotatingBladeEntity, new RotatingBladeIndex
+//            {
+//                Index = bladeIndex,
+//                TotalBlades = totalBlades
+//            });
+
+//            // Linear movement version
+//            /*ECB.SetComponent(chunkIndex, fireballEntity, new LocalTransform
+//        {
+//            Position = casterTransform.Position,
+//            Rotation = casterTransform.Rotation,
+//            Scale = 1f
+//        });
+
+//        ECB.SetComponent<LinearMovement>(chunkIndex, fireballEntity, new LinearMovement
+//        {
+//            //Direction = castDirection,
+//            Direction = casterTransform.Forward(),
+//            Speed = spellData.BaseSpeed
+//        });*/
+
+//            // Collision
+//            var isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
+//            CollisionFilter collisionFilter;
+//            if (isPlayerCaster)
+//                collisionFilter = new CollisionFilter
+//                {
+//                    BelongsTo = CollisionLayers.PlayerSpell,
+//                    CollidesWith = CollisionLayers.Enemy | CollisionLayers.Obstacle
+//                };
+//            else
+//                collisionFilter = new CollisionFilter
+//                {
+//                    BelongsTo = CollisionLayers.EnemySpell,
+//                    CollidesWith = CollisionLayers.Player | CollisionLayers.Obstacle
+//                };
+//            var collider = ColliderLookup[spellPrefab];
+//            collider.Value.Value.SetCollisionFilter(collisionFilter);
+//            ECB.SetComponent(chunkIndex, rotatingBladeEntity, collider);
           
-            ECB.SetComponent(chunkIndex, rotatingBladeEntity, new Lifetime
-            {
-                TimeLeft = spellData.Lifetime,
-                Duration = spellData.Lifetime
-            });
+//            ECB.SetComponent(chunkIndex, rotatingBladeEntity, new Lifetime
+//            {
+//                TimeLeft = spellData.Lifetime,
+//                Duration = spellData.Lifetime
+//            });
 
-            // Destroy request
-            ECB.DestroyEntity(chunkIndex, requestEntity);
-        }
-    }
-}
+//            // Destroy request
+//            ECB.DestroyEntity(chunkIndex, requestEntity);
+//        }
+//    }
+//}

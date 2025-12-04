@@ -15,14 +15,17 @@ MonoBehaviour:
   DisplayName: Rotating Blade
   SpellPrefab: {fileID: 5560325983370933078, guid: c46a8980eb0d6aa4d8e41b998aa0b540, type: 3}
   ID: 5
-  BaseCooldown: 6
-  BaseDamage: 100
-  BaseArea: 1
+  BaseCooldown: -1
+  BaseDamage: 50
+  BaseEffectArea: 1
+  BaseSpawnOffset: 5
   BaseRange: 5
   BaseSpeed: 5
   Element: 0
-  Lifetime: 1000
+  Lifetime: 33.9
   Bounces: 0
   BouncesSearchRadius: 0
-  IsInvincible: 1
+  Pierces: 0
+  BaseDamagePerTick: 1
+  TickRate: 1
   InstantiateOnce: 1

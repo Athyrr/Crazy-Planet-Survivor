@@ -11,6 +11,5 @@ public struct UpgradeBlob
     public EStatModiferStrategy ModifierStrategy;
     public float Value;
 
-    public ESpellType SpellType;
     public ESpellID SpellID;
 }

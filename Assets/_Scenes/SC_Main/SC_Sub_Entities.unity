@@ -176,6 +176,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_Planet
       objectReference: {fileID: 0}
+    - target: {fileID: 7431055858490708449, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -199,7 +203,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7047934231360213323, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 60
+      value: 50.47
       objectReference: {fileID: 0}
     - target: {fileID: 7047934231360213323, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
       propertyPath: m_LocalPosition.z
@@ -240,7 +244,7 @@ PrefabInstance:
     - target: {fileID: 7867096471209253954, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
       propertyPath: 'InitialSpells.Array.data[0]'
       value: 
-      objectReference: {fileID: 11400000, guid: a13ca1f0a33c36a46bac651b45432abc, type: 2}
+      objectReference: {fileID: 11400000, guid: e7d8cea3c06bbe84cb9d0571d15fd898, type: 2}
     - target: {fileID: 7867096471209253954, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
       propertyPath: 'InitialSpells.Array.data[1]'
       value: 
@@ -824,6 +828,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_UpgradesDatabase
       objectReference: {fileID: 0}
+    - target: {fileID: 3030510812226180595, guid: d75815b80bb07534897d6bd0a4ef497d, type: 3}
+      propertyPath: UpgradesDatabase
+      value: 
+      objectReference: {fileID: 11400000, guid: d7be5a667bdb49549b35224c282d09cb, type: 2}
     - target: {fileID: 5095105504584821569, guid: d75815b80bb07534897d6bd0a4ef497d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

@@ -36,7 +36,6 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
                 upgradeBlobRoot.ModifierStrategy = upgradeSO.ModifierStrategy;
                 upgradeBlobRoot.Value = upgradeSO.Value;
                 upgradeBlobRoot.SpellID = upgradeSO.SpellID;
-                upgradeBlobRoot.SpellType = upgradeSO.SpellType;
             }
 
             var upgradesDatabaseBlob = builder.CreateBlobAssetReference<UpgradeBlobs>(Allocator.Persistent);

@@ -3,29 +3,72 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NewSpellData", menuName = "Survivor/Spell/Spell Data")]
 public class SpellDataSO : ScriptableObject
 {
-    public string DisplayName;
+    [Header("General")]
+
+    [Tooltip("Unique identifier used by the code to recognize this spell logic.")]
+    public ESpellID ID;
+
+    [Tooltip("Name displayed in the UI (Level Up screen, etc.).")]
+    public string DisplayName = string.Empty;
+
+    [TextArea(2, 4)]
+    [Tooltip("Description displayed in the UI.")]
+    public string Description;
+
+    [Tooltip("The GameObject prefab that will be baked into an Entity. Must have Authoring components.")]
     public GameObject SpellPrefab;
 
-    public ESpellID ID;
-    public float BaseCooldown = 5f;
-    public float BaseDamage = 10f;
-    public float BaseEffectArea = 1f;
-    public float BaseSpawnOffset = 1f;
-    public float BaseRange = 5f;
-    public float BaseSpeed = 5f;
+
+    [Header("Core Combat Stats")]
+
+    [Tooltip("Elemental type of the spell (Fire, Ice, etc.) used for resistance calculations.")]
     public ESpellElement Element;
+
+    [Tooltip("Base damage applied on contact.")]
+    public float BaseDamage = 10f;
+
+    [Tooltip("Cooldown time in seconds. Set to 0 or -1 for Passive/Aura spells (cast once).")]
+    public float BaseCooldown = 5f;
+
+
+    [Header("Spatial & Movement")]
+
+    [Tooltip("Movement speed for linear projectiles or rotation speed for orbiting objects.")]
+    public float BaseSpeed = 5f;
+
+    [Tooltip("Distance from the caster where the spell spawns (e.g., Orbit Radius or Forward Offset).")]
+    public float BaseSpawnOffset = 1f;
+
+    [Tooltip("Radius of the area of effect (Explosion radius or Aura size).")]
+    public float BaseEffectArea = 1f;
+
+    [Tooltip("Max distance the spell can travel or target (if applicable).")]
+    public float BaseCastRange = 5f;
+
+    [Tooltip("Duration in seconds before the entity destroys itself.")]
     public float Lifetime = 10f;
 
-    // Ricochet settings
+
+    [Header("Mechanic: Ricochet")]
+
+    [Tooltip("Number of times the projectile bounces to a new target after impact.")]
     public int Bounces;
+
+    [Tooltip("Search radius to find the next target when bouncing.")]
     public float BouncesSearchRadius;
 
-    // Pierce settings
+
+    [Header("Mechanic: Piercing")]
+
+    [Tooltip("Number of enemies the projectile can pass through before being destroyed.")]
     public int Pierces;
 
-    // Tick Effects (for auras)
-    public float BaseDamagePerTick = 1;
-    public float TickRate = 1f;
 
-    public bool InstantiateOnce = false;
+    [Header("Mechanic: Damage Over Time (Aura)")]
+
+    [Tooltip("Damage applied every tick. Distincted from BaseDamage which might be initial burst.")]
+    public float BaseDamagePerTick = 1;
+
+    [Tooltip("Time interval in seconds between two damage ticks.")]
+    public float TickRate = 1f;
 }

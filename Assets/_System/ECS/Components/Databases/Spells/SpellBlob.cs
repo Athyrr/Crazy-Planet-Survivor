@@ -24,6 +24,4 @@ public struct SpellBlob
     // Tick Effects (for auras)
     public float BaseDamagePerTick;
     public float TickRate;
-
-    public bool InstanciateOnce;
 }

@@ -13,9 +13,9 @@ GameObject:
   - component: {fileID: 2991863156490213269}
   - component: {fileID: -4652438811781775189}
   - component: {fileID: 1617985317442812095}
-  - component: {fileID: 2099674237675471324}
   - component: {fileID: 143130232515036955}
   - component: {fileID: 5811129206618878891}
+  - component: {fileID: 2099674237675471324}
   - component: {fileID: 4277168972436093581}
   m_Layer: 0
   m_Name: PF_Spell_RicochetShot
@@ -289,18 +289,6 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
---- !u!114 &2099674237675471324
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5138817672301412260}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2268193949dea0248bc200c261edadd0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RicochetAuthoring
 --- !u!114 &143130232515036955
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -327,6 +315,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FollowMovementAuthoring
   EnabledOnInit: 0
+--- !u!114 &2099674237675471324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5138817672301412260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2268193949dea0248bc200c261edadd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RicochetAuthoring
 --- !u!114 &4277168972436093581
 MonoBehaviour:
   m_ObjectHideFlags: 0
