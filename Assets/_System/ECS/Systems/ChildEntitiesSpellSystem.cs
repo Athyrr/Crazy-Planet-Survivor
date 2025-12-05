@@ -18,6 +18,7 @@ public partial struct ChildEntitiesSpellSystem : ISystem
     private ComponentLookup<LocalTransform> _transformLookup;
     private BufferLookup<Child> _childBufferLookup;
     private ComponentLookup<PhysicsCollider> _colliderLookup;
+    private ComponentLookup<DamageOnContact> _damageLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -28,6 +29,7 @@ public partial struct ChildEntitiesSpellSystem : ISystem
         _transformLookup = state.GetComponentLookup<LocalTransform>(false);
         _childBufferLookup = state.GetBufferLookup<Child>(false);
         _colliderLookup = state.GetComponentLookup<PhysicsCollider>(false);
+        _damageLookup = state.GetComponentLookup<DamageOnContact>(true);
     }
 
     [BurstCompile]
@@ -45,6 +47,7 @@ public partial struct ChildEntitiesSpellSystem : ISystem
         _transformLookup.Update(ref state);
         _childBufferLookup.Update(ref state);
         _colliderLookup.Update(ref state);
+        _damageLookup.Update(ref state);
 
         // Setup ECB    
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
@@ -53,6 +56,13 @@ public partial struct ChildEntitiesSpellSystem : ISystem
         foreach (var (spawner, parentEntity) in
                          SystemAPI.Query<RefRW<ChildEntitiesSpawner>>().WithEntityAccess())
         {
+            DamageOnContact parentDamage = default;
+            bool hasDamage = _damageLookup.HasComponent(parentEntity);
+            if (hasDamage)
+            {
+                parentDamage = _damageLookup[parentEntity];
+            }
+
             int desiredCount = spawner.ValueRO.DesiredChildrenCount;
             int currentCount = 0;
             bool hasChilduffer = _childBufferLookup.HasBuffer(parentEntity);
@@ -81,11 +91,19 @@ public partial struct ChildEntitiesSpellSystem : ISystem
 
                     ecb.AppendToBuffer(parentEntity, new Child { Value = childEntity });
 
+                    // Collisions
                     if (_colliderLookup.HasComponent(spawner.ValueRO.ChildEntityPrefab))
                     {
                         var collider = _colliderLookup[spawner.ValueRO.ChildEntityPrefab];
                         collider.Value.Value.SetCollisionFilter(spawner.ValueRO.CollisionFilter);
                         ecb.SetComponent(childEntity, collider);
+                    }
+
+                    // Damages
+                    if (hasDamage)
+                    {
+                        ecb.SetComponent(childEntity, parentDamage);
+                        //ecb.AddComponent(childEntity, parentDamage);
                     }
                 }
                 spawner.ValueRW.IsDirty = false;
@@ -95,7 +113,6 @@ public partial struct ChildEntitiesSpellSystem : ISystem
             else if (hasChilduffer && currentCount > desiredCount)
             {
                 var children = _childBufferLookup[parentEntity];
-
                 for (int i = currentCount - 1; i >= desiredCount; i--)
                 {
                     ecb.DestroyEntity(children[i].Value);
@@ -132,11 +149,12 @@ public partial struct ChildEntitiesSpellSystem : ISystem
             if (children.IsEmpty)
                 return;
 
-            // Position children in circle layout
-            float angleStep = 360f / children.Length;
+            float angleStep = (circleLayout.AngleInDegrees * 2) / children.Length;
+            //float angleStep = circleLayout.AngleInDegrees / children.Length;
 
             float currentAngle = 0f;
 
+            // Position children in circle layout
             for (int i = 0; i < children.Length; i++)
             {
                 var childEntity = children[i].Value;
@@ -147,11 +165,20 @@ public partial struct ChildEntitiesSpellSystem : ISystem
                     continue;
                 }
 
+                float angleRad = math.radians(currentAngle);
+
+
                 float3 localOffset = new float3(
-                    circleLayout.Radius * math.cos(currentAngle),
+                    circleLayout.Radius * math.sin(angleRad), // X
                     0f,
-                    circleLayout.Radius * math.sin(currentAngle)
+                    circleLayout.Radius * math.cos(angleRad)  // Z
                 );
+
+                //float3 localOffset = new float3(
+                //    circleLayout.Radius * math.cos(currentAngle),
+                //    0f,
+                //    circleLayout.Radius * math.sin(currentAngle)
+                //);
 
                 var childTransform = TransformLookup[childEntity];
 
@@ -163,7 +190,13 @@ public partial struct ChildEntitiesSpellSystem : ISystem
                 currentAngle += angleStep;
             }
         }
+
+
+
+
+
+
+
+
     }
-
-
 }

@@ -124,8 +124,8 @@ public partial struct SpellCastingSystem : ISystem
             ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
             var spellPrefab = MainSpellPrefabs[request.DatabaseIndex].Prefab;
 
-            // Check if prefab exists
-            if (spellPrefab == Entity.Null)
+            // Check if prefab  or child prefab exists 
+            if (spellPrefab == Entity.Null && spellData.ChildPrefabIndex == -1) // -1 : default value for none
             {
                 ECB.DestroyEntity(chunkIndex, requestEntity);
                 return;
@@ -311,7 +311,6 @@ public partial struct SpellCastingSystem : ISystem
             };
             if (ColliderLookup.HasComponent(spellPrefab))
             {
-
                 var collider = ColliderLookup[spellPrefab];
                 collider.Value.Value.SetCollisionFilter(filter);
                 ECB.SetComponent(chunkIndex, spellEntity, collider);
@@ -339,7 +338,7 @@ public partial struct SpellCastingSystem : ISystem
                     ECB.SetComponent(chunkIndex, spellEntity, new ChildEntitiesLayout_Circle
                     {
                         Radius = spellData.ChildrenSpawnRadius,
-                        //AngleInDegrees = 360f
+                        AngleInDegrees = 360
                     });
                 }
             }
