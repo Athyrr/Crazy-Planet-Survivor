@@ -13,7 +13,8 @@ GameObject:
   - component: {fileID: 7504969759878206383}
   - component: {fileID: 7844573733459124951}
   - component: {fileID: 6718586359999031028}
-  - component: {fileID: -7572769349815565062}
+  - component: {fileID: 8253438287353100344}
+  - component: {fileID: 3299946372054861272}
   m_Layer: 0
   m_Name: PF_DraconicVomit
   m_TagString: Untagged
@@ -286,7 +287,7 @@ MonoBehaviour:
     Tag05: 0
     Tag06: 0
     Tag07: 0
---- !u!114 &-7572769349815565062
+--- !u!114 &8253438287353100344
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -295,6 +296,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 1676050848477030820}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d89f0340604f03649a28ed4836a46c10, type: 3}
+  m_Script: {fileID: 11500000, guid: b2b84fa8e8cbd674c8acfb417a3276e1, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ProjectileAuthoring
+  m_EditorClassIdentifier: Assembly-CSharp::LifetimeAuthoring
+--- !u!114 &3299946372054861272
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1676050848477030820}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d93933d99a2930547b531600fc30fb85, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageOnTickAuthoring

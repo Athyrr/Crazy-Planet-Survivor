@@ -1,3 +1,4 @@
+/*
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -186,3 +187,4 @@ partial struct DraconicVomitSystem : ISystem
         }
     }
 }
+*/
