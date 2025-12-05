@@ -1,3 +1,6 @@
+using Unity.Entities;
+using Unity.Mathematics;
+
 public struct SpellBlob
 {
     public ESpellID ID;
@@ -9,7 +12,7 @@ public struct SpellBlob
     public float BaseCastRange;
     public float BaseEffectArea;
 
-    public float BaseSpawnOffset;
+    public float3 BaseSpawnOffset;
 
     public ESpellElement Element;
     public float Lifetime;
@@ -24,4 +27,9 @@ public struct SpellBlob
     // Tick Effects (for auras)
     public float BaseDamagePerTick;
     public float TickRate;
+
+    // Children based spells
+    public int ChildPrefabIndex;
+    public int ChildrenCount;
+    public float ChildrenSpawnRadius;
 }

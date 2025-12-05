@@ -9,50 +9,75 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
 
     private class Baker : Baker<SpellsDatabaseAuthoring>
     {
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="authoring"></param>
         public override void Bake(SpellsDatabaseAuthoring authoring)
         {
             Entity dbEntity = GetEntity(TransformUsageFlags.None);
 
+            var mainPrefabBuffer = AddBuffer<SpellPrefab>(dbEntity);
+            var childPrefabBuffer = AddBuffer<ChildSpellPrefab>(dbEntity);
+
             // Create spell blobs for data
-            //BlobBuilder builder = new BlobBuilder(Allocator.Temp);
-            var builder = new BlobBuilder(Allocator.Persistent);
-
+            BlobBuilder builder = new BlobBuilder(Allocator.Temp);
             ref var root = ref builder.ConstructRoot<SpellBlobs>();
-            BlobBuilderArray<SpellBlob> arrayBuilder = builder.Allocate(ref root.Spells, authoring.SpellDatabase.Spells.Length);
 
-            for (int i = 0; i < authoring.SpellDatabase.Spells.Length; i++)
+            int count = authoring.SpellDatabase.Spells.Length;
+            BlobBuilderArray<SpellBlob> arrayBuilder = builder.Allocate(ref root.Spells, count);
+
+            for (int i = 0; i < count; i++)
             {
                 SpellDataSO spellSO = authoring.SpellDatabase.Spells[i];
 
                 if (spellSO == null)
                     continue;
 
-                ref var spellBlobRoot = ref arrayBuilder[i];
+                ref var spellBlob = ref arrayBuilder[i];
 
-                spellBlobRoot.ID = spellSO.ID;
-                spellBlobRoot.BaseCooldown = spellSO.BaseCooldown;
-                spellBlobRoot.BaseDamage = spellSO.BaseDamage;
-                spellBlobRoot.BaseEffectArea = spellSO.BaseEffectArea;
-                spellBlobRoot.BaseCastRange = spellSO.BaseCastRange;
-                spellBlobRoot.BaseSpeed = spellSO.BaseSpeed;
-                spellBlobRoot.Element = spellSO.Element;
-                spellBlobRoot.Lifetime = spellSO.Lifetime;
-                spellBlobRoot.BouncesSearchRadius = spellSO.BouncesSearchRadius;
-                spellBlobRoot.BaseSpawnOffset = spellSO.BaseSpawnOffset;
+                spellBlob.ID = spellSO.ID;
+                spellBlob.BaseCooldown = spellSO.BaseCooldown;
+                spellBlob.BaseDamage = spellSO.BaseDamage;
+                spellBlob.BaseEffectArea = spellSO.BaseEffectArea;
+                spellBlob.BaseCastRange = spellSO.BaseCastRange;
+                spellBlob.BaseSpeed = spellSO.BaseSpeed;
+                spellBlob.Element = spellSO.Element;
+                spellBlob.Lifetime = spellSO.Lifetime;
+                spellBlob.BouncesSearchRadius = spellSO.BouncesSearchRadius;
+                spellBlob.BaseSpawnOffset = spellSO.BaseSpawnOffset;
 
-                spellBlobRoot.Bounces = spellSO.Bounces;
-                spellBlobRoot.Pierces = spellSO.Pierces;
+                spellBlob.Bounces = spellSO.Bounces;
+                spellBlob.Pierces = spellSO.Pierces;
 
                 // Tick effects (for auras)
-                spellBlobRoot.BaseDamagePerTick = spellSO.BaseDamagePerTick;
-                spellBlobRoot.TickRate = spellSO.TickRate;
+                spellBlob.BaseDamagePerTick = spellSO.BaseDamagePerTick;
+                spellBlob.TickRate = spellSO.TickRate;
+
+                // Children based spells
+                spellBlob.ChildrenCount = spellSO.ChildrenCount;
+                spellBlob.ChildrenSpawnRadius = spellSO.ChildrenSpawnRadius;
+
+                if (spellSO.SpellPrefab != null)
+                {
+                    var mainEntity = GetEntity(spellSO.SpellPrefab, TransformUsageFlags.Dynamic);
+                    mainPrefabBuffer.Add(new SpellPrefab { Prefab = mainEntity });
+                }
+                else
+                {
+                    mainPrefabBuffer.Add(new SpellPrefab { Prefab = Entity.Null });
+                }
+
+                if (spellSO.ChildPrefab != null)
+                {
+                    var childEntity = GetEntity(spellSO.ChildPrefab, TransformUsageFlags.Dynamic);
+                    childPrefabBuffer.Add(new ChildSpellPrefab { Prefab = childEntity });
+                    spellBlob.ChildPrefabIndex = childPrefabBuffer.Length - 1;
+                }
+                else
+                {
+                    spellBlob.ChildPrefabIndex = -1;
+                }
             }
 
             var spellsDatabaseBlob = builder.CreateBlobAssetReference<SpellBlobs>(Allocator.Persistent);
+           
             AddComponent(dbEntity, new SpellsDatabase { Blobs = spellsDatabaseBlob });
 
             // Register blob asset (auto free memory)
@@ -61,30 +86,6 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
             // Dispose builder
             builder.Dispose();
 
-            // Add spell prefabs to buffer  
-            var prefabBuffer = AddBuffer<SpellPrefab>(dbEntity);
-            foreach (var spellSO in authoring.SpellDatabase.Spells)
-            {
-                if (spellSO == null || spellSO.SpellPrefab == null)
-                    continue;
-
-                prefabBuffer.Add(new SpellPrefab
-                {
-                    Prefab = GetEntity(spellSO.SpellPrefab, TransformUsageFlags.Dynamic)
-                });
-            }
-
-            // Create entity for spell to index map
-            //int dbLength = authoring.SpellDatabase.Spells.Length;
-            //var spellIndexMap = CreateAdditionalEntity(TransformUsageFlags.None, false, nameof(SpellToIndexMap));
-
-            //NativeHashMap<SpellKey, int> map = new NativeHashMap<SpellKey, int>(dbLength, Allocator.Persistent);
-            //for (int i = 0; i < dbLength; i++)
-            //{
-            //    var spellData = authoring.SpellDatabase.Spells[i];
-            //    map.TryAdd(new SpellKey { Value = spellData.ID }, i);
-            //}
-            //AddComponent(spellIndexMap, new SpellToIndexMap { Map = map });
         }
     }
 }

@@ -34,6 +34,7 @@ public partial struct CollisionSystem : ISystem
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
 
+        // Cache lookups
         _playerLookup = state.GetComponentLookup<Player>(true);
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
         _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
@@ -50,11 +51,21 @@ public partial struct CollisionSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        // Get game state
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
             return;
 
+        // Only run when game is running
         if (gameState.State != EGameState.Running)
             return;
+
+
+        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+
+        var simulationSingleton = SystemAPI.GetSingleton<SimulationSingleton>();
+        var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
+
 
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
@@ -67,12 +78,6 @@ public partial struct CollisionSystem : ISystem
         _followMovementLookup.Update(ref state);
         _hitMemoryLookup.Update(ref state);
         _invincibleLookup.Update(ref state);
-
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-
-        var simulationSingleton = SystemAPI.GetSingleton<SimulationSingleton>();
-        var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
 
 
         var triggerJob = new TriggerEventJob
@@ -199,11 +204,15 @@ public partial struct CollisionSystem : ISystem
                             // Do not destroy the projectile
                             shouldDestroy = false;
                         }
+                        else
+                        {
+                            shouldDestroy = true;
+                        }
                     }
-                    //else
-                    //{
-                    //    shouldDestroy = true;
-                    //}
+                    else
+                    {
+                        shouldDestroy = true;
+                    }
                 }
 
                 // Handle Piercing

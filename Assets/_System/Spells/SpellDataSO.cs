@@ -1,3 +1,4 @@
+using Unity.Mathematics;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewSpellData", menuName = "Survivor/Spell/Spell Data")]
@@ -37,13 +38,16 @@ public class SpellDataSO : ScriptableObject
     public float BaseSpeed = 5f;
 
     [Tooltip("Distance from the caster where the spell spawns (e.g., Orbit Radius or Forward Offset).")]
-    public float BaseSpawnOffset = 1f;
+    public Vector3 BaseSpawnOffset = Vector3.zero;
 
     [Tooltip("Radius of the area of effect (Explosion radius or Aura size).")]
     public float BaseEffectArea = 1f;
 
     [Tooltip("Max distance the spell can travel or target (if applicable).")]
     public float BaseCastRange = 5f;
+
+
+    [Header("Lifetime")]
 
     [Tooltip("Duration in seconds before the entity destroys itself.")]
     public float Lifetime = 10f;
@@ -71,4 +75,17 @@ public class SpellDataSO : ScriptableObject
 
     [Tooltip("Time interval in seconds between two damage ticks.")]
     public float TickRate = 1f;
+
+
+    [Header("Mechanic: Children based Spells (ex: Blades, Perma shield etc..)")]
+
+    [Tooltip("Prefab of the child spell entities spawned by this spell.")]
+    public GameObject ChildPrefab;
+
+    [Tooltip("Number of child spell entities to spawn.")]
+    public int ChildrenCount;
+
+    [Tooltip("Radius around the caster where child spells will spawn.")]
+    public float ChildrenSpawnRadius = 1f;
+
 }

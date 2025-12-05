@@ -132,6 +132,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2693254250496633621, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
+      propertyPath: _findWaterLevel
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2693254250496633621, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
+      propertyPath: _autoFindPlanetRadius
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4804159904702695074, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -244,7 +252,7 @@ PrefabInstance:
     - target: {fileID: 7867096471209253954, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
       propertyPath: 'InitialSpells.Array.data[0]'
       value: 
-      objectReference: {fileID: 11400000, guid: e7d8cea3c06bbe84cb9d0571d15fd898, type: 2}
+      objectReference: {fileID: 11400000, guid: 150c76d714382cf4fa94beb2e60f8d97, type: 2}
     - target: {fileID: 7867096471209253954, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
       propertyPath: 'InitialSpells.Array.data[1]'
       value: 
@@ -524,6 +532,10 @@ PrefabInstance:
     - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
       propertyPath: Waves.Array.data[1].SpawnDatas.Array.size
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
+      propertyPath: Waves.Array.data[0].SpawnDatas.Array.data[0].Amount
+      value: 500
       objectReference: {fileID: 0}
     - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
       propertyPath: Waves.Array.data[0].SpawnDatas.Array.data[1].Amount
@@ -831,7 +843,7 @@ PrefabInstance:
     - target: {fileID: 3030510812226180595, guid: d75815b80bb07534897d6bd0a4ef497d, type: 3}
       propertyPath: UpgradesDatabase
       value: 
-      objectReference: {fileID: 11400000, guid: d7be5a667bdb49549b35224c282d09cb, type: 2}
+      objectReference: {fileID: 11400000, guid: 65be180b5958ee040864032b0a195caf, type: 2}
     - target: {fileID: 5095105504584821569, guid: d75815b80bb07534897d6bd0a4ef497d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
