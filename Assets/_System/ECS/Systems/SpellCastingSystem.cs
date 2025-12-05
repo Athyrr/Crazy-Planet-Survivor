@@ -150,6 +150,7 @@ public partial struct SpellCastingSystem : ISystem
             quaternion spawnRotation = quaternion.identity;
 
             bool isAttached = AttachLookup.HasComponent(spellPrefab);
+            bool isCopingPosition = CopyPositionLookup.HasComponent(spellPrefab);
 
             // Set Attach to Caster if applicable
             if (isAttached)
@@ -159,16 +160,34 @@ public partial struct SpellCastingSystem : ISystem
                 spawnPosition = float3.zero;
                 spawnRotation = quaternion.identity;
             }
-            else if (CopyPositionLookup.HasComponent(spellPrefab))
+            else if (isCopingPosition)
             {
+                //var copyPosition = CopyPositionLookup[spellPrefab];
+                //copyPosition.Target = request.Caster;
+                //copyPosition.Offset += casterTransform.Forward() * spellData.BaseSpawnOffset;
+
+                //PlanetMovementUtils.GetSurfaceNormalRadius(casterTransform.Position, float3.zero, out var normal);
+
+                //spawnPosition = casterTransform.Position + copyPosition.Offset;
+                ////spawnRotation = casterTransform.Rotation;
+                //spawnRotation = quaternion.LookRotationSafe(casterTransform.Forward(), normal);
+
+                //ECB.SetComponent(chunkIndex, spellEntity, copyPosition);
+
+
                 var copyPosition = CopyPositionLookup[spellPrefab];
                 copyPosition.Target = request.Caster;
-                copyPosition.Offset += casterTransform.Forward() * spellData.BaseSpawnOffset;
 
-                spawnPosition = casterTransform.Position + copyPosition.Offset;
-                spawnRotation = casterTransform.Rotation;
+                spawnPosition = casterTransform.Position + (casterTransform.Forward() * spellData.BaseSpawnOffset);
 
+                float3 surfaceNormal = casterTransform.Up();
+                float3 forward = casterTransform.Forward();
+                float3 tangentForward = math.normalize(forward - math.dot(forward, surfaceNormal) * surfaceNormal);
+
+                spawnRotation = quaternion.LookRotationSafe(tangentForward, surfaceNormal);
+ 
                 ECB.SetComponent(chunkIndex, spellEntity, copyPosition);
+
             }
             else
             {

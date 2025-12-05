@@ -1,10 +1,11 @@
-using Unity.Collections;
-using Unity.Transforms;
-using Unity.Entities;
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Transforms;
 
-[UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateInGroup(typeof(TestUpdateGroup))]
 [UpdateBefore(typeof(TransformSystemGroup))]
 [UpdateAfter(typeof(EntitiesMovementSystem))]
 [BurstCompile]
@@ -51,7 +52,7 @@ public partial struct CopyEntityPositionSystem : ISystem
     [BurstCompile]
     private partial struct CopyPositionJob : IJobEntity
     {
-        public float DeltaTime;
+        [ReadOnly] public float DeltaTime;
 
         [NativeDisableContainerSafetyRestriction]
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
@@ -62,7 +63,10 @@ public partial struct CopyEntityPositionSystem : ISystem
                 return;
 
             var copiedEntityTransform = TransformLookup[copy.Target];
-            localTransform.Position = copiedEntityTransform.Position + copy.Offset;
+
+            float3 copiedOffset = math.mul(copiedEntityTransform.Rotation, copy.Offset);
+
+            localTransform.Position = copiedEntityTransform.Position + copiedOffset;
         }
     }
 }
