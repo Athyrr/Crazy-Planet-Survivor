@@ -146,6 +146,10 @@ public partial struct SpellCooldownSystem : ISystem
                         case ESpellID.RotatingBlade:
                             ECB.AddComponent<RotatingBladeRequestTag>(chunkIndex, request);
                             break;
+
+                        case ESpellID.DraconicVomit:
+                            ECB.AddComponent<DraconicVomitRequestTag>(chunkIndex, request);
+                            break;
                     }
 
                     float cooldown = spellData.BaseCooldown * (1 - stats.CooldownReduction);

@@ -113,6 +113,10 @@ public partial struct EnemyTargetingSystem : ISystem
                         case ESpellID.RotatingBlade:
                             ECB.AddComponent<RotatingBladeRequestTag>(chunkIndex, request);
                             break;
+
+                        case ESpellID.DraconicVomit:
+                            ECB.AddComponent<DraconicVomitRequestTag>(chunkIndex, request);
+                            break;
                     }
                 }
             }
