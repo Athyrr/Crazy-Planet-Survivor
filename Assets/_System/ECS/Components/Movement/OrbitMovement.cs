@@ -1,7 +1,7 @@
 using Unity.Entities;
 using Unity.Mathematics;
 
-public struct OrbitMovement : IComponentData
+public struct OrbitMovement : IComponentData, IEnableableComponent
 {
     public Entity OrbitCenterEntity;
     public float3 OrbitCenterPosition;

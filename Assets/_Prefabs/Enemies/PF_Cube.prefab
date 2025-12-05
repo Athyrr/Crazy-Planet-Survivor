@@ -251,16 +251,20 @@ MonoBehaviour:
   UseSnappedMovement: 1
   BaseStats:
     MaxHealth: 80
-    Speed: 6
+    MoveSpeed: 3
+    ProjectileSpeedMultiplier: 0
     Damage: 5
-    Armor: 5
+    Armor: 0
     FireResistance: 50
     IceResistance: 0
     LightningResistance: 0
+    ArcaneResistance: 0
     CooldownReduction: 0
-    AreaSize: 0
+    EffectAreaRadiusMult: 0
     CollectRange: 0
     MaxCollectRange: 0
+    BouncesAdded: 0
+    PierceAdded: 0
   InitialSpells: []
   InitialModifers:
   - Type: 0

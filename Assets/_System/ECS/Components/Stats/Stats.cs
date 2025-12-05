@@ -1,7 +1,7 @@
 using Unity.Entities;
 
 /// <summary>
-/// Represents all stats an entity has during a run. Make sure that <see cref="Stats"/> elements correspond to <see cref="EStatType"/> + <see cref="BaseStats"/> elements.
+/// Represents all stats an entity has during a run. Make sure that <see cref="Stats"/> elements correspond to <see cref="EStatID"/> + <see cref="BaseStats"/> elements.
 /// </summary>
 public struct Stats : IComponentData
 {
@@ -21,12 +21,17 @@ public struct Stats : IComponentData
 
     public float CooldownReduction;
 
-    public float AreaSize;
+    // @todo cast range mult
+    public float EffectAreaRadiusMult;
 
     public float CollectRange;
+    public float MaxCollectRange;
 
     // Bounces
     public int BouncesAdded;
+
+    //Piece
+    public int PierceAdded;
 
     // Same as BaseStats 
 }
@@ -34,14 +39,15 @@ public struct Stats : IComponentData
 
 /// <summary>
 /// Represents base stats of an entity.
-/// Make sure that <see cref="BaseStats"/> elements correspond to <see cref="EStatType"/> + <see cref="Stats"/> elements .
+/// Make sure that <see cref="BaseStats"/> elements correspond to <see cref="EStatID"/> + <see cref="Stats"/> elements .
 /// </summary>
 [System.Serializable]
 public struct BaseStats : IComponentData
 {
     public float MaxHealth;
 
-    public float Speed;
+    public float MoveSpeed;
+    public float ProjectileSpeedMultiplier;
 
     public float Damage;
 
@@ -50,13 +56,21 @@ public struct BaseStats : IComponentData
     public float FireResistance;
     public float IceResistance;
     public float LightningResistance;
+    public float ArcaneResistance;
 
     public float CooldownReduction;
 
-    public float AreaSize;
+    // @todo cast range mult
+    public float EffectAreaRadiusMult;
 
     public float CollectRange;
     public float MaxCollectRange;
+
+    // Bounces
+    public int BouncesAdded;
+
+    //Piece
+    public int PierceAdded;
 
     // etc
 }

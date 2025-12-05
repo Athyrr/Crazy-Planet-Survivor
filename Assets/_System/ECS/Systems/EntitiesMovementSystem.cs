@@ -135,7 +135,7 @@ public partial struct EntitiesMovementSystem : ISystem
 
     [BurstCompile]
     [WithAll(typeof(LinearMovement), typeof(HardSnappedMovement))]
-    [WithNone(typeof(FollowTargetMovement), typeof(OrbitMovement))]
+    //[WithNone(typeof(FollowTargetMovement), typeof(OrbitMovement))]
     private partial struct MoveLinearSnappedJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;
@@ -200,7 +200,8 @@ public partial struct EntitiesMovementSystem : ISystem
 
     [BurstCompile]
     [WithAll(typeof(LinearMovement))]
-    [WithNone(typeof(FollowTargetMovement), typeof(OrbitMovement), typeof(HardSnappedMovement))]
+    //[WithNone(typeof(FollowTargetMovement), typeof(OrbitMovement))]
+    [WithNone(typeof(HardSnappedMovement))]
     private partial struct MoveLinearBareJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;
@@ -235,7 +236,7 @@ public partial struct EntitiesMovementSystem : ISystem
 
     [BurstCompile]
     [WithAll(typeof(FollowTargetMovement), typeof(HardSnappedMovement))]
-    [WithNone(typeof(LinearMovement), typeof(OrbitMovement))]
+    //[WithNone(typeof(LinearMovement), typeof(OrbitMovement))]
     private partial struct MoveFollowSnappedJob : IJobEntity
     {
         [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
@@ -303,7 +304,8 @@ public partial struct EntitiesMovementSystem : ISystem
 
     [BurstCompile]
     [WithAll(typeof(FollowTargetMovement))]
-    [WithNone(typeof(LinearMovement), typeof(OrbitMovement), typeof(HardSnappedMovement))]
+    //[WithNone(typeof(LinearMovement), typeof(OrbitMovement))]
+    [WithNone(typeof(HardSnappedMovement))]
     private partial struct MoveFollowBareJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;
@@ -393,7 +395,8 @@ public partial struct EntitiesMovementSystem : ISystem
 
     [BurstCompile]
     [WithAll(typeof(OrbitMovement))]
-    [WithNone(typeof(LinearMovement), typeof(FollowTargetMovement), typeof(HardSnappedMovement))]
+    [WithNone(typeof(LinearMovement), typeof(FollowTargetMovement))]
+    [WithNone(typeof(HardSnappedMovement))]
     private partial struct MoveOrbitBareJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;

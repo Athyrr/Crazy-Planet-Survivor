@@ -86,7 +86,7 @@ public partial struct EnemyTargetingSystem : ISystem
 
                 PlanetMovementUtils.GetSurfaceDistanceRadius(in transform.Position, in PlayerPosition, PlanetPosition, PlanetRadius, out float distance);
 
-                if (distance <= spellData.BaseRange)
+                if (distance <= spellData.BaseCastRange)
                 {
                     var request = ECB.CreateEntity(chunkIndex);
                     ECB.AddComponent(chunkIndex, request, new CastSpellRequest
@@ -95,29 +95,6 @@ public partial struct EnemyTargetingSystem : ISystem
                         Target = Player,
                         DatabaseIndex = spell.DatabaseIndex
                     });
-
-                    switch (spellData.ID)
-                    {
-                        case ESpellID.Fireball:
-                            ECB.AddComponent<FireballRequestTag>(chunkIndex, request);
-                            break;
-
-                        case ESpellID.LightningStrike:
-                            ECB.AddComponent<LightningStrikeRequestTag>(chunkIndex, request);
-                            break;
-
-                        case ESpellID.RicochetShot:
-                            ECB.AddComponent<RichochetShotRequestTag>(chunkIndex, request);
-                            break;
-
-                        case ESpellID.RotatingBlade:
-                            ECB.AddComponent<RotatingBladeRequestTag>(chunkIndex, request);
-                            break;
-
-                        case ESpellID.DraconicVomit:
-                            ECB.AddComponent<DraconicVomitRequestTag>(chunkIndex, request);
-                            break;
-                    }
                 }
             }
 

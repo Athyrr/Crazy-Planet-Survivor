@@ -47,12 +47,12 @@ public partial struct StatsCalculationSystem : ISystem
         public void Execute([ChunkIndexInQuery] int index, Entity entity, in RecalculateStatsRequest recalculateStatsRequest, ref Stats stats, ref Health health, in BaseStats baseStats, in DynamicBuffer<StatModifier> modifiers)
         {
             stats.MaxHealth = baseStats.MaxHealth;
-            stats.MoveSpeed = baseStats.Speed;
+            stats.MoveSpeed = baseStats.MoveSpeed;
             stats.Damage = baseStats.Damage;
             stats.Armor = baseStats.Armor;
             stats.FireResistance = baseStats.FireResistance;
             stats.CooldownReduction = baseStats.CooldownReduction;
-            stats.AreaSize = baseStats.AreaSize;
+            stats.EffectAreaRadiusMult = baseStats.EffectAreaRadiusMult;
             stats.CollectRange = baseStats.CollectRange;
 
 
@@ -62,37 +62,37 @@ public partial struct StatsCalculationSystem : ISystem
 
             for (var i = 0; i < modifiers.Length; i++)
             {
-                switch (modifiers[i].Type)
+                switch (modifiers[i].StatID)
                 {
-                    case EStatType.MaxHealth:
+                    case EStatID.MaxHealth:
                         StatsCalculationSystem.ApplyModifier(ref stats.MaxHealth, modifiers[i]);
                         break;
 
-                    case EStatType.Speed:
+                    case EStatID.Speed:
                         ApplyModifier(ref stats.MoveSpeed, modifiers[i]);
                         break;
 
-                    case EStatType.Damage:
+                    case EStatID.Damage:
                         ApplyModifier(ref stats.Damage, modifiers[i]);
                         break;
 
-                    case EStatType.Armor:
+                    case EStatID.Armor:
                         ApplyModifier(ref stats.Armor, modifiers[i]);
                         break;
 
-                    case EStatType.FireResistance:
+                    case EStatID.FireResistance:
                         ApplyModifier(ref stats.FireResistance, modifiers[i]);
                         break;
 
-                    case EStatType.CooldownReduction:
+                    case EStatID.CooldownReduction:
                         ApplyModifier(ref stats.CooldownReduction, modifiers[i]);
                         break;
 
-                    case EStatType.AreaSize:
-                        ApplyModifier(ref stats.AreaSize, modifiers[i]);
+                    case EStatID.AreaSize:
+                        ApplyModifier(ref stats.EffectAreaRadiusMult, modifiers[i]);
                         break;
 
-                    case EStatType.CollectRange:
+                    case EStatID.CollectRange:
                         ApplyModifier(ref stats.CollectRange, modifiers[i]);
                         break;
                 }

@@ -7,7 +7,7 @@ public struct UpgradeBlob
 
     public EUpgradeType UpgradeType;
 
-    public EStatType StatType;
+    public EStatID Stat;
     public EStatModiferStrategy ModifierStrategy;
     public float Value;
 

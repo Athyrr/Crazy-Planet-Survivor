@@ -1,6 +1,7 @@
-using Unity.Entities;
-using Unity.Burst;
 using Unity.Collections;
+using Unity.Entities;
+using Unity.Physics;
+using Unity.Burst;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -22,6 +23,11 @@ public partial struct ApplyUpgradeSystem : ISystem
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
+        var spellsDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
+        var spellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
+        var spellIndexMap = SystemAPI.GetSingleton<SpellToIndexMap>().Map;
+
+
         var upgradesDatabaseEntity = SystemAPI.GetSingletonEntity<UpgradesDatabase>();
         var upgradesDatabase = SystemAPI.GetComponent<UpgradesDatabase>(upgradesDatabaseEntity);
 
@@ -30,9 +36,19 @@ public partial struct ApplyUpgradeSystem : ISystem
         var applyUpgradeJob = new ApplyUpgradeJob()
         {
             ECB = ecb.AsParallelWriter(),
+
             PlayerEntity = playerEntity,
+
             GameStateEntity = gameStateEntity,
-            UpgradesDatabaseRef = upgradesDatabase.Blobs
+
+            UpgradesDatabaseRef = upgradesDatabase.Blobs,
+
+            SpellsDatabaseRef = spellsDatabase.Blobs,
+            SpellIndexMap = spellIndexMap,
+            SpellPrefabs = spellPrefabs,
+
+            ColliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true),
+
         };
         state.Dependency = applyUpgradeJob.ScheduleParallel(state.Dependency);
     }
@@ -41,9 +57,18 @@ public partial struct ApplyUpgradeSystem : ISystem
     private partial struct ApplyUpgradeJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
+
         public Entity GameStateEntity;
+
         [ReadOnly] public Entity PlayerEntity;
+
         [ReadOnly] public BlobAssetReference<UpgradeBlobs> UpgradesDatabaseRef;
+
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
+        [ReadOnly] public NativeHashMap<SpellKey, int> SpellIndexMap;
+        [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
+
+        [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in ApplyUpgradeRequest request)
         {
@@ -53,27 +78,32 @@ public partial struct ApplyUpgradeSystem : ISystem
             switch (upgradeData.UpgradeType)
             {
                 case EUpgradeType.Stat:
-                    var stat = new StatModifier()
+                    var statModifier = new StatModifier()
                     {
-                        Type = upgradeData.StatType,
+                        StatID = upgradeData.Stat,
                         Strategy = upgradeData.ModifierStrategy,
                         Value = upgradeData.Value,
                     };
-                    ECB.AppendToBuffer(chunkIndex, PlayerEntity,stat );
+                    ECB.AppendToBuffer<StatModifier>(chunkIndex, PlayerEntity, statModifier);
 
                     ECB.AddComponent(chunkIndex, PlayerEntity, new RecalculateStatsRequest());
                     break;
 
-                case EUpgradeType.Spell:
-                    ECB.AppendToBuffer(chunkIndex, PlayerEntity, new SpellActivationRequest()
+                case EUpgradeType.UnlockSpell:
+                    ECB.AppendToBuffer<SpellActivationRequest>(chunkIndex, PlayerEntity, new SpellActivationRequest()
                     {
                         ID = upgradeData.SpellID
                     });
                     break;
 
+                case EUpgradeType.UpgradeSpell:
+                    //@todo
+                    break;
+
                 default:
                     break;
             }
+
             // Clear upgrades selection buffer 
             ECB.SetBuffer<UpgradeSelectionElement>(chunkIndex, GameStateEntity);
 
