@@ -10,25 +10,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
-  m_Name: SpellData_RicochetShot
+  m_Name: SpellData_TechHoles
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 4
-  DisplayName: Ricochet Shot
+  ID: 5
+  DisplayName: Tech Holes
   Description: 
-  SpellPrefab: {fileID: 5138817672301412260, guid: 698f1017667af3f4e9fd8c17a02bd6eb, type: 3}
+  SpellPrefab: {fileID: 5560325983370933078, guid: c46a8980eb0d6aa4d8e41b998aa0b540, type: 3}
   Element: 0
-  BaseDamage: 50
-  BaseCooldown: 1
-  BaseSpeed: 20
-  BaseSpawnOffset: 0.5
-  BaseEffectArea: 0
+  BaseDamage: 150
+  BaseCooldown: -1
+  BaseSpeed: 80
+  BaseSpawnOffset: {x: 0, y: 0, z: 0}
+  BaseEffectArea: 1
   BaseCastRange: 5
-  Lifetime: 15
-  Bounces: 4
-  BouncesSearchRadius: 20
+  Lifetime: 0
+  Bounces: 0
+  BouncesSearchRadius: 0
   Pierces: 0
   BaseDamagePerTick: 1
   TickRate: 1
-  ChildPrefab: {fileID: 0}
-  ChildrenCount: 0
-  ChildrenSpawnRadius: 1
+  ChildPrefab: {fileID: 4819856803883335328, guid: b956ff6962694a44c85938fb550fe8ca, type: 3}
+  ChildrenCount: 3
+  ChildrenSpawnRadius: 5
