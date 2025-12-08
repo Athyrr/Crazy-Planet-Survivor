@@ -7,7 +7,8 @@ public enum ESpellID : byte
     LightningStrike,
     FrozenZone,
     ShockChain,
-    TechHoles
+    TechHoles,
+    ShockBeam
 }
 
 /// <summary>

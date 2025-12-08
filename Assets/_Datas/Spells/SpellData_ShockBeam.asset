@@ -10,26 +10,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
-  m_Name: SpellData_TechHoles
+  m_Name: SpellData_ShockBeam
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 5
-  DisplayName: Tech Holes
+  ID: 6
+  DisplayName: Shock Beam
   Description: 
-  SpellPrefab: {fileID: 5560325983370933078, guid: c46a8980eb0d6aa4d8e41b998aa0b540, type: 3}
-  Element: 0
-  BaseDamage: 150
-  BaseCooldown: -1
-  BaseSpeed: 80
+  SpellPrefab: {fileID: 8608917286184711326, guid: d28cec6fccad67647a118a50394f0172, type: 3}
+  Element: 3
+  BaseDamage: 50
+  BaseCooldown: 0.8
+  BaseSpeed: 10
   BaseSpawnOffset: {x: 0, y: 0, z: 0}
-  BaseEffectArea: 1
-  BaseCastRange: 5
-  TargetingMode: 1
-  Lifetime: 0
+  BaseEffectArea: 5
+  BaseCastRange: 20
+  TargetingMode: 0
+  Lifetime: 1
   Bounces: 0
   BouncesSearchRadius: 0
-  Pierces: 0
+  Pierces: 10
   BaseDamagePerTick: 1
   TickRate: 1
-  ChildPrefab: {fileID: 4819856803883335328, guid: b956ff6962694a44c85938fb550fe8ca, type: 3}
-  ChildrenCount: 3
-  ChildrenSpawnRadius: 5
+  ChildPrefab: {fileID: 0}
+  ChildrenCount: 0
+  ChildrenSpawnRadius: 1

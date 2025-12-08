@@ -12,7 +12,7 @@ using Unity.Physics;
 /// 3. Heightmap: A perfect sphere offset by a heightmap (Blob Asset).
 /// </summary>
 [BurstCompile]
-public static partial class PlanetMovementUtils
+public static partial class PlanetUtils
 {
     #region Core
 
@@ -148,8 +148,8 @@ public static partial class PlanetMovementUtils
         // Define "down" as the vector towards the planet center
         float3 normal = math.normalize(position - planetCenter);
 
-        // Start ray slightly "above" the position to avoid starting inside the mesh
-        float3 rayStart = position + normal * 0.2f;
+        // Start ray little "above" the position to avoid starting inside the mesh
+        float3 rayStart = position + normal * 2f;
 
         // End ray below the position
         float3 rayEnd = position - normal * rayLength;

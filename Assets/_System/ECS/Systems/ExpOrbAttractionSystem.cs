@@ -79,7 +79,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, in ExperienceOrb orb, ref LocalTransform transform, in FollowTargetMovement followMovement)
         {
-            PlanetMovementUtils.GetDistanceEuclidean(PlayerTransform.Position, transform.Position, out var dist);
+            PlanetUtils.GetDistanceEuclidean(PlayerTransform.Position, transform.Position, out var dist);
             if (dist > followMovement.StopDistance)
                 return;
 
@@ -108,7 +108,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, in ExperienceOrb orb, ref LocalTransform transform)
         {
-            PlanetMovementUtils.GetSurfaceDistanceRadius(PlayerTransform.Position, transform.Position, PlanetTransform.Position, PlanetRadius, out var dist);
+            PlanetUtils.GetSurfaceDistanceRadius(PlayerTransform.Position, transform.Position, PlanetTransform.Position, PlanetRadius, out var dist);
 
             if (dist > CollectRange)
                 return;

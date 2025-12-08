@@ -72,13 +72,8 @@ public partial struct SpellCooldownSystem : ISystem
         public float DeltaTime;
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity,
-                     ref DynamicBuffer<ActiveSpell> spells,
-                     ref DynamicBuffer<EnemySpellReady> readyBuffer,
-                     in Stats stats,
-                     in Enemy enemy)
+        void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref DynamicBuffer<ActiveSpell> spells, ref DynamicBuffer<EnemySpellReady> readyBuffer, in Stats stats, in Enemy enemy)
         {
-
             for (int i = 0; i < spells.Length; i++)
             {
                 var spell = spells[i];

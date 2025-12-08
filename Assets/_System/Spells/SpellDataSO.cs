@@ -47,6 +47,12 @@ public class SpellDataSO : ScriptableObject
     public float BaseCastRange = 5f;
 
 
+    [Header("Targeting")]
+
+    [Tooltip("Spell targeting mode.")]
+    public ESpellTargetingMode TargetingMode = ESpellTargetingMode.CastForward;
+
+
     [Header("Lifetime")]
 
     [Tooltip("Duration in seconds before the entity destroys itself.")]

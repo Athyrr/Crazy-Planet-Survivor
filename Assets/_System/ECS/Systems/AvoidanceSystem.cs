@@ -67,6 +67,7 @@ public partial struct AvoidanceSystem : ISystem
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float3 PlayerPosition;
 
+        // @todo set setting
         private const float MaxAvoidanceDistance = 50f * 50f; // Squared distance
 
         public void Execute(Entity entity, in Avoidance avoidance, in LocalTransform transform, ref SteeringForce steering)
@@ -113,12 +114,12 @@ public partial struct AvoidanceSystem : ISystem
 
                 if (distance > 0.01f)
                 {
-                    avoidanceForce += (1 / distance) * direction;
+                    avoidanceForce += (1 / distance) * direction * 4;
                 }
             }
 
-            PlanetMovementUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out float3 surfaceNormal);
-            PlanetMovementUtils.ProjectDirectionOnSurface(avoidanceForce, surfaceNormal, out avoidanceForce);
+            PlanetUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out float3 surfaceNormal);
+            PlanetUtils.ProjectDirectionOnSurface(avoidanceForce, surfaceNormal, out avoidanceForce);
 
             steering.Value = avoidanceForce * avoidance.Weight;
 

@@ -17,6 +17,9 @@ public struct SpellBlob
     public ESpellElement Element;
     public float Lifetime;
 
+    // Targeting
+    public ESpellTargetingMode TargetingMode;
+
     // Ricochet 
     public int Bounces;
     public float BouncesSearchRadius;

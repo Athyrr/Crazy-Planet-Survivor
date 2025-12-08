@@ -43,6 +43,8 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlob.BouncesSearchRadius = spellSO.BouncesSearchRadius;
                 spellBlob.BaseSpawnOffset = spellSO.BaseSpawnOffset;
 
+                spellBlob.TargetingMode = spellSO.TargetingMode;
+
                 spellBlob.Bounces = spellSO.Bounces;
                 spellBlob.Pierces = spellSO.Pierces;
 
