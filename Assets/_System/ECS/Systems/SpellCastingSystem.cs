@@ -1,4 +1,3 @@
-using System.IO.Pipes;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -44,6 +43,7 @@ public partial struct SpellCastingSystem : ISystem
         var castJob = new CastSpellJob
         {
             ECB = ecb.AsParallelWriter(),
+            Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
 
             CollisionWorld = physicsWorldSingleton.CollisionWorld,
 
@@ -86,6 +86,7 @@ public partial struct SpellCastingSystem : ISystem
     private partial struct CastSpellJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
+        public uint Seed;
 
         [ReadOnly] public CollisionWorld CollisionWorld;
 
@@ -153,7 +154,7 @@ public partial struct SpellCastingSystem : ISystem
             float3 targetPosition = float3.zero; // Spawn postion or aim position 
             bool targetFound = false;
 
-            var random = new Random();
+            var random = Random.CreateFromIndex(Seed);
 
             // Get caster stats bonus
             //if (StatsLookup.HasComponent(caster))
@@ -179,14 +180,12 @@ public partial struct SpellCastingSystem : ISystem
                     break;
 
                 case ESpellTargetingMode.Nearest:
-
                     PointDistanceInput input = new PointDistanceInput
                     {
                         Position = casterTransform.Position,
                         MaxDistance = spellData.BaseCastRange,
                         Filter = filter
                     };
-
 
                     if (CollisionWorld.CalculateDistance(input, out DistanceHit hit))
                     {
@@ -198,8 +197,34 @@ public partial struct SpellCastingSystem : ISystem
                     break;
 
                 case ESpellTargetingMode.RandomInRange:
-                    float2 circle = random.NextFloat2Direction() * random.NextFloat(0, spellData.BaseCastRange);
-                    targetPosition = casterTransform.Position + new float3(circle.x, 0, circle.y);
+                    var sphere = random.NextFloat3Direction() * random.NextFloat(0, spellData.BaseCastRange);
+                    var tempPosition = casterTransform.Position + new float3(sphere.x, sphere.y, sphere.z);
+
+                    CollisionFilter planetFilter = new CollisionFilter()
+                    {
+                        BelongsTo = CollisionLayers.Raycast,
+                        CollidesWith = CollisionLayers.Landscape
+                    };
+
+                    //@todo use PlanetCenter instead of float.zero
+                    if (PlanetUtils.GetRandomPointOnSurface(
+                                ref CollisionWorld,
+                                ref random,
+                                casterTransform.Position,
+                                float3.zero, // //@todo Planet Center 
+                                spellData.BaseCastRange,
+                              ref planetFilter,
+                                out float3 randomSurfacePos))
+                    {
+                        targetPosition = randomSurfacePos;
+                        targetFound = true;
+                    }
+                    else
+                    {
+                        targetPosition = casterTransform.Position;
+                        targetFound = true;
+                    }
+
                     targetFound = true;
                     break;
             }
@@ -244,13 +269,13 @@ public partial struct SpellCastingSystem : ISystem
                     //direction = casterTransform.Rotation;
                     fireDirection = casterTransform.Forward();
 
-                spawnRotation = quaternion.LookRotationSafe(fireDirection, math.up());
+                //spawnRotation = quaternion.LookRotationSafe(fireDirection, math.up());
+                spawnRotation = TransformLookup.HasComponent(targetEntity) ? TransformLookup[targetEntity].Rotation : quaternion.identity;
             }
 
 
             // Instanciate spell entity
             var spellEntity = ECB.Instantiate(chunkIndex, spellPrefab);
-
 
             // Set components
 

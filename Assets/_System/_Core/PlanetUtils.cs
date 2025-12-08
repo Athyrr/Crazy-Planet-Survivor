@@ -133,7 +133,7 @@ public static partial class PlanetUtils
     /// <param name="position">The world position to snap from.</param>
     /// <param name="planetCenter">The center of the planet.</param>
     /// <param name="filter">The collision filter (The planet layer).</param>
-    /// <param name="rayLength">How far to cast the ray.</param>
+    /// <param name="startRayHeight">How far to cast the ray.</param>
     /// <param name="hit">The resulting RaycastHit.</param>
     /// <returns>True if the raycast hit the planet.</returns>
     [BurstCompile]
@@ -142,17 +142,17 @@ public static partial class PlanetUtils
        in float3 position,
         in float3 planetCenter,
        in CollisionFilter filter,
-        float rayLength,
+        float startRayHeight,
         out RaycastHit hit)
     {
         // Define "down" as the vector towards the planet center
         float3 normal = math.normalize(position - planetCenter);
 
         // Start ray little "above" the position to avoid starting inside the mesh
-        float3 rayStart = position + normal * 2f;
+        float3 rayStart = position + normal * startRayHeight;
 
         // End ray below the position
-        float3 rayEnd = position - normal * rayLength;
+        float3 rayEnd = position - normal * startRayHeight;
 
         var rayInput = new RaycastInput
         {
@@ -162,6 +162,44 @@ public static partial class PlanetUtils
         };
 
         return collisionWorld.CastRay(rayInput, out hit);
+    }
+
+    /// <summary>
+    /// Get a random point on the planet surface within a given range around an origin point.
+    /// </summary>
+    /// <param name="collisionWorld">Collision world reference.</param>
+    /// <param name="random">Random struct reference.</param>
+    /// <param name="centerPos">Origin point around which the point is.</param>
+    /// <param name="planetCenter">Planet center postion.</param>
+    /// <param name="range">Range radius.</param>
+    /// <param name="filter">Collision filter.</param>
+    /// <param name="foundPosition">Found position.</param>
+    /// <returns>Returns true if a point was found succesfully.</returns>
+    [BurstCompile]
+    public static bool GetRandomPointOnSurface(
+        [ReadOnly] ref CollisionWorld collisionWorld,
+        ref Random random,
+       in float3 centerPos,
+       in float3 planetCenter,
+        float range,
+       ref CollisionFilter filter,
+        out float3 foundPosition)
+    {
+        float3 up = math.normalize(centerPos - planetCenter);
+
+        float2 randCircle = random.NextFloat2Direction() * random.NextFloat(0, range);
+
+        quaternion alignmentRot = quaternion.LookRotationSafe(math.cross(up, math.right()), up);
+
+        float3 localOffset = new float3(randCircle.x, 0f, randCircle.y);
+        float3 worldOffset = math.rotate(alignmentRot, localOffset);
+
+        float3 roughPosition = centerPos + worldOffset;
+
+        var success = SnapToSurfaceRaycast(ref collisionWorld, roughPosition, planetCenter, filter, 50f, out var hit);
+        foundPosition = hit.Position;
+
+        return success;
     }
 
     /// <summary>
