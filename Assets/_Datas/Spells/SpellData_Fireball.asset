@@ -12,13 +12,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
   m_Name: SpellData_Fireball
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  DisplayName: Fireball
-  SpellPrefab: {fileID: 486797506737824905, guid: 41fa62722a0249648b1dbdd9ff513461, type: 3}
   ID: 1
-  BaseCooldown: 0.25
-  BaseDamage: 30
-  BaseArea: 1
-  BaseRange: 10
-  BaseSpeed: 15
+  DisplayName: Fireball
+  Description: 
+  SpellPrefab: {fileID: 486797506737824905, guid: 41fa62722a0249648b1dbdd9ff513461, type: 3}
   Element: 0
+  BaseDamage: 30
+  BaseCooldown: 0.25
+  BaseSpeed: 15
+  BaseSpawnOffset: {x: 0, y: 0, z: 0}
+  BaseEffectArea: 1
+  BaseCastRange: 5
+  TargetingMode: 3
   Lifetime: 2
+  Bounces: 0
+  BouncesSearchRadius: 0
+  Pierces: 0
+  BaseDamagePerTick: 1
+  TickRate: 1
+  ChildPrefab: {fileID: 0}
+  ChildrenCount: 0
+  ChildrenSpawnRadius: 1

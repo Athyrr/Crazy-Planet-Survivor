@@ -1,3 +1,4 @@
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -5,7 +6,6 @@ using Unity.Entities;
 using Unity.Physics;
 using Unity.Burst;
 using Unity.Jobs;
-using Unity.Collections.LowLevel.Unsafe;
 
 //[UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateInGroup(typeof(TestUpdateGroup))]
@@ -154,7 +154,7 @@ public partial struct EntitiesMovementSystem : ISystem
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
 
             float3 currentNormal;
-            if (PlanetMovementUtils.SnapToSurfaceRaycast(
+            if (PlanetUtils.SnapToSurfaceRaycast(
                     ref PhysicsCollisionWorld,
                     transform.Position, PlanetCenter,
                     new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape },
@@ -169,11 +169,11 @@ public partial struct EntitiesMovementSystem : ISystem
             }
 
             // Calculate the tangent direction
-            PlanetMovementUtils.ProjectDirectionOnSurface(in movement.Direction, in currentNormal, out float3 tangentDirection);
+            PlanetUtils.ProjectDirectionOnSurface(in movement.Direction, in currentNormal, out float3 tangentDirection);
             float3 newPosition = transform.Position + tangentDirection * (speed * DeltaTime);
 
             // Snap
-            if (PlanetMovementUtils.SnapToSurfaceRaycast(
+            if (PlanetUtils.SnapToSurfaceRaycast(
                         ref PhysicsCollisionWorld,
                         newPosition,
                         PlanetCenter,
@@ -186,7 +186,7 @@ public partial struct EntitiesMovementSystem : ISystem
                 if (math.lengthsq(movement.Direction) > 0.001f)
                 {
                     var n = hit.SurfaceNormal;
-                    PlanetMovementUtils.GetRotationOnSurface(in tangentDirection, in n, out quaternion rotation);
+                    PlanetUtils.GetRotationOnSurface(in tangentDirection, in n, out quaternion rotation);
                     transform.Rotation = rotation;
                 }
             }
@@ -217,18 +217,18 @@ public partial struct EntitiesMovementSystem : ISystem
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
 
             // Get current normal
-            PlanetMovementUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out var currentNormal);
+            PlanetUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out var currentNormal);
 
             // Calculate the tangent direction
-            PlanetMovementUtils.ProjectDirectionOnSurface(in movement.Direction, in currentNormal, out float3 tangentDirection);
+            PlanetUtils.ProjectDirectionOnSurface(in movement.Direction, in currentNormal, out float3 tangentDirection);
             float3 newPosition = transform.Position + tangentDirection * (speed * DeltaTime);
 
-            PlanetMovementUtils.SnapToSurfaceRadius(newPosition, PlanetCenter, PlanetRadius, out var snapped);
+            PlanetUtils.SnapToSurfaceRadius(newPosition, PlanetCenter, PlanetRadius, out var snapped);
             transform.Position = snapped;
             if (math.lengthsq(movement.Direction) > 0.001f)
             {
-                PlanetMovementUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out var n);
-                PlanetMovementUtils.GetRotationOnSurface(in tangentDirection, in n, out quaternion rotation);
+                PlanetUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out var n);
+                PlanetUtils.GetRotationOnSurface(in tangentDirection, in n, out quaternion rotation);
                 transform.Rotation = rotation;
             }
         }
@@ -261,14 +261,14 @@ public partial struct EntitiesMovementSystem : ISystem
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
 
             float3 currentNormal;
-            if (PlanetMovementUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, transform.Position, PlanetCenter,
+            if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, transform.Position, PlanetCenter,
                     new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape }, // Votre nouveau filtre est bon
                     SNAP_DISTANCE, out Unity.Physics.RaycastHit currentHit))
             { currentNormal = currentHit.SurfaceNormal; }
             else { currentNormal = math.normalize(transform.Position - PlanetCenter); }
 
             float3 directionToPlayer = targetPosition - transform.Position;
-            PlanetMovementUtils.ProjectDirectionOnSurface(in directionToPlayer, in currentNormal, out float3 tangentDirection);
+            PlanetUtils.ProjectDirectionOnSurface(in directionToPlayer, in currentNormal, out float3 tangentDirection);
 
             float3 steeringForce = float3.zero;
             if (SteeringLookup.HasComponent(entity))
@@ -284,7 +284,7 @@ public partial struct EntitiesMovementSystem : ISystem
             float3 newPosition = transform.Position + finalDirection * (speed * DeltaTime);
 
             // Snap to surface
-            if (PlanetMovementUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, newPosition, PlanetCenter,
+            if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, newPosition, PlanetCenter,
                             new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape },
                             SNAP_DISTANCE, out Unity.Physics.RaycastHit hit))
             {
@@ -292,7 +292,7 @@ public partial struct EntitiesMovementSystem : ISystem
                 var n = hit.SurfaceNormal;
 
                 // Rotate to face movement direction
-                PlanetMovementUtils.GetRotationOnSurface(in directionToPlayer, in n, out quaternion rotation);
+                PlanetUtils.GetRotationOnSurface(in directionToPlayer, in n, out quaternion rotation);
                 transform.Rotation = rotation;
             }
             else
@@ -327,10 +327,10 @@ public partial struct EntitiesMovementSystem : ISystem
 
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
 
-            PlanetMovementUtils.GetSurfaceNormalRadius(in transform.Position, in PlanetCenter, out var normal);
+            PlanetUtils.GetSurfaceNormalRadius(in transform.Position, in PlanetCenter, out var normal);
 
             float3 directionToTarget = targetPosition - transform.Position;
-            PlanetMovementUtils.ProjectDirectionOnSurface(in directionToTarget, in normal, out float3 directionToPlayer);
+            PlanetUtils.ProjectDirectionOnSurface(in directionToTarget, in normal, out float3 directionToPlayer);
 
             float3 steeringForce = float3.zero;
             if (SteeringLookup.HasComponent(entity))
@@ -343,9 +343,9 @@ public partial struct EntitiesMovementSystem : ISystem
                 finalDirection = transform.Forward();
 
             float3 newPosition = transform.Position + finalDirection * (speed * DeltaTime);
-            PlanetMovementUtils.SnapToSurfaceRadius(newPosition, PlanetCenter, PlanetRadius, out var snappedPosition);
+            PlanetUtils.SnapToSurfaceRadius(newPosition, PlanetCenter, PlanetRadius, out var snappedPosition);
 
-            PlanetMovementUtils.GetRotationOnSurface(in directionToPlayer, in normal, out quaternion rotation);
+            PlanetUtils.GetRotationOnSurface(in directionToPlayer, in normal, out quaternion rotation);
 
             transform.Position = snappedPosition;
             transform.Rotation = rotation;
@@ -368,7 +368,7 @@ public partial struct EntitiesMovementSystem : ISystem
             if (movement.OrbitCenterEntity == Entity.Null) return;
             float3 orbitCenterPosition = movement.OrbitCenterPosition;
             float3 orbitNormal;
-            if (PlanetMovementUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, orbitCenterPosition, PlanetCenter,
+            if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, orbitCenterPosition, PlanetCenter,
                     new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape },
                     SNAP_DISTANCE, out Unity.Physics.RaycastHit centerHit))
             { orbitNormal = centerHit.SurfaceNormal; }
@@ -379,14 +379,14 @@ public partial struct EntitiesMovementSystem : ISystem
             movement.RelativeOffset = math.normalize(movement.RelativeOffset) * movement.Radius;
             float3 newOrbitPosition = orbitCenterPosition + movement.RelativeOffset;
 
-            if (PlanetMovementUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, newOrbitPosition, PlanetCenter,
+            if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, newOrbitPosition, PlanetCenter,
                     new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape },
                     SNAP_DISTANCE, out Unity.Physics.RaycastHit hit))
             {
                 transform.Position = hit.Position;
                 var n = hit.SurfaceNormal;
                 float3 tangentDirection = math.normalize(math.cross(n, orbitNormal));
-                PlanetMovementUtils.GetRotationOnSurface(in tangentDirection, in n, out quaternion targetRotation);
+                PlanetUtils.GetRotationOnSurface(in tangentDirection, in n, out quaternion targetRotation);
                 transform.Rotation = targetRotation;
             }
             else { transform.Position = newOrbitPosition; }
@@ -410,7 +410,7 @@ public partial struct EntitiesMovementSystem : ISystem
 
             float3 orbitCenterPosition = movement.OrbitCenterPosition;
 
-            PlanetMovementUtils.GetSurfaceNormalRadius(in orbitCenterPosition, in PlanetCenter, out float3 orbitNormal);
+            PlanetUtils.GetSurfaceNormalRadius(in orbitCenterPosition, in PlanetCenter, out float3 orbitNormal);
             quaternion rotation = quaternion.AxisAngle(orbitNormal, movement.AngularSpeed * DeltaTime);
 
             movement.RelativeOffset = math.mul(rotation, movement.RelativeOffset);
@@ -418,12 +418,12 @@ public partial struct EntitiesMovementSystem : ISystem
 
             float3 newOrbitPosition = orbitCenterPosition + movement.RelativeOffset;
 
-            PlanetMovementUtils.SnapToSurfaceRadius(in newOrbitPosition, in PlanetCenter, PlanetRadius, out float3 snappedPosition);
+            PlanetUtils.SnapToSurfaceRadius(in newOrbitPosition, in PlanetCenter, PlanetRadius, out float3 snappedPosition);
             transform.Position = snappedPosition;
 
-            PlanetMovementUtils.GetSurfaceNormalRadius(in snappedPosition, in PlanetCenter, out float3 normal);
+            PlanetUtils.GetSurfaceNormalRadius(in snappedPosition, in PlanetCenter, out float3 normal);
             float3 tangentDirection = math.normalize(math.cross(normal, orbitNormal));
-            PlanetMovementUtils.GetRotationOnSurface(in tangentDirection, in normal, out quaternion targetRotation);
+            PlanetUtils.GetRotationOnSurface(in tangentDirection, in normal, out quaternion targetRotation);
             transform.Rotation = targetRotation;
         }
     }

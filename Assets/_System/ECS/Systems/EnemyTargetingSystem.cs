@@ -1,8 +1,8 @@
-using Unity.Burst;
 using Unity.Collections;
-using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using Unity.Entities;
+using Unity.Burst;
 
 /// <summary>
 /// System that handle enemy spell to be casted by sending a CastSpellRequest. NOT THE SPELLS THEMSELVES. It processes enemies who have spells ready to be used.
@@ -73,18 +73,14 @@ public partial struct EnemyTargetingSystem : ISystem
         public float PlanetRadius;
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        void Execute([ChunkIndexInQuery] int chunkIndex,
-            ref DynamicBuffer<EnemySpellReady> readySpells,
-            in LocalTransform transform,
-            in Entity entity)
+        void Execute([ChunkIndexInQuery] int chunkIndex, ref DynamicBuffer<EnemySpellReady> readySpells, in LocalTransform transform, in Entity entity)
         {
-
             for (int i = 0; i < readySpells.Length; i++)
             {
                 var spell = readySpells[i].Spell;
                 ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[spell.DatabaseIndex];
 
-                PlanetMovementUtils.GetSurfaceDistanceRadius(in transform.Position, in PlayerPosition, PlanetPosition, PlanetRadius, out float distance);
+                PlanetUtils.GetSurfaceDistanceRadius(in transform.Position, in PlayerPosition, PlanetPosition, PlanetRadius, out float distance);
 
                 if (distance <= spellData.BaseCastRange)
                 {
