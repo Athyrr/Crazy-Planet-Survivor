@@ -12,6 +12,7 @@ public class PlayerController : MonoBehaviour
     private EntityQuery _inputQuery;
 
     private Vector2 _inputDirection = Vector2.zero;
+    private bool _isInteractPressed = false;
 
     private void Awake()
     {
@@ -34,6 +35,8 @@ public class PlayerController : MonoBehaviour
 
         _gameInputs.Player.Pause.started += HandlePauseInput;
 
+        _gameInputs.Player.Interact.started += HandleInteractInput;
+
         _gameInputs.Enable();
     }
 
@@ -43,6 +46,8 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Player.Move.canceled -= HandleMoveInput;
 
         _gameInputs.Player.Pause.started -= HandlePauseInput;
+
+        _gameInputs.Player.Interact.started -= HandleInteractInput;
 
         _gameInputs.Disable();
     }
@@ -59,7 +64,7 @@ public class PlayerController : MonoBehaviour
         _inputDirection = ctx.ReadValue<Vector2>();
     }
 
-    private void InjectInputDirectionToECS( Vector2 direction)
+    private void InjectInputDirectionToECS(Vector2 direction)
     {
         if (_inputQuery.IsEmpty)
             return;
@@ -67,12 +72,25 @@ public class PlayerController : MonoBehaviour
         var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         var inputEntity = _inputQuery.GetSingletonEntity();
 
-        entityManager.SetComponentData(inputEntity, new InputData { Value = direction });
+        entityManager.SetComponentData(inputEntity,
+            new InputData
+            {
+                Value = direction,
+                IsInteractPressed = _isInteractPressed
+            });
+
+        _isInteractPressed = false;
     }
 
     private void HandlePauseInput(CallbackContext ctx)
     {
         if (ctx.started)
             GameManager.TogglePause();
+    }
+
+    private void HandleInteractInput(CallbackContext ctx)
+    {
+        if (ctx.started)
+            _isInteractPressed = true;
     }
 }
