@@ -11,6 +11,7 @@ public struct GameState : IComponentData
 public enum EGameState
 {
     Running,
+    Lobby,
     UpgradeSelection,
     Paused,
     GameOver
