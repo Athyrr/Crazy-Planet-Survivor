@@ -21,7 +21,7 @@ namespace _System._Core
 
         public void Awake()
         {
-            _mainSolarRef
+            // _mainSolarRef
         }
 
         public void Update()
