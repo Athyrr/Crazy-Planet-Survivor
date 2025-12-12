@@ -8,7 +8,8 @@ public enum ESpellID : byte
     FrozenZone,
     ShockChain,
     TechHoles,
-    ShockBeam
+    ShockBeam,
+    DraconicVomit
 }
 
 /// <summary>
