@@ -26,7 +26,7 @@ public partial struct EntitiesMovementSystem : ISystem
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
     }
 
-    [BurstCompile]
+    [BurstCompile(OptimizeFor = OptimizeFor.Performance)]
     public void OnUpdate(ref SystemState state)
     {
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
