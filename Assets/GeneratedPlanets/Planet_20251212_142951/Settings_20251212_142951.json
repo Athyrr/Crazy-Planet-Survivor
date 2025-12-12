@@ -1,0 +1,41 @@
+{
+    "baseMeshType": "Cube",
+    "resolution": 2,
+    "planetRadius": 5.0,
+    "cubeSubdivisions": 4,
+    "normalizeCubeVertices": true,
+    "normalMode": "Auto",
+    "invertNormals": false,
+    "seed": {
+        "x": 858.4932861328125,
+        "y": 721.5401611328125,
+        "z": 607.999755859375
+    },
+    "bakeTextureSize": 256,
+    "uvBakeMode": "Spherical",
+    "bakeHeightScale": 1.0,
+    "noiseLayers": [
+        {
+            "name": "Craters",
+            "enabled": true,
+            "noiseType": "Perlin",
+            "amplitude": 0.6299999952316284,
+            "frequency": 2.0399999618530275,
+            "octaves": 3,
+            "persistence": 0.5659999847412109,
+            "lacunarity": 1.7999999523162842,
+            "maskThreshold": 0.20000000298023225
+        },
+        {
+            "name": "Dust",
+            "enabled": true,
+            "noiseType": "Billow",
+            "amplitude": 2.2200000286102297,
+            "frequency": 4.03000020980835,
+            "octaves": 2,
+            "persistence": 0.29899999499320986,
+            "lacunarity": 0.5299999713897705,
+            "maskThreshold": 1.0
+        }
+    ]
+}
