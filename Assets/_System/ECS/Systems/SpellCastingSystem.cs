@@ -244,11 +244,17 @@ public partial struct SpellCastingSystem : ISystem
 
             float3 fireDirection = float3.zero;
 
+            float3 planetCenter = float3.zero;
+            float3 planetSurfaceNormal = math.normalize(targetPosition - planetCenter);
+
+            float3 fallbackForward = math.forward(casterTransform.Rotation);
+            PlanetUtils.ProjectDirectionOnSurface(fallbackForward, planetSurfaceNormal, out var planetTangentForward);
+
             if (spawnOnTarget)
             {
                 spawnPosition = targetPosition;
                 //spawnRotation = quaternion.identity;
-                spawnRotation = TransformLookup.HasComponent(targetEntity) ? TransformLookup[targetEntity].Rotation : quaternion.identity;
+                spawnRotation = TransformLookup.HasComponent(targetEntity) ? TransformLookup[targetEntity].Rotation : quaternion.LookRotationSafe(planetTangentForward, planetSurfaceNormal);
             }
             else
             {
