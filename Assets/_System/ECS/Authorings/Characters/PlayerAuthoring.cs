@@ -4,19 +4,17 @@ using UnityEngine;
 
 public class PlayerAuthoring : MonoBehaviour
 {
-    [Header("Movement precision")]
-    [Tooltip("If true, the player will be snapped perfectyl on the ground following the terrain height. Otherwise, it will follow the base radius.")]
+    [Header("Datas")]
+    [Tooltip("The character's base stats and initial spells.")]
+    public CharacterDataSO CharacterData;
+
+    [Header("Movement Settings")]
+    [Tooltip("If true, the player will be snapped perfectly on the ground following the terrain height.")]
     public bool UseSnappedMovement = true;
 
-    [Header("Stats \n" +
-        "Resistances are value in %.")]
-    public BaseStats BaseStats;
-
-    [Header("Spells")]
-    public SpellDataSO[] InitialSpells;
-
-    [Header("Modifiers")]
-    public StatModifier[] InitialModifers;
+    [Header("Debug")]
+    [Tooltip("Modifiers to apply on spawn (e.g. for testing specific builds).")]
+    public StatModifier[] InitialModifiers;
 
     private class Baker : Baker<PlayerAuthoring>
     {
@@ -24,16 +22,24 @@ public class PlayerAuthoring : MonoBehaviour
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            AddComponent(entity, new Player() { });
+            if (authoring.CharacterData == null)
+            {
+                Debug.LogError($"PlayerAuthoring on {authoring.name} is missing CharacterDataSO!", authoring);
+                return;
+            }
 
+            var baseStats = authoring.CharacterData.BaseStats;
+            var initialSpells = authoring.CharacterData.InitialSpells;
+
+            AddComponent(entity, new Player() { });
             AddComponent(entity, new InputData() { Value = new float2(0, 0) });
 
-            AddComponent(entity, new Health() { Value = authoring.BaseStats.MaxHealth });
+            AddComponent(entity, new Health { Value = baseStats.MaxHealth });
 
-            AddComponent(entity, new LinearMovement()
+            AddComponent(entity, new LinearMovement
             {
                 Direction = float3.zero,
-                Speed = authoring.BaseStats.MoveSpeed
+                Speed = baseStats.MoveSpeed
             });
 
             if (authoring.UseSnappedMovement)
@@ -41,39 +47,63 @@ public class PlayerAuthoring : MonoBehaviour
 
             AddBuffer<DamageBufferElement>(entity);
 
-            AddComponent(entity, authoring.BaseStats);
+            // Base Stats
+            AddComponent<BaseStats>(entity, baseStats);
 
-            AddComponent(entity, new Stats()
+            // Initialize dynamic Stats with base values
+            AddComponent(entity, new Stats
             {
-                MaxHealth = authoring.BaseStats.MaxHealth,
-                MoveSpeed = authoring.BaseStats.MoveSpeed,
-                Damage = authoring.BaseStats.Damage,
-                Armor = authoring.BaseStats.Armor,
-                CooldownReduction = authoring.BaseStats.CooldownReduction
+                MaxHealth = baseStats.MaxHealth,
+                Armor = baseStats.Armor,
+
+                MoveSpeed = baseStats.MoveSpeed,
+
+                Damage = baseStats.Damage,
+                CooldownReduction = baseStats.CooldownReduction,
+
+                ProjectileSpeedMultiplier = baseStats.ProjectileSpeedMultiplier,
+                EffectAreaRadiusMult = baseStats.EffectAreaRadiusMult,
+                BouncesAdded = baseStats.BouncesAdded,
+                PierceAdded = baseStats.PierceAdded,
+
+                FireResistance = baseStats.FireResistance,
+                IceResistance = baseStats.IceResistance,
+                LightningResistance = baseStats.LightningResistance,
+                ArcaneResistance = baseStats.ArcaneResistance,
+
+                CollectRange = baseStats.CollectRange,
+                MaxCollectRange = baseStats.MaxCollectRange
             });
 
-            DynamicBuffer<StatModifier> modifierBuffer = AddBuffer<StatModifier>(entity);
-            foreach (var modifier in authoring.InitialModifers)
-                modifierBuffer.Add(modifier);
-
+            // Stat Modifiers
+            DynamicBuffer<StatModifier> statModifierBuffer = AddBuffer<StatModifier>(entity);
+            if (authoring.InitialModifiers != null && authoring.InitialModifiers.Length > 0)
+            {
+                foreach (var modifier in authoring.InitialModifiers)
+                    statModifierBuffer.Add(modifier);
+            }
+            // Request to reacalultate stats using stat modfiers values.
             AddComponent<RecalculateStatsRequest>(entity);
 
-            DynamicBuffer<ActiveSpell> spellBuffer = AddBuffer<ActiveSpell>(entity);
+            // Spells
+            AddBuffer<ActiveSpell>(entity);
+            DynamicBuffer<SpellActivationRequest> spellActivationBuffer = AddBuffer<SpellActivationRequest>(entity);
 
-            DynamicBuffer<SpellActivationRequest> baseSpellBuffer = AddBuffer<SpellActivationRequest>(entity);
-            foreach (var spellSO in authoring.InitialSpells)
+            if (initialSpells != null)
             {
-                if (spellSO == null || spellSO.SpellPrefab == null)
-                    continue;
-
-                baseSpellBuffer.Add(new SpellActivationRequest
+                foreach (var spellSO in initialSpells)
                 {
-                    ID = spellSO.ID,
-                });
+                    if (spellSO == null || spellSO.SpellPrefab == null)
+                        continue;
+
+                    spellActivationBuffer.Add(new SpellActivationRequest
+                    {
+                        ID = spellSO.ID,
+                    });
+                }
             }
 
             var expBuffer = AddBuffer<CollectedExperienceBufferElement>(entity);
-
             AddComponent(entity, new PlayerExperience()
             {
                 Experience = 0,

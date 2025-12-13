@@ -105,7 +105,7 @@ public partial struct ApplyUpgradeSystem : ISystem
             }
 
             // Clear upgrades selection buffer 
-            ECB.SetBuffer<UpgradeSelectionElement>(chunkIndex, GameStateEntity);
+            ECB.SetBuffer<UpgradeSelectionBufferElement>(chunkIndex, GameStateEntity);
 
             // Destroy ApplyUpgradeRequest
             ECB.DestroyEntity(chunkIndex, requestEntity);

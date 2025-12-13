@@ -1,7 +1,6 @@
-using Unity.Mathematics;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewSpellData", menuName = "Survivor/Spell/Spell Data")]
+[CreateAssetMenu(fileName = "NewSpellData", menuName = "Survivor/Spells/Spell Data")]
 public class SpellDataSO : ScriptableObject
 {
     [Header("General")]

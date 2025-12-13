@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewUpgradeData", menuName = "Survivor/Upgrade/Upgrade Data")]
+[CreateAssetMenu(fileName = "NewUpgradeData", menuName = "Survivor/Upgrades/Upgrade Data")]
 public class UpgradeDataSO : ScriptableObject
 {
     public string DisplayName;
@@ -13,6 +13,8 @@ public class UpgradeDataSO : ScriptableObject
     public EStatID Stat;
     public EStatModiferStrategy ModifierStrategy;
     public float Value;
+
+    //public string Extension = "%";
 
     public ESpellID SpellID;
 }

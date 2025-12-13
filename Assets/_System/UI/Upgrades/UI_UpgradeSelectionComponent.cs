@@ -24,7 +24,7 @@ public class UI_UpgradeSelectionComponent : MonoBehaviour
         _isInitialized = true;
     }
 
-    public void DisplaySelection(DynamicBuffer<UpgradeSelectionElement> selection)
+    public void DisplaySelection(DynamicBuffer<UpgradeSelectionBufferElement> selection)
     {
         InitDatabase();
         ClearSelection();

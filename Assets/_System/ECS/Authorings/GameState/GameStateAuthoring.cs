@@ -14,7 +14,7 @@ public class GameStateAuthoring : MonoBehaviour
             AddComponent(entity, new GameState { State = authoring.InitialState });
 
             // Store upgrade selection 
-            AddBuffer<UpgradeSelectionElement>(entity);
+            AddBuffer<UpgradeSelectionBufferElement>(entity);
         }
     }
 }

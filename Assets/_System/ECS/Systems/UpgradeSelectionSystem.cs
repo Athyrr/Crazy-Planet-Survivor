@@ -67,7 +67,7 @@ public partial struct UpgradeSelectionSystem : ISystem
             int upgradesChoicesCount = 3;
 
             // Clear buffer
-            ECB.SetBuffer<UpgradeSelectionElement>(GameStateEntity);
+            ECB.SetBuffer<UpgradeSelectionBufferElement>(GameStateEntity);
 
             // Set upgrades selection
             for (int i = 0; i < upgradesChoicesCount; i++)
@@ -75,14 +75,14 @@ public partial struct UpgradeSelectionSystem : ISystem
                 int index = random.NextInt(0, upgradesDatabaseLength);
                 ref var upgrade = ref upgradesDatabase[index];
 
-                ECB.AppendToBuffer<UpgradeSelectionElement>(GameStateEntity, new UpgradeSelectionElement()
+                ECB.AppendToBuffer<UpgradeSelectionBufferElement>(GameStateEntity, new UpgradeSelectionBufferElement()
                 {
                     DatabaseIndex = index
                 });
             }
 
             // Add display upgrades flag 
-            ECB.AddComponent<DisplayUpgradesFlag>(GameStateEntity);
+            ECB.AddComponent<UI_DisplayUpgradesFlag>(GameStateEntity);
 
             // Remove player lvl up flag
             ECB.RemoveComponent<PlayerLevelUpFlag>(PlayerEntity);

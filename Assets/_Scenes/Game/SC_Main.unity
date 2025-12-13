@@ -661,6 +661,7 @@ MonoBehaviour:
   UpgradesPanel: {fileID: 1012958783}
   PausePanel: {fileID: 2087372309}
   GameOverPanel: {fileID: 1408586701}
+  PlayerCanvas: {fileID: 1649947671}
   UpgradeSelectionUI: {fileID: 1012958785}
   SpacePressed: 0
 --- !u!4 &854452524
@@ -2330,9 +2331,9 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_UI_CharacterSelection
       objectReference: {fileID: 0}
-    - target: {fileID: 2541109229880968110, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
+    - target: {fileID: 4865087432880263553, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5731547888391538143, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: m_Pivot.x

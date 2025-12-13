@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "UpgradeDatabase", menuName = "Survivor/Upgrade/Upgrade Database")]
+[CreateAssetMenu(fileName = "UpgradesDatabase", menuName = "Survivor/Databases/Upgrades")]
 public class UpgradesDatabaseSO : ScriptableObject
 {
     public UpgradeDataSO[] Upgrades;

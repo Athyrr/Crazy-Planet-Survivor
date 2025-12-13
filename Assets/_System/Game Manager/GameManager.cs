@@ -7,7 +7,9 @@ public class GameManager : MonoBehaviour
     public GameObject PausePanel;
     public GameObject GameOverPanel;
 
-    public UpgradeSelectionComponent UpgradeSelectionUI;
+    public GameObject PlayerCanvas;
+
+    public UI_UpgradeSelectionComponent UpgradeSelectionUI;
 
     private EntityManager _entityManager;
     private EntityQuery _gameStateQuery;
@@ -27,7 +29,7 @@ public class GameManager : MonoBehaviour
 
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _playerHealthQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Health));
-        _displayUpgradeFlagQuery = _entityManager.CreateEntityQuery(typeof(GameState), typeof(DisplayUpgradesFlag));
+        _displayUpgradeFlagQuery = _entityManager.CreateEntityQuery(typeof(GameState), typeof(UI_DisplayUpgradesFlag));
     }
 
     private void Update()
@@ -49,6 +51,9 @@ public class GameManager : MonoBehaviour
                 break;
 
             default:
+            case EGameState.Lobby:
+                PlayerCanvas.SetActive(false);
+
                 break;
         }
 
@@ -57,15 +62,13 @@ public class GameManager : MonoBehaviour
 
     private void HandleRunningState(Entity gameStateEntity)
     {
-        // If upgrades buffer is fullfiled.
-        // @todo handle request instead
         if (!_displayUpgradeFlagQuery.IsEmpty)
         {
-            var buffer = _entityManager.GetBuffer<UpgradeSelectionElement>(gameStateEntity, true);
+            var buffer = _entityManager.GetBuffer<UpgradeSelectionBufferElement>(gameStateEntity, true);
             UpgradeSelectionUI.DisplaySelection(buffer);
 
             ChangeState(gameStateEntity, EGameState.UpgradeSelection);
-            _entityManager.RemoveComponent<DisplayUpgradesFlag>(gameStateEntity);
+            _entityManager.RemoveComponent<UI_DisplayUpgradesFlag>(gameStateEntity);
             return;
         }
 
@@ -95,6 +98,7 @@ public class GameManager : MonoBehaviour
         {
             case EGameState.Running:
                 //Time.timeScale = 1f;
+                PlayerCanvas.SetActive(true);
                 UpgradesPanel.SetActive(false);
                 PausePanel.SetActive(false);
                 GameOverPanel.SetActive(false);
@@ -120,6 +124,7 @@ public class GameManager : MonoBehaviour
                 break;
 
             default:
+                PlayerCanvas.SetActive(false);
                 UpgradesPanel.SetActive(false);
                 PausePanel.SetActive(false);
                 GameOverPanel.SetActive(false);

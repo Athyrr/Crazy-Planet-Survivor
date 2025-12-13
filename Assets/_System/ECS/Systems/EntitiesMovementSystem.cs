@@ -32,7 +32,7 @@ public partial struct EntitiesMovementSystem : ISystem
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
             return;
 
-        if (gameState.State != EGameState.Running)
+        if (gameState.State != EGameState.Running && gameState.State != EGameState.Lobby)
             return;
 
         if (!SystemAPI.TryGetSingletonEntity<PlanetData>(out Entity planetEntity))

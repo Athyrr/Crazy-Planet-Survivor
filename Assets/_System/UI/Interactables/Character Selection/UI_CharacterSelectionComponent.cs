@@ -42,7 +42,6 @@ public class UI_CharacterSelectionComponent : MonoBehaviour
         if (!MainPanel.activeSelf && !_displayMenuQuery.IsEmpty)
         {
             OpenMenu();
-
             _entityManager.DestroyEntity(_displayMenuQuery);
         }
     }
@@ -86,14 +85,8 @@ public class UI_CharacterSelectionComponent : MonoBehaviour
 
     public void RefreshUI(CharacterDataSO data)
     {
-        // On met à jour les stats affichées à droite
-        // (Supposons que vos composants UI ont ces méthodes)
-        // SelectedCharacterContainerUI.SetVisuals(data.Prefab); // Ou une image preview
-        // SelectedCharacterStatsContainerUI.DisplayStats(data.BaseStats);
-
         Debug.Log($"UI: Selected {data.DisplayName}");
     }
-
 
     /// <summary>
     /// Selects the character to play with.
