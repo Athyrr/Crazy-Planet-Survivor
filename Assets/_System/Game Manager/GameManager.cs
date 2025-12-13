@@ -127,6 +127,12 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public void ChangeState(EGameState newState)
+    {
+        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
+        ChangeState(gameStateEntity, newState);
+    } 
+
     public void TogglePause()
     {
         var gameStateEntity = _gameStateQuery.GetSingletonEntity();
