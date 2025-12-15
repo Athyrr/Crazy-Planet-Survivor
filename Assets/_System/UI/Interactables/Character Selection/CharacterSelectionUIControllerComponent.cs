@@ -22,7 +22,7 @@ public class CharacterSelectionUIControllerComponent : MonoBehaviour
     private EntityManager _entityManager;
     private EntityQuery _openMenuQuery;
 
-    private int _currentSelectedCharacterIndex = -1;
+    private int _currentSelectedCharacterIndex = 0;
 
     private void Awake()
     {
@@ -37,6 +37,8 @@ public class CharacterSelectionUIControllerComponent : MonoBehaviour
 
         _openMenuQuery = _entityManager.CreateEntityQuery(typeof(OpenCharactersMenuRequest));
         CharacterSelectionPanel.SetActive(false);
+
+        _currentSelectedCharacterIndex = 0;
     }
 
     private void Update()
@@ -64,7 +66,7 @@ public class CharacterSelectionUIControllerComponent : MonoBehaviour
         _gameManager.ChangeState(EGameState.CharacterSelection);
 
         CharacterListView.RefreshCharacters();
-        PreviewCharacter(0); //@todo refresh the last selected character
+        PreviewCharacter(_currentSelectedCharacterIndex);
     }
 
     public void CloseMenu()

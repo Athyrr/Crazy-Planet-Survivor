@@ -1,6 +1,4 @@
-using System;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 
 /// <summary>
@@ -10,17 +8,22 @@ public class CharacterDetailView : MonoBehaviour
 {
     [Header("UI Elements")]
 
-    //public GameObject CharacterPrefab;
+    public Transform CharacterPreviewContainer;
     public TMP_Text CharacterNameText;
     public TMP_Text CharacterDescriptionText;
 
     public void Refresh(CharacterDataSO data)
     {
-        if (data == null) 
+        if (data == null)
             return;
 
-    
-        //@todo display character model
+        if (data.UIPrefab != null && CharacterPreviewContainer != null)
+        {
+            foreach (Transform child in CharacterPreviewContainer.transform)
+                GameObject.Destroy(child.gameObject);
+
+          var characterObject = GameObject.Instantiate(data.UIPrefab, CharacterPreviewContainer.transform);
+        }
 
         if (CharacterNameText != null)
             CharacterNameText.text = data.DisplayName;

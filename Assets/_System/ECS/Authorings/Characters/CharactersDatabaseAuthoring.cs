@@ -29,7 +29,7 @@ public class CharactersDatabaseAuthoring : MonoBehaviour
                     Debug.LogError($"Character prefab for character: {character.name} is missing in database asset!", authoring);
                     continue;
                 }
-                var characterPrefabEntity = GetEntity(character.Prefab, TransformUsageFlags.Dynamic);
+                var characterPrefabEntity = GetEntity(character.GamePrefab, TransformUsageFlags.Dynamic);
 
                 prefabsBuffer.Add(new CharacterPrefabBufferElement()
                 {

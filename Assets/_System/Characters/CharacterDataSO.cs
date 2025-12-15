@@ -13,12 +13,22 @@ public class CharacterDataSO : ScriptableObject
     [Tooltip("Description displayed in the UI.")]
     public string Description;
 
+
+    [Header("UI")]
+
     [Tooltip("Icon displayed in the UI.")]
     public Sprite Icon = null;
 
     [SerializeField]
-    [Tooltip(tooltip: "The GameObject prefab that will be baked into an Entity. Must have Authoring components.")]
-    public GameObject Prefab;
+    [Tooltip("The GameObject prefab that will be used for UI. Only renderer")]
+    public GameObject UIPrefab;
+
+
+    [Header("Game")]
+
+    [SerializeField]
+    [Tooltip("The GameObject prefab that will be baked into an Entity. Must have Authoring components.")]
+    public GameObject GamePrefab;
 
 
     [Header("Spells")]
