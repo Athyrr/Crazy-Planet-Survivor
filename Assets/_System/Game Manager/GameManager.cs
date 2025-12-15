@@ -14,7 +14,7 @@ public class GameManager : MonoBehaviour
     private EntityManager _entityManager;
     private EntityQuery _gameStateQuery;
     private EntityQuery _playerHealthQuery;
-    private EntityQuery _displayUpgradeFlagQuery;
+    private EntityQuery _openUpgradesRequestQuery;
 
     public bool SpacePressed;
 
@@ -29,7 +29,7 @@ public class GameManager : MonoBehaviour
 
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _playerHealthQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Health));
-        _displayUpgradeFlagQuery = _entityManager.CreateEntityQuery(typeof(GameState), typeof(UI_DisplayUpgradesFlag));
+        _openUpgradesRequestQuery = _entityManager.CreateEntityQuery(typeof(GameState), typeof(OpenUpgradesSelectionMenuRequest));
     }
 
     private void Update()
@@ -62,13 +62,13 @@ public class GameManager : MonoBehaviour
 
     private void HandleRunningState(Entity gameStateEntity)
     {
-        if (!_displayUpgradeFlagQuery.IsEmpty)
+        if (!_openUpgradesRequestQuery.IsEmpty)
         {
             var buffer = _entityManager.GetBuffer<UpgradeSelectionBufferElement>(gameStateEntity, true);
             UpgradeSelectionUI.DisplaySelection(buffer);
 
             ChangeState(gameStateEntity, EGameState.UpgradeSelection);
-            _entityManager.RemoveComponent<UI_DisplayUpgradesFlag>(gameStateEntity);
+            _entityManager.RemoveComponent<OpenUpgradesSelectionMenuRequest>(gameStateEntity);
             return;
         }
 

@@ -18,14 +18,14 @@ public partial struct UpgradeSelectionSystem : ISystem
     {
         state.RequireForUpdate<UpgradesDatabase>();
         state.RequireForUpdate<GameState>();
-        state.RequireForUpdate<PlayerLevelUpFlag>();
+        state.RequireForUpdate<PlayerLevelUpRequest>();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
-        if (!SystemAPI.HasComponent<PlayerLevelUpFlag>(playerEntity))
+        if (!SystemAPI.HasComponent<PlayerLevelUpRequest>(playerEntity))
             return;
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
@@ -82,10 +82,10 @@ public partial struct UpgradeSelectionSystem : ISystem
             }
 
             // Add display upgrades flag 
-            ECB.AddComponent<UI_DisplayUpgradesFlag>(GameStateEntity);
+            ECB.AddComponent<OpenUpgradesSelectionMenuRequest>(GameStateEntity);
 
-            // Remove player lvl up flag
-            ECB.RemoveComponent<PlayerLevelUpFlag>(PlayerEntity);
+            // Remove player lvl up request
+            ECB.RemoveComponent<PlayerLevelUpRequest>(PlayerEntity);
         }
     }
 }

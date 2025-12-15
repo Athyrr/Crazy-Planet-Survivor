@@ -76,7 +76,7 @@ public partial struct LobbyInteractionSystem : ISystem
                 //ecb.AddComponent<UI_DisplayShopMenuRequest>(eventEntity);
                 break;
             case EInteractionType.CharacterSelection:
-                ecb.AddComponent<DisplayCharacterSelectionMenuRequest>(eventEntity);
+                ecb.AddComponent<OpenCharactersMenuRequest>(eventEntity);
                 break;
             case EInteractionType.TrinketSelection:
                 //ecb.AddComponent<UI_DisplaytrinketSelectionMenuRequest>(eventEntity);

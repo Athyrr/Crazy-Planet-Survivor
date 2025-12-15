@@ -14,8 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CharacterDataSO
   DisplayName: Hunter
   Description: 
+  Icon: {fileID: 0}
   Prefab: {fileID: 5342180323788850383, guid: e72517f9b2f62d241a83ebc819c9f092, type: 3}
-  InitialSpells: []
+  InitialSpells:
+  - {fileID: 11400000, guid: 8938cdea3267e02449c0f0ea1beae59b, type: 2}
   BaseStats:
     MaxHealth: 200
     Armor: 15
