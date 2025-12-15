@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// Represents le selected character prview container
 /// </summary>
-public class CharacterDetailView : MonoBehaviour
+public class CharacterDetailViewComponent : MonoBehaviour
 {
     [Header("UI Elements")]
 

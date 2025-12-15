@@ -15,8 +15,8 @@ public class CharacterSelectionUIControllerComponent : MonoBehaviour
     public GameObject CharacterSelectionPanel;
 
     public CharacterListView CharacterListView;
-    public CharacterDetailView CharacterDetailView;
-    public CharacterStatsView CharacterStatsView;
+    public CharacterDetailViewComponent CharacterDetailView;
+    public CharacterStatsViewComponent CharacterStatsView;
 
     private GameManager _gameManager;
     private EntityManager _entityManager;

@@ -10,6 +10,9 @@ public class CharacterListView : MonoBehaviour
     [SerializeField]
     private CharacterListItem _characterUIPrefab;
 
+    [SerializeField]
+    private Transform _characterListContainer;
+
     private CharactersDatabaseSO _characterDatabase;
     private List<CharacterListItem> _characterList = new();
     private CharacterSelectionUIControllerComponent _controller;
@@ -38,7 +41,7 @@ public class CharacterListView : MonoBehaviour
         for (int i = 0; i < _characterDatabase.Characters.Length; i++)
         {
             var characterData = _characterDatabase.Characters[i];
-            CharacterListItem characterListItem = Instantiate(_characterUIPrefab, this.transform);
+            CharacterListItem characterListItem = Instantiate(_characterUIPrefab, _characterListContainer);
             characterListItem.Init(_controller, i, characterData);
             _characterList.Add(characterListItem);
         }

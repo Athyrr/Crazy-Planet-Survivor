@@ -5,7 +5,7 @@ using TMPro;
 /// <summary>
 /// Represents the section that display the selected character base stats.
 /// </summary>
-public class CharacterStatsView : MonoBehaviour
+public class CharacterStatsViewComponent : MonoBehaviour
 {
     [Header("Stats Texts")]
 
@@ -21,4 +21,6 @@ public class CharacterStatsView : MonoBehaviour
     {
 
     }
+
+    //@todo instancier les UI STats Item plutot
 }
