@@ -59,10 +59,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d86092b6205b6b841943d1cfe3b0fe65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UI_CharacterSelection_Stats
-  HealthText: {fileID: 0}
-  DamageText: {fileID: 0}
-  SpeedText: {fileID: 0}
-  ArmorText: {fileID: 0}
+  StatItemPrefab: {fileID: 0}
+  StatsItemsContainer: {fileID: 0}
   SpellIcon: {fileID: 0}
 --- !u!1 &944784356084540258
 GameObject:
@@ -322,7 +320,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UI_CharacterSelection_CharactersContainer
   _characterUIPrefab: {fileID: -6539993168767564977, guid: 511d3787655b6644b9242d23cc32fd88, type: 3}
-  _characterListContainer: {fileID: 0}
+  _characterListContainer: {fileID: 5037408872494746253}
 --- !u!1 &2541109229880968110
 GameObject:
   m_ObjectHideFlags: 0

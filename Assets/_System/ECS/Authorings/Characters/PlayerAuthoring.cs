@@ -62,7 +62,7 @@ public class PlayerAuthoring : MonoBehaviour
                 CooldownReduction = baseStats.CooldownReduction,
 
                 ProjectileSpeedMultiplier = baseStats.ProjectileSpeedMultiplier,
-                EffectAreaRadiusMult = baseStats.EffectAreaRadiusMult,
+                EffectAreaRadiusMult = baseStats.EffectAreaRadiusMultiplier,
                 BouncesAdded = baseStats.BouncesAdded,
                 PierceAdded = baseStats.PierceAdded,
 

@@ -68,7 +68,7 @@ public struct BaseStats : IComponentData
     public float ProjectileSpeedMultiplier;
 
     [Tooltip("Multiplier applied to the radius of Area of Effect spells.")]
-    public float EffectAreaRadiusMult;
+    public float EffectAreaRadiusMultiplier;
 
     [Tooltip("Number of additional bounces for ricochet projectiles.")]
     public int BouncesAdded;
