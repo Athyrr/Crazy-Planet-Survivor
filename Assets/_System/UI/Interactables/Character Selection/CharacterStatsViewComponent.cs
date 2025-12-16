@@ -29,10 +29,15 @@ public class CharacterStatsViewComponent : MonoBehaviour
 
         foreach (FieldInfo field in fields)
         {
-            var fieldObjectValue = field.GetValue(stats);
-            string fieldValue = fieldObjectValue.ToString();
+            var attr = field.GetCustomAttribute<UIStatAttribute>();
 
-            CreateStatRow(field.Name, fieldValue);
+            if (attr == null) 
+                continue;
+
+            object rawValue = field.GetValue(stats);
+            string displayValue = string.Format(attr.Format, rawValue);
+
+            CreateStatRow(attr.DisplayName, displayValue);
         }
     }
 
