@@ -33,7 +33,7 @@ namespace _System._Core
                 );
 
                 var inst = Instantiate(OutlineFeedback);
-                inst.transform.localScale = Vector3.one * (planet.orbitDist * 60f);
+                inst.transform.localScale = Vector3.one * (planet.orbitDist * 65f);
                 
                 planet.planetRef.transform.position = _lt.position + offset;
             }

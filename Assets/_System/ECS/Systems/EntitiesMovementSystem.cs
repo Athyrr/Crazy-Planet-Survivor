@@ -229,7 +229,7 @@ public partial struct EntitiesMovementSystem : ISystem
             {
                 PlanetUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out var n);
                 PlanetUtils.GetRotationOnSurface(in tangentDirection, in n, out quaternion rotation);
-                transform.Rotation = rotation;
+                transform.Rotation = quaternion.identity;
             }
         }
     }
@@ -249,55 +249,85 @@ public partial struct EntitiesMovementSystem : ISystem
         [NativeDisableContainerSafetyRestriction]
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
 
-        private const float SNAP_DISTANCE = 10.0f;
+        private const float SNAP_DISTANCE = 1000.0f;
 
         public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
         {
+            // 1. Validate Target
             if (movement.Target == Entity.Null || !TransformLookup.HasComponent(movement.Target))
                 return;
 
             float3 targetPosition = TransformLookup[movement.Target].Position;
-
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
 
+            // 2. Get Current Surface Normal (for movement calculation)
             float3 currentNormal;
             if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, transform.Position, PlanetCenter,
-                    new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape }, // Votre nouveau filtre est bon
+                    new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape }, 
                     SNAP_DISTANCE, out Unity.Physics.RaycastHit currentHit))
-            { currentNormal = currentHit.SurfaceNormal; }
-            else { currentNormal = math.normalize(transform.Position - PlanetCenter); }
+            {
+                currentNormal = currentHit.SurfaceNormal; 
+            }
+            else 
+            { 
+                currentNormal = math.normalize(transform.Position - PlanetCenter); 
+            }
 
+            // 3. Calculate Movement Direction (Tangent to surface)
             float3 directionToPlayer = targetPosition - transform.Position;
             PlanetUtils.ProjectDirectionOnSurface(in directionToPlayer, in currentNormal, out float3 tangentDirection);
 
+            // Apply Steering
             float3 steeringForce = float3.zero;
             if (SteeringLookup.HasComponent(entity))
                 steeringForce = SteeringLookup[entity].Value;
 
-            // Combine direction with steering
             float3 finalDirection = tangentDirection + steeringForce;
 
+            // Prevent zero-vector errors
             if (math.lengthsq(finalDirection) < 0.001f)
                 finalDirection = transform.Forward();
 
-            // Calculate new position
+            // 4. Calculate Proposed Position
             float3 newPosition = transform.Position + finalDirection * (speed * DeltaTime);
 
-            // Snap to surface
+            // 5. Final Snap & Rotation Logic
             if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, newPosition, PlanetCenter,
                             new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape },
                             SNAP_DISTANCE, out Unity.Physics.RaycastHit hit))
             {
+                // A. Update Position
                 transform.Position = hit.Position;
-                var n = hit.SurfaceNormal;
+                float3 surfaceNormal = hit.SurfaceNormal; // This is our new "Up"
 
-                // Rotate to face movement direction
-                PlanetUtils.GetRotationOnSurface(in directionToPlayer, in n, out quaternion rotation);
-                transform.Rotation = rotation;
+                // B. Calculate Look Direction (Projected onto the NEW surface normal)
+                // We use (target - hit.Position) to get the most accurate vector from the new spot
+                float3 rawDirectionToTarget = targetPosition - hit.Position;
+                
+                // Project raw direction onto the surface plane so 'forward' is truly tangent
+                // Formula: vector - (vector . normal) * normal
+                float3 projectedForward = math.normalize(rawDirectionToTarget - math.dot(rawDirectionToTarget, surfaceNormal) * surfaceNormal);
+
+                // C. Base Rotation: Look at player (Forward), Align with Planet (Up)
+                quaternion planetAlignment = quaternion.LookRotationSafe(projectedForward, surfaceNormal);
+
+                // D. Model Correction (Fixing the "Planking")
+                // Pitch 90 stands it up. Yaw 0 makes it face the look direction.
+                // If they face sideways, change yawFix to 90f or -90f.
+                float pitchFix = 90f; 
+                float yawFix   = 0f;  
+                float rollFix  = 0f;
+
+                quaternion modelOffset = quaternion.Euler(math.radians(pitchFix), math.radians(yawFix), math.radians(rollFix));
+
+                // E. Apply Rotation
+                transform.Rotation = math.mul(planetAlignment, modelOffset);
             }
             else
             {
+                // Fallback if raycast misses (e.g. flying or hole in world)
                 transform.Position = newPosition;
+                // Optional: You might want to keep the old rotation or align to gravity here
             }
         }
     }

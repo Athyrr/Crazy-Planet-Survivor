@@ -152,7 +152,7 @@ public static partial class PlanetUtils
         float3 rayStart = position + normal * startRayHeight;
 
         // End ray below the position
-        float3 rayEnd = position - normal * startRayHeight;
+        float3 rayEnd = planetCenter;
 
         var rayInput = new RaycastInput
         {
