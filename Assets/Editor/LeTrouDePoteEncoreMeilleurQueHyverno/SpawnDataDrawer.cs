@@ -66,10 +66,27 @@ public class SpawnDataDrawer : PropertyDrawer
         }
         else if (IsMode(modeProp, "AroundPlayer"))
         {
+            EditorGUI.BeginChangeCheck();
             EditorGUI.PropertyField(rect, minRangeProp);
+            if (EditorGUI.EndChangeCheck())
+            {
+                if (minRangeProp.floatValue > maxRangeProp.floatValue)
+                {
+                    maxRangeProp.floatValue = minRangeProp.floatValue;
+                }
+            }
+
             rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
+            EditorGUI.BeginChangeCheck();
             EditorGUI.PropertyField(rect, maxRangeProp);
+            if (EditorGUI.EndChangeCheck())
+            {
+                if (maxRangeProp.floatValue < minRangeProp.floatValue)
+                {
+                    minRangeProp.floatValue = maxRangeProp.floatValue;
+                }
+            }
         }
 
         EditorGUI.EndProperty();
