@@ -13,6 +13,7 @@ public enum EGameState
     Running,
     Lobby,
     UpgradeSelection,
+    CharacterSelection,
     Paused,
     GameOver
 }

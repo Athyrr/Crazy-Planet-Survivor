@@ -1,6 +1,5 @@
 using Unity.Burst;
 using Unity.Entities;
-using Unity.Mathematics;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -55,7 +54,7 @@ public partial struct PlayerProgressionSystem : ISystem
                 float nextLevelExperience = experience.NextLevelExperienceRequired + (experience.NextLevelExperienceRequired * experience.Level * 0.2f);
                 experience.NextLevelExperienceRequired = (int)nextLevelExperience;
 
-                ECB.AddComponent(chunkIndex, entity, new PlayerLevelUpFlag() { });
+                ECB.AddComponent(chunkIndex, entity, new PlayerLevelUpRequest() { });
             }
         }
     }

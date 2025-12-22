@@ -1,0 +1,88 @@
+Begin Object Class=/Script/Engine.Blueprint Name="RatAssassin_BP" ExportPath="/Script/Engine.Blueprint'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP'"
+   Begin Object Class=/Script/Engine.EdGraph Name="EventGraph" ExportPath="/Script/Engine.EdGraph'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:EventGraph'"
+      Begin Object Class=/Script/BlueprintGraph.K2Node_Event Name="K2Node_Event_0" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:EventGraph.K2Node_Event_0'"
+      End Object
+      Begin Object Class=/Script/BlueprintGraph.K2Node_Event Name="K2Node_Event_1" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:EventGraph.K2Node_Event_1'"
+      End Object
+      Begin Object Class=/Script/BlueprintGraph.K2Node_Event Name="K2Node_Event_2" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:EventGraph.K2Node_Event_2'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.EdGraph Name="UserConstructionScript" ExportPath="/Script/Engine.EdGraph'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:UserConstructionScript'"
+      Begin Object Class=/Script/BlueprintGraph.K2Node_FunctionEntry Name="K2Node_FunctionEntry_0" ExportPath="/Script/BlueprintGraph.K2Node_FunctionEntry'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:UserConstructionScript.K2Node_FunctionEntry_0'"
+      End Object
+   End Object
+   Begin Object Class=/Script/UnrealEd.SceneThumbnailInfo Name="SceneThumbnailInfo_0" ExportPath="/Script/UnrealEd.SceneThumbnailInfo'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:SceneThumbnailInfo_0'"
+   End Object
+   Begin Object Name="EventGraph" ExportPath="/Script/Engine.EdGraph'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:EventGraph'"
+      Begin Object Name="K2Node_Event_0" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:EventGraph.K2Node_Event_0'"
+         EventReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveBeginPlay")
+         bOverrideFunction=True
+         EnabledState=Disabled
+         bCommentBubblePinned=True
+         bCommentBubbleVisible=True
+         NodeComment="This node is disabled and will not be called.\nDrag off pins to build functionality."
+         NodeGuid=9FE940CB46F3A2B16591EBB35DB620C0
+         CustomProperties Pin (PinId=22CE68034570731B87D06AB2C0A28A2B,PinName="OutputDelegate",Direction="EGPD_Output",PinType.PinCategory="delegate",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveBeginPlay"),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+         CustomProperties Pin (PinId=CE43A86E4CDF44E19379818CE94FF84B,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+      End Object
+      Begin Object Name="K2Node_Event_1" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:EventGraph.K2Node_Event_1'"
+         EventReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveActorBeginOverlap")
+         bOverrideFunction=True
+         NodePosY=200
+         EnabledState=Disabled
+         bCommentBubblePinned=True
+         bCommentBubbleVisible=True
+         NodeComment="This node is disabled and will not be called.\nDrag off pins to build functionality."
+         NodeGuid=D4E865714857D627FB8675AE32FDBF88
+         CustomProperties Pin (PinId=0DB4D5B3466F2EA0CF1C9CB7B540CDF2,PinName="OutputDelegate",Direction="EGPD_Output",PinType.PinCategory="delegate",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveActorBeginOverlap"),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+         CustomProperties Pin (PinId=87FEEF2B49F33FF06E8B74BCC67ABF17,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+         CustomProperties Pin (PinId=7E7BDACC428BCFD07C53EF922573E68D,PinName="OtherActor",PinToolTip="Other Actor\nActor Object Reference",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject="/Script/CoreUObject.Class'/Script/Engine.Actor'",PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+      End Object
+      Begin Object Name="K2Node_Event_2" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:EventGraph.K2Node_Event_2'"
+         EventReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveTick")
+         bOverrideFunction=True
+         NodePosY=400
+         EnabledState=Disabled
+         bCommentBubblePinned=True
+         bCommentBubbleVisible=True
+         NodeComment="This node is disabled and will not be called.\nDrag off pins to build functionality."
+         NodeGuid=1DD1634D498769E012395C855F5FF7C2
+         CustomProperties Pin (PinId=6FD8259D4D0A520A909D01A793D9F227,PinName="OutputDelegate",Direction="EGPD_Output",PinType.PinCategory="delegate",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveTick"),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+         CustomProperties Pin (PinId=EF6A2C6146592A1A2766BA8DE156C7FD,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+         CustomProperties Pin (PinId=3EF43F3D4F7D5C1085FF8BA2AE96BE33,PinName="DeltaSeconds",PinToolTip="Delta Seconds\nFloat (single-precision)",Direction="EGPD_Output",PinType.PinCategory="real",PinType.PinSubCategory="float",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,DefaultValue="0.0",AutogeneratedDefaultValue="0.0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+      End Object
+      Schema="/Script/CoreUObject.Class'/Script/BlueprintGraph.EdGraphSchema_K2'"
+      Nodes(0)="/Script/BlueprintGraph.K2Node_Event'K2Node_Event_0'"
+      Nodes(1)="/Script/BlueprintGraph.K2Node_Event'K2Node_Event_1'"
+      Nodes(2)="/Script/BlueprintGraph.K2Node_Event'K2Node_Event_2'"
+      bAllowDeletion=False
+      GraphGuid=B5CEA43D48AFDB3A7B539BA162867EAF
+   End Object
+   Begin Object Name="UserConstructionScript" ExportPath="/Script/Engine.EdGraph'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:UserConstructionScript'"
+      Begin Object Name="K2Node_FunctionEntry_0" ExportPath="/Script/BlueprintGraph.K2Node_FunctionEntry'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:UserConstructionScript.K2Node_FunctionEntry_0'"
+         FunctionReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="UserConstructionScript")
+         NodeGuid=2A073D2840598AFFC198F6AB26B3964A
+         CustomProperties Pin (PinId=6E2A7EF8432FFAA7467C889046861AAD,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+      End Object
+      Schema="/Script/CoreUObject.Class'/Script/BlueprintGraph.EdGraphSchema_K2'"
+      Nodes(0)="/Script/BlueprintGraph.K2Node_FunctionEntry'K2Node_FunctionEntry_0'"
+      bAllowDeletion=False
+      GraphGuid=C79A136348BC72ADC917D99E96169FAF
+   End Object
+   Begin Object Name="SceneThumbnailInfo_0" ExportPath="/Script/UnrealEd.SceneThumbnailInfo'/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:SceneThumbnailInfo_0'"
+   End Object
+   ParentClass="/Script/CoreUObject.Class'/Script/Engine.SkeletalMeshActor'"
+   BlueprintSystemVersion=2
+   SimpleConstructionScript="/Script/Engine.SimpleConstructionScript'RatAssassin_BP_C:SimpleConstructionScript_0'"
+   UbergraphPages(0)="/Script/Engine.EdGraph'EventGraph'"
+   FunctionGraphs(0)="/Script/Engine.EdGraph'UserConstructionScript'"
+   CategorySorting(0)="Default"
+   CategorySorting(1)=""
+   CategorySorting(2)="Event Graph"
+   LastEditedDocuments(0)=(EditedObjectPath="/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:UserConstructionScript",SavedZoomAmount=1.000000)
+   LastEditedDocuments(1)=(EditedObjectPath="/Game/MonsterForEnemyBundlePBR/Wave02/Mesh/RatAssassin/RatAssassin_BP.RatAssassin_BP:EventGraph",SavedZoomAmount=1.000000)
+   ThumbnailInfo="/Script/UnrealEd.SceneThumbnailInfo'SceneThumbnailInfo_0'"
+   GeneratedClass="/Script/Engine.BlueprintGeneratedClass'RatAssassin_BP_C'"
+   bLegacyNeedToPurgeSkelRefs=False
+   BlueprintGuid=0EAF964242B0DFF688D28D9A18DD4172
+End Object

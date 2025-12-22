@@ -52,7 +52,7 @@ public partial struct StatsCalculationSystem : ISystem
             stats.Armor = baseStats.Armor;
             stats.FireResistance = baseStats.FireResistance;
             stats.CooldownReduction = baseStats.CooldownReduction;
-            stats.EffectAreaRadiusMult = baseStats.EffectAreaRadiusMult;
+            stats.EffectAreaRadiusMult = baseStats.EffectAreaRadiusMultiplier;
             stats.CollectRange = baseStats.CollectRange;
 
 

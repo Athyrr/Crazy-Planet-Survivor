@@ -1,0 +1,88 @@
+Begin Object Class=/Script/Engine.Blueprint Name="NagaWizard_BP" ExportPath="/Script/Engine.Blueprint'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP'"
+   Begin Object Class=/Script/Engine.EdGraph Name="EventGraph" ExportPath="/Script/Engine.EdGraph'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:EventGraph'"
+      Begin Object Class=/Script/BlueprintGraph.K2Node_Event Name="K2Node_Event_0" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:EventGraph.K2Node_Event_0'"
+      End Object
+      Begin Object Class=/Script/BlueprintGraph.K2Node_Event Name="K2Node_Event_1" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:EventGraph.K2Node_Event_1'"
+      End Object
+      Begin Object Class=/Script/BlueprintGraph.K2Node_Event Name="K2Node_Event_2" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:EventGraph.K2Node_Event_2'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.EdGraph Name="UserConstructionScript" ExportPath="/Script/Engine.EdGraph'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:UserConstructionScript'"
+      Begin Object Class=/Script/BlueprintGraph.K2Node_FunctionEntry Name="K2Node_FunctionEntry_0" ExportPath="/Script/BlueprintGraph.K2Node_FunctionEntry'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:UserConstructionScript.K2Node_FunctionEntry_0'"
+      End Object
+   End Object
+   Begin Object Class=/Script/UnrealEd.SceneThumbnailInfo Name="SceneThumbnailInfo_0" ExportPath="/Script/UnrealEd.SceneThumbnailInfo'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:SceneThumbnailInfo_0'"
+   End Object
+   Begin Object Name="EventGraph" ExportPath="/Script/Engine.EdGraph'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:EventGraph'"
+      Begin Object Name="K2Node_Event_0" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:EventGraph.K2Node_Event_0'"
+         EventReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveBeginPlay")
+         bOverrideFunction=True
+         EnabledState=Disabled
+         bCommentBubblePinned=True
+         bCommentBubbleVisible=True
+         NodeComment="This node is disabled and will not be called.\nDrag off pins to build functionality."
+         NodeGuid=F4CBF6C840A491FF3B3428B9C7DDB90D
+         CustomProperties Pin (PinId=D09D81994406C48CB3ABA4A25997B1BF,PinName="OutputDelegate",Direction="EGPD_Output",PinType.PinCategory="delegate",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveBeginPlay"),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+         CustomProperties Pin (PinId=5628D7024E60E9F4F980C6B803C17B56,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+      End Object
+      Begin Object Name="K2Node_Event_1" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:EventGraph.K2Node_Event_1'"
+         EventReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveActorBeginOverlap")
+         bOverrideFunction=True
+         NodePosY=200
+         EnabledState=Disabled
+         bCommentBubblePinned=True
+         bCommentBubbleVisible=True
+         NodeComment="This node is disabled and will not be called.\nDrag off pins to build functionality."
+         NodeGuid=CBA8136E4D8948B535E43999129C066D
+         CustomProperties Pin (PinId=9BFBBA514DE63EC3789933851EFB2D96,PinName="OutputDelegate",Direction="EGPD_Output",PinType.PinCategory="delegate",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveActorBeginOverlap"),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+         CustomProperties Pin (PinId=B698AABC46B039F853BA76996334BE8A,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+         CustomProperties Pin (PinId=ED44B849493E8F712AE59D967C79F8B3,PinName="OtherActor",PinToolTip="Other Actor\nActor Object Reference",Direction="EGPD_Output",PinType.PinCategory="object",PinType.PinSubCategory="",PinType.PinSubCategoryObject="/Script/CoreUObject.Class'/Script/Engine.Actor'",PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+      End Object
+      Begin Object Name="K2Node_Event_2" ExportPath="/Script/BlueprintGraph.K2Node_Event'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:EventGraph.K2Node_Event_2'"
+         EventReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveTick")
+         bOverrideFunction=True
+         NodePosY=400
+         EnabledState=Disabled
+         bCommentBubblePinned=True
+         bCommentBubbleVisible=True
+         NodeComment="This node is disabled and will not be called.\nDrag off pins to build functionality."
+         NodeGuid=A80E02EB482BCA73FEF3CEA1C337E2F7
+         CustomProperties Pin (PinId=F0E5265840ECA2BF6AED9CA55A4ECF37,PinName="OutputDelegate",Direction="EGPD_Output",PinType.PinCategory="delegate",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="ReceiveTick"),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+         CustomProperties Pin (PinId=258396AA4FC0BF4C6300D6A516EB1926,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+         CustomProperties Pin (PinId=25A2F4674CF2E145F004DE9775B76863,PinName="DeltaSeconds",PinToolTip="Delta Seconds\nFloat (single-precision)",Direction="EGPD_Output",PinType.PinCategory="real",PinType.PinSubCategory="float",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,DefaultValue="0.0",AutogeneratedDefaultValue="0.0",PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+      End Object
+      Schema="/Script/CoreUObject.Class'/Script/BlueprintGraph.EdGraphSchema_K2'"
+      Nodes(0)="/Script/BlueprintGraph.K2Node_Event'K2Node_Event_0'"
+      Nodes(1)="/Script/BlueprintGraph.K2Node_Event'K2Node_Event_1'"
+      Nodes(2)="/Script/BlueprintGraph.K2Node_Event'K2Node_Event_2'"
+      bAllowDeletion=False
+      GraphGuid=DB7AFAED40A6D9F266FED4B389ED9FD5
+   End Object
+   Begin Object Name="UserConstructionScript" ExportPath="/Script/Engine.EdGraph'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:UserConstructionScript'"
+      Begin Object Name="K2Node_FunctionEntry_0" ExportPath="/Script/BlueprintGraph.K2Node_FunctionEntry'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:UserConstructionScript.K2Node_FunctionEntry_0'"
+         FunctionReference=(MemberParent="/Script/CoreUObject.Class'/Script/Engine.Actor'",MemberName="UserConstructionScript")
+         NodeGuid=B818A01A429B7009051232ACC1E77F2E
+         CustomProperties Pin (PinId=CF8EB4F8432C206BC3550E94DC8DCA5D,PinName="then",Direction="EGPD_Output",PinType.PinCategory="exec",PinType.PinSubCategory="",PinType.PinSubCategoryObject=None,PinType.PinSubCategoryMemberReference=(),PinType.PinValueType=(),PinType.ContainerType=None,PinType.bIsReference=False,PinType.bIsConst=False,PinType.bIsWeakPointer=False,PinType.bIsUObjectWrapper=False,PinType.bSerializeAsSinglePrecisionFloat=False,PersistentGuid=00000000000000000000000000000000,bHidden=False,bNotConnectable=False,bDefaultValueIsReadOnly=False,bDefaultValueIsIgnored=False,bAdvancedView=False,bOrphanedPin=False,)
+      End Object
+      Schema="/Script/CoreUObject.Class'/Script/BlueprintGraph.EdGraphSchema_K2'"
+      Nodes(0)="/Script/BlueprintGraph.K2Node_FunctionEntry'K2Node_FunctionEntry_0'"
+      bAllowDeletion=False
+      GraphGuid=7EC7434C4BE14F1458345A83F1BC3B03
+   End Object
+   Begin Object Name="SceneThumbnailInfo_0" ExportPath="/Script/UnrealEd.SceneThumbnailInfo'/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:SceneThumbnailInfo_0'"
+   End Object
+   ParentClass="/Script/CoreUObject.Class'/Script/Engine.SkeletalMeshActor'"
+   BlueprintSystemVersion=2
+   SimpleConstructionScript="/Script/Engine.SimpleConstructionScript'NagaWizard_BP_C:SimpleConstructionScript_0'"
+   UbergraphPages(0)="/Script/Engine.EdGraph'EventGraph'"
+   FunctionGraphs(0)="/Script/Engine.EdGraph'UserConstructionScript'"
+   CategorySorting(0)=""
+   CategorySorting(1)="Event Graph"
+   CategorySorting(2)="Default"
+   LastEditedDocuments(0)=(EditedObjectPath="/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:UserConstructionScript",SavedZoomAmount=1.000000)
+   LastEditedDocuments(1)=(EditedObjectPath="/Game/MonsterForEnemyBundlePBR/Wave03/Mesh/NagaWizard/NagaWizard_BP.NagaWizard_BP:EventGraph",SavedZoomAmount=1.000000)
+   ThumbnailInfo="/Script/UnrealEd.SceneThumbnailInfo'SceneThumbnailInfo_0'"
+   GeneratedClass="/Script/Engine.BlueprintGeneratedClass'NagaWizard_BP_C'"
+   bLegacyNeedToPurgeSkelRefs=False
+   BlueprintGuid=0E127E3147E1CCA628D40C828C0D3F21
+End Object

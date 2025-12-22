@@ -2,6 +2,10 @@ using Unity.Transforms;
 using Unity.Entities;
 using UnityEngine;
 
+
+/// <summary>
+/// @todo look for Camera Targhet component read ecs player transfrom instead of SystemBase (pull method)
+/// </summary>
 [UpdateInGroup(typeof(LateSimulationSystemGroup))]
 public partial class CameraTargetUpdaterSystem : SystemBase
 {
@@ -26,7 +30,7 @@ public partial class CameraTargetUpdaterSystem : SystemBase
             else
             {
                 Debug.LogWarning("CameraTargetComponent instance not found. Searching for camera target...");
-                var cameraTarget = GameObject.FindObjectOfType<CameraTargetComponent>();
+                var cameraTarget = GameObject.FindFirstObjectByType<CameraTargetComponent>();
                 if (cameraTarget != null)
                 {
                     _cameraTargetTransform = cameraTarget.transform;

@@ -19,11 +19,13 @@ public partial struct LobbyInteractionSystem : ISystem
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
             return;
 
+        //@todo
         //if (gameState.State != EGameState.Lobby)
         //    return;
 
         //if (!SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity))
         //    return;
+
         SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity);
 
 
@@ -57,12 +59,13 @@ public partial struct LobbyInteractionSystem : ISystem
                 PerformInteract(ecb, interactable.ValueRO.InteractionType, interactableEntity);
             }
         }
-
     }
 
     private void PerformInteract(EntityCommandBuffer ecb, EInteractionType interactionType, Entity interactableEntity)
     {
-        UnityEngine.Debug.Log($"Interaction avec : {interactionType}");
+        UnityEngine.Debug.Log($"Interaction: {interactionType}");
+
+        var eventEntity = ecb.CreateEntity();
 
         switch (interactionType)
         {
@@ -70,11 +73,13 @@ public partial struct LobbyInteractionSystem : ISystem
                 // Load planets map + select + Launch
                 break;
             case EInteractionType.Shop:
-                // 
+                //ecb.AddComponent<UI_DisplayShopMenuRequest>(eventEntity);
                 break;
             case EInteractionType.CharacterSelection:
+                ecb.AddComponent<OpenCharactersMenuRequest>(eventEntity);
                 break;
             case EInteractionType.TrinketSelection:
+                //ecb.AddComponent<UI_DisplaytrinketSelectionMenuRequest>(eventEntity);
                 break;
         }
     }

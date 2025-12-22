@@ -18,14 +18,14 @@ public partial struct UpgradeSelectionSystem : ISystem
     {
         state.RequireForUpdate<UpgradesDatabase>();
         state.RequireForUpdate<GameState>();
-        state.RequireForUpdate<PlayerLevelUpFlag>();
+        state.RequireForUpdate<PlayerLevelUpRequest>();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
-        if (!SystemAPI.HasComponent<PlayerLevelUpFlag>(playerEntity))
+        if (!SystemAPI.HasComponent<PlayerLevelUpRequest>(playerEntity))
             return;
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
@@ -67,7 +67,7 @@ public partial struct UpgradeSelectionSystem : ISystem
             int upgradesChoicesCount = 3;
 
             // Clear buffer
-            ECB.SetBuffer<UpgradeSelectionElement>(GameStateEntity);
+            ECB.SetBuffer<UpgradeSelectionBufferElement>(GameStateEntity);
 
             // Set upgrades selection
             for (int i = 0; i < upgradesChoicesCount; i++)
@@ -75,17 +75,17 @@ public partial struct UpgradeSelectionSystem : ISystem
                 int index = random.NextInt(0, upgradesDatabaseLength);
                 ref var upgrade = ref upgradesDatabase[index];
 
-                ECB.AppendToBuffer<UpgradeSelectionElement>(GameStateEntity, new UpgradeSelectionElement()
+                ECB.AppendToBuffer<UpgradeSelectionBufferElement>(GameStateEntity, new UpgradeSelectionBufferElement()
                 {
                     DatabaseIndex = index
                 });
             }
 
             // Add display upgrades flag 
-            ECB.AddComponent<DisplayUpgradesFlag>(GameStateEntity);
+            ECB.AddComponent<OpenUpgradesSelectionMenuRequest>(GameStateEntity);
 
-            // Remove player lvl up flag
-            ECB.RemoveComponent<PlayerLevelUpFlag>(PlayerEntity);
+            // Remove player lvl up request
+            ECB.RemoveComponent<PlayerLevelUpRequest>(PlayerEntity);
         }
     }
 }
