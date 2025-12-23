@@ -19,10 +19,10 @@ public class FixedVATTool : EditorWindow
     private Vector3 lastMinBounds;
     private Vector3 lastMaxBounds;
     
-    [MenuItem("Tools/Fixed Vertex Animation Tool")]
+    [MenuItem("Tools/CPS VAT Tool (by brrbrrpatapims)")]
     static void Init()
     {
-        var window = GetWindow<FixedVATTool>("VAT Generator");
+        var window = GetWindow<FixedVATTool>("VAT Generator (by brrbrrpatapims)");
         window.minSize = new Vector2(400, 500);
         window.Show();
     }
