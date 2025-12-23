@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Custom_VAT_ExampleShader
+  m_Shader: {fileID: 4800000, guid: 08dfda2306844cc4599a8bf1b9a07bf3, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: fe5083bf1b62a374596d8ad5c9157da8, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _VATTexture:
+        m_Texture: {fileID: 2800000, guid: ba54e8d577e3cd246891818046f91783, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _VATFrame: 0
+    - _VATSpeed: 1
+    m_Colors:
+    - _VATMaxBounds: {r: 0.1047892, g: 1.21989, b: 0.8282619, a: 0}
+    - _VATMinBounds: {r: -0.09830251, g: -0.4684452, b: -1.524504, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

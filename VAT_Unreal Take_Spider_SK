@@ -1,0 +1,28 @@
+// Vertex Animation Texture Data
+        // Generated from: Unreal Take
+        // Texture: VAT_Unreal Take_Spider_SK.png
+        // Frame Count: 30
+        // Vertex Count: 1357
+
+        using UnityEngine;
+
+        public static class VAT_Unreal Take_Spider_SK
+        {
+            // Texture bounds data (ugly hack but flemme de regarder comment faire autrement)
+            public static readonly Vector3 MinBounds = new Vector3(-0.09830251f, -0.4684452f, -1.524504f);
+            public static readonly Vector3 MaxBounds = new Vector3(0.1047892f, 1.21989f, 0.8282619f);
+            public static readonly Vector3 BoundsSize = MaxBounds - MinBounds;
+            
+            // Animation data
+            public static readonly float Duration = 1f;
+            public static readonly float FrameRate = 30f;
+            public static readonly int TotalFrames = 30;
+            
+            // Shader property IDs (for optimization)
+            public static readonly int VATTextureID = Shader.PropertyToID("_VATTexture");
+            public static readonly int VATMinBoundsID = Shader.PropertyToID("_VATMinBounds");
+            public static readonly int VATMaxBoundsID = Shader.PropertyToID("_VATMaxBounds");
+            public static readonly int VATFrameID = Shader.PropertyToID("_VATFrame");
+            public static readonly int VATSpeedID = Shader.PropertyToID("_VATSpeed");
+        }
+        
