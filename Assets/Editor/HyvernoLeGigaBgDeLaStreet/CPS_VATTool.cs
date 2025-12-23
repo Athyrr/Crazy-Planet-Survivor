@@ -84,6 +84,11 @@ public class FixedVATTool : EditorWindow
         {
             GenerateVAT();
         }
+
+        if (GUILayout.Button("Generate Animated Material (only if not exist in project pls UwU)", GUILayout.Height(40)))
+        {
+            GenerateExampleShader();    
+        }
         
         GUI.enabled = true;
         
@@ -439,8 +444,6 @@ public class FixedVATTool : EditorWindow
         
         File.WriteAllText(defaultName, shaderCode);
         AssetDatabase.ImportAsset(shaderPath);
-
-        GenerateExampleShader();
     }
     
     private void DrawResults()
@@ -528,6 +531,7 @@ Shader ""Custom/VAT/ExampleShader""
             };
             
             sampler2D _MainTex;
+            float4 _MainTex_ST;
             sampler2D _VATTexture;
             float4 _VATTexture_ST;
             float3 _VATMinBounds;

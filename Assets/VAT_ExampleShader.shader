@@ -9,8 +9,6 @@ Shader "Custom/VAT/ExampleShader"
         _VATMaxBounds ("Max Bounds", Vector) = (1,1,1,0)
         _VATFrame ("Current Frame", Float) = 0
         _VATSpeed ("Animation Speed", Float) = 1
-        _MainTex_ST ("Main Tex Scale/Offset", Vector) = (1,1,0,0)
-        _VATTexture_ST ("VAT Tex Scale/Offset", Vector) = (1,1,0,0)
     }
     
     SubShader
