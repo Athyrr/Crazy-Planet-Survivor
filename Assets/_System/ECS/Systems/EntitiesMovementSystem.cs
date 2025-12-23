@@ -133,6 +133,9 @@ public partial struct EntitiesMovementSystem : ISystem
 
     #region Jobs
 
+    // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+    // vvvvvvvvvvvvvvvvvvvvv USED BY PLAYER vvvvvvvvvvvvvvvvvvvvv
+    // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     [BurstCompile]
     [WithAll(typeof(LinearMovement), typeof(HardSnappedMovement))]
     //[WithNone(typeof(FollowTargetMovement), typeof(OrbitMovement))]
