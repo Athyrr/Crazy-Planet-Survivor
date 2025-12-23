@@ -181,7 +181,7 @@ MonoBehaviour:
       Curvature: {x: 2, y: 11}
       BarrelClipping: 0.25
       Anamorphism: 0
-  BlendHint: 0
+  BlendHint: 1
 --- !u!4 &23276537
 Transform:
   m_ObjectHideFlags: 0
@@ -190,13 +190,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 23276533}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.44758648, y: 0, z: 0, w: 0.8942407}
-  m_LocalPosition: {x: 0, y: 20.907978, z: -13.782013}
+  m_LocalRotation: {x: 0.31585586, y: -0.5756419, z: -0.0044831363, w: 0.7542224}
+  m_LocalPosition: {x: 112.33733, y: 63.257053, z: -16.699472}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1302164725}
-  m_LocalEulerAnglesHint: {x: 1.74, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 50.1, y: 0, z: 0}
 --- !u!114 &23276541
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -209,7 +209,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b5d7c088409d9a40b7b09aa707777f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineOrbitalFollow
-  TargetOffset: {x: 0, y: 20, z: -12}
+  TargetOffset: {x: 0, y: 0, z: 0}
   TrackerSettings:
     BindingMode: 3
     PositionDamping: {x: 5, y: 5, z: 5}
@@ -217,7 +217,7 @@ MonoBehaviour:
     RotationDamping: {x: 1, y: 1, z: 1}
     QuaternionDamping: 0.3
   OrbitStyle: 0
-  Radius: 2
+  Radius: 130
   Orbits:
     Top:
       Radius: 2
@@ -229,7 +229,7 @@ MonoBehaviour:
       Radius: 2.5
       Height: 0.1
     SplineCurvature: 0.5
-  RecenteringTarget: 2
+  RecenteringTarget: 0
   HorizontalAxis:
     Value: 0
     Center: 0
@@ -241,7 +241,7 @@ MonoBehaviour:
       Time: 2
     Restrictions: 0
   VerticalAxis:
-    Value: 27
+    Value: 0
     Center: 17.5
     Range: {x: -10, y: 45}
     Wrap: 0
@@ -723,7 +723,7 @@ Transform:
   m_GameObject: {fileID: 1302164724}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -48.3, y: 45.2, z: 8.6}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1404,13 +1404,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1752244733}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.44758648, y: 0, z: 0, w: 0.8942407}
-  m_LocalPosition: {x: 0, y: 20.907978, z: -13.782013}
+  m_LocalRotation: {x: 0.31585586, y: -0.5756419, z: -0.0044831363, w: 0.7542224}
+  m_LocalPosition: {x: 112.33733, y: 63.257053, z: -16.699472}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1302164725}
-  m_LocalEulerAnglesHint: {x: 0.12, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1752244737
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1559,6 +1559,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a41ca98b3204f394286467e0a67ce723, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraTarget
+  CameraTargetFollow: {fileID: 23276541}
 --- !u!4 &1824232376
 Transform:
   m_ObjectHideFlags: 0
@@ -1567,13 +1568,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1824232374}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.32309237, y: -0.5756584, z: 0.0010513439, w: 0.75115097}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1302164725}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 29.117, y: 278.45502, z: -385.086}
 --- !u!224 &1870221608 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8488605716464293715, guid: d836645917d38244382516feb1f3b99b, type: 3}
@@ -2148,7 +2149,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -12.5
+      value: -12.500061
       objectReference: {fileID: 0}
     - target: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
