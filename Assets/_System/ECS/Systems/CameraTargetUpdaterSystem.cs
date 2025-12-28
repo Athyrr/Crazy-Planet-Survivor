@@ -2,6 +2,7 @@ using Unity.Cinemachine;
 using Unity.Transforms;
 using Unity.Entities;
 using UnityEngine;
+using Unity.Mathematics;
 
 
 /// <summary>
@@ -23,46 +24,54 @@ public partial class CameraTargetUpdaterSystem : SystemBase
 
     protected override void OnUpdate()
     {
+        // Optimization: Handle initialization cleanly
         if (!_initialized || _cameraTargetTransform == null)
         {
-            if (CameraTargetComponent.Instance != null)
-            {
-                _cameraTargetTransform = CameraTargetComponent.Instance.transform;
-                _cameraTargetFollow = CameraTargetComponent.Instance.CameraTargetFollow;
-                
-                _initialized = true;
-            }
-            else
-            {
-                Debug.LogWarning("CameraTargetComponent instance not found. Searching for camera target...");
-                var cameraTarget = GameObject.FindFirstObjectByType<CameraTargetComponent>();
-                if (cameraTarget != null)
-                {
-                    _cameraTargetTransform = cameraTarget.transform;
-                    _initialized = true;
-                }
-                else
-                {
-                    Debug.LogError("No CameraTargetComponent found in scene!");
-                    return;
-                }
-            }
+            InitializeCameraTarget();
+            if (!_initialized) return;
         }
 
-        if (SystemAPI.TryGetSingletonEntity<Player>(out Entity playerEntity))
+
+
+
+
+        Entity playerEntity = SystemAPI.GetSingletonEntity<Player>();
+        LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
+
+
+        float3 playerPos = playerTransform.Position;
+        float distSq = math.lengthsq(playerPos);
+        float dist = math.sqrt(distSq);
+        float3 toCenter = dist > math.EPSILON ? -playerPos / dist : new float3(0, -1, 0);
+
+        _cameraTargetTransform.position = Vector3.zero; // actually planet center, to later get planet ref where player are.
+        
+        // Use current Up as hint to maintain orientation (Parallel Transport) to avoid pole singularity
+        Vector3 currentUp = _cameraTargetTransform.up;
+        if (math.abs(math.dot(toCenter, (float3)currentUp)) > 0.99f) currentUp = math.rotate(playerTransform.Rotation, new float3(0, 0, 1));
+
+        _cameraTargetTransform.rotation = Quaternion.LookRotation(toCenter, currentUp);
+
+        // Smooth the radius change to avoid camera jumping due to height map (pour niels le type qu'aime pas quand ca rebondi)
+        _cameraTargetFollow.Radius = math.lerp(_cameraTargetFollow.Radius, dist + 35, SystemAPI.Time.DeltaTime * 5f);
+    }
+
+    private void InitializeCameraTarget()
+    {
+        if (CameraTargetComponent.Instance != null)
         {
-            if (SystemAPI.HasComponent<LocalTransform>(playerEntity))
+            _cameraTargetTransform = CameraTargetComponent.Instance.transform;
+            _cameraTargetFollow = CameraTargetComponent.Instance.CameraTargetFollow;
+            _initialized = true;
+        }
+        else
+        {
+            var cameraTarget = GameObject.FindFirstObjectByType<CameraTargetComponent>();
+            if (cameraTarget != null)
             {
-                LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
-
-                // calc fwd & dist
-                var forward = Vector3.Normalize(playerTransform.Position);
-                var distance = Vector3.Magnitude(playerTransform.Position);
-
-                _cameraTargetTransform.position = Vector3.zero; // actually planet center, to later get planet ref where player are.
-                // _cameraTargetTransform.up = forward;
-                _cameraTargetTransform.LookAt(playerTransform.Position * -1);
-                _cameraTargetFollow.Radius = distance + 35;
+                _cameraTargetTransform = cameraTarget.transform;
+                _cameraTargetFollow = cameraTarget.CameraTargetFollow;
+                _initialized = true;
             }
         }
     }
