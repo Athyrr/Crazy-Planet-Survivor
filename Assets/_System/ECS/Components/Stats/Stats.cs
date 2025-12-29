@@ -1,7 +1,6 @@
 using UnityEngine.Scripting;
 using Unity.Entities;
 using UnityEngine;
-using UnityEditor;
 
 /// <summary>
 /// Represents all stats an entity has during a run. 

@@ -2,7 +2,6 @@ using Unity.Collections;
 using Unity.Mathematics;
 using Unity.Entities;
 using UnityEngine;
-using System.IO;
 
 public class PlanetDataAuthoring : MonoBehaviour
 {

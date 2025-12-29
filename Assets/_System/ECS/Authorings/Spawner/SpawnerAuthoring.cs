@@ -1,10 +1,6 @@
-using System.Diagnostics;
-using System.Linq;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Serialization;
-using UnityEngine.Tilemaps;
 
 /// <summary>
 /// Authoring component for configuring enemy waves and spawner settings.

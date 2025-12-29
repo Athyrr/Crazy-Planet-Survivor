@@ -2,7 +2,6 @@ using Unity.Burst;
 using Unity.Entities;
 using Unity.Collections;
 using Unity.Mathematics;
-using Unity.Jobs;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]

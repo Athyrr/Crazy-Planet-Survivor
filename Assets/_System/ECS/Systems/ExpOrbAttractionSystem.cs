@@ -1,7 +1,6 @@
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Transforms;
-using Unity.Mathematics;
 using Unity.Collections;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
