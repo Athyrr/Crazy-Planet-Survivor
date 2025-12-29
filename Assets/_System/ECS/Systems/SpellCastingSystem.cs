@@ -40,6 +40,8 @@ public partial struct SpellCastingSystem : ISystem
 
         var physicsWorldSingleton = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
 
+        var spellsCastedQueue = new NativeQueue<int>(Allocator.TempJob);
+
         var castJob = new CastSpellJob
         {
             ECB = ecb.AsParallelWriter(),
@@ -76,10 +78,25 @@ public partial struct SpellCastingSystem : ISystem
             ChildCircleLayoutLookup = SystemAPI.GetComponentLookup<ChildEntitiesLayout_Circle>(true),
 
             RicochetLookup = SystemAPI.GetComponentLookup<Ricochet>(true),
-            PierceLookup = SystemAPI.GetComponentLookup<Pierce>(true)
+            PierceLookup = SystemAPI.GetComponentLookup<Pierce>(true),
+            
+            SpellsCastedQueue = spellsCastedQueue.AsParallelWriter()
         };
 
         state.Dependency = castJob.ScheduleParallel(state.Dependency);
+        
+        state.Dependency.Complete();
+        
+        if (SystemAPI.HasSingleton<GameStatistics>())
+        {
+            ref var stats = ref SystemAPI.GetSingletonRW<GameStatistics>().ValueRW;
+            while(spellsCastedQueue.TryDequeue(out int _))
+            {
+                stats.SpellsCasted++;
+            }
+        }
+        
+        spellsCastedQueue.Dispose();
     }
 
     [BurstCompile]
@@ -118,6 +135,8 @@ public partial struct SpellCastingSystem : ISystem
 
         [ReadOnly] public ComponentLookup<Ricochet> RicochetLookup;
         [ReadOnly] public ComponentLookup<Pierce> PierceLookup;
+        
+        public NativeQueue<int>.ParallelWriter SpellsCastedQueue;
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
@@ -482,6 +501,12 @@ public partial struct SpellCastingSystem : ISystem
             }
 
             ECB.DestroyEntity(chunkIndex, requestEntity);
+            
+            // Track spell cast
+            if (isPlayerCaster)
+            {
+                SpellsCastedQueue.Enqueue(1);
+            }
         }
     }
 }

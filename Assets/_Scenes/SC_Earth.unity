@@ -444,6 +444,7 @@ GameObject:
   m_Component:
   - component: {fileID: 854452524}
   - component: {fileID: 854452523}
+  - component: {fileID: 854452525}
   m_Layer: 0
   m_Name: Game Manager
   m_TagString: Untagged
@@ -484,6 +485,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &854452525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 854452522}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2ccfbe7760fee244bfce161159f440c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameStatisticsCollector
 --- !u!1 &1012958783 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7082085965108815411, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
@@ -1770,6 +1783,10 @@ PrefabInstance:
     - target: {fileID: 6968267741030160291, guid: dc64cc34256d4824ab4fe00e6296739f, type: 3}
       propertyPath: m_Name
       value: BlackHole_Arcane_Loop
+      objectReference: {fileID: 0}
+    - target: {fileID: 6968267741030160291, guid: dc64cc34256d4824ab4fe00e6296739f, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

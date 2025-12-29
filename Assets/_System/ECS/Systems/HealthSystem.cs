@@ -25,12 +25,48 @@ public partial struct HealthSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
+        var enemiesKilledQueue = new NativeQueue<int>(Allocator.TempJob);
+        var playerDamageQueue = new NativeQueue<int>(Allocator.TempJob);
+        var totalDamageDealtQueue = new NativeQueue<float>(Allocator.TempJob);
+
         var applyDamageJob = new ApplyDamageJob
         {
             ECB = ecb.AsParallelWriter(),
-            DestroyFlagLookup = SystemAPI.GetComponentLookup<DestroyEntityFlag>(true)
+            DestroyFlagLookup = SystemAPI.GetComponentLookup<DestroyEntityFlag>(true),
+            PlayerLookup = SystemAPI.GetComponentLookup<Player>(true),
+            EnemyLookup = SystemAPI.GetComponentLookup<Enemy>(true),
+            EnemiesKilledQueue = enemiesKilledQueue.AsParallelWriter(),
+            PlayerDamageQueue = playerDamageQueue.AsParallelWriter(),
+            TotalDamageDealtQueue = totalDamageDealtQueue.AsParallelWriter()
         };
+        
         state.Dependency = applyDamageJob.ScheduleParallel(state.Dependency);
+        
+        state.Dependency.Complete();
+
+        if (SystemAPI.HasSingleton<GameStatistics>())
+        {
+            ref var stats = ref SystemAPI.GetSingletonRW<GameStatistics>().ValueRW;
+            
+            while(enemiesKilledQueue.TryDequeue(out int _))
+            {
+                stats.EnemiesKilled++;
+            }
+            
+            while(playerDamageQueue.TryDequeue(out int damage))
+            {
+                stats.PlayerDamageTaken += damage;
+            }
+            
+            while(totalDamageDealtQueue.TryDequeue(out float damage))
+            {
+                stats.TotalDamageDealt += damage;
+            }
+        }
+
+        enemiesKilledQueue.Dispose();
+        playerDamageQueue.Dispose();
+        totalDamageDealtQueue.Dispose();
     }
 
     [BurstCompile]
@@ -38,6 +74,12 @@ public partial struct HealthSystem : ISystem
     {
         public EntityCommandBuffer.ParallelWriter ECB;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
+        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
+        [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
+        
+        public NativeQueue<int>.ParallelWriter EnemiesKilledQueue;
+        public NativeQueue<int>.ParallelWriter PlayerDamageQueue;
+        public NativeQueue<float>.ParallelWriter TotalDamageDealtQueue;
 
         public void Execute([ChunkIndexInQuery] int index, Entity entity, ref Health health, in Stats stats, ref DynamicBuffer<DamageBufferElement> damageBuffer)
         {
@@ -83,6 +125,19 @@ public partial struct HealthSystem : ISystem
             // Apply damage 
             health.Value -= math.max(0, totalDamage);
 
+            // Track player damage
+            if (totalDamage > 0)
+            {
+                if (PlayerLookup.HasComponent(entity))
+                {
+                    PlayerDamageQueue.Enqueue((int)totalDamage);
+                }
+                else if (EnemyLookup.HasComponent(entity))
+                {
+                    TotalDamageDealtQueue.Enqueue(totalDamage);
+                }
+            }
+
             damageBuffer.Clear();
 
             if (health.Value <= 0)
@@ -90,6 +145,12 @@ public partial struct HealthSystem : ISystem
                 health.Value = 0;
                 // Mark entity for destruction
                 ECB.AddComponent(index, entity, new DestroyEntityFlag());
+
+                // Track enemy death
+                if (EnemyLookup.HasComponent(entity))
+                {
+                    EnemiesKilledQueue.Enqueue(1);
+                }
             }
         }
     }
