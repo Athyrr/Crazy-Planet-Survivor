@@ -1,4 +1,5 @@
-﻿using Unity.Entities;
+﻿#if ENABLE_STATISTICS
+using Unity.Entities;
 using UnityEngine;
 using System.Collections.Generic;
 using System;
@@ -104,3 +105,4 @@ public class GameStatisticsCollector : MonoBehaviour
         }
     }
 }
+#endif

@@ -87,6 +87,7 @@ public partial struct SpellCastingSystem : ISystem
         
         state.Dependency.Complete();
         
+#if ENABLE_STATISTICS
         if (SystemAPI.HasSingleton<GameStatistics>())
         {
             ref var stats = ref SystemAPI.GetSingletonRW<GameStatistics>().ValueRW;
@@ -95,6 +96,7 @@ public partial struct SpellCastingSystem : ISystem
                 stats.SpellsCasted++;
             }
         }
+#endif
         
         spellsCastedQueue.Dispose();
     }
