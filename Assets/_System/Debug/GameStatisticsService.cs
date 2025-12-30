@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿#if ENABLE_STATISTICS
+using UnityEngine;
 using System.Collections.Generic;
 using System;
 
@@ -48,3 +49,4 @@ public static class GameStatisticsService
         Debug.Log($"Game Statistics submitted for session {data.SessionID}.");
     }
 }
+#endif

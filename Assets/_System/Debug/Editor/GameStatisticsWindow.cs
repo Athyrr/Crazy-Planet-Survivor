@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿#if ENABLE_STATISTICS
+using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ public class GameStatisticsWindow : EditorWindow
     private Vector2 _scrollPosition;
     private bool _showLogs = false;
 
-    [MenuItem("Tools/Game Statistics")]
+    [MenuItem("Tools/Game Statistics/Game Statistics Window", priority = 0)]
     public static void ShowWindow()
     {
         GetWindow<GameStatisticsWindow>("Game Statistics");
@@ -112,3 +113,21 @@ public class GameStatisticsWindow : EditorWindow
         GUILayout.Space(10);
     }
 }
+#else
+public class GameStatisticsWindow : EditorWindow
+{
+    private Vector2 _scrollPosition;
+    private bool _showLogs = false;
+
+    [MenuItem("Tools/Game Statistics/Game Statistics Window", priority = 0)]
+    public static void ShowWindow()
+    {
+        GetWindow<GameStatisticsWindow>("Game Statistics");
+    }
+
+    private void OnGUI()
+    {
+        GUILayout.Label("Statistics Disabled, enable the toggle in the tool menu", EditorStyles.boldLabel);
+    }
+}
+#endif

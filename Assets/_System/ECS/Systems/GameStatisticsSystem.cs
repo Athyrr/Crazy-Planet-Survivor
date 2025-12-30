@@ -1,4 +1,5 @@
-﻿using Unity.Entities;
+﻿#if ENABLE_STATISTICS
+using Unity.Entities;
 using Unity.Burst;
 using Unity.Collections;
 
@@ -22,3 +23,4 @@ public partial struct GameStatisticsSystem : ISystem
         }
     }
 }
+#endif

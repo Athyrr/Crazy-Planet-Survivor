@@ -115,11 +115,13 @@ public partial struct EnemiesSpawnerSystem : ISystem
             combinedHandle = spawnJob.ScheduleParallel(waveElement.Amount, 64, combinedHandle);
         }
 
+#if ENABLE_STATISTICS
         if (enemiesSpawnedThisFrame > 0 && SystemAPI.HasSingleton<GameStatistics>())
         {
             ref var stats = ref SystemAPI.GetSingletonRW<GameStatistics>().ValueRW;
             stats.EnemiesCreated += enemiesSpawnedThisFrame;
         }
+#endif
 
         spawnerState.CurrentWaveIndex++;
         state.Dependency = combinedHandle;
