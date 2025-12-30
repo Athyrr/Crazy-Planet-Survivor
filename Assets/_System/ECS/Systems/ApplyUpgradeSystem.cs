@@ -59,6 +59,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         
         state.Dependency.Complete();
         
+#if ENABLE_STATISTICS
         if (SystemAPI.HasSingleton<GameStatistics>())
         {
             ref var stats = ref SystemAPI.GetSingletonRW<GameStatistics>().ValueRW;
@@ -67,6 +68,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                 stats.UpgradesSelected++;
             }
         }
+#endif
         
         upgradesSelectedQueue.Dispose();
     }

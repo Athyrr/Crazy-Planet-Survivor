@@ -1,4 +1,5 @@
-﻿using Unity.Entities;
+﻿#if ENABLE_STATISTICS
+using Unity.Entities;
 using Unity.Collections;
 
 public struct GameStatistics : IComponentData
@@ -10,3 +11,4 @@ public struct GameStatistics : IComponentData
     public int SpellsCasted;
     public float TotalDamageDealt;
 }
+#endif

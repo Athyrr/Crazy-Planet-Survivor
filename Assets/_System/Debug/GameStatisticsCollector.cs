@@ -9,7 +9,7 @@ public class GameStatisticsCollector : MonoBehaviour
     private EntityQuery _statisticsQuery;
 
     private GameStatisticsService.RunData _currentRunData;
-
+    
     private float _timer;
     private float _sampleRate = 0.5f; // Sample every 0.5 second
     private float _startTime;
@@ -22,7 +22,7 @@ public class GameStatisticsCollector : MonoBehaviour
     {
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         _statisticsQuery = _entityManager.CreateEntityQuery(typeof(GameStatistics));
-
+        
         _startTime = Time.time;
         _currentRunData = new GameStatisticsService.RunData
         {
@@ -32,7 +32,7 @@ public class GameStatisticsCollector : MonoBehaviour
             MinFPS = float.MaxValue,
             MaxFPS = 0
         };
-
+        
         LogEvent("Game Started");
     }
 
@@ -58,7 +58,7 @@ public class GameStatisticsCollector : MonoBehaviour
             return;
 
         var stats = _statisticsQuery.GetSingleton<GameStatistics>();
-
+        
         // Update current values
         _currentRunData.EnemiesCreated = stats.EnemiesCreated;
         _currentRunData.EnemiesKilled = stats.EnemiesKilled;
@@ -78,7 +78,7 @@ public class GameStatisticsCollector : MonoBehaviour
             _currentRunData.DamageTakenHistory.Add(stats.PlayerDamageTaken);
             _currentRunData.SpellsCastedHistory.Add(stats.SpellsCasted);
             _currentRunData.TotalDamageDealtHistory.Add(stats.TotalDamageDealt);
-
+            
             if (currentFPS > 0)
                 _currentRunData.FPSHistory.Add(currentFPS);
         }
@@ -95,7 +95,7 @@ public class GameStatisticsCollector : MonoBehaviour
         if (_currentRunData != null)
         {
             _currentRunData.Duration = Time.time - _startTime;
-
+            
             // Calculate Average FPS
             float totalFPS = 0;
             foreach (var fps in _currentRunData.FPSHistory) totalFPS += fps;

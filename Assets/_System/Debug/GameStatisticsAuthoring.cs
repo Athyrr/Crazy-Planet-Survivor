@@ -1,4 +1,5 @@
-﻿using Unity.Entities;
+﻿#if ENABLE_STATISTICS
+using Unity.Entities;
 using UnityEngine;
 
 public class GameStatisticsAuthoring : MonoBehaviour
@@ -12,3 +13,4 @@ public class GameStatisticsAuthoring : MonoBehaviour
         }
     }
 }
+#endif
