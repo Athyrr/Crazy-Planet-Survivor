@@ -26,7 +26,7 @@ namespace EnhancedFramework.Core.Settings
             {
                 #if UNITY_EDITOR
                 var _guid = AssetDatabase.FindAssets($"t:{typeof(T).Name}").First();
-                if (!(Application.isPlaying && (instance == null) && _guid.Length > 0))
+                if (Application.isPlaying && (instance == null) && _guid.Length > 0)
                 {
                     instance = AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(_guid), typeof(T)) as T;
                 }
@@ -69,7 +69,7 @@ namespace EnhancedFramework.Core.Settings
             {
                 #if UNITY_EDITOR
                 var _guid = AssetDatabase.FindAssets($"t:{typeof(T).Name}").First();
-                if (!(Application.isPlaying && (database == null) && _guid.Length > 0))
+                if (Application.isPlaying && (database == null) && _guid.Length > 0)
                 {
                     database = AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(_guid), typeof(T)) as T;
                 }
