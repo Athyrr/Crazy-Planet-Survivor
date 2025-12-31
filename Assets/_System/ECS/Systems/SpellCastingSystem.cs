@@ -40,8 +40,6 @@ public partial struct SpellCastingSystem : ISystem
 
         var physicsWorldSingleton = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
 
-        var spellsCastedQueue = new NativeQueue<int>(Allocator.TempJob);
-
         var castJob = new CastSpellJob
         {
             ECB = ecb.AsParallelWriter(),
@@ -79,26 +77,9 @@ public partial struct SpellCastingSystem : ISystem
 
             RicochetLookup = SystemAPI.GetComponentLookup<Ricochet>(true),
             PierceLookup = SystemAPI.GetComponentLookup<Pierce>(true),
-            
-            SpellsCastedQueue = spellsCastedQueue.AsParallelWriter()
         };
 
         state.Dependency = castJob.ScheduleParallel(state.Dependency);
-        
-        state.Dependency.Complete();
-        
-#if ENABLE_STATISTICS
-        if (SystemAPI.HasSingleton<GameStatistics>())
-        {
-            ref var stats = ref SystemAPI.GetSingletonRW<GameStatistics>().ValueRW;
-            while(spellsCastedQueue.TryDequeue(out int _))
-            {
-                stats.SpellsCasted++;
-            }
-        }
-#endif
-        
-        spellsCastedQueue.Dispose();
     }
 
     [BurstCompile]
@@ -138,8 +119,6 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<Ricochet> RicochetLookup;
         [ReadOnly] public ComponentLookup<Pierce> PierceLookup;
         
-        public NativeQueue<int>.ParallelWriter SpellsCastedQueue;
-
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
             // Check if caster bdd & caster exists
@@ -503,12 +482,6 @@ public partial struct SpellCastingSystem : ISystem
             }
 
             ECB.DestroyEntity(chunkIndex, requestEntity);
-            
-            // Track spell cast
-            if (isPlayerCaster)
-            {
-                SpellsCastedQueue.Enqueue(1);
-            }
         }
     }
 }

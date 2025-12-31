@@ -55,8 +55,6 @@ public partial struct EnemiesSpawnerSystem : ISystem
         var waveBuffer = SystemAPI.GetSingletonBuffer<WaveElement>(true);
         JobHandle combinedHandle = state.Dependency;
 
-        int enemiesSpawnedThisFrame = 0;
-
         // Iterate through all wave elements to find those matching the current wave index
         for (int i = 0; i < waveBuffer.Length; i++)
         {
@@ -64,8 +62,6 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
             if (waveElement.WaveIndex != spawnerState.CurrentWaveIndex)
                 continue;
-
-            enemiesSpawnedThisFrame += waveElement.Amount;
 
             // Determine spawn parameters based on mode
             float3 spawnOrigin = float3.zero;
@@ -114,14 +110,6 @@ public partial struct EnemiesSpawnerSystem : ISystem
             // will take chunks of 64 indices to process, reducing overhead.
             combinedHandle = spawnJob.ScheduleParallel(waveElement.Amount, 64, combinedHandle);
         }
-
-#if ENABLE_STATISTICS
-        if (enemiesSpawnedThisFrame > 0 && SystemAPI.HasSingleton<GameStatistics>())
-        {
-            ref var stats = ref SystemAPI.GetSingletonRW<GameStatistics>().ValueRW;
-            stats.EnemiesCreated += enemiesSpawnedThisFrame;
-        }
-#endif
 
         spawnerState.CurrentWaveIndex++;
         state.Dependency = combinedHandle;
