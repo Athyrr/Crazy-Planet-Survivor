@@ -37,7 +37,6 @@ public partial struct AvoidanceSystem : ISystem
 
         // 2. Requête pour le LOD (tout le monde, même désactivé)
         builder.Reset();
-        // Changed to WithAll (ReadOnly) since we use ECB for updates now
         builder.WithAll<Avoidance>()
               .WithAll<LocalTransform>()
               .WithOptions(EntityQueryOptions.IgnoreComponentEnabledState); // Crucial pour le LOD
@@ -79,7 +78,7 @@ public partial struct AvoidanceSystem : ISystem
         int activeCount = _activeEnemyQuery.CalculateEntityCount();
         if (activeCount == 0) return;
 
-        // La map doit être disposée à la fin, on utilise Allocator.TempJob
+        // La map doit être dispose à la fin ducoup boum badabim on utilise Allocator.TempJob
         var spatialMap = new NativeParallelMultiHashMap<int, AvoidanceData>(activeCount, Allocator.TempJob);
 
         var populateJob = new PopulateSpatialMapJob
@@ -98,7 +97,7 @@ public partial struct AvoidanceSystem : ISystem
         };
         state.Dependency = avoidanceJob.ScheduleParallel(_activeEnemyQuery, state.Dependency);
 
-        // Nettoyage de la mémoire après que les jobs soient finis
+        // Nettoyage de la mémoire après que les jobs soient finis (merci brogpt)
         state.Dependency = spatialMap.Dispose(state.Dependency);
     }
 
@@ -158,7 +157,7 @@ public partial struct AvoidanceSystem : ISystem
             int3 centerCell = (int3)math.floor(transform.Position / CellSize);
             int neighborsChecked = 0;
 
-            // Parcours 3x3x3
+            // Parcours 3x3x3 peut etre optimisable mais bon j'ai vu 4 video qui faisaient comme ca so ca devrait le faire
             for (int x = -1; x <= 1; x++)
             {
                 for (int y = -1; y <= 1; y++)
