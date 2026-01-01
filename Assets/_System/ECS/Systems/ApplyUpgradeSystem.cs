@@ -33,9 +33,6 @@ public partial struct ApplyUpgradeSystem : ISystem
 
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
 
-        // Track upgrades selected
-        var upgradesSelectedQueue = new NativeQueue<int>(Allocator.TempJob);
-
         var applyUpgradeJob = new ApplyUpgradeJob()
         {
             ECB = ecb.AsParallelWriter(),
@@ -51,26 +48,8 @@ public partial struct ApplyUpgradeSystem : ISystem
             SpellPrefabs = spellPrefabs,
 
             ColliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true),
-            
-            UpgradesSelectedQueue = upgradesSelectedQueue.AsParallelWriter()
-
         };
         state.Dependency = applyUpgradeJob.ScheduleParallel(state.Dependency);
-        
-        state.Dependency.Complete();
-        
-#if ENABLE_STATISTICS
-        if (SystemAPI.HasSingleton<GameStatistics>())
-        {
-            ref var stats = ref SystemAPI.GetSingletonRW<GameStatistics>().ValueRW;
-            while(upgradesSelectedQueue.TryDequeue(out int _))
-            {
-                stats.UpgradesSelected++;
-            }
-        }
-#endif
-        
-        upgradesSelectedQueue.Dispose();
     }
 
     [BurstCompile]
@@ -90,8 +69,6 @@ public partial struct ApplyUpgradeSystem : ISystem
 
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
         
-        public NativeQueue<int>.ParallelWriter UpgradesSelectedQueue;
-
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in ApplyUpgradeRequest request)
         {
             int upgradeIndex = request.DatabaseIndex;
@@ -131,9 +108,6 @@ public partial struct ApplyUpgradeSystem : ISystem
 
             // Destroy ApplyUpgradeRequest
             ECB.DestroyEntity(chunkIndex, requestEntity);
-            
-            // Increment counter
-            UpgradesSelectedQueue.Enqueue(1);
         }
     }
 }
