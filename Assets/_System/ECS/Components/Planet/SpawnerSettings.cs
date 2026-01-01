@@ -26,4 +26,9 @@ public struct SpawnerState : IComponentData
 {
     public int CurrentWaveIndex;
     public float WaveTimer;
+    
+    // Fields for multi-frame spawning
+    public int PendingSpawnCount;
+    public int SpawnsProcessed;
+    public int CurrentWaveElementIndex;
 }

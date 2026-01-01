@@ -12,6 +12,9 @@ using Unity.Mathematics;
 [BurstCompile]
 public partial struct EnemiesSpawnerSystem : ISystem
 {
+    // Maximum number of entities to spawn per frame to maintain performance
+    private const int MaxSpawnsPerFrame = 100;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -28,8 +31,17 @@ public partial struct EnemiesSpawnerSystem : ISystem
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
             return;
 
-        // Manage Wave Timer
         ref var spawnerState = ref SystemAPI.GetSingletonRW<SpawnerState>().ValueRW;
+        var waveBuffer = SystemAPI.GetSingletonBuffer<WaveElement>(true);
+
+        // If we have pending spawns from a previous frame, continue processing them
+        if (spawnerState.PendingSpawnCount > 0)
+        {
+            ProcessPendingSpawns(ref state, ref spawnerState, waveBuffer);
+            return;
+        }
+
+        // Manage Wave Timer
         spawnerState.WaveTimer -= SystemAPI.Time.DeltaTime;
         
         if (spawnerState.WaveTimer > 0)
@@ -39,6 +51,86 @@ public partial struct EnemiesSpawnerSystem : ISystem
         var settings = SystemAPI.GetSingleton<SpawnerSettings>();
         spawnerState.WaveTimer = settings.TimeBetweenWaves;
 
+        // Start processing the new wave
+        // We iterate through all elements of the current wave to see if we need to start spawning
+        // Note: This logic assumes we process all elements of a wave index sequentially or together.
+        // If a wave has multiple elements, we might need to handle them one by one or all together.
+        // For simplicity and to support the request, let's check if we need to start a multi-frame spawn sequence.
+        
+        // Check if there are any elements for the current wave
+        bool waveHasElements = false;
+        for (int i = 0; i < waveBuffer.Length; i++)
+        {
+            if (waveBuffer[i].WaveIndex == spawnerState.CurrentWaveIndex)
+            {
+                waveHasElements = true;
+                break;
+            }
+        }
+
+        if (waveHasElements)
+        {
+            // Initialize multi-frame spawning state
+            // We will process wave elements one by one or in batches.
+            // Let's start with the first element of the wave.
+            spawnerState.CurrentWaveElementIndex = 0; // We'll search for the first matching element index
+            
+            // Find the first element index for this wave
+            int firstElementIndex = -1;
+            for(int i=0; i<waveBuffer.Length; i++) {
+                if(waveBuffer[i].WaveIndex == spawnerState.CurrentWaveIndex) {
+                    firstElementIndex = i;
+                    break;
+                }
+            }
+            
+            if (firstElementIndex != -1)
+            {
+                spawnerState.CurrentWaveElementIndex = firstElementIndex;
+                var element = waveBuffer[firstElementIndex];
+                spawnerState.PendingSpawnCount = element.Amount;
+                spawnerState.SpawnsProcessed = 0;
+                
+                // Immediately process some spawns this frame
+                ProcessPendingSpawns(ref state, ref spawnerState, waveBuffer);
+            }
+            else
+            {
+                // Should not happen if waveHasElements is true, but just in case
+                spawnerState.CurrentWaveIndex++;
+            }
+        }
+        else
+        {
+            // No elements for this wave index, maybe end of game or empty wave?
+            // Just move to next index? Or maybe loop? 
+            // For now, let's just increment to avoid getting stuck if it's an empty wave slot
+             spawnerState.CurrentWaveIndex++;
+        }
+    }
+
+    private void ProcessPendingSpawns(ref SystemState state, ref SpawnerState spawnerState, DynamicBuffer<WaveElement> waveBuffer)
+    {
+        // Validate index
+        if (spawnerState.CurrentWaveElementIndex < 0 || spawnerState.CurrentWaveElementIndex >= waveBuffer.Length)
+        {
+            // Something went wrong or we finished all elements?
+            spawnerState.PendingSpawnCount = 0;
+            return;
+        }
+
+        var waveElement = waveBuffer[spawnerState.CurrentWaveElementIndex];
+        
+        // Double check we are on the right wave (should be guaranteed by logic)
+        if (waveElement.WaveIndex != spawnerState.CurrentWaveIndex)
+        {
+            // We somehow drifted? Stop.
+            spawnerState.PendingSpawnCount = 0;
+            return;
+        }
+
+        int amountToSpawn = math.min(spawnerState.PendingSpawnCount, MaxSpawnsPerFrame);
+        
         // Prepare for spawning
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
@@ -52,67 +144,85 @@ public partial struct EnemiesSpawnerSystem : ISystem
         LocalTransform planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
         float3 planetCenter = planetTransform.Position;
 
-        var waveBuffer = SystemAPI.GetSingletonBuffer<WaveElement>(true);
-        JobHandle combinedHandle = state.Dependency;
+        // Determine spawn parameters based on mode
+        float3 spawnOrigin = float3.zero;
+        uint seedOffset = 0;
 
-        // Iterate through all wave elements to find those matching the current wave index
-        for (int i = 0; i < waveBuffer.Length; i++)
+        switch (waveElement.Mode)
         {
-            var waveElement = waveBuffer[i];
-
-            if (waveElement.WaveIndex != spawnerState.CurrentWaveIndex)
-                continue;
-
-            // Determine spawn parameters based on mode
-            float3 spawnOrigin = float3.zero;
-            uint seedOffset = 0;
-
-            switch (waveElement.Mode)
-            {
-                case SpawnMode.Single:
-                    spawnOrigin = waveElement.SpawnPosition;
-                    seedOffset = 0;
-                    break;
-                case SpawnMode.Opposite:
-                    float3 dirToPlayer = math.normalize(playerTransform.Position - planetCenter);
-                    if (math.lengthsq(dirToPlayer) < 0.001f) dirToPlayer = new float3(0, 1, 0);
-                    spawnOrigin = planetCenter - dirToPlayer * planetRadius;
-                    seedOffset = 2;
-                    break;
-                case SpawnMode.EntirePlanet:
-                    spawnOrigin = float3.zero; // Not used for EntirePlanet, but need to be initialized 
-                    seedOffset = 1;
-                    break;
-                case SpawnMode.AroundPlayer:
-                    spawnOrigin = playerTransform.Position;
-                    seedOffset = 3;
-                    break;
-            }
-
-            // Used IJobFor instead of IJob and won 7 fps, on est trop chauds 
-            var spawnJob = new SpawnJob
-            {
-                ECB = ecb,
-                PlayerEntity = playerEntity,
-                TotalAmount = waveElement.Amount,
-                Prefab = waveElement.Prefab,
-                PlanetCenter = planetCenter,
-                PlanetRadius = planetRadius,
-                SpawnOrigin = spawnOrigin,
-                BaseSeed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + (uint)i * 7919 + seedOffset,
-                DelayBetweenSpawns = waveElement.SpawnDelay,
-                Mode = waveElement.Mode,
-                MinRange = waveElement.MinSpawnRange,
-                MaxRange = waveElement.MaxSpawnRange
-            };
-
-            // Schedule the job in parallel. The '64' is the batch size, meaning each worker thread
-            // will take chunks of 64 indices to process, reducing overhead.
-            combinedHandle = spawnJob.ScheduleParallel(waveElement.Amount, 64, combinedHandle);
+            case SpawnMode.Single:
+                spawnOrigin = waveElement.SpawnPosition;
+                seedOffset = 0;
+                break;
+            case SpawnMode.Opposite:
+                float3 dirToPlayer = math.normalize(playerTransform.Position - planetCenter);
+                if (math.lengthsq(dirToPlayer) < 0.001f) dirToPlayer = new float3(0, 1, 0);
+                spawnOrigin = planetCenter - dirToPlayer * planetRadius;
+                seedOffset = 2;
+                break;
+            case SpawnMode.EntirePlanet:
+                spawnOrigin = float3.zero; 
+                seedOffset = 1;
+                break;
+            case SpawnMode.AroundPlayer:
+                spawnOrigin = playerTransform.Position;
+                seedOffset = 3;
+                break;
         }
 
-        spawnerState.CurrentWaveIndex++;
-        state.Dependency = combinedHandle;
+        var spawnJob = new SpawnJob
+        {
+            ECB = ecb,
+            PlayerEntity = playerEntity,
+            TotalAmount = waveElement.Amount, // Total amount for the whole wave element, needed for circle calculations
+            StartIndex = spawnerState.SpawnsProcessed, // Offset for this batch
+            Prefab = waveElement.Prefab,
+            PlanetCenter = planetCenter,
+            PlanetRadius = planetRadius,
+            SpawnOrigin = spawnOrigin,
+            BaseSeed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + (uint)spawnerState.CurrentWaveElementIndex * 7919 + seedOffset,
+            DelayBetweenSpawns = waveElement.SpawnDelay,
+            Mode = waveElement.Mode,
+            MinRange = waveElement.MinSpawnRange,
+            MaxRange = waveElement.MaxSpawnRange
+        };
+
+        state.Dependency = spawnJob.ScheduleParallel(amountToSpawn, 64, state.Dependency);
+
+        // Update state
+        spawnerState.PendingSpawnCount -= amountToSpawn;
+        spawnerState.SpawnsProcessed += amountToSpawn;
+
+        // If we finished this element, check if there are more elements for the SAME wave index
+        if (spawnerState.PendingSpawnCount <= 0)
+        {
+            // Look for next element with same WaveIndex
+            int nextElementIndex = -1;
+            for (int i = spawnerState.CurrentWaveElementIndex + 1; i < waveBuffer.Length; i++)
+            {
+                if (waveBuffer[i].WaveIndex == spawnerState.CurrentWaveIndex)
+                {
+                    nextElementIndex = i;
+                    break;
+                }
+            }
+
+            if (nextElementIndex != -1)
+            {
+                // Found another element for this wave, setup for next frame (or next call)
+                spawnerState.CurrentWaveElementIndex = nextElementIndex;
+                spawnerState.PendingSpawnCount = waveBuffer[nextElementIndex].Amount;
+                spawnerState.SpawnsProcessed = 0;
+            }
+            else
+            {
+                // No more elements for this wave, we are done with this wave
+                spawnerState.CurrentWaveIndex++;
+                spawnerState.PendingSpawnCount = 0;
+                spawnerState.SpawnsProcessed = 0;
+                spawnerState.CurrentWaveElementIndex = -1;
+            }
+        }
     }
 
     [BurstCompile]
@@ -121,6 +231,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
         public EntityCommandBuffer.ParallelWriter ECB;
         public Entity PlayerEntity;
         public int TotalAmount;
+        public int StartIndex; // The global index offset for this batch
         public Entity Prefab;
         public float3 PlanetCenter;
         public float PlanetRadius;
@@ -133,7 +244,10 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
         public void Execute(int index)
         {
-            var rand = Random.CreateFromIndex(BaseSeed + (uint)index);
+            // Calculate the actual global index for this spawn
+            int globalIndex = StartIndex + index;
+            
+            var rand = Random.CreateFromIndex(BaseSeed + (uint)globalIndex);
             float3 spawnPosition = float3.zero;
             float3 normal = float3.zero;
 
@@ -162,8 +276,8 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 
                 float3 bitangent = math.cross(up, tangent);
 
-                // Calculate position on the circle
-                float angle = (2 * math.PI * index) / TotalAmount;
+                // Calculate position on the circle using globalIndex
+                float angle = (2 * math.PI * globalIndex) / TotalAmount;
                 // Dynamic radius to prevent overlapping: circumference approx Amount * 1.5 units
                 // Clamped to ensure it's not too small
                 float radius = math.max(3f, TotalAmount * 0.25f); 
@@ -209,6 +323,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
             tangentDirection = math.normalize(tangentDirection);
 
             // Instantiate and set components
+            // Use index (local to this job batch) for sort key to allow parallel writing
             Entity entity = ECB.Instantiate(index, Prefab);
 
             ECB.SetComponent(index, entity, new LocalTransform
@@ -226,7 +341,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
             // Add spawn delay to stagger activation
             ECB.AddComponent(index, entity, new SpawnDelay
             {
-                Timer = index * DelayBetweenSpawns
+                Timer = globalIndex * DelayBetweenSpawns
             });
             
             // Start disabled, enabled by another system after delay
