@@ -5,6 +5,11 @@ using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
 
+/// <summary>
+/// The central orchestrator for spell instantiation. 
+/// This system processes <see cref="CastSpellRequest"/> entities, calculates targeting/spawn parameters 
+/// based on the spell database, and initializes the resulting spell entities with appropriate components.
+/// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
 public partial struct SpellCastingSystem : ISystem
@@ -12,6 +17,7 @@ public partial struct SpellCastingSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        // Ensure all necessary data structures and singletons are available
         state.RequireForUpdate<Stats>();
         state.RequireForUpdate<SpellPrefab>();
         state.RequireForUpdate<ActiveSpell>();
@@ -23,12 +29,14 @@ public partial struct SpellCastingSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        // Only process casting if the game is in the 'Running' state
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
             return;
 
         if (gameState.State != EGameState.Running)
             return;
 
+        // Initialize Command Buffer for structural changes (instantiation/destruction)
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
@@ -40,13 +48,14 @@ public partial struct SpellCastingSystem : ISystem
 
         var physicsWorldSingleton = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
 
+        // Configure the casting job with all necessary lookups to resolve targets and stats
         var castJob = new CastSpellJob
         {
             ECB = ecb.AsParallelWriter(),
-            Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
+            Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1, // Generate a frame-based seed
 
             CollisionWorld = physicsWorldSingleton.CollisionWorld,
-
+            
             SpellDatabaseRef = spellDatabase.Blobs,
             MainSpellPrefabs = mainSpellPrefabs,
             ChildSpellPrefabs = childSpellPrefabs,
@@ -82,11 +91,16 @@ public partial struct SpellCastingSystem : ISystem
         state.Dependency = castJob.ScheduleParallel(state.Dependency);
     }
 
+    /// <summary>
+    /// Processes individual spell requests. Handles targeting logic, spawn positioning, 
+    /// and component-wise initialization of the instantiated spell prefab.
+    /// </summary>
     [BurstCompile]
     private partial struct CastSpellJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
         public uint Seed;
+
 
         [ReadOnly] public CollisionWorld CollisionWorld;
 
@@ -121,29 +135,28 @@ public partial struct SpellCastingSystem : ISystem
         
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
-            // Check if caster bdd & caster exists
+            // --- 1. Validation ---
             if (!SpellDatabaseRef.IsCreated || !TransformLookup.HasComponent(request.Caster))
             {
                 ECB.DestroyEntity(chunkIndex, requestEntity);
                 return;
             }
 
-            // Get spell datas
             ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
             var spellPrefab = MainSpellPrefabs[request.DatabaseIndex].Prefab;
 
-            // Check if prefab  or child prefab exists 
             if (spellPrefab == Entity.Null && spellData.ChildPrefabIndex == -1) // -1 : default value for none
             {
                 ECB.DestroyEntity(chunkIndex, requestEntity);
                 return;
             }
 
+            // --- 2. Context Setup ---
             var caster = request.Caster;
             var casterTransform = TransformLookup[caster];
             bool isPlayerCaster = PlayerLookup.HasComponent(caster);
 
-            // Collision filter
+            // Define collision layers based on who is casting (Player vs Enemy)
             var filter = new CollisionFilter
             {
                 BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
@@ -151,22 +164,19 @@ public partial struct SpellCastingSystem : ISystem
             };
 
             Entity targetEntity = Entity.Null;
-            float3 targetPosition = float3.zero; // Spawn postion or aim position 
+            float3 targetPosition = float3.zero; 
             bool targetFound = false;
 
             var random = Random.CreateFromIndex(Seed);
 
-            // Get caster stats bonus
-            //if (StatsLookup.HasComponent(caster))
-            //{
+            // Fetch caster's dynamic stats to apply bonuses to the spell
             var stats = StatsLookup[caster];
             float bonusDamage = stats.Damage;
             float bonusSpellSpeedMult = stats.ProjectileSpeedMultiplier;
             float bonusAreaRadiusMult = math.max(1, stats.EffectAreaRadiusMult);
-            //}
 
-            // Set targetPosition 
-            switch (spellData.TargetingMode)
+            // --- 3. Targeting Logic ---
+             switch (spellData.TargetingMode)
             {
                 case ESpellTargetingMode.OnCaster:
                     targetEntity = request.Caster;
@@ -180,6 +190,7 @@ public partial struct SpellCastingSystem : ISystem
                     break;
 
                 case ESpellTargetingMode.Nearest:
+                    // Use Physics World to find the closest valid target within range
                     PointDistanceInput input = new PointDistanceInput
                     {
                         Position = casterTransform.Position,
@@ -197,6 +208,7 @@ public partial struct SpellCastingSystem : ISystem
                     break;
 
                 case ESpellTargetingMode.RandomInRange:
+                    // Find a random point on the planet surface within the cast radius
                     var sphere = random.NextFloat3Direction() * random.NextFloat(0, spellData.BaseCastRange);
                     var tempPosition = casterTransform.Position + new float3(sphere.x, sphere.y, sphere.z);
 
@@ -229,13 +241,12 @@ public partial struct SpellCastingSystem : ISystem
                     break;
             }
 
-            // Fallabck CastForward if not target found
+            // Fallback: If "Nearest" targeting fails, aim forward by default
             if (!targetFound && spellData.TargetingMode == ESpellTargetingMode.Nearest)
                 targetPosition = casterTransform.Position + (casterTransform.Forward() * spellData.BaseCastRange);
 
 
-
-            //Set spawn position/rotation
+            // --- 4. Spawn Transformation Calculation ---
             float3 spawnPosition = float3.zero;
             quaternion spawnRotation = quaternion.identity;
 
@@ -244,6 +255,7 @@ public partial struct SpellCastingSystem : ISystem
 
             float3 fireDirection = float3.zero;
 
+            // Calculate surface alignment for the spawn point
             float3 planetCenter = float3.zero;
             float3 planetSurfaceNormal = math.normalize(targetPosition - planetCenter);
 
@@ -253,7 +265,6 @@ public partial struct SpellCastingSystem : ISystem
             if (spawnOnTarget)
             {
                 spawnPosition = targetPosition;
-                //spawnRotation = quaternion.identity;
                 spawnRotation = TransformLookup.HasComponent(targetEntity) ? TransformLookup[targetEntity].Rotation : quaternion.LookRotationSafe(planetTangentForward, planetSurfaceNormal);
             }
             else
@@ -262,31 +273,24 @@ public partial struct SpellCastingSystem : ISystem
 
                 if (targetFound && isProjectile)
                 {
-                    //var dir = math.normalize(targetPosition - spawnPosition);
-                    //fireDirection =  (dir == float3.zero) ? casterTransform.Forward() : dir;
-
                     float3 vectorToTarget = targetPosition - spawnPosition;
                     float toTargetDistSq = math.lengthsq(vectorToTarget);
 
-                    // normalize if dir > 0, 
                     fireDirection = toTargetDistSq > math.EPSILON ? fireDirection = math.normalize(vectorToTarget) : casterTransform.Forward();
                 }
                 else
-                    //direction = casterTransform.Rotation;
                     fireDirection = casterTransform.Forward();
 
-                //spawnRotation = quaternion.LookRotationSafe(fireDirection, math.up());
                 spawnRotation = TransformLookup.HasComponent(targetEntity) ? TransformLookup[targetEntity].Rotation : quaternion.identity;
             }
 
 
-            // Instanciate spell entity
+            // --- 5. Entity Instantiation ---
             var spellEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-            // Set components
-
-            // Set  transform
-            ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
+            // --- 6. Component Configuration ---
+            
+             ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
             {
                 Position = spawnPosition,
                 Rotation = spawnRotation,
@@ -309,7 +313,6 @@ public partial struct SpellCastingSystem : ISystem
             {
                 ECB.SetComponent(chunkIndex, spellEntity, new LinearMovement
                 {
-                    //Direction = math.forward(spawnRotation),
                     Direction = fireDirection,
                     Speed = spellData.BaseSpeed * math.max(1, bonusSpellSpeedMult)
                 });
@@ -329,17 +332,6 @@ public partial struct SpellCastingSystem : ISystem
                     AngularSpeed = spellData.BaseSpeed * math.max(1, bonusSpellSpeedMult),
                     OrbitCenterPosition = casterTransform.Position
                 });
-
-                // If AttachToCaster, set relative offset
-                //if (isAttached)
-                //{
-                //    ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
-                //    {
-                //        Position = relativeOffset,
-                //        Rotation = spawnRotation,
-                //        Scale = 1f
-                //    });
-                //}
             }
 
             bool isAttached = AttachLookup.HasComponent(spellPrefab);
@@ -364,7 +356,6 @@ public partial struct SpellCastingSystem : ISystem
                 float3 surfaceNormal = casterTransform.Up();
                 float3 forward = casterTransform.Forward();
 
-                //float3 tangentForward = math.normalize(forward - math.dot(forward, surfaceNormal) * surfaceNormal);
                 PlanetUtils.ProjectDirectionOnSurface(forward, surfaceNormal, out var tangentForward);
 
                 spawnRotation = quaternion.LookRotationSafe(tangentForward, surfaceNormal);
@@ -405,7 +396,7 @@ public partial struct SpellCastingSystem : ISystem
                     Element = spellData.Element
                 });
 
-                // @todo REMOVE AND USE SHADER
+                // Scale the visual representation to match the effect area
                 ECB.SetComponent<LocalTransform>(chunkIndex, spellEntity, new LocalTransform
                 {
                     Position = spawnPosition,
@@ -481,6 +472,7 @@ public partial struct SpellCastingSystem : ISystem
                 });
             }
 
+            // Cleanup the request entity now that the spell is spawned
             ECB.DestroyEntity(chunkIndex, requestEntity);
         }
     }
