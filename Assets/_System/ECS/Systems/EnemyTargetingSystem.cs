@@ -5,19 +5,18 @@ using Unity.Entities;
 using Unity.Burst;
 
 /// <summary>
-/// System that handle enemy spell to be casted by sending a CastSpellRequest. NOT THE SPELLS THEMSELVES. It processes enemies who have spells ready to be used.
-/// <para>
-/// It calculates the distance to the player by following the surface of the planet.
-/// If the player is within range, the system creates a new entity with a `CastSpellRequest` component and empties the `EnemySpellReady` buffer to wait for the next cooldown cycle.
-/// </para>
+/// Evaluates enemies with ready spells and issues <see cref="CastSpellRequest"/> entities if the player is within range.
+/// This system calculates distances along the surface of a spherical planet using optimized chord-length math.
 /// </summary>
 [BurstCompile]
 public partial struct EnemyTargetingSystem : ISystem
 {
-    // Lookups to access data safely inside jobs
+    /// <summary> Lookup for transform data of entities outside the current job's scope. </summary>
     private ComponentLookup<LocalTransform> _transformLookup;
+    /// <summary> Lookup for planet-specific data (like radius). </summary>
     private ComponentLookup<PlanetData> _planetLookup;
 
+    [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<Enemy>();
@@ -31,21 +30,20 @@ public partial struct EnemyTargetingSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        // 1. Update Lookups (Must be done every frame)
+        // Refresh lookups to ensure the job has access to the latest frame data
         _transformLookup.Update(ref state);
         _planetLookup.Update(ref state);
 
+        // Only process targeting if the game is actively running
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState)) return;
         if (gameState.State != EGameState.Running) return;
 
-        // 2. Get Entity Handles Only (Fast, no sync required)
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
         var planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
         var spellDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
 
-        // 3. Schedule Job (Non-blocking)
         var job = new EnemyTargetingJob
         {
             SpellDatabaseRef = spellDatabase.Blobs,
@@ -59,60 +57,61 @@ public partial struct EnemyTargetingSystem : ISystem
         state.Dependency = job.ScheduleParallel(state.Dependency);
     }
 
+    /// <summary>
+    /// Processes each enemy with ready spells, checking if the player is within the spell's cast range.
+    /// </summary>
     [BurstCompile]
     [WithAll(typeof(Stats), typeof(Enemy))]
     private partial struct EnemyTargetingJob : IJobEntity
     {
+        /// <summary> Reference to the blob asset containing all spell configuration data. </summary>
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
         public Entity PlayerEntity;
         public Entity PlanetEntity;
 
+        /// <summary> Read-only lookup for transforms (Player/Planet). </summary>
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
+        /// <summary> Read-only lookup for planet data. </summary>
         [ReadOnly] public ComponentLookup<PlanetData> PlanetLookup;
 
+        /// <summary> Command buffer to create spell request entities. </summary>
         public EntityCommandBuffer.ParallelWriter ECB;
 
         void Execute([ChunkIndexInQuery] int chunkIndex, ref DynamicBuffer<EnemySpellReady> readySpells, in LocalTransform transform, in Entity entity)
         {
             if (readySpells.IsEmpty) return;
 
-            // Safety check
+            // Ensure required global entities still exist
             if (!TransformLookup.HasComponent(PlayerEntity) || !PlanetLookup.HasComponent(PlanetEntity)) return;
 
-            // Gather global data once
             float3 playerPos = TransformLookup[PlayerEntity].Position;
             float planetRadius = PlanetLookup[PlanetEntity].Radius;
 
-            // OPTIMIZATION 1: Pre-calculate the "Max Possible Distance" (Half Circumference)
+            // Pre-calculate the maximum possible surface distance (half circumference)
             float maxSurfaceDist = math.PI * planetRadius;
 
-            // OPTIMIZATION 2: Calculate Squared Straight-Line Distance to player once
-            // This is much faster than calculating surface distance
+            // Calculate the squared straight-line (Euclidean) distance to the player.
+            // This is used for comparison against the calculated chord threshold.
             float distToPlayerSq = math.distancesq(transform.Position, playerPos);
 
             for (int i = 0; i < readySpells.Length; i++)
             {
                 var spell = readySpells[i].Spell;
                 ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[spell.DatabaseIndex];
-
                 bool isInRange = false;
 
-                // CHECK 1: Is the spell "Global"?
-                // If range >= max surface distance, we hit ANYWHERE. No math needed.
                 if (spellData.BaseCastRange >= maxSurfaceDist)
                 {
+                    // If range covers half the planet, it's effectively global
                     isInRange = true;
                 }
                 else
                 {
-                    // CHECK 2: Optimized "Chord" Math
-                    // Instead of calculating the Arc (expensive), we convert the Range (Arc)
-                    // into a required Straight-Line Distance (Chord).
-                    // Chord = 2*R * sin(Arc / 2R)
-
-                    // Note: If you have many spells, you should cache 'ThresholdChordSq' in the BlobData
-                    // to avoid doing this sin() calculation here.
+                    // Optimized Range Check:
+                    // Instead of calculating the Arc distance (expensive), we convert the spell's 
+                    // Range (Arc) into a Straight-Line Distance (Chord).
+                    // Formula: Chord = 2 * R * sin(Arc / 2R)
                     float thresholdChord = 2.0f * planetRadius * math.sin(spellData.BaseCastRange / (2.0f * planetRadius));
 
                     if (distToPlayerSq <= thresholdChord * thresholdChord)
@@ -123,6 +122,7 @@ public partial struct EnemyTargetingSystem : ISystem
 
                 if (isInRange)
                 {
+                    // Create a request entity to be processed by the SpellSystem
                     var request = ECB.CreateEntity(chunkIndex);
                     ECB.AddComponent(chunkIndex, request, new CastSpellRequest
                     {
@@ -133,6 +133,7 @@ public partial struct EnemyTargetingSystem : ISystem
                 }
             }
 
+            // Clear the buffer so spells aren't re-cast until the cooldown system refills it
             readySpells.Clear();
         }
     }

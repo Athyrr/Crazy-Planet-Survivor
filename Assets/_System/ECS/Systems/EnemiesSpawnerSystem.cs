@@ -5,14 +5,17 @@ using Unity.Transforms;
 using Unity.Mathematics;
 
 /// <summary>
-/// System responsible for spawning enemies based on wave configuration.
-/// It manages the wave timer and schedules jobs to instantiate enemies.
+/// Handles the logic for spawning enemies in waves on a spherical planet surface.
+/// This system manages wave timing, processes pending spawn queues across multiple frames to prevent 
+/// performance spikes, and calculates spawn positions based on various geometric modes.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
 public partial struct EnemiesSpawnerSystem : ISystem
 {
-    // Maximum number of entities to spawn per frame to maintain performance
+    /// <summary>
+    /// Limits the number of entities instantiated in a single frame to maintain a stable frame rate.
+    /// </summary>
     private const int MaxSpawnsPerFrame = 100;
 
     [BurstCompile]
@@ -27,7 +30,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        // Ensure the game is running
+        // Only process spawning logic while the game is in the 'Running' state
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
             return;
 
@@ -41,21 +44,16 @@ public partial struct EnemiesSpawnerSystem : ISystem
             return;
         }
 
-        // Manage Wave Timer
+        // --- Wave Timer Management ---
         spawnerState.WaveTimer -= SystemAPI.Time.DeltaTime;
         
         if (spawnerState.WaveTimer > 0)
             return;
 
-        // Reset timer for next wave
         var settings = SystemAPI.GetSingleton<SpawnerSettings>();
         spawnerState.WaveTimer = settings.TimeBetweenWaves;
 
-        // Start processing the new wave
-        // We iterate through all elements of the current wave to see if we need to start spawning
-        // Note: This logic assumes we process all elements of a wave index sequentially or together.
-        // If a wave has multiple elements, we might need to handle them one by one or all together.
-        // For simplicity and to support the request, let's check if we need to start a multi-frame spawn sequence.
+        // --- New Wave Initialization ---
         
         // Check if there are any elements for the current wave
         bool waveHasElements = false;
@@ -70,9 +68,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
         if (waveHasElements)
         {
-            // Initialize multi-frame spawning state
-            // We will process wave elements one by one or in batches.
-            // Let's start with the first element of the wave.
+            // Find the first element index for this wave to begin the spawning sequence
             spawnerState.CurrentWaveElementIndex = 0; // We'll search for the first matching element index
             
             // Find the first element index for this wave
@@ -102,13 +98,17 @@ public partial struct EnemiesSpawnerSystem : ISystem
         }
         else
         {
-            // No elements for this wave index, maybe end of game or empty wave?
-            // Just move to next index? Or maybe loop? 
-            // For now, let's just increment to avoid getting stuck if it's an empty wave slot
+            // If a wave index is empty, increment to prevent the spawner from stalling
              spawnerState.CurrentWaveIndex++;
         }
     }
 
+    /// <summary>
+    /// Calculates spawn parameters for the current batch and schedules the parallel instantiation job.
+    /// </summary>
+    /// <param name="state">The current system state.</param>
+    /// <param name="spawnerState">The mutable state of the spawner singleton.</param>
+    /// <param name="waveBuffer">The buffer containing wave configuration data.</param>
     private void ProcessPendingSpawns(ref SystemState state, ref SpawnerState spawnerState, DynamicBuffer<WaveElement> waveBuffer)
     {
         // Validate index
@@ -122,16 +122,15 @@ public partial struct EnemiesSpawnerSystem : ISystem
         var waveElement = waveBuffer[spawnerState.CurrentWaveElementIndex];
         
         // Double check we are on the right wave (should be guaranteed by logic)
-        if (waveElement.WaveIndex != spawnerState.CurrentWaveIndex)
+        if (waveElement.WaveIndex != spawnerState.CurrentWaveIndex) 
         {
-            // We somehow drifted? Stop.
             spawnerState.PendingSpawnCount = 0;
             return;
         }
 
+        // Clamp the amount to spawn this frame to the maximum allowed
         int amountToSpawn = math.min(spawnerState.PendingSpawnCount, MaxSpawnsPerFrame);
         
-        // Prepare for spawning
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
 
@@ -144,7 +143,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
         LocalTransform planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
         float3 planetCenter = planetTransform.Position;
 
-        // Determine spawn parameters based on mode
+        // --- Spawn Origin Calculation ---
         float3 spawnOrigin = float3.zero;
         uint seedOffset = 0;
 
@@ -155,12 +154,14 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 seedOffset = 0;
                 break;
             case SpawnMode.Opposite:
+                // Calculate the point on the planet surface directly opposite to the player
                 float3 dirToPlayer = math.normalize(playerTransform.Position - planetCenter);
                 if (math.lengthsq(dirToPlayer) < 0.001f) dirToPlayer = new float3(0, 1, 0);
                 spawnOrigin = planetCenter - dirToPlayer * planetRadius;
                 seedOffset = 2;
                 break;
             case SpawnMode.EntirePlanet:
+                // Origin is irrelevant for EntirePlanet mode as it uses random directions
                 spawnOrigin = float3.zero; 
                 seedOffset = 1;
                 break;
@@ -174,8 +175,8 @@ public partial struct EnemiesSpawnerSystem : ISystem
         {
             ECB = ecb,
             PlayerEntity = playerEntity,
-            TotalAmount = waveElement.Amount, // Total amount for the whole wave element, needed for circle calculations
-            StartIndex = spawnerState.SpawnsProcessed, // Offset for this batch
+            TotalAmount = waveElement.Amount,
+            StartIndex = spawnerState.SpawnsProcessed,
             Prefab = waveElement.Prefab,
             PlanetCenter = planetCenter,
             PlanetRadius = planetRadius,
@@ -189,11 +190,10 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
         state.Dependency = spawnJob.ScheduleParallel(amountToSpawn, 64, state.Dependency);
 
-        // Update state
         spawnerState.PendingSpawnCount -= amountToSpawn;
         spawnerState.SpawnsProcessed += amountToSpawn;
 
-        // If we finished this element, check if there are more elements for the SAME wave index
+        // Check if we need to move to the next element in the current wave or increment the wave index
         if (spawnerState.PendingSpawnCount <= 0)
         {
             // Look for next element with same WaveIndex
@@ -225,23 +225,33 @@ public partial struct EnemiesSpawnerSystem : ISystem
         }
     }
 
+    /// <summary>
+    /// Parallel job that calculates the specific world position and orientation for each enemy 
+    /// based on the selected spawn mode and projects them onto the planet surface.
+    /// </summary>
     [BurstCompile]
     private struct SpawnJob : IJobFor
     {
         public EntityCommandBuffer.ParallelWriter ECB;
         public Entity PlayerEntity;
+        /// <summary> Total amount for the whole wave element, used for uniform distribution in circle modes. </summary>
         public int TotalAmount;
-        public int StartIndex; // The global index offset for this batch
+        /// <summary> The global index offset for this batch to ensure unique random seeds. </summary>
+        public int StartIndex; 
         public Entity Prefab;
         public float3 PlanetCenter;
         public float PlanetRadius;
         public float3 SpawnOrigin;
+        /// <summary> Base seed combined with global index for deterministic-ish randomness. </summary>
         public uint BaseSeed;
         public float DelayBetweenSpawns;
         public float MinRange;
         public float MaxRange;
         public SpawnMode Mode;
 
+        /// <summary>
+        /// Executes the spawning logic for a single entity in the batch.
+        /// </summary>
         public void Execute(int index)
         {
             // Calculate the actual global index for this spawn
@@ -251,7 +261,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
             float3 spawnPosition = float3.zero;
             float3 normal = float3.zero;
 
-            // Calculate Spawn Position based on Mode
+            // --- Position Calculation Logic ---
             if (Mode == SpawnMode.EntirePlanet)
             {
                 float3 randomDirection = rand.NextFloat3Direction();
@@ -265,10 +275,10 @@ public partial struct EnemiesSpawnerSystem : ISystem
             }
             else if (Mode == SpawnMode.Opposite)
             {
-                // Calculate basis for the circle on the sphere surface at the antipodal point
+                // Calculate a coordinate basis (tangent/bitangent) at the antipodal point
                 float3 up = math.normalize(SpawnOrigin - PlanetCenter);
                 
-                // Arbitrary tangent
+                // Create an arbitrary tangent to start the basis
                 float3 tangent = math.cross(up, new float3(0, 1, 0));
                 if (math.lengthsq(tangent) < 0.001f)
                     tangent = math.cross(up, new float3(1, 0, 0));
@@ -276,10 +286,9 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 
                 float3 bitangent = math.cross(up, tangent);
 
-                // Calculate position on the circle using globalIndex
+                // Distribute spawns in a circle around the antipodal point
                 float angle = (2 * math.PI * globalIndex) / TotalAmount;
-                // Dynamic radius to prevent overlapping: circumference approx Amount * 1.5 units
-                // Clamped to ensure it's not too small
+                // Scale radius based on amount to prevent immediate crowding
                 float radius = math.max(3f, TotalAmount * 0.25f); 
                 
                 float3 offset = (tangent * math.cos(angle) + bitangent * math.sin(angle)) * radius;
@@ -291,15 +300,14 @@ public partial struct EnemiesSpawnerSystem : ISystem
             }
             else if (Mode == SpawnMode.AroundPlayer)
             {
-                // SpawnOrigin is Player Position
                 float3 playerUp = math.normalize(SpawnOrigin - PlanetCenter);
                 
-                // Random arc distance angle
+                // Calculate a random distance from the player in radians (arc length / radius)
                 float minAngle = MinRange / PlanetRadius;
                 float maxAngle = MaxRange / PlanetRadius;
                 float randomAngle = rand.NextFloat(minAngle, maxAngle);
                 
-                // Random direction around player (azimuth)
+                // Random azimuth (0 to 360 degrees)
                 float randomAzimuth = rand.NextFloat(0, 2 * math.PI);
                 
                 // Construct rotation
@@ -317,13 +325,12 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 normal = newNormal;
             }
 
-            // Orientation: Look at random direction tangent to the surface
+            // --- Orientation Calculation ---
+            // Ensure the enemy is looking in a direction tangent to the planet surface
             float3 randomTangent = rand.NextFloat3Direction();
             float3 tangentDirection = randomTangent - math.dot(randomTangent, normal) * normal;
             tangentDirection = math.normalize(tangentDirection);
 
-            // Instantiate and set components
-            // Use index (local to this job batch) for sort key to allow parallel writing
             Entity entity = ECB.Instantiate(index, Prefab);
 
             ECB.SetComponent(index, entity, new LocalTransform
@@ -338,13 +345,13 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 Target = PlayerEntity,
             });
 
-            // Add spawn delay to stagger activation
+            // Stagger the activation of enemies to create a "streaming" spawn effect
             ECB.AddComponent(index, entity, new SpawnDelay
             {
                 Timer = globalIndex * DelayBetweenSpawns
             });
             
-            // Start disabled, enabled by another system after delay
+            // Enemies start disabled and are enabled by the SpawnDelaySystem
             ECB.AddComponent<Disabled>(index, entity);
         }
     }
