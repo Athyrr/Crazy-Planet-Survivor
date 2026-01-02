@@ -5,26 +5,32 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
 
+/// <summary>
+/// Manages local avoidance behavior for entities using spatial hashing and distance-based LOD.
+/// This system optimizes performance by only processing entities within a certain range of the player
+/// and using a grid-based approach to avoid O(N^2) complexity.
+/// </summary>
 [UpdateInGroup(typeof(TestUpdateGroup))]
 [BurstCompile]
 public partial struct AvoidanceSystem : ISystem
 {
     private EntityQuery _activeEnemyQuery;
     private EntityQuery _allEnemyQuery;
-
-    // SAFETY: Use ComponentLookup to read other entities' data inside jobs
-    // without forcing the Main Thread to wait.
     private ComponentLookup<LocalTransform> _transformLookup;
 
-    // Config
     private float _timeSinceLastLOD;
+    
+    /// <summary> The size of each spatial hash grid cell. </summary>
     private const float CellSize = 3.0f;
+    /// <summary> Frequency of the Level of Detail (LOD) distance check. </summary>
     private const float LodCheckInterval = 0.5f;
+    /// <summary> Squared distance threshold for activating avoidance logic. </summary>
     private const float ActivationDistSq = 60f * 60f;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        // Ensure required singletons exist before updating
         state.RequireForUpdate<PlanetData>();
         state.RequireForUpdate<Player>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
@@ -32,11 +38,13 @@ public partial struct AvoidanceSystem : ISystem
         var builder = new EntityQueryBuilder(Allocator.Temp)
             .WithAll<Avoidance, LocalTransform>()
             .WithAllRW<SteeringForce>();
+        // Query for entities currently participating in avoidance
         _activeEnemyQuery = state.GetEntityQuery(builder);
 
         builder.Reset();
         builder.WithAll<Avoidance, LocalTransform>()
             .WithOptions(EntityQueryOptions.IgnoreComponentEnabledState);
+        // Query for all potential enemies to handle LOD toggling
         _allEnemyQuery = state.GetEntityQuery(builder);
         builder.Dispose();
 
@@ -46,14 +54,13 @@ public partial struct AvoidanceSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        // 1. CRITICAL: Update the lookup every frame so it's fresh
+        // Refresh the lookup to ensure jobs have access to the latest transform data
         _transformLookup.Update(ref state);
 
-        // 2. Get Entities (Lightweight, does not cause sync)
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
         var planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
 
-        // --- PHASE 1 : LOD ---
+        // --- PHASE 1: Level of Detail (LOD) Management ---
         _timeSinceLastLOD += SystemAPI.Time.DeltaTime;
         if (_timeSinceLastLOD > LodCheckInterval)
         {
@@ -70,12 +77,10 @@ public partial struct AvoidanceSystem : ISystem
             state.Dependency = lodJob.ScheduleParallel(_allEnemyQuery, state.Dependency);
         }
 
-        // --- PHASE 2 : Spatial Hashing ---
+        // --- PHASE 2: Spatial Hashing ---
         int activeCount = _activeEnemyQuery.CalculateEntityCount();
         if (activeCount == 0) return;
 
-        // ALLOCATOR.TEMPJOB: Very fast allocation, safe for job chains.
-        // We create it here and schedule its disposal at the end.
         var spatialMap = new NativeParallelMultiHashMap<int, AvoidanceData>(
             activeCount,
             Allocator.TempJob
@@ -88,27 +93,28 @@ public partial struct AvoidanceSystem : ISystem
         };
         state.Dependency = populateJob.ScheduleParallel(_activeEnemyQuery, state.Dependency);
 
-        // --- PHASE 3 : Avoidance Calculation ---
+        // --- PHASE 3: Avoidance Calculation ---
         var avoidanceJob = new AvoidanceJob
         {
-            // We pass the map as ReadOnly here
             Map = spatialMap,
             TransformLookup = _transformLookup,
             PlanetEntity = planetEntity,
             CellSize = CellSize
         };
         state.Dependency = avoidanceJob.ScheduleParallel(_activeEnemyQuery, state.Dependency);
-
-        // CLEANUP: Dispose of the map Asynchronously.
-        // Unity will wait for 'avoidanceJob' to finish before freeing this memory.
-        // The Main Thread continues immediately.
+        
+        // Dispose of the map after the avoidance job completes
         state.Dependency = spatialMap.Dispose(state.Dependency);
     }
 
-    // --- DATA ---
+    /// <summary>
+    /// Minimal data required for avoidance calculations stored in the spatial map.
+    /// </summary>
     private struct AvoidanceData
     {
+        /// <summary> World position of the entity. </summary>
         public float3 Position;
+        /// <summary> The entity reference to avoid self-comparison. </summary>
         public Entity Entity;
     }
 
@@ -117,6 +123,9 @@ public partial struct AvoidanceSystem : ISystem
     [BurstCompile]
     private partial struct LodJob : IJobEntity
     {
+        /// <summary>
+        /// Toggles the Avoidance component's enabled state based on distance to the player.
+        /// </summary>
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
         public Entity PlayerEntity;
         public float DistSqThreshold;
@@ -139,6 +148,9 @@ public partial struct AvoidanceSystem : ISystem
     [BurstCompile]
     private partial struct PopulateSpatialMapJob : IJobEntity
     {
+        /// <summary>
+        /// Maps each entity to a grid cell based on its world position.
+        /// </summary>
         public NativeParallelMultiHashMap<int, AvoidanceData>.ParallelWriter Map;
         public float CellSize;
 
@@ -152,6 +164,10 @@ public partial struct AvoidanceSystem : ISystem
     [BurstCompile]
     private partial struct AvoidanceJob : IJobEntity
     {
+        /// <summary>
+        /// Calculates the steering force by checking neighboring cells in the spatial map.
+        /// Projects the final force onto the planet's surface tangent plane.
+        /// </summary>
         [ReadOnly] public NativeParallelMultiHashMap<int, AvoidanceData> Map;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
         public Entity PlanetEntity;
@@ -165,7 +181,7 @@ public partial struct AvoidanceSystem : ISystem
             float3 avoidanceForce = float3.zero;
             int3 centerCell = (int3)math.floor(transform.Position / CellSize);
 
-            // Loop unrolling hint for Burst (optional but often helps)
+            // Check the 3x3x3 neighborhood of cells
             for (int x = -1; x <= 1; x++)
             {
                 for (int y = -1; y <= 1; y++)
@@ -192,10 +208,10 @@ public partial struct AvoidanceSystem : ISystem
                                     }
                                     else
                                     {
+                                        // Fallback for overlapping entities to prevent zero-length vectors
                                         var rnd = Unity.Mathematics.Random.CreateFromIndex((uint)entity.Index ^ (uint)other.Entity.Index);
                                         avoidanceForce += rnd.NextFloat3Direction() * 4;
                                     }
-                                    // Removed 'goto' for cleaner flow, but logic remains
                                 }
                             } while (Map.TryGetNextValue(out other, ref it));
                         }
@@ -203,6 +219,7 @@ public partial struct AvoidanceSystem : ISystem
                 }
             }
 
+            // Constrain the avoidance force to the surface of the planet (tangent plane)
             float3 surfaceNormal = math.normalize(transform.Position - planetCenter);
             avoidanceForce -= surfaceNormal * math.dot(avoidanceForce, surfaceNormal);
 
