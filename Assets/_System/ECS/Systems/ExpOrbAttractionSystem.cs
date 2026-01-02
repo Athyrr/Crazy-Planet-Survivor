@@ -4,18 +4,25 @@ using Unity.Transforms;
 using Unity.Collections;
 using Unity.Mathematics;
 
+/// <summary>
+/// Manages the lifecycle of experience orbs, handling both the detection of nearby orbs (attraction) 
+/// and the final collection when they reach the player. 
+/// Uses a throttled scanning approach to minimize performance impact.
+/// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
 public partial struct ExpOrbAttractionSystem : ISystem
 {
-    // Lookups
+    /// <summary> Cached lookup for world positions. </summary>
     [ReadOnly] private ComponentLookup<LocalTransform> _transformLookup;
+    /// <summary> Cached lookup for player stats (Collection Range/Speed). </summary>
     [ReadOnly] private ComponentLookup<Stats> _statsLookup;
+    /// <summary> Cached lookup for planet-specific data. </summary>
     [ReadOnly] private ComponentLookup<PlanetData> _planetLookup;
 
-    // Throttle state
     private float _timeSinceLastScan;
-    private const float SCAN_INTERVAL = 0.25f; // Run detection only 4 times per second
+    /// <summary> Frequency of the attraction scan (4 times per second). </summary>
+    private const float SCAN_INTERVAL = 0.25f; 
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -31,11 +38,11 @@ public partial struct ExpOrbAttractionSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        // Refresh transform lookup for the current frame
         _transformLookup.Update(ref state);
 
-        // --- FAST PATH: Collection ---
-        // We run "Collection" every frame because if an orb touches the player,
-        // it should disappear instantly to feel responsive.
+        // --- PHASE 1: Collection (Fast Path) ---
+        // This runs every frame to ensure that orbs disappear immediately upon touching the player.
         if (SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity))
         {
             var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
@@ -49,15 +56,13 @@ public partial struct ExpOrbAttractionSystem : ISystem
             };
             state.Dependency = collectJob.ScheduleParallel(state.Dependency);
 
-            // --- SLOW PATH: Attraction (Throttled) ---
-            // We only look for NEW orbs to attract every 0.25s.
-            // This cuts the cost of this job by factor of ~15x (at 60fps).
+            // --- PHASE 2: Attraction (Slow Path / Throttled) ---
+            // Scanning for new orbs is computationally expensive. Throttling this to 4Hz 
+            // significantly reduces CPU overhead without impacting perceived gameplay quality.
             _timeSinceLastScan += SystemAPI.Time.DeltaTime;
             if (_timeSinceLastScan >= SCAN_INTERVAL)
             {
                 _timeSinceLastScan = 0;
-
-                // We need fresh lookups for this job too
                 _statsLookup.Update(ref state);
                 _planetLookup.Update(ref state);
 
@@ -78,6 +83,10 @@ public partial struct ExpOrbAttractionSystem : ISystem
         }
     }
 
+    /// <summary>
+    /// Scans for static orbs within the player's collection range and attaches 
+    /// a movement component to pull them toward the player.
+    /// </summary>
     [BurstCompile]
     [WithNone(typeof(FollowTargetMovement))] // Only scan static orbs
     private partial struct AttractOrbJob : IJobEntity
@@ -98,13 +107,13 @@ public partial struct ExpOrbAttractionSystem : ISystem
             float3 playerPos = TransformLookup[PlayerEntity].Position;
             float collectRange = StatsLookup[PlayerEntity].CollectRange;
             float playerSpeed = StatsLookup[PlayerEntity].MoveSpeed;
-            // float planetRadius = PlanetLookup[PlanetEntity].Radius; // Not strictly needed for distance check if using Euclidean
 
-            // OPTIMIZATION: Squared Euclidean Distance.
-            // Math.distancesq is significantly faster than Surface Distance (which uses acos/sqrt).
-            // For attraction ranges (usually < 50m), the error vs Surface distance is < 1%.
+            // Optimization: Use Squared Euclidean Distance.
+            // At the ranges used for collection, the difference between a straight line 
+            // and the planet's arc is negligible, but the performance gain is significant.
             float distSq = math.distancesq(playerPos, transform.Position);
 
+            // If within range, convert the static orb into a following entity
             if (distSq <= collectRange * collectRange)
             {
                 ECB.AddComponent(chunkIndex, entity, new FollowTargetMovement()
@@ -117,6 +126,10 @@ public partial struct ExpOrbAttractionSystem : ISystem
         }
     }
 
+    /// <summary>
+    /// Checks if an attracting orb has reached the player. 
+    /// If so, it rewards experience and destroys the orb.
+    /// </summary>
     [BurstCompile]
     private partial struct CollectOrbJob : IJobEntity
     {
@@ -126,14 +139,15 @@ public partial struct ExpOrbAttractionSystem : ISystem
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, in ExperienceOrb orb, in LocalTransform transform, in FollowTargetMovement followMovement)
         {
-            // Only process orbs that are actually following something
             if (!TransformLookup.HasComponent(PlayerEntity)) return;
 
             float3 playerPos = TransformLookup[PlayerEntity].Position;
             float distSq = math.distancesq(playerPos, transform.Position);
 
+            // Check if the orb is close enough to be considered "collected"
             if (distSq <= followMovement.StopDistance * followMovement.StopDistance)
             {
+                // Add experience to the player's buffer and flag the orb for removal
                 ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedExperienceBufferElement()
                 {
                     Value = orb.Value
