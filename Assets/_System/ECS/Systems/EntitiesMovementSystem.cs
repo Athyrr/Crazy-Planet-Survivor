@@ -42,9 +42,11 @@ public partial struct EntitiesMovementSystem : ISystem
         _steeringLookup.Update(ref state);
         _transformLookup.Update(ref state);
 
-        JobHandle dependency = state.Dependency;
+        // --- CHAINED SCHEDULING ---
+        // We must chain these jobs because they all write to 'LocalTransform'.
+        // Unity prevents parallel writing to the same component type to avoid race conditions.
 
-        // --- Linear ---
+        // 1. Linear Movement
         var linearSnappedJob = new MoveLinearSnappedJob
         {
             DeltaTime = delta,
@@ -52,7 +54,8 @@ public partial struct EntitiesMovementSystem : ISystem
             PlanetCenter = planetTransform.Position,
             StatsLookup = _statsLookup
         };
-        JobHandle linearSnappedHandle = linearSnappedJob.ScheduleParallel(dependency);
+        // Start with the system's input dependency
+        JobHandle linearSnappedHandle = linearSnappedJob.ScheduleParallel(state.Dependency);
 
         var linearBareJob = new MoveLinearBareJob
         {
@@ -61,12 +64,10 @@ public partial struct EntitiesMovementSystem : ISystem
             PlanetRadius = planetData.Radius,
             StatsLookup = _statsLookup
         };
-        JobHandle linearBareHandle = linearBareJob.ScheduleParallel(dependency);
+        // Chain: Wait for Snapped to finish
+        JobHandle linearBareHandle = linearBareJob.ScheduleParallel(linearSnappedHandle);
 
-        // --- Follow ---
-        // Combine dependencies for the next step if needed, or fork off 'dependency'
-        JobHandle linearHandle = JobHandle.CombineDependencies(linearSnappedHandle, linearBareHandle);
-
+        // 2. Follow Movement (Chain after Linear)
         var followSnappedJob = new MoveFollowSnappedJob
         {
             PhysicsCollisionWorld = collisionWorld,
@@ -76,7 +77,7 @@ public partial struct EntitiesMovementSystem : ISystem
             SteeringLookup = _steeringLookup,
             TransformLookup = _transformLookup
         };
-        JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearHandle);
+        JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearBareHandle);
 
         var followBareJob = new MoveFollowBareJob
         {
@@ -89,14 +90,13 @@ public partial struct EntitiesMovementSystem : ISystem
         };
         JobHandle followBareHandle = followBareJob.ScheduleParallel(followSnappedHandle);
 
-        var followHandle = JobHandle.CombineDependencies(followSnappedHandle, followBareHandle);
-
-        // --- Orbit ---
+        // 3. Orbit Movement (Chain after Follow)
+        // Note: Orbit Center Update is a read-only dependency for Orbit jobs
         var updateOrbitCenterJob = new UpdateOrbitCenterPositionJob
         {
             LocalTransformLookup = _transformLookup
         };
-        JobHandle updateOrbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(followHandle);
+        JobHandle orbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(followBareHandle);
 
         var orbitSnappedJob = new MoveOrbitSnappedJob
         {
@@ -104,7 +104,7 @@ public partial struct EntitiesMovementSystem : ISystem
             PlanetCenter = planetTransform.Position,
             PhysicsCollisionWorld = collisionWorld
         };
-        JobHandle orbitSnappedHandle = orbitSnappedJob.ScheduleParallel(updateOrbitCenterHandle);
+        JobHandle orbitSnappedHandle = orbitSnappedJob.ScheduleParallel(orbitCenterHandle);
 
         var orbitBareJob = new MoveOrbitBareJob
         {
@@ -114,7 +114,8 @@ public partial struct EntitiesMovementSystem : ISystem
         };
         JobHandle orbitBareHandle = orbitBareJob.ScheduleParallel(orbitSnappedHandle);
 
-        state.Dependency = JobHandle.CombineDependencies(orbitSnappedHandle, orbitBareHandle);
+        // Final Dependency
+        state.Dependency = orbitBareHandle;
     }
 
     #region Jobs
