@@ -2,11 +2,12 @@ using Unity.Cinemachine;
 using Unity.Transforms;
 using Unity.Entities;
 using UnityEngine;
-
+using Unity.Mathematics;
 
 /// <summary>
-/// old todo ? mb not available actually
-/// @todo look for Camera Targhet component read ecs player transfrom instead of SystemBase (pull method)
+/// Synchronizes a managed Cinemachine camera target with the ECS Player's position.
+/// This system handles spherical orientation (Parallel Transport) to ensure the camera 
+/// behaves correctly as the player moves around the planet.
 /// </summary>
 [UpdateInGroup(typeof(LateSimulationSystemGroup))]
 public partial class CameraTargetUpdaterSystem : SystemBase
@@ -23,46 +24,57 @@ public partial class CameraTargetUpdaterSystem : SystemBase
 
     protected override void OnUpdate()
     {
+        // Ensure we have valid references to the managed camera components
         if (!_initialized || _cameraTargetTransform == null)
         {
-            if (CameraTargetComponent.Instance != null)
-            {
-                _cameraTargetTransform = CameraTargetComponent.Instance.transform;
-                _cameraTargetFollow = CameraTargetComponent.Instance.CameraTargetFollow;
-                
-                _initialized = true;
-            }
-            else
-            {
-                Debug.LogWarning("CameraTargetComponent instance not found. Searching for camera target...");
-                var cameraTarget = GameObject.FindFirstObjectByType<CameraTargetComponent>();
-                if (cameraTarget != null)
-                {
-                    _cameraTargetTransform = cameraTarget.transform;
-                    _initialized = true;
-                }
-                else
-                {
-                    Debug.LogError("No CameraTargetComponent found in scene!");
-                    return;
-                }
-            }
+            InitializeCameraTarget();
+            if (!_initialized) return;
         }
 
-        if (SystemAPI.TryGetSingletonEntity<Player>(out Entity playerEntity))
+        // Retrieve Player position from ECS
+        Entity playerEntity = SystemAPI.GetSingletonEntity<Player>();
+        LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
+
+        float3 playerPos = playerTransform.Position;
+        float distSq = math.lengthsq(playerPos);
+        float dist = math.sqrt(distSq);
+        
+        // Calculate direction towards the planet center (Gravity/Down direction)
+        float3 toCenter = dist > math.EPSILON ? -playerPos / dist : new float3(0, -1, 0);
+
+        // The target transform stays at the planet center (0,0,0) to act as a pivot
+        _cameraTargetTransform.position = Vector3.zero; 
+        
+        // Parallel Transport: Use the current Up vector as a hint to maintain consistent orientation.
+        // This prevents the camera from snapping or spinning wildly when passing through the planet's poles.
+        Vector3 currentUp = _cameraTargetTransform.up;
+        if (math.abs(math.dot(toCenter, (float3)currentUp)) > 0.99f) currentUp = math.rotate(playerTransform.Rotation, new float3(0, 0, 1));
+
+        _cameraTargetTransform.rotation = Quaternion.LookRotation(toCenter, currentUp);
+
+        // Smoothly interpolate the camera radius to prevent jittering caused by rapid height changes (e.g., terrain height maps)
+        _cameraTargetFollow.Radius = math.lerp(_cameraTargetFollow.Radius, dist + 35, SystemAPI.Time.DeltaTime * 5f);
+    }
+
+    /// <summary>
+    /// Locates the CameraTargetComponent in the scene to establish a link between ECS and GameObjects.
+    /// </summary>
+    private void InitializeCameraTarget()
+    {
+        if (CameraTargetComponent.Instance != null)
         {
-            if (SystemAPI.HasComponent<LocalTransform>(playerEntity))
+            _cameraTargetTransform = CameraTargetComponent.Instance.transform;
+            _cameraTargetFollow = CameraTargetComponent.Instance.CameraTargetFollow;
+            _initialized = true;
+        }
+        else
+        {
+            var cameraTarget = GameObject.FindFirstObjectByType<CameraTargetComponent>();
+            if (cameraTarget != null)
             {
-                LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
-
-                // calc fwd & dist
-                var forward = Vector3.Normalize(playerTransform.Position);
-                var distance = Vector3.Magnitude(playerTransform.Position);
-
-                _cameraTargetTransform.position = Vector3.zero; // actually planet center, to later get planet ref where player are.
-                // _cameraTargetTransform.up = forward;
-                _cameraTargetTransform.LookAt(playerTransform.Position * -1);
-                _cameraTargetFollow.Radius = distance + 35;
+                _cameraTargetTransform = cameraTarget.transform;
+                _cameraTargetFollow = cameraTarget.CameraTargetFollow;
+                _initialized = true;
             }
         }
     }

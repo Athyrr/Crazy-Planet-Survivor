@@ -48,7 +48,6 @@ public partial struct ApplyUpgradeSystem : ISystem
             SpellPrefabs = spellPrefabs,
 
             ColliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true),
-
         };
         state.Dependency = applyUpgradeJob.ScheduleParallel(state.Dependency);
     }
@@ -69,7 +68,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
 
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
-
+        
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in ApplyUpgradeRequest request)
         {
             int upgradeIndex = request.DatabaseIndex;

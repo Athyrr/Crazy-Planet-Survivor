@@ -1,12 +1,9 @@
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
-using UnityEditor.Experimental.GraphView;
-using UnityEngine.Android;
 
 /// <summary>
 /// Represents a system that handle spells that spawn child entities with specific layouts (ex: Circle layout, ...).

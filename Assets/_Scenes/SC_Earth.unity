@@ -190,8 +190,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 23276533}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.31585586, y: -0.5756419, z: -0.0044831363, w: 0.7542224}
-  m_LocalPosition: {x: 112.33733, y: 63.257053, z: -16.699472}
+  m_LocalRotation: {x: 0.08631882, y: -0.5501826, z: -0.16935986, w: 0.8131208}
+  m_LocalPosition: {x: 78.21039, y: 27.785574, z: -18.582794}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -217,7 +217,7 @@ MonoBehaviour:
     RotationDamping: {x: 1, y: 1, z: 1}
     QuaternionDamping: 0.3
   OrbitStyle: 0
-  Radius: 130
+  Radius: 94.5047
   Orbits:
     Top:
       Radius: 2
@@ -236,14 +236,14 @@ MonoBehaviour:
     Range: {x: -180, y: 180}
     Wrap: 1
     Recentering:
-      Enabled: 0
+      Enabled: 1
       Wait: 1
       Time: 2
     Restrictions: 0
   VerticalAxis:
-    Value: 0
-    Center: 17.5
-    Range: {x: -10, y: 45}
+    Value: -11
+    Center: -11
+    Range: {x: -21, y: -2}
     Wrap: 0
     Recentering:
       Enabled: 0
@@ -251,9 +251,9 @@ MonoBehaviour:
       Time: 2
     Restrictions: 0
   RadialAxis:
-    Value: 1
-    Center: 1
-    Range: {x: 1, y: 1}
+    Value: 0.9
+    Center: 0.9
+    Range: {x: 0.16, y: 1.49}
     Wrap: 0
     Recentering:
       Enabled: 0
@@ -272,7 +272,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b78ac948f05a46a6d8339a503172b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineHardLookAt
-  LookAtOffset: {x: 0, y: 2.5, z: 0}
+  LookAtOffset: {x: 0, y: 41, z: 0}
 --- !u!114 &23276543
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -673,6 +673,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1251050326
 MeshFilter:
@@ -1152,6 +1153,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1684467037
 MeshFilter:
@@ -1325,6 +1327,37 @@ MonoBehaviour:
     m_Interactions: 
     m_SingletonActionBindings: []
     m_Flags: 0
+--- !u!1 &1745911947
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1745911948}
+  m_Layer: 0
+  m_Name: GameObject (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1745911948
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1745911947}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.90763, y: -0, z: 7.41296}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1752244733
 GameObject:
   m_ObjectHideFlags: 0
@@ -1404,8 +1437,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1752244733}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.31585586, y: -0.5756419, z: -0.0044831363, w: 0.7542224}
-  m_LocalPosition: {x: 112.33733, y: 63.257053, z: -16.699472}
+  m_LocalRotation: {x: 0.08631882, y: -0.5501826, z: -0.16935986, w: 0.8131208}
+  m_LocalPosition: {x: 78.21039, y: 27.785574, z: -18.582794}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1606,14 +1639,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1875979228}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 1
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 2
     m_Resolution: -1
@@ -1770,6 +1803,10 @@ PrefabInstance:
     - target: {fileID: 6968267741030160291, guid: dc64cc34256d4824ab4fe00e6296739f, type: 3}
       propertyPath: m_Name
       value: BlackHole_Arcane_Loop
+      objectReference: {fileID: 0}
+    - target: {fileID: 6968267741030160291, guid: dc64cc34256d4824ab4fe00e6296739f, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2149,7 +2186,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -12.500061
+      value: -12.5
       objectReference: {fileID: 0}
     - target: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -2504,3 +2541,4 @@ SceneRoots:
   - {fileID: 1911473700}
   - {fileID: 1781018170}
   - {fileID: 1743930801}
+  - {fileID: 1745911948}
