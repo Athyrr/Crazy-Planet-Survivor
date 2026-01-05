@@ -3,7 +3,7 @@ using Unity.Entities;
 /// <summary>
 /// Tag component indicating that an entity has avoidance behavior.
 /// </summary>
-public struct  Avoidance : IComponentData
+public struct  Avoidance : IComponentData, IEnableableComponent
 {
     /// <summary>
     /// Detection radius for avoidance behavior.

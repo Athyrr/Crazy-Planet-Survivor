@@ -34,7 +34,6 @@ Material:
   m_CustomRenderQueue: 3000
   stringTagMap:
     MotionVector: User
-    RenderType: Transparent
   disabledShaderPasses:
   - TransparentBackface
   - MOTIONVECTORS
@@ -128,7 +127,7 @@ Material:
     - _MultiplyNoiseDesaturation: 1
     - _OpaqueCullMode: 2
     - _Polar_Coordinates: 1
-    - _QueueControl: -1
+    - _QueueControl: 1
     - _QueueOffset: 0
     - _ReceivesSSR: 1
     - _ReceivesSSRTransparent: 0

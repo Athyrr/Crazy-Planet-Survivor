@@ -30,6 +30,8 @@ Material:
   - MOTIONVECTORS
   - TransparentDepthPrepass
   - TransparentDepthPostpass
+  - DepthOnly
+  - SHADOWCASTER
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -147,7 +149,7 @@ Material:
     - _OcclusionScale: 1
     - _OpaqueCullMode: 2
     - _PanningNoiseStrenght: 0.7
-    - _QueueControl: -1
+    - _QueueControl: 1
     - _QueueOffset: 0
     - _ReceivesSSR: 1
     - _ReceivesSSRTransparent: 0
@@ -156,7 +158,7 @@ Material:
     - _SmoothnessScale: 1
     - _SoftFadeFactor: 1
     - _SourceBlendRGB: 10
-    - _SrcBlend: 1
+    - _SrcBlend: 5
     - _StencilRef: 0
     - _StencilRefDepth: 1
     - _StencilRefDistortionVec: 4

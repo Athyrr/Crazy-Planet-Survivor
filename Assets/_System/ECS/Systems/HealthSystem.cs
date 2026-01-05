@@ -3,6 +3,10 @@ using Unity.Entities;
 using Unity.Collections;
 using Unity.Mathematics;
 
+/// <summary>
+/// Processes incoming damage from the <see cref="DamageBufferElement"/>, applying elemental 
+/// resistances and armor reductions before updating the entity's health.
+/// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
 public partial struct HealthSystem : ISystem
@@ -16,18 +20,16 @@ public partial struct HealthSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        // Only process health changes while the game is actively running
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
             return;
 
         if (gameState.State != EGameState.Running)
             return;
 
+        // Use the EndSimulation ECB to handle entity destruction at the end of the frame
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-
-        var enemiesKilledQueue = new NativeQueue<int>(Allocator.TempJob);
-        var playerDamageQueue = new NativeQueue<int>(Allocator.TempJob);
-        var totalDamageDealtQueue = new NativeQueue<float>(Allocator.TempJob);
 
         var applyDamageJob = new ApplyDamageJob
         {
@@ -35,63 +37,38 @@ public partial struct HealthSystem : ISystem
             DestroyFlagLookup = SystemAPI.GetComponentLookup<DestroyEntityFlag>(true),
             PlayerLookup = SystemAPI.GetComponentLookup<Player>(true),
             EnemyLookup = SystemAPI.GetComponentLookup<Enemy>(true),
-            EnemiesKilledQueue = enemiesKilledQueue.AsParallelWriter(),
-            PlayerDamageQueue = playerDamageQueue.AsParallelWriter(),
-            TotalDamageDealtQueue = totalDamageDealtQueue.AsParallelWriter()
         };
         
         state.Dependency = applyDamageJob.ScheduleParallel(state.Dependency);
-        
-        state.Dependency.Complete();
-
-#if ENABLE_STATISTICS
-        if (SystemAPI.HasSingleton<GameStatistics>())
-        {
-            ref var stats = ref SystemAPI.GetSingletonRW<GameStatistics>().ValueRW;
-            
-            while(enemiesKilledQueue.TryDequeue(out int _))
-            {
-                stats.EnemiesKilled++;
-            }
-            
-            while(playerDamageQueue.TryDequeue(out int damage))
-            {
-                stats.PlayerDamageTaken += damage;
-            }
-            
-            while(totalDamageDealtQueue.TryDequeue(out float damage))
-            {
-                stats.TotalDamageDealt += damage;
-            }
-        }
-#endif
-
-        enemiesKilledQueue.Dispose();
-        playerDamageQueue.Dispose();
-        totalDamageDealtQueue.Dispose();
     }
 
+    /// <summary>
+    /// Calculates the total damage for an entity by iterating through its damage buffer 
+    /// and applying defensive stats.
+    /// </summary>
     [BurstCompile]
     private partial struct ApplyDamageJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
+        /// <summary> Used to check if an entity is already flagged for destruction. </summary>
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
+        /// <summary> Provided for potential future filtering or logic (currently unused). </summary>
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
+        /// <summary> Provided for potential future filtering or logic (currently unused). </summary>
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
         
-        public NativeQueue<int>.ParallelWriter EnemiesKilledQueue;
-        public NativeQueue<int>.ParallelWriter PlayerDamageQueue;
-        public NativeQueue<float>.ParallelWriter TotalDamageDealtQueue;
-
         public void Execute([ChunkIndexInQuery] int index, Entity entity, ref Health health, in Stats stats, ref DynamicBuffer<DamageBufferElement> damageBuffer)
         {
+            // Skip entities already marked for destruction
             if (DestroyFlagLookup.HasComponent(entity))
                 return;
 
+            // Skip if health is already zero or there is no damage to process
             if (health.Value <= 0 || damageBuffer.IsEmpty)
                 return;
 
             float totalDamage = 0;
+            // Process every damage instance stored in the buffer this frame
             foreach (var dbe in damageBuffer)
             {
                 float damage = dbe.Damage;
@@ -117,42 +94,24 @@ public partial struct HealthSystem : ISystem
                         break;
                 }
 
-                //Apply Armor reduction
+                // Apply flat Armor reduction after elemental resistances
                 damage -= stats.Armor;
                 damage = math.max(0, damage);
 
                 totalDamage += damage;
             }
 
-            // Apply damage 
+            // Apply the accumulated damage to the health component
             health.Value -= math.max(0, totalDamage);
 
-            // Track player damage
-            if (totalDamage > 0)
-            {
-                if (PlayerLookup.HasComponent(entity))
-                {
-                    PlayerDamageQueue.Enqueue((int)totalDamage);
-                }
-                else if (EnemyLookup.HasComponent(entity))
-                {
-                    TotalDamageDealtQueue.Enqueue(totalDamage);
-                }
-            }
-
+            // Clear the buffer to prevent re-processing the same damage next frame
             damageBuffer.Clear();
 
+            // Check for death condition
             if (health.Value <= 0)
             {
                 health.Value = 0;
-                // Mark entity for destruction
                 ECB.AddComponent(index, entity, new DestroyEntityFlag());
-
-                // Track enemy death
-                if (EnemyLookup.HasComponent(entity))
-                {
-                    EnemiesKilledQueue.Enqueue(1);
-                }
             }
         }
     }

@@ -45,6 +45,7 @@ Material:
   - MOTIONVECTORS
   - TransparentDepthPrepass
   - TransparentDepthPostpass
+  - SHADOWCASTER
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -143,7 +144,7 @@ Material:
     - _DoubleSidedEnable: 0
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 1
-    - _DstBlend: 10
+    - _DstBlend: 0
     - _EnableBlendModePreserveSpecularLighting: 0
     - _EnableFogOnTransparent: 1
     - _ExcludeFromTUAndAA: 0
@@ -162,7 +163,7 @@ Material:
     - _OcclusionScale: 1
     - _OpaqueCullMode: 2
     - _PanningNoiseStrenght: 2
-    - _QueueControl: -1
+    - _QueueControl: 1
     - _QueueOffset: 0
     - _ReceivesSSR: 1
     - _ReceivesSSRTransparent: 0

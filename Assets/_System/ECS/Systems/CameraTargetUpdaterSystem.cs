@@ -4,10 +4,10 @@ using Unity.Entities;
 using UnityEngine;
 using Unity.Mathematics;
 
-
 /// <summary>
-/// old todo ? mb not available actually
-/// @todo look for Camera Targhet component read ecs player transfrom instead of SystemBase (pull method)
+/// Synchronizes a managed Cinemachine camera target with the ECS Player's position.
+/// This system handles spherical orientation (Parallel Transport) to ensure the camera 
+/// behaves correctly as the player moves around the planet.
 /// </summary>
 [UpdateInGroup(typeof(LateSimulationSystemGroup))]
 public partial class CameraTargetUpdaterSystem : SystemBase
@@ -24,38 +24,41 @@ public partial class CameraTargetUpdaterSystem : SystemBase
 
     protected override void OnUpdate()
     {
-        // Optimization: Handle initialization cleanly
+        // Ensure we have valid references to the managed camera components
         if (!_initialized || _cameraTargetTransform == null)
         {
             InitializeCameraTarget();
             if (!_initialized) return;
         }
 
-
-
-
-
+        // Retrieve Player position from ECS
         Entity playerEntity = SystemAPI.GetSingletonEntity<Player>();
         LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
-
 
         float3 playerPos = playerTransform.Position;
         float distSq = math.lengthsq(playerPos);
         float dist = math.sqrt(distSq);
+        
+        // Calculate direction towards the planet center (Gravity/Down direction)
         float3 toCenter = dist > math.EPSILON ? -playerPos / dist : new float3(0, -1, 0);
 
-        _cameraTargetTransform.position = Vector3.zero; // actually planet center, to later get planet ref where player are.
+        // The target transform stays at the planet center (0,0,0) to act as a pivot
+        _cameraTargetTransform.position = Vector3.zero; 
         
-        // Use current Up as hint to maintain orientation (Parallel Transport) to avoid pole singularity
+        // Parallel Transport: Use the current Up vector as a hint to maintain consistent orientation.
+        // This prevents the camera from snapping or spinning wildly when passing through the planet's poles.
         Vector3 currentUp = _cameraTargetTransform.up;
         if (math.abs(math.dot(toCenter, (float3)currentUp)) > 0.99f) currentUp = math.rotate(playerTransform.Rotation, new float3(0, 0, 1));
 
         _cameraTargetTransform.rotation = Quaternion.LookRotation(toCenter, currentUp);
 
-        // Smooth the radius change to avoid camera jumping due to height map (pour niels le type qu'aime pas quand ca rebondi)
+        // Smoothly interpolate the camera radius to prevent jittering caused by rapid height changes (e.g., terrain height maps)
         _cameraTargetFollow.Radius = math.lerp(_cameraTargetFollow.Radius, dist + 35, SystemAPI.Time.DeltaTime * 5f);
     }
 
+    /// <summary>
+    /// Locates the CameraTargetComponent in the scene to establish a link between ECS and GameObjects.
+    /// </summary>
     private void InitializeCameraTarget()
     {
         if (CameraTargetComponent.Instance != null)
