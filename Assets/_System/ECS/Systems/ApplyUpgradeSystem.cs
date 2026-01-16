@@ -11,6 +11,7 @@ public partial struct ApplyUpgradeSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<Player>();
+        state.RequireForUpdate<GameState>();
         state.RequireForUpdate<UpgradesDatabase>();
         state.RequireForUpdate<ApplyUpgradeRequest>();
     }
@@ -23,11 +24,6 @@ public partial struct ApplyUpgradeSystem : ISystem
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
-        var spellsDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
-        var spellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
-        var spellIndexMap = SystemAPI.GetSingleton<SpellToIndexMap>().Map;
-
-
         var upgradesDatabaseEntity = SystemAPI.GetSingletonEntity<UpgradesDatabase>();
         var upgradesDatabase = SystemAPI.GetComponent<UpgradesDatabase>(upgradesDatabaseEntity);
 
@@ -36,18 +32,10 @@ public partial struct ApplyUpgradeSystem : ISystem
         var applyUpgradeJob = new ApplyUpgradeJob()
         {
             ECB = ecb.AsParallelWriter(),
-
-            PlayerEntity = playerEntity,
-
             GameStateEntity = gameStateEntity,
 
+            PlayerEntity = playerEntity,
             UpgradesDatabaseRef = upgradesDatabase.Blobs,
-
-            SpellsDatabaseRef = spellsDatabase.Blobs,
-            SpellIndexMap = spellIndexMap,
-            SpellPrefabs = spellPrefabs,
-
-            ColliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true),
         };
         state.Dependency = applyUpgradeJob.ScheduleParallel(state.Dependency);
     }
@@ -56,18 +44,10 @@ public partial struct ApplyUpgradeSystem : ISystem
     private partial struct ApplyUpgradeJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
-
         public Entity GameStateEntity;
 
         [ReadOnly] public Entity PlayerEntity;
-
         [ReadOnly] public BlobAssetReference<UpgradeBlobs> UpgradesDatabaseRef;
-
-        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
-        [ReadOnly] public NativeHashMap<SpellKey, int> SpellIndexMap;
-        [ReadOnly] public DynamicBuffer<SpellPrefab> SpellPrefabs;
-
-        [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
         
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in ApplyUpgradeRequest request)
         {
