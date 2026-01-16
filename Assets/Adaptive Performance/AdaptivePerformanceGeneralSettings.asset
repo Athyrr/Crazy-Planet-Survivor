@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 536372c49e1ca914d822849d36de938c, type: 3}
+  m_Script: {fileID: 21001, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: iPhone Providers
   m_EditorClassIdentifier: Unity.AdaptivePerformance::UnityEngine.AdaptivePerformance.AdaptivePerformanceManagerSettings
   m_AutomaticLoading: 0
@@ -24,7 +24,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 536372c49e1ca914d822849d36de938c, type: 3}
+  m_Script: {fileID: 21001, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: Standalone Providers
   m_EditorClassIdentifier: Unity.AdaptivePerformance::UnityEngine.AdaptivePerformance.AdaptivePerformanceManagerSettings
   m_AutomaticLoading: 0
@@ -39,7 +39,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 536372c49e1ca914d822849d36de938c, type: 3}
+  m_Script: {fileID: 21001, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: Android Providers
   m_EditorClassIdentifier: Unity.AdaptivePerformance::UnityEngine.AdaptivePerformance.AdaptivePerformanceManagerSettings
   m_AutomaticLoading: 0
@@ -54,11 +54,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 179fc3111e144bc4688dca4038b3265d, type: 3}
+  m_Script: {fileID: 21000, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: iPhone Settings
   m_EditorClassIdentifier: Unity.AdaptivePerformance::UnityEngine.AdaptivePerformance.AdaptivePerformanceGeneralSettings
   m_LoaderManagerInstance: {fileID: -7522571424034220609}
   m_InitManagerOnStart: 0
+  m_LastSelectedProvider: 
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 2
@@ -68,7 +69,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cb0ece14d1f711a4fb9325ca819dee95, type: 3}
+  m_Script: {fileID: 21010, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: AdaptivePerformanceGeneralSettings
   m_EditorClassIdentifier: Unity.AdaptivePerformance.Editor::UnityEditor.AdaptivePerformance.Editor.AdaptivePerformanceGeneralSettingsPerBuildTarget
   Keys: 070000000e0000000100000004000000
@@ -77,6 +78,8 @@ MonoBehaviour:
   - {fileID: 4815976648525479081}
   - {fileID: 1572456732052532507}
   - {fileID: -819751502230654344}
+  m_EnableAdaptivePerformance: 0
+  m_Version: 6000.3
 --- !u!114 &1572456732052532507
 MonoBehaviour:
   m_ObjectHideFlags: 2
@@ -86,11 +89,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 179fc3111e144bc4688dca4038b3265d, type: 3}
+  m_Script: {fileID: 21000, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: Standalone Settings
   m_EditorClassIdentifier: Unity.AdaptivePerformance::UnityEngine.AdaptivePerformance.AdaptivePerformanceGeneralSettings
   m_LoaderManagerInstance: {fileID: -1564127982966697221}
   m_InitManagerOnStart: 0
+  m_LastSelectedProvider: 
 --- !u!114 &1900001474642299413
 MonoBehaviour:
   m_ObjectHideFlags: 2
@@ -100,7 +104,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 536372c49e1ca914d822849d36de938c, type: 3}
+  m_Script: {fileID: 21001, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: Metro Providers
   m_EditorClassIdentifier: Unity.AdaptivePerformance::UnityEngine.AdaptivePerformance.AdaptivePerformanceManagerSettings
   m_AutomaticLoading: 0
@@ -115,11 +119,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 179fc3111e144bc4688dca4038b3265d, type: 3}
+  m_Script: {fileID: 21000, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: Android Settings
   m_EditorClassIdentifier: Unity.AdaptivePerformance::UnityEngine.AdaptivePerformance.AdaptivePerformanceGeneralSettings
   m_LoaderManagerInstance: {fileID: -1310428176694428133}
   m_InitManagerOnStart: 0
+  m_LastSelectedProvider: 
 --- !u!114 &4815976648525479081
 MonoBehaviour:
   m_ObjectHideFlags: 2
@@ -129,8 +134,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 179fc3111e144bc4688dca4038b3265d, type: 3}
+  m_Script: {fileID: 21000, guid: 0000000000000000e000000000000000, type: 0}
   m_Name: Metro Settings
   m_EditorClassIdentifier: Unity.AdaptivePerformance::UnityEngine.AdaptivePerformance.AdaptivePerformanceGeneralSettings
   m_LoaderManagerInstance: {fileID: 1900001474642299413}
   m_InitManagerOnStart: 1
+  m_LastSelectedProvider: 
