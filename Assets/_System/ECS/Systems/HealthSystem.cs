@@ -72,21 +72,21 @@ public partial struct HealthSystem : ISystem
             foreach (var dbe in damageBuffer)
             {
                 float damage = dbe.Damage;
-                ESpellElement element = dbe.Element;
+                ESpellTag element = dbe.Element;
 
                 // Apply Elemental resistance reduction
                 switch (element)
                 {
-                    case ESpellElement.Fire:
+                    case ESpellTag.Fire:
                         damage *= 1 - stats.FireResistance / 100;
                         break;
-                    case ESpellElement.Ice:
+                    case ESpellTag.Ice:
                         damage *= 1 - stats.IceResistance / 100;
                         break;
-                    case ESpellElement.Lightning:
+                    case ESpellTag.Lightning:
                         damage *= 1 - stats.LightningResistance / 100;
                         break;
-                    case ESpellElement.Arcane:
+                    case ESpellTag.Arcane:
                         damage *= 1 - stats.ArcaneResistance / 100;
                         break;
                     default:

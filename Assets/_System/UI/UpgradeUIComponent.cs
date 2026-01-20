@@ -22,11 +22,11 @@ public class UpgradeUIComponent : MonoBehaviour
                 switch (upgradeData.ModifierStrategy)
                 {
                     case EStatModiferStrategy.Flat:
-                        Data.text = $"+{upgradeData.Value} Flat {upgradeData.Stat}";
+                        Data.text = $"+{upgradeData.Value} Flat {upgradeData.CharacterStat}";
 
                         break;
                     case EStatModiferStrategy.Multiply:
-                        Data.text = $"+{upgradeData.Value * 100 - 100}% {upgradeData.Stat}";
+                        Data.text = $"+{upgradeData.Value * 100 - 100}% {upgradeData.CharacterStat}";
 
                         break;
                     default:

@@ -4,7 +4,7 @@ using UnityEngine;
 
 /// <summary>
 /// Represents all stats an entity has during a run. 
-/// Make sure that <see cref="Stats"/> elements correspond to <see cref="EStatID"/> + <see cref="BaseStats"/> elements.
+/// Make sure that <see cref="Stats"/> elements correspond to <see cref="ECharacterStat"/> + <see cref="BaseStats"/> elements.
 /// </summary>
 public struct Stats : IComponentData
 {
@@ -38,7 +38,7 @@ public struct Stats : IComponentData
 
 /// <summary>
 /// Represents base stats of an entity (Initial values).
-/// Make sure that <see cref="BaseStats"/> elements correspond to <see cref="EStatID"/> + <see cref="Stats"/> elements.
+/// Make sure that <see cref="BaseStats"/> elements correspond to <see cref="ECharacterStat"/> + <see cref="Stats"/> elements.
 /// </summary>
 [System.Serializable]
 [Preserve] // preserve string format reflexion on build

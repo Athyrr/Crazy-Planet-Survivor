@@ -16,6 +16,9 @@ public class PlayerAuthoring : MonoBehaviour
     [Tooltip("Modifiers to apply on spawn (e.g. for testing specific builds).")]
     public StatModifier[] InitialModifiers;
 
+    [Tooltip("Upgrades to apply on spawn (e.g. for testing specific builds).")]
+    public UpgradeSO[] InitialUpgrades;
+
     private class Baker : Baker<PlayerAuthoring>
     {
         public override void Bake(PlayerAuthoring authoring)
@@ -33,9 +36,7 @@ public class PlayerAuthoring : MonoBehaviour
 
             AddComponent(entity, new Player() { });
             AddComponent(entity, new InputData() { Value = new float2(0, 0) });
-
             AddComponent(entity, new Health { Value = baseStats.MaxHealth });
-
             AddComponent(entity, new LinearMovement
             {
                 Direction = float3.zero,
@@ -82,10 +83,11 @@ public class PlayerAuthoring : MonoBehaviour
                 foreach (var modifier in authoring.InitialModifiers)
                     statModifierBuffer.Add(modifier);
             }
+
             // Request to reacalultate stats using stat modfiers values.
             AddComponent<RecalculateStatsRequest>(entity);
 
-            // Spells
+            // Active Spells
             AddBuffer<ActiveSpell>(entity);
             DynamicBuffer<SpellActivationRequest> spellActivationBuffer = AddBuffer<SpellActivationRequest>(entity);
 
@@ -102,6 +104,10 @@ public class PlayerAuthoring : MonoBehaviour
                     });
                 }
             }
+             
+            AddBuffer<StatsUpgradePoolBufferElement>(entity);
+
+            AddBuffer<SpellsUpgradePoolBufferElement>(entity);
 
             var expBuffer = AddBuffer<CollectedExperienceBufferElement>(entity);
             AddComponent(entity, new PlayerExperience()

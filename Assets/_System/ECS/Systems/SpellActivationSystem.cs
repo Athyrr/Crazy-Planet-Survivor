@@ -118,18 +118,35 @@ public partial struct SpellActivationSystem : ISystem
 
 
                     ref var spellData = ref SpellsDatabaseRef.Value.Spells[spellIndex];
+
                     // If spell is an active spell with cooldown
                     if (spellData.BaseCooldown > 0)
                     {
-                        // Add spell to ActiveSpells buffer
                         activeSpellsBuffer.Add(new ActiveSpell
                         {
                             DatabaseIndex = spellIndex,
                             Level = 1,
-                            CooldownTimer = spellData.BaseCooldown
-                        });
 
+                            DamageMultiplier = 1f,
+                            CooldownMultiplier = 1f,
+                            AreaMultiplier = 1f,
+                            SpeedMultiplier = 1f,
+                            DurationMultiplier = 1f,
+                            RangeMultiplier = 1f,
+                            TickRateMultiplier = 1f,
+                            LifetimeMultiplier = 1f,
+
+                            BonusAmount = 0,
+                            BonusBounces = 0,
+                            BonusPierces = 0,
+
+                            // Runtime
+                            CurrentCooldown = 0f 
+                        });
                     }
+
+                    //@todo use passive spell tag to keep tracking passives
+
                     // Else if spell is a passive spell that should be instanciated once
                     else
                     {

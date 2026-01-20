@@ -23,11 +23,20 @@ public class CharacterDataSO : ScriptableObject
     public GameObject UIPrefab;
 
 
-    [Header("Game")]
+    [Header("Model")]
 
     [SerializeField]
     [Tooltip("The GameObject prefab that will be baked into an Entity. Must have Authoring components.")]
     public GameObject GamePrefab;
+
+
+    [Header("Upgrades")]
+
+    [Tooltip("Character stats upgrades pool.")]
+    public UpgradesDatabaseSO StatsUpgradesPool;
+
+    [Tooltip("Character spell upgrades pool. Includes unlocks and upgrades.")]
+    public UpgradesDatabaseSO SpellUpgradesPool;
 
 
     [Header("Spells")]
@@ -35,15 +44,8 @@ public class CharacterDataSO : ScriptableObject
     [Tooltip("Character initial spells")]
     public SpellDataSO[] InitialSpells;
 
-
     [Header("Statistics")]
 
     [Tooltip("Character base stats")]
     public BaseStats BaseStats;
-
-
-    //[Header("Stats modfiers")]
-
-    //[Tooltip("Character intial stats modifiers")]
-    //public StatModifier[] StatModifier;
 }

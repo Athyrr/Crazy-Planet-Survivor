@@ -10,12 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7bef2e6ca0a354f4ca2e4c967e2f9429, type: 3}
-  m_Name: Upgrade_Stat_CollectRange
+  m_Name: Upgrade_Stat_MaxHealth
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeDataSO
-  DisplayName: 'Improve stat: Collect Range'
+  DisplayName: 'Improve stat: Max health'
   Description: 
+  Icon: {fileID: 0}
   UpgradeType: 0
-  Stat: 9
-  ModifierStrategy: 1
-  Value: 1.1
-  Spell: 0
+  CharacterStat: 1
+  SpellID: 0
+  RequiredTags: 0
+  SpellStat: 0
+  ModifierStrategy: 0
+  Value: 20

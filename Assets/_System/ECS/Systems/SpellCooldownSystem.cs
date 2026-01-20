@@ -21,9 +21,10 @@ public partial struct SpellCooldownSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<Player>();
         state.RequireForUpdate<Stats>();
+        state.RequireForUpdate<Player>();
         state.RequireForUpdate<ActiveSpell>();
+        state.RequireForUpdate<SpellsDatabase>();
     }
 
     [BurstCompile]
@@ -51,7 +52,7 @@ public partial struct SpellCooldownSystem : ISystem
         JobHandle spellCasterHandle = spellCasterJob.ScheduleParallel(state.Dependency);
 
         EntityCommandBuffer ecbEnemy = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-        var spellReadyJob = new NotifySpellReadyJob
+        var spellReadyJob = new NotifyEnemySpellReadyJob
         {
             DeltaTime = deltaTime,
             SpellDatabaseRef = spellDatabase.Blobs,
@@ -66,7 +67,7 @@ public partial struct SpellCooldownSystem : ISystem
 
     [BurstCompile]
     [WithAll(typeof(Stats), typeof(Enemy))]
-    private partial struct NotifySpellReadyJob : IJobEntity
+    private partial struct NotifyEnemySpellReadyJob : IJobEntity
     {
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
         public float DeltaTime;
@@ -74,22 +75,37 @@ public partial struct SpellCooldownSystem : ISystem
 
         void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref DynamicBuffer<ActiveSpell> spells, ref DynamicBuffer<EnemySpellReady> readyBuffer, in Stats stats, in Enemy enemy)
         {
+            if (!spells.IsCreated || spells.IsEmpty)
+                return;
+
+            ref var spellBlobs = ref SpellDatabaseRef.Value.Spells;
+
             for (int i = 0; i < spells.Length; i++)
             {
-                var spell = spells[i];
-                ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[spell.DatabaseIndex];
+                ActiveSpell activeSpell = spells[i];
+                ref var spellData = ref spellBlobs[activeSpell.DatabaseIndex];
 
-                if (spell.CooldownTimer > 0)
-                    spell.CooldownTimer -= DeltaTime;
+                // If passive or one shot spell
+                if (spellData.BaseCooldown <= 0)
+                    continue;
 
-                if (spell.CooldownTimer <= 0)
+                if (activeSpell.CurrentCooldown > 0)
+                    activeSpell.CurrentCooldown -= DeltaTime;
+
+                if (activeSpell.CurrentCooldown <= 0)
                 {
-                    readyBuffer.Add(new EnemySpellReady { Caster = entity, Spell = spell });
+                    readyBuffer.Add(new EnemySpellReady
+                    {
+                        Caster = entity,
+                        Spell = activeSpell
+                    });
 
-                    float cooldown = spellData.BaseCooldown * (1 - stats.CooldownReduction);
-                    spell.CooldownTimer = cooldown;
+                    float cdMult = activeSpell.CooldownMultiplier <= 0 ? 1f : activeSpell.CooldownMultiplier;
+                    float cooldown = spellData.BaseCooldown * cdMult * (1f - stats.CooldownReduction);
+
+                    activeSpell.CurrentCooldown = cooldown;
                 }
-                spells[i] = spell;
+                spells[i] = activeSpell;
             }
         }
     }
@@ -108,24 +124,36 @@ public partial struct SpellCooldownSystem : ISystem
             if (!spells.IsCreated || spells.IsEmpty)
                 return;
 
+            ref var spellBlobs = ref SpellDatabaseRef.Value.Spells;
+
             for (int i = 0; i < spells.Length; i++)
             {
-                var spell = spells[i];
-                ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[spell.DatabaseIndex];
+                var activeSpell = spells[i];
+                ref var spellData = ref spellBlobs[activeSpell.DatabaseIndex];
 
-                if (spell.CooldownTimer > 0)
-                    spell.CooldownTimer -= DeltaTime;
+                if (spellData.BaseCooldown <= 0)
+                    continue;
 
-                if (spell.CooldownTimer <= 0)
+                if (activeSpell.CurrentCooldown > 0)
+                    activeSpell.CurrentCooldown -= DeltaTime;
+
+                if (activeSpell.CurrentCooldown <= 0)
                 {
                     var request = ECB.CreateEntity(chunkIndex);
-                    ECB.AddComponent(chunkIndex, request, new CastSpellRequest { Caster = entity, Target = Entity.Null, /*DatabaseRef = spell.DatabaseRef,*/ DatabaseIndex = spell.DatabaseIndex });
+                    ECB.AddComponent(chunkIndex, request, new CastSpellRequest
+                    {
+                        Caster = entity,
+                        Target = Entity.Null,
+                        DatabaseIndex = activeSpell.DatabaseIndex
+                    });
 
-                    float cooldown = spellData.BaseCooldown * (1 - stats.CooldownReduction);
-                    spell.CooldownTimer = cooldown;
+                    float cooldownMult = activeSpell.CooldownMultiplier <= 0 ? 1f : activeSpell.CooldownMultiplier;
+                    float cooldown = spellData.BaseCooldown * cooldownMult * (1f - stats.CooldownReduction);
+
+                    activeSpell.CurrentCooldown = cooldown;
                 }
 
-                spells[i] = spell;
+                spells[i] = activeSpell;
             }
         }
     }

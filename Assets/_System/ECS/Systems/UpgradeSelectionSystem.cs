@@ -16,9 +16,13 @@ public partial struct UpgradeSelectionSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<UpgradesDatabase>();
         state.RequireForUpdate<GameState>();
+        state.RequireForUpdate<SpellsDatabase>();
+        state.RequireForUpdate<UpgradesDatabase>();
         state.RequireForUpdate<PlayerLevelUpRequest>();
+
+        state.RequireForUpdate<StatsUpgradePoolBufferElement>();
+        state.RequireForUpdate<SpellsUpgradePoolBufferElement>();
     }
 
     [BurstCompile]
@@ -31,61 +35,180 @@ public partial struct UpgradeSelectionSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-        var upgradesDatabaseEntity = SystemAPI.GetSingletonEntity<UpgradesDatabase>();
-        var upgradesDatabase = SystemAPI.GetComponent<UpgradesDatabase>(upgradesDatabaseEntity);
-
-
+        var upgradesDatabase = SystemAPI.GetSingleton<UpgradesDatabase>();
+        var spellsDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
-        var gameState = SystemAPI.GetSingleton<GameState>();
 
-        var upgradeSelectionJob = new SelectUpgradeJob()
+        var selectUpgradeJob = new SelectUpgradeJob()
         {
             ECB = ecb,
+            Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
+
             PlayerEntity = playerEntity,
             GameStateEntity = gameStateEntity,
+
             UpgradesDatabaseRef = upgradesDatabase.Blobs,
-            Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1
+            SpellsDatabaseRef = spellsDatabase.Blobs,
+
+            PlayerExperienceLookup = SystemAPI.GetComponentLookup<PlayerExperience>(true),
+            ActiveSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(true),
+            StatsUpgradePoolBufferLookup = SystemAPI.GetBufferLookup<StatsUpgradePoolBufferElement>(true),
+            SpellsUpgradePoolBufferLookup = SystemAPI.GetBufferLookup<SpellsUpgradePoolBufferElement>(true)
         };
-        state.Dependency = upgradeSelectionJob.Schedule(state.Dependency);
+
+        state.Dependency = selectUpgradeJob.Schedule(state.Dependency);
     }
 
-    [BurstCompile]
+    //[BurstCompile]
     private struct SelectUpgradeJob : IJob
     {
         public EntityCommandBuffer ECB;
+
+        public uint Seed;
         public Entity PlayerEntity;
         public Entity GameStateEntity;
+
         [ReadOnly] public BlobAssetReference<UpgradeBlobs> UpgradesDatabaseRef;
-        public uint Seed;
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
+
+        [ReadOnly] public ComponentLookup<PlayerExperience> PlayerExperienceLookup;
+        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        [ReadOnly] public BufferLookup<StatsUpgradePoolBufferElement> StatsUpgradePoolBufferLookup;
+        [ReadOnly] public BufferLookup<SpellsUpgradePoolBufferElement> SpellsUpgradePoolBufferLookup;
 
         public void Execute()
         {
             var random = Random.CreateFromIndex(Seed);
-            ref BlobArray<UpgradeBlob> upgradesDatabase = ref UpgradesDatabaseRef.Value.Upgrades;
 
-            int upgradesDatabaseLength = upgradesDatabase.Length;
-            int upgradesChoicesCount = 3;
+            if (!PlayerExperienceLookup.TryGetComponent(PlayerEntity, out var experience))
+                return;
 
-            // Clear buffer
+            // Drop spell upgrades every 4 levels
+            bool isSpellRound = (experience.Level % 4) == 0;
+
+            var candiates = new NativeList<int>(Allocator.Temp);
+
+            if (isSpellRound)
+            {
+                SetSpellCandiates(ref candiates);
+
+                if (candiates.Length <= 0)
+                    isSpellRound = false;
+            }
+
+            if (!isSpellRound)
+                SetStatCanditates(ref candiates);
+
+            // Clear previous selection
             ECB.SetBuffer<UpgradeSelectionBufferElement>(GameStateEntity);
 
-            // Set upgrades selection
-            for (int i = 0; i < upgradesChoicesCount; i++)
+            // Pick 3 upgrades from candidates
+            int countToPick = math.min(3, candiates.Length);
+
+            for (int i = 0; i < countToPick; i++)
             {
-                int index = random.NextInt(0, upgradesDatabaseLength);
-                ref var upgrade = ref upgradesDatabase[index];
+                // Pick random index from candidates
+                int indexInList = random.NextInt(0, candiates.Length);
+                int globalDbIndex = candiates[indexInList];
 
                 ECB.AppendToBuffer<UpgradeSelectionBufferElement>(GameStateEntity, new UpgradeSelectionBufferElement()
                 {
-                    DatabaseIndex = index
+                    DatabaseIndex = globalDbIndex
                 });
+
+                // Avoid picking same upgrade again
+                candiates.RemoveAtSwapBack(indexInList);
             }
+
+            UnityEngine.Debug.LogWarning("Candidates length: " + candiates.Length);
 
             // Add display upgrades flag 
             ECB.AddComponent<OpenUpgradesSelectionMenuRequest>(GameStateEntity);
-
             // Remove player lvl up request
             ECB.RemoveComponent<PlayerLevelUpRequest>(PlayerEntity);
+
+            candiates.Dispose();
+        }
+
+        private void SetStatCanditates(ref NativeList<int> candiates)
+        {
+            if (!StatsUpgradePoolBufferLookup.TryGetBuffer(PlayerEntity, out var statsUpgradePool))
+                return;
+
+            for (int i = 0; i < statsUpgradePool.Length; i++)
+                candiates.Add(statsUpgradePool[i].DatabaseIndex);
+        }
+
+        private void SetSpellCandiates(ref NativeList<int> candiates)
+        {
+            if (!SpellsUpgradePoolBufferLookup.TryGetBuffer(PlayerEntity, out var spellsPool))
+                return;
+
+            if (!ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var activeSpells))
+                return;
+
+            ref var upgradesBlobs = ref UpgradesDatabaseRef.Value.Upgrades;
+            ref var spellBlobs = ref SpellsDatabaseRef.Value.Spells;
+
+
+            for (int i = 0; i < spellsPool.Length; i++)
+            {
+                int globalIndex = spellsPool[i].DatabaseIndex;
+                ref var upgradeData = ref upgradesBlobs[globalIndex];
+                bool isValid = false;
+
+                // if upgrade is new spell to unlock
+                if (upgradeData.UpgradeType == EUpgradeType.UnlockSpell)
+                {
+                    if (!HasSpell(upgradeData.SpellID, activeSpells, ref spellBlobs))
+                        isValid = true;
+                }
+
+                // if upgrade is spell upgrade
+                else if (upgradeData.UpgradeType == EUpgradeType.UpgradeSpell)
+                {
+                    // if Spell ID is valid
+                    if (upgradeData.SpellID != ESpellID.None)
+                    {
+                        // if player has this spell unlocked
+                        if (HasSpell(upgradeData.SpellID, activeSpells, ref spellBlobs))
+                            isValid = true;
+                    }
+                    // if spell tags are valid and not the upgrade doesnt focus a specific spell
+                    else if (upgradeData.SpellTags != ESpellTag.None)
+                    {
+                        if (HasSpellWithTag(upgradeData.SpellTags, activeSpells, ref spellBlobs))
+                            isValid = true;
+                    }
+                }
+
+                if (isValid)
+                    candiates.Add(globalIndex);
+            }
+        }
+
+        private bool HasSpell(ESpellID id, DynamicBuffer<ActiveSpell> activeSpells, ref BlobArray<SpellBlob> spellBlobs)
+        {
+            for (int i = 0; i < activeSpells.Length; i++)
+            {
+                SpellBlob spellBlob = spellBlobs[activeSpells[i].DatabaseIndex];
+                if (spellBlob.ID == id)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private bool HasSpellWithTag(ESpellTag tag, DynamicBuffer<ActiveSpell> activeSpells, ref BlobArray<SpellBlob> spellBlobs)
+        {
+            for (int i = 0; i < activeSpells.Length; i++)
+            {
+                SpellBlob spellBlob = spellBlobs[activeSpells[i].DatabaseIndex];
+                if ((spellBlob.Tag & tag) != 0)
+                    return true;
+            }
+
+            return false;
         }
     }
 }

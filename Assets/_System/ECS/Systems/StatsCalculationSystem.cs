@@ -64,35 +64,35 @@ public partial struct StatsCalculationSystem : ISystem
             {
                 switch (modifiers[i].StatID)
                 {
-                    case EStatID.MaxHealth:
+                    case ECharacterStat.MaxHealth:
                         StatsCalculationSystem.ApplyModifier(ref stats.MaxHealth, modifiers[i]);
                         break;
 
-                    case EStatID.Speed:
+                    case ECharacterStat.Speed:
                         ApplyModifier(ref stats.MoveSpeed, modifiers[i]);
                         break;
 
-                    case EStatID.Damage:
+                    case ECharacterStat.Damage:
                         ApplyModifier(ref stats.Damage, modifiers[i]);
                         break;
 
-                    case EStatID.Armor:
+                    case ECharacterStat.Armor:
                         ApplyModifier(ref stats.Armor, modifiers[i]);
                         break;
 
-                    case EStatID.FireResistance:
+                    case ECharacterStat.FireResistance:
                         ApplyModifier(ref stats.FireResistance, modifiers[i]);
                         break;
 
-                    case EStatID.CooldownReduction:
+                    case ECharacterStat.CooldownReduction:
                         ApplyModifier(ref stats.CooldownReduction, modifiers[i]);
                         break;
 
-                    case EStatID.AreaSize:
+                    case ECharacterStat.AreaSize:
                         ApplyModifier(ref stats.EffectAreaRadiusMult, modifiers[i]);
                         break;
 
-                    case EStatID.CollectRange:
+                    case ECharacterStat.CollectRange:
                         ApplyModifier(ref stats.CollectRange, modifiers[i]);
                         break;
                 }

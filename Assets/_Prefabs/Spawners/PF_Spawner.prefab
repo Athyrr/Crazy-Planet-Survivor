@@ -46,6 +46,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpawnerAuthoring
   Waves:
   - SpawnDatas:
-    - Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 600
-  TimeBetweenWaves: 45
+    - Mode: 0
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 2000
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 0
+      MaxSpawnRange: 0
+    - Mode: 2
+      Prefab: {fileID: 4960229139857780973, guid: a997dccf2610efa4f80801c2b9eeff9b, type: 3}
+      Amount: 1300
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 0
+      MaxSpawnRange: 0
+  - SpawnDatas:
+    - Mode: 0
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 1500
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 0
+      MaxSpawnRange: 0
+    - Mode: 2
+      Prefab: {fileID: 4960229139857780973, guid: a997dccf2610efa4f80801c2b9eeff9b, type: 3}
+      Amount: 3000
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 0
+      MaxSpawnRange: 0
+  TimeBetweenWaves: 40
+  ShowDebugGizmos: 1
+  DebugPlanetCenter: {fileID: 0}
+  DebugPlanetRadius: 50
+  DebugPlayer: {fileID: 0}

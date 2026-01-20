@@ -13,7 +13,7 @@ public struct SpellBlob
 
     public float3 BaseSpawnOffset;
 
-    public ESpellElement Element;
+    public ESpellTag Tag;
     public float Lifetime;
 
     // Targeting

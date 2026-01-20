@@ -2,10 +2,9 @@ using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
-
 public class SpellsDatabaseAuthoring : MonoBehaviour
 {
-    public SpellDatabaseSO SpellDatabase;
+    public SpellDatabaseSO GameSpellDatabase;
 
     private class Baker : Baker<SpellsDatabaseAuthoring>
     {
@@ -20,12 +19,12 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
             BlobBuilder builder = new BlobBuilder(Allocator.Temp);
             ref var root = ref builder.ConstructRoot<SpellBlobs>();
 
-            int count = authoring.SpellDatabase.Spells.Length;
+            int count = authoring.GameSpellDatabase.Spells.Length;
             BlobBuilderArray<SpellBlob> arrayBuilder = builder.Allocate(ref root.Spells, count);
 
             for (int i = 0; i < count; i++)
             {
-                SpellDataSO spellSO = authoring.SpellDatabase.Spells[i];
+                SpellDataSO spellSO = authoring.GameSpellDatabase.Spells[i];
 
                 if (spellSO == null)
                     continue;
@@ -35,10 +34,10 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlob.ID = spellSO.ID;
                 spellBlob.BaseCooldown = spellSO.BaseCooldown;
                 spellBlob.BaseDamage = spellSO.BaseDamage;
-                spellBlob.BaseEffectArea = spellSO.BaseEffectArea;
+                spellBlob.BaseEffectArea = spellSO.BaseAreaOfEffect;
                 spellBlob.BaseCastRange = spellSO.BaseCastRange;
                 spellBlob.BaseSpeed = spellSO.BaseSpeed;
-                spellBlob.Element = spellSO.Element;
+                spellBlob.Tag = spellSO.Tags;
                 spellBlob.Lifetime = spellSO.Lifetime;
                 spellBlob.BouncesSearchRadius = spellSO.BouncesSearchRadius;
                 spellBlob.BaseSpawnOffset = spellSO.BaseSpawnOffset;

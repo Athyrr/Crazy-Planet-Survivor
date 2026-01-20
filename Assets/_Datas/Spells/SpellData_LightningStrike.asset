@@ -12,20 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
   m_Name: SpellData_LightningStrike
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  DisplayName: Lightning Strike
-  SpellPrefab: {fileID: 5138817672301412260, guid: 160b4a46fb75b6846baf3147a23277b9, type: 3}
   ID: 2
-  BaseCooldown: 1
+  DisplayName: Lightning Strike
+  Description: 
+  SpellPrefab: {fileID: 5138817672301412260, guid: 160b4a46fb75b6846baf3147a23277b9, type: 3}
+  Rarity: 0
+  Tags: 8
   BaseDamage: 0.5
-  BaseEffectArea: 5.99
-  BaseSpawnOffset: 1
-  BaseRange: 13.6
-  BaseSpeed: 36.3
-  Element: 3
+  BaseCooldown: 1
+  BaseSpeed: 35
+  BaseSpawnOffset: {x: 0, y: 0, z: 0}
+  BaseAreaOfEffect: 1
+  BaseCastRange: 5
+  TargetingMode: 3
   Lifetime: 10
   Bounces: 0
   BouncesSearchRadius: 0
   Pierces: 10
   BaseDamagePerTick: 1
   TickRate: 1
-  InstantiateOnce: 0
+  ChildPrefab: {fileID: 0}
+  ChildrenCount: 0
+  ChildrenSpawnRadius: 1
