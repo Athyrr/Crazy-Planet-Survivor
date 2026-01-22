@@ -3,6 +3,8 @@ using System;
 public enum ESpellID : byte
 {
     None,
+
+    // Player Spells
     Fireball,
     LightningStrike,
     FrozenZone,
@@ -10,7 +12,10 @@ public enum ESpellID : byte
     TechHoles,
     ShockBeam,
     DraconicVomit,
-    LightningTornado
+    LightningTornado,
+
+    // Enemy Spells
+    Enemy_Projectile
 }
 
 /// <summary>
