@@ -80,7 +80,7 @@ public partial struct DropExpOrbSystem : ISystem
                         {
                             Position = spawnPos,
                             Rotation = quaternion.identity,
-                            Scale = 0.3f,
+                            Scale = 1,
                         });
 
                     }
