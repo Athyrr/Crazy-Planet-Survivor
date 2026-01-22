@@ -9,7 +9,8 @@ public enum ESpellID : byte
     ShockChain,
     TechHoles,
     ShockBeam,
-    DraconicVomit
+    DraconicVomit,
+    LightningTornado
 }
 
 /// <summary>
