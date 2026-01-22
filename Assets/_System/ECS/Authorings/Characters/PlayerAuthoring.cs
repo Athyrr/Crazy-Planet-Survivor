@@ -1,9 +1,13 @@
-using Unity.Mathematics;
+using System.Collections.Generic;
 using Unity.Entities;
+using Unity.Mathematics;
+using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
 public class PlayerAuthoring : MonoBehaviour
 {
+    private GameUpgradesConfigSO _gameUpgradesConfig;
+
     [Header("Datas")]
     [Tooltip("The character's base stats and initial spells.")]
     public CharacterDataSO CharacterData;
@@ -19,6 +23,33 @@ public class PlayerAuthoring : MonoBehaviour
     [Tooltip("Upgrades to apply on spawn (e.g. for testing specific builds).")]
     public UpgradeSO[] InitialUpgrades;
 
+    private void OnValidate()
+    {
+        // Load GameUpgradesConfigSO from project
+
+        if (_gameUpgradesConfig == null)
+        {
+#if UNITY_EDITOR
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:GameUpgradesConfigSO");
+
+            if (guids.Length > 0)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
+                _gameUpgradesConfig = UnityEditor.AssetDatabase.LoadAssetAtPath<GameUpgradesConfigSO>(path);
+
+                if (!Application.isPlaying)
+                {
+                    UnityEditor.EditorUtility.SetDirty(this);
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[PlayerAuthoring] 'GlobalUpgradesConfigSO' not found in project!");
+            }
+#endif
+        }
+    }
+
     private class Baker : Baker<PlayerAuthoring>
     {
         public override void Bake(PlayerAuthoring authoring)
@@ -30,6 +61,13 @@ public class PlayerAuthoring : MonoBehaviour
                 Debug.LogError($"PlayerAuthoring on {authoring.name} is missing CharacterDataSO!", authoring);
                 return;
             }
+
+            if (authoring._gameUpgradesConfig == null)
+            {
+                Debug.LogError($"[PlayerAuthoring] '{authoring.name}' needs a reference to GameUpgradesConfigSO.", authoring); return;
+            }
+
+            List<UpgradeSO> gameUpgradesList = authoring._gameUpgradesConfig.GetFlattenedUpgrades();
 
             var baseStats = authoring.CharacterData.BaseStats;
             var initialSpells = authoring.CharacterData.InitialSpells;
@@ -104,10 +142,51 @@ public class PlayerAuthoring : MonoBehaviour
                     });
                 }
             }
-             
-            AddBuffer<StatsUpgradePoolBufferElement>(entity);
 
-            AddBuffer<SpellsUpgradePoolBufferElement>(entity);
+            // Stats Upgrade Pool
+            DynamicBuffer<StatsUpgradePoolBufferElement> statsUpgradebuffer = AddBuffer<StatsUpgradePoolBufferElement>(entity);
+            if (authoring.CharacterData.StatsUpgradesPool != null)
+            {
+                foreach (var localUpgrade in authoring.CharacterData.StatsUpgradesPool.Upgrades)
+                {
+                    if (localUpgrade == null)
+                        continue;
+
+                    // Get the index of this upgrade in the global list
+                    int globalIndex = gameUpgradesList.IndexOf(localUpgrade);
+
+                    if (globalIndex != -1)
+                    {
+                        statsUpgradebuffer.Add(new StatsUpgradePoolBufferElement { DatabaseIndex = globalIndex });
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"Upgrade '{localUpgrade.name}' is in CharacterData but NOT in the Global Database Authoring. Add it to the Global Database scene object.", authoring);
+                    }
+                }
+            }
+
+            // Spells Upgrade Pool
+            DynamicBuffer<SpellsUpgradePoolBufferElement> spellsUpgradebuffer = AddBuffer<SpellsUpgradePoolBufferElement>(entity);
+            if (authoring.CharacterData.SpellUpgradesPool != null)
+            {
+                foreach (var localUpgrade in authoring.CharacterData.SpellUpgradesPool.Upgrades)
+                {
+                    if (localUpgrade == null)
+                        continue;
+
+                    int globalIndex = gameUpgradesList.IndexOf(localUpgrade);
+
+                    if (globalIndex != -1)
+                    {
+                        spellsUpgradebuffer.Add(new SpellsUpgradePoolBufferElement { DatabaseIndex = globalIndex });
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"Upgrade '{localUpgrade.name}' is in CharacterData but NOT in the Global Database Authoring.", authoring);
+                    }
+                }
+            }
 
             var expBuffer = AddBuffer<CollectedExperienceBufferElement>(entity);
             AddComponent(entity, new PlayerExperience()

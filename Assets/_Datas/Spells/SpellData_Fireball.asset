@@ -19,18 +19,18 @@ MonoBehaviour:
   Rarity: 0
   Tags: 2
   BaseDamage: 30
-  BaseCooldown: 0.25
+  BaseCooldown: 0.5
   BaseSpeed: 10
   BaseSpawnOffset: {x: 0, y: 0, z: 0}
   BaseAreaOfEffect: 1
-  BaseCastRange: 5
+  BaseCastRange: 10
   TargetingMode: 3
-  Lifetime: 2
+  Lifetime: 1
   Bounces: 0
   BouncesSearchRadius: 0
   Pierces: 0
-  BaseDamagePerTick: 1
-  TickRate: 1
+  BaseDamagePerTick: -1
+  TickRate: -1
   ChildPrefab: {fileID: 0}
   ChildrenCount: 0
   ChildrenSpawnRadius: 1

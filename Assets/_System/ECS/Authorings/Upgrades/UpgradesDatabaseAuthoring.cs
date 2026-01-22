@@ -5,44 +5,20 @@ using UnityEngine;
 
 public class UpgradesDatabaseAuthoring : MonoBehaviour
 {
-    [Tooltip("Global Stats Upgrades (Speed, Health...)")]
-    public UpgradesDatabaseSO GameStatUpgradeslDatabase;
-
-    [Tooltip("All Character Specific Upgrades (Unlock Fireball, Upgrade Meteor...)")]
-    public UpgradesDatabaseSO[] CharacterSpellUpgradeslDatabases;
+    [Tooltip("Reference to the global upgrades config.")]
+    public GameUpgradesConfigSO GlobalConfig;
 
     private class Baker : Baker<UpgradesDatabaseAuthoring>
     {
         public override void Bake(UpgradesDatabaseAuthoring authoring)
         {
+            if (authoring.GlobalConfig == null) 
+                return;
+
             Entity entity = GetEntity(TransformUsageFlags.None);
 
-            List<UpgradeSO> allUpgrades = new List<UpgradeSO>();
-
-            // Stats Upgrades
-            if (authoring.GameStatUpgradeslDatabase != null)
-            {
-                foreach (var up in authoring.GameStatUpgradeslDatabase.Upgrades)
-                {
-                    if (up != null) allUpgrades.Add(up);
-                }
-            }
-
-            // Characters Upgrades
-            if (authoring.CharacterSpellUpgradeslDatabases != null)
-            {
-                foreach (var db in authoring.CharacterSpellUpgradeslDatabases)
-                {
-                    if (db == null)
-                        continue;
-
-                    foreach (var up in db.Upgrades)
-                    {
-                        if (up != null && !allUpgrades.Contains(up))
-                            allUpgrades.Add(up);
-                    }
-                }
-            }
+            // All game upgrades in one list
+            List<UpgradeSO> allUpgrades = authoring.GlobalConfig.GetFlattenedUpgrades();
 
             // Create upgrade blobs for data
             var builder = new BlobBuilder(Allocator.Temp);
@@ -50,7 +26,6 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
 
             int count = allUpgrades.Count;
             BlobBuilderArray<UpgradeBlob> arrayBuilder = builder.Allocate(ref root.Upgrades, count);
-
 
             for (int i = 0; i < count; i++)
             {

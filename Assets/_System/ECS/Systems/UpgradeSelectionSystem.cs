@@ -84,19 +84,19 @@ public partial struct UpgradeSelectionSystem : ISystem
                 return;
 
             // Drop spell upgrades every 4 levels
-            bool isSpellRound = (experience.Level % 4) == 0;
+            bool mustDropSpell = (experience.Level % 4) == 0;
 
             var candiates = new NativeList<int>(Allocator.Temp);
 
-            if (isSpellRound)
+            if (mustDropSpell)
             {
                 SetSpellCandiates(ref candiates);
 
                 if (candiates.Length <= 0)
-                    isSpellRound = false;
+                    mustDropSpell = false;
             }
 
-            if (!isSpellRound)
+            if (!mustDropSpell)
                 SetStatCanditates(ref candiates);
 
             // Clear previous selection
