@@ -253,7 +253,7 @@ MonoBehaviour:
   BaseStats:
     MaxHealth: 80
     Armor: 0
-    MoveSpeed: 2
+    MoveSpeed: 5
     Damage: 5
     CooldownReduction: 0
     ProjectileSpeedMultiplier: 0
@@ -268,10 +268,7 @@ MonoBehaviour:
     MaxCollectRange: 1
   InitialSpells:
   - {fileID: 11400000, guid: 9e39f75e475110447adf8ec004d90448, type: 2}
-  InitialModifers:
-  - StatID: 0
-    Value: 0
-    Strategy: 0
+  InitialModifers: []
 --- !u!114 &7077652745905088192
 MonoBehaviour:
   m_ObjectHideFlags: 0

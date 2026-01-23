@@ -187,13 +187,5 @@ public partial struct ChildEntitiesSpellSystem : ISystem
                 currentAngle += angleStep;
             }
         }
-
-
-
-
-
-
-
-
     }
 }

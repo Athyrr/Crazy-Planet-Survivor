@@ -10,27 +10,27 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
-  m_Name: SpellData_Fireball
+  m_Name: SpellData_PoisonFloor
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 1
-  DisplayName: Fireball
+  ID: 9
+  DisplayName: Poison Floor
   Description: 
-  SpellPrefab: {fileID: 486797506737824905, guid: 41fa62722a0249648b1dbdd9ff513461, type: 3}
+  SpellPrefab: {fileID: 5827605842356583559, guid: 88d07fbec9f70ba45ada191fb2a5b6e7, type: 3}
   Rarity: 0
-  Tags: 2
-  BaseDamage: 150
-  BaseCooldown: 0.5
-  BaseSpeed: 10
+  Tags: 32
+  BaseDamage: 100
+  BaseCooldown: 1.5
+  BaseSpeed: 0
   BaseSpawnOffset: {x: 0, y: 0, z: 0}
   BaseAreaOfEffect: 1
-  BaseCastRange: 10
-  TargetingMode: 0
-  Lifetime: 2
+  BaseCastRange: 50
+  TargetingMode: 1
+  Lifetime: 4
   Bounces: 0
   BouncesSearchRadius: 0
   Pierces: 0
-  BaseDamagePerTick: -1
-  TickRate: -1
+  BaseDamagePerTick: 50
+  TickRate: 0.3
   ChildPrefab: {fileID: 0}
   ChildrenCount: 0
   ChildrenSpawnRadius: 1
