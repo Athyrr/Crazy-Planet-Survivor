@@ -1,6 +1,7 @@
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Burst;
+using Unity.Jobs;
 
 /// <summary>
 /// System that handles activation of spells when requested. Activate Initial spells for entities then when a new spell is unlocked..
@@ -9,46 +10,76 @@ using Unity.Burst;
 [BurstCompile]
 public partial struct SpellActivationSystem : ISystem
 {
+    private NativeHashMap<SpellKey, int> _spellIndexMap;
+    // Last stored spells database blob ref
+    private BlobAssetReference<SpellBlobs> _lastBlobRef;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<SpellsDatabase>();
+        _spellIndexMap = new NativeHashMap<SpellKey, int>(64, Allocator.Persistent);
+    }
+
+    [BurstCompile]
+    public void OnDestroy(ref SystemState state)
+    {
+        if (_spellIndexMap.IsCreated)
+            _spellIndexMap.Dispose();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        // Create entity for Spell to Index Mapper
-        // Done in update, ensure that SpellToIndexMap is baked well
-        if (!SystemAPI.HasSingleton<SpellToIndexMap>())
+        var database = SystemAPI.GetSingleton<SpellsDatabase>();
+
+        JobHandle dependency = state.Dependency;
+
+        if (database.Blobs != _lastBlobRef)
         {
-            SpellsDatabase db = SystemAPI.GetSingleton<SpellsDatabase>();
-            ref var spellsDatabase = ref db.Blobs.Value.Spells;
+            // Update cached db ref
+            _lastBlobRef = database.Blobs;
 
-            NativeHashMap<SpellKey, int> map = new NativeHashMap<SpellKey, int>(spellsDatabase.Length, Allocator.Persistent);
-            for (int i = 0; i < spellsDatabase.Length; i++)
+            var buildMapJob = new BuildSpellMapJob
             {
-                map.TryAdd(new SpellKey { Value = spellsDatabase[i].ID }, i);
-            }
+                SpellMap = _spellIndexMap,
+                SpellsDatabaseRef = database.Blobs
+            };
 
-            var mapEntity = state.EntityManager.CreateEntity();
-            state.EntityManager.AddComponentData(mapEntity, new SpellToIndexMap { Map = map });
+            dependency = buildMapJob.Schedule(dependency);
         }
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-        var spellIndexMap = SystemAPI.GetSingleton<SpellToIndexMap>().Map;
-        var database = SystemAPI.GetSingleton<SpellsDatabase>();
-
         var activateSpellJob = new ActivateSpellJob()
         {
             ECB = ecb.AsParallelWriter(),
 
-            SpellIndexMap = spellIndexMap,
+            SpellIndexMap = _spellIndexMap,
             SpellsDatabaseRef = database.Blobs
         };
-        state.Dependency = activateSpellJob.ScheduleParallel(state.Dependency);
+        state.Dependency = activateSpellJob.ScheduleParallel(dependency);
+    }
+
+    [BurstCompile]
+    private struct BuildSpellMapJob : IJob
+    {
+        public NativeHashMap<SpellKey, int> SpellMap;
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
+
+        public void Execute()
+        {
+            SpellMap.Clear();
+
+            ref var spellsDb = ref SpellsDatabaseRef.Value.Spells;
+
+            if (SpellMap.Capacity < spellsDb.Length)
+                SpellMap.Capacity = spellsDb.Length;
+
+            for (int i = 0; i < spellsDb.Length; i++)
+                SpellMap.TryAdd(new SpellKey { Value = spellsDb[i].ID }, i);
+        }
     }
 
     [BurstCompile]
@@ -71,8 +102,22 @@ public partial struct SpellActivationSystem : ISystem
             {
                 if (SpellIndexMap.TryGetValue(new SpellKey { Value = activationRequest.ID }, out var spellIndex))
                 {
-                    ref var spellData = ref SpellsDatabaseRef.Value.Spells[spellIndex];
+                    // if spell is already active, skip
+                    bool isAlreadyActive = false;
+                    for (int i = 0; i < activeSpellsBuffer.Length; i++)
+                    {
+                        if (activeSpellsBuffer[i].DatabaseIndex == spellIndex)
+                        {
+                            isAlreadyActive = true;
+                            break;
+                        }
+                    }
 
+                    if (isAlreadyActive)
+                        continue;
+
+
+                    ref var spellData = ref SpellsDatabaseRef.Value.Spells[spellIndex];
                     // If spell is an active spell with cooldown
                     if (spellData.BaseCooldown > 0)
                     {
