@@ -381,7 +381,20 @@ public partial struct SpellCastingSystem : ISystem
                 if (AttachLookup.HasComponent(spellPrefab))
                 {
                     ECB.AddComponent(chunkIndex, spellEntity, new Parent { Value = request.Caster });
-                    ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform { Position = float3.zero, Rotation = quaternion.identity, Scale = finalArea });
+                    ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
+                    {
+                        Position = float3.zero,
+                        Rotation = quaternion.identity,
+                        Scale = finalArea
+                    });
+                }
+
+                if (!AttachLookup.HasComponent(spellPrefab) && CopyPositionLookup.HasComponent(spellPrefab))
+                {
+                    var copyPos = CopyPositionLookup[spellPrefab];
+                    copyPos.Target = request.Caster;
+
+                    ECB.SetComponent(chunkIndex, spellEntity, copyPos);
                 }
 
                 // Combat Stats
@@ -415,6 +428,42 @@ public partial struct SpellCastingSystem : ISystem
                         Duration = finalDuration,
                         TimeLeft = finalDuration
                     });
+                }
+
+                // Self Rotate
+                if (SelfRotateLookup.HasComponent(spellPrefab))
+                {
+                    ECB.SetComponent(chunkIndex, spellEntity, new SelfRotate
+                    {
+                        RotationSpeed = finalSpeed
+                    });
+                }
+
+                // Child Spawner
+                if (ChildSpawnerLookup.HasComponent(spellPrefab))
+                {
+                    if (baseSpellData.ChildPrefabIndex >= 0 && baseSpellData.ChildPrefabIndex < ChildSpellPrefabs.Length)
+                    {
+                        var childPrefabEntity = ChildSpellPrefabs[baseSpellData.ChildPrefabIndex].Prefab;
+
+                        ECB.SetComponent(chunkIndex, spellEntity, new ChildEntitiesSpawner
+                        {
+                            ChildEntityPrefab = childPrefabEntity,
+                            DesiredChildrenCount = baseSpellData.ChildrenCount,
+                            CollisionFilter = filter,
+                            IsDirty = true // Trigger spawn in ChildEntitiesSpellSystem
+                        });
+
+                        // Config Circle Layout if applicable
+                        if (ChildCircleLayoutLookup.HasComponent(spellPrefab))
+                        {
+                            ECB.SetComponent(chunkIndex, spellEntity, new ChildEntitiesLayout_Circle
+                            {
+                                Radius = baseSpellData.ChildrenSpawnRadius,
+                                AngleInDegrees = 360
+                            });
+                        }
+                    }
                 }
 
                 // Collision 

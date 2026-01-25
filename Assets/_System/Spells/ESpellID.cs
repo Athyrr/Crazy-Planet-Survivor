@@ -14,6 +14,7 @@ public enum ESpellID : byte
     DraconicVomit,
     LightningTornado,
     PoisonFloor,
+    FireOrbs,
 
     // Enemy Spells
     Enemy_Projectile
