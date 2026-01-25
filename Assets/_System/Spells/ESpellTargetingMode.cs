@@ -1,6 +1,6 @@
 public enum ESpellTargetingMode 
 {
-    Nearest,
+    NearestTarget,
     OnCaster,
     RandomInRange,
     CastForward

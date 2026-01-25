@@ -10,39 +10,39 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -39.826183
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.0000007430863
+      value: 49.450424
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 172.4794
+      value: -12.022204
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.9918898
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0.11818792
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0
+      value: -0.046429317
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: -0.005532252
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
+      value: -13.59
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: -5.36
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -59,5 +59,176 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8490541663718335895}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1401391020920718115}
   m_SourcePrefab: {fileID: 100100000, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
+--- !u!1 &8165566739608019611 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 1cc73a3416b972b4eb59dd9f9b5bfbd2, type: 3}
+  m_PrefabInstance: {fileID: 9047875129804693450}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8490541663718335895
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8165566739608019611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceee97d61d88b5b4db1a5080f2c7a66f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ObstacleAuthoring
+  RepulsionWeight: 10
+  AutoCalculateRadius: 1
+  ManualRadius: 1
+  Padding: 0
+  _currentRadiusDisplay: 0.6732341
+--- !u!114 &1401391020920718115
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8165566739608019611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b275e5f92732148048d7b77e264ac30e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Physics.Custom::Unity.Physics.Authoring.PhysicsShapeAuthoring
+  m_ShapeType: 0
+  m_PrimitiveCenter:
+    x: -0.0041721463
+    y: 0.178375
+    z: -0.016198158
+  m_PrimitiveSize:
+    x: 0.68153834
+    y: 2.4399137
+    z: 0.73572344
+  m_PrimitiveOrientation:
+    Value:
+      x: -0
+      y: 0
+      z: 0
+    RotationOrder: 4
+  m_Capsule:
+    Height: 2.4399137
+    Radius: 0.36786172
+    Axis: 1
+  m_Cylinder:
+    Height: 2.4399137
+    Radius: 0.36786172
+    Axis: 1
+  m_CylinderSideCount: 20
+  m_SphereRadius: 1.2199569
+  m_MinimumSkinnedVertexWeight: 0.1
+  m_ConvexHullGenerationParameters:
+    m_SimplificationTolerance: 0.036598705
+    m_BevelRadius: 0.05
+    m_MinimumAngle: 2.5000002
+  m_CustomMesh: {fileID: 0}
+  m_ForceUnique: 0
+  m_Material:
+    m_SupportsTemplate: 1
+    m_Template: {fileID: 0}
+    m_CollisionResponse:
+      m_Override: 0
+      m_Value: 254
+    m_Friction:
+      m_Override: 0
+      m_Value:
+        Value: 0.5
+        CombineMode: 0
+    m_Restitution:
+      m_Override: 0
+      m_Value:
+        Value: 0
+        CombineMode: 2
+    m_BelongsToCategories:
+      m_Override: 0
+      m_Value:
+        Category00: 0
+        Category01: 0
+        Category02: 0
+        Category03: 0
+        Category04: 0
+        Category05: 0
+        Category06: 1
+        Category07: 0
+        Category08: 0
+        Category09: 0
+        Category10: 0
+        Category11: 0
+        Category12: 0
+        Category13: 0
+        Category14: 0
+        Category15: 0
+        Category16: 0
+        Category17: 0
+        Category18: 0
+        Category19: 0
+        Category20: 0
+        Category21: 0
+        Category22: 0
+        Category23: 0
+        Category24: 0
+        Category25: 0
+        Category26: 0
+        Category27: 0
+        Category28: 0
+        Category29: 0
+        Category30: 0
+        Category31: 0
+    m_CollidesWithCategories:
+      m_Override: 0
+      m_Value:
+        Category00: 0
+        Category01: 0
+        Category02: 1
+        Category03: 0
+        Category04: 0
+        Category05: 0
+        Category06: 0
+        Category07: 1
+        Category08: 0
+        Category09: 0
+        Category10: 0
+        Category11: 0
+        Category12: 0
+        Category13: 0
+        Category14: 0
+        Category15: 0
+        Category16: 0
+        Category17: 0
+        Category18: 0
+        Category19: 0
+        Category20: 0
+        Category21: 0
+        Category22: 0
+        Category23: 0
+        Category24: 0
+        Category25: 0
+        Category26: 0
+        Category27: 0
+        Category28: 0
+        Category29: 0
+        Category30: 0
+        Category31: 0
+    m_CustomMaterialTags:
+      m_Override: 0
+      m_Value:
+        Tag00: 0
+        Tag01: 0
+        Tag02: 0
+        Tag03: 0
+        Tag04: 0
+        Tag05: 0
+        Tag06: 0
+        Tag07: 0
+    m_SerializedVersion: 1
+  m_SerializedVersion: 1

@@ -137,19 +137,19 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
         [ReadOnly] public float3 PlanetCenter;
 
-        /// <summary> Used to fetch dynamic move speed from Stats component. </summary>
         [NativeDisableParallelForRestriction]
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
-        
-        /// <summary> Vertical range for the snapping raycast. </summary>
+
         private const float SNAP_DISTANCE = 10f;
+
+        private const float POS_SMOOTH_SPEED = 25.0f;
+        private const float ROT_SMOOTH_SPEED = 15.0f;
 
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
         {
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
 
-            // Determine the surface normal for direction projection
             if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, transform.Position, PlanetCenter,
                 new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape },
                 SNAP_DISTANCE, out Unity.Physics.RaycastHit currentHit))
@@ -158,21 +158,31 @@ public partial struct EntitiesMovementSystem : ISystem
             }
 
             PlanetUtils.ProjectDirectionOnSurface(in movement.Direction, in currentNormal, out float3 tangentDirection);
-            float3 newPosition = transform.Position + tangentDirection * (speed * DeltaTime);
+            float3 desiredPosition = transform.Position + tangentDirection * (speed * DeltaTime);
 
-            // Final snap to ensure the entity is exactly on the ground after moving
-            if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, newPosition, PlanetCenter,
+            if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, desiredPosition, PlanetCenter,
                 new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape },
                 SNAP_DISTANCE, out Unity.Physics.RaycastHit hit))
             {
-                transform.Position = hit.Position;
+                if (math.distancesq(transform.Position, hit.Position) > 1.0f)
+                {
+                    transform.Position = hit.Position; 
+                }
+                else
+                {
+                    transform.Position = math.lerp(transform.Position, hit.Position, DeltaTime * POS_SMOOTH_SPEED);
+                }
+
                 if (math.lengthsq(movement.Direction) > 0.001f)
                 {
-                    PlanetUtils.GetRotationOnSurface(in tangentDirection, hit.SurfaceNormal, out quaternion rotation);
-                    transform.Rotation = rotation;
+                    PlanetUtils.GetRotationOnSurface(in tangentDirection, hit.SurfaceNormal, out quaternion targetRotation);
+                    transform.Rotation = math.slerp(transform.Rotation, targetRotation, DeltaTime * ROT_SMOOTH_SPEED);
                 }
             }
-            else { transform.Position = newPosition; }
+            else
+            {
+                transform.Position = desiredPosition;
+            }
         }
     }
 
@@ -224,54 +234,60 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
         [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
 
-        /// <summary>
-        /// Safety override: Allows looking up the target's transform while iterating over the follower.
-        /// </summary>
         [NativeDisableContainerSafetyRestriction]
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
 
         private const float SNAP_DISTANCE = 10.0f;
+        private const float POS_SMOOTH_SPEED = 25.0f;
+        private const float ROT_SMOOTH_SPEED = 15.0f;
 
         public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
         {
-            if (movement.Target == Entity.Null || !TransformLookup.HasComponent(movement.Target))
+            if (movement.Target == Entity.Null || !TransformLookup.HasComponent(movement.Target)) 
                 return;
 
-            // Use mathematical normal for initial direction to save performance
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
-
             float3 targetPosition = TransformLookup[movement.Target].Position;
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
-
             float3 directionToTarget = targetPosition - transform.Position;
             PlanetUtils.ProjectDirectionOnSurface(in directionToTarget, in currentNormal, out float3 tangentDirection);
 
-            // Apply external steering (e.g., avoidance)
             float3 steeringForce = float3.zero;
             if (SteeringLookup.HasComponent(entity)) steeringForce = SteeringLookup[entity].Value;
 
             float3 finalDirection = tangentDirection + steeringForce;
-            if (math.lengthsq(finalDirection) < 0.001f) finalDirection = transform.Forward();
+            if (math.lengthsq(finalDirection) < 0.001f)
+                finalDirection = transform.Forward();
 
-            float3 newPosition = transform.Position + finalDirection * (speed * DeltaTime);
+            float3 desiredPosition = transform.Position + finalDirection * (speed * DeltaTime);
 
-            // Raycast to find the actual ground position
+            // Raycast
             var input = new RaycastInput
             {
-                Start = newPosition + (currentNormal * SNAP_DISTANCE),
-                End = newPosition - (currentNormal * SNAP_DISTANCE),
+                Start = desiredPosition + (currentNormal * SNAP_DISTANCE),
+                End = desiredPosition - (currentNormal * SNAP_DISTANCE),
                 Filter = new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape }
             };
 
             if (PhysicsCollisionWorld.CastRay(input, out var hit))
             {
-                transform.Position = hit.Position;
-                PlanetUtils.GetRotationOnSurface(in directionToTarget, hit.SurfaceNormal, out quaternion rotation);
-                transform.Rotation = rotation;
+                // --- POSITION LERP ---
+                if (math.distancesq(transform.Position, hit.Position) > 1.0f)
+                {
+                    transform.Position = hit.Position;
+                }
+                else
+                {
+                    transform.Position = math.lerp(transform.Position, hit.Position, DeltaTime * POS_SMOOTH_SPEED);
+                }
+
+                // --- ROTATION SLERP ---
+                PlanetUtils.GetRotationOnSurface(in directionToTarget, hit.SurfaceNormal, out quaternion targetRotation);
+                transform.Rotation = math.slerp(transform.Rotation, targetRotation, DeltaTime * ROT_SMOOTH_SPEED);
             }
             else
             {
-                transform.Position = newPosition;
+                transform.Position = desiredPosition;
             }
         }
     }
