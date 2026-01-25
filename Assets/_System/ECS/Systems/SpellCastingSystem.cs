@@ -181,9 +181,7 @@ public partial struct SpellCastingSystem : ISystem
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
-            // -----------------------------------------------------------------------------------------
             // VALIDATION
-            // -----------------------------------------------------------------------------------------
             if (!SpellDatabaseRef.IsCreated || !TransformLookup.HasComponent(request.Caster))
             {
                 ECB.DestroyEntity(chunkIndex, requestEntity);
@@ -199,9 +197,7 @@ public partial struct SpellCastingSystem : ISystem
                 return;
             }
 
-            // -----------------------------------------------------------------------------------------
-            // FETCH MODIFIERS (RECIPE)
-            // -----------------------------------------------------------------------------------------
+
             // Default values (No modifiers)
             float mulDmg = 1f, mulSpeed = 1f, mulArea = 1f, mulDuration = 1f;
             int addAmount = 0, addBounces = 0, addPierces = 0;
@@ -228,9 +224,7 @@ public partial struct SpellCastingSystem : ISystem
                 }
             }
 
-            // -----------------------------------------------------------------------------------------
             // CALCULATE FINAL STATS (Base + Stats + Upgrade)
-            // -----------------------------------------------------------------------------------------
             var casterTransform = TransformLookup[request.Caster];
             var spellPrefabTransform = TransformLookup[spellPrefab];
             var stats = StatsLookup[request.Caster];
@@ -244,9 +238,7 @@ public partial struct SpellCastingSystem : ISystem
             // Multishot Logic
             int finalProjectileCount = math.max(1, 1 + addAmount);
 
-            // -----------------------------------------------------------------------------------------
             // TARGETING LOGIC (Determines Base Target Position/Rotation)
-            // -----------------------------------------------------------------------------------------
             float3 targetPosition = casterTransform.Position;
             bool targetFound = false;
             Entity targetEntity = Entity.Null;
@@ -269,12 +261,17 @@ public partial struct SpellCastingSystem : ISystem
                     targetPosition = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseCastRange);
                     targetFound = true;
                     break;
-                case ESpellTargetingMode.Nearest:
+                case ESpellTargetingMode.NearestTarget:
                     PointDistanceInput input = new PointDistanceInput
                     {
                         Position = casterTransform.Position,
                         MaxDistance = baseSpellData.BaseCastRange,
-                        Filter = filter
+                        //Filter = filter
+                        Filter = new CollisionFilter
+                        {
+                            BelongsTo = CollisionLayers.Raycast,
+                            CollidesWith = isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player,
+                        }
                     };
                     if (CollisionWorld.CalculateDistance(input, out DistanceHit hit))
                     {
@@ -296,9 +293,7 @@ public partial struct SpellCastingSystem : ISystem
                     break;
             }
 
-            // -----------------------------------------------------------------------------------------
             // SPAWN CALCULATION (Position & Rotation Basis)
-            // -----------------------------------------------------------------------------------------
             float3 baseSpawnPos = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseSpawnOffset);
             quaternion baseRotation = casterTransform.Rotation;
             float3 fireDirection = casterTransform.Forward();
@@ -323,9 +318,7 @@ public partial struct SpellCastingSystem : ISystem
                 }
             }
 
-            // -----------------------------------------------------------------------------------------
             // SPAWN LOOP (MULTISHOT)
-            // -----------------------------------------------------------------------------------------
             float spreadAngle = 15f;
             float startAngle = -((finalProjectileCount - 1) * spreadAngle) / 2f;
 

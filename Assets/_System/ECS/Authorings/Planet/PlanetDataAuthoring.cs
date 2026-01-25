@@ -2,6 +2,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using Unity.Entities;
 using UnityEngine;
+using Unity.Physics;
 
 public class PlanetDataAuthoring : MonoBehaviour
 {
@@ -144,7 +145,7 @@ public class PlanetDataAuthoring : MonoBehaviour
                         switch (face)
                         {
                             case 0: // X+
-                                tx =y ;
+                                tx = y;
                                 ty = R - 1 - x;
                                 break;
 

@@ -119,7 +119,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
                 ECB.AddComponent(chunkIndex, entity, new FollowTargetMovement()
                 {
                     Target = PlayerEntity,
-                    Speed = playerSpeed * 1.75f,
+                    Speed = playerSpeed * 1.3f,
                     StopDistance = 1f
                 });
             }
