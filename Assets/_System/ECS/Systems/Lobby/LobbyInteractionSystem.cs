@@ -46,7 +46,6 @@ public partial struct LobbyInteractionSystem : ISystem
             float distSq = math.distancesq(playerTransform.Position, transform.ValueRO.Position);
             bool isInRange = distSq <= interactableRadius * interactableRadius;
 
-
             bool wasEnabled = SystemAPI.IsComponentEnabled<InteractableInRangeTag>(interactableEntity);
             if (wasEnabled != isInRange)
             {

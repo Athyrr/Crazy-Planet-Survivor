@@ -91,7 +91,7 @@ public class CharacterSelectionUIControllerComponent : MonoBehaviour
         CloseMenu();
     }
 
-    public void ConfirmSelection(int index)
+    private void ConfirmSelection(int index)
     {
         var requestEntity = _entityManager.CreateEntity();
         _entityManager.AddComponentData(requestEntity, new SelectCharacterRequest

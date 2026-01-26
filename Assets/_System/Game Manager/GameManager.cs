@@ -11,6 +11,9 @@ public class GameManager : MonoBehaviour
 
     public UI_UpgradeSelectionComponent UpgradeSelectionUI;
 
+    public Camera PlanetSelectionCamera;
+    public LayerMask GalaxyUILayer;
+
     private EntityManager _entityManager;
     private EntityQuery _gameStateQuery;
     private EntityQuery _playerHealthQuery;
@@ -58,6 +61,27 @@ public class GameManager : MonoBehaviour
         }
 
         // Debug.Log("Current state: " + currentGameState.State);
+
+
+
+
+
+
+        bool click = Input.GetMouseButtonDown(0);
+        if (click)
+        {
+            Ray ray = PlanetSelectionCamera.ScreenPointToRay(Input.mousePosition);
+
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, GalaxyUILayer))
+            {
+                Debug.Log("Hit: " + hit.collider.name);
+
+                //if (hit.collider.TryGetComponent<PlanetNodeUI>(out var planet))
+                //{
+                //    OnPlanetSelected(planet.PlanetID);
+                //}
+            }
+        }
     }
 
     private void HandleRunningState(Entity gameStateEntity)
@@ -97,7 +121,6 @@ public class GameManager : MonoBehaviour
         switch (newState)
         {
             case EGameState.Running:
-                //Time.timeScale = 1f;
                 PlayerCanvas.SetActive(true);
                 UpgradesPanel.SetActive(false);
                 PausePanel.SetActive(false);
@@ -136,7 +159,7 @@ public class GameManager : MonoBehaviour
     {
         var gameStateEntity = _gameStateQuery.GetSingletonEntity();
         ChangeState(gameStateEntity, newState);
-    } 
+    }
 
     public void TogglePause()
     {
@@ -169,4 +192,8 @@ public class GameManager : MonoBehaviour
         ChangeState(gameStateEntity, EGameState.Running);
     }
 
+    public void OpenGalaxyView()
+    {
+
+    }
 }

@@ -1,6 +1,6 @@
+using static UnityEngine.InputSystem.InputAction;
 using Unity.Entities;
 using UnityEngine;
-using static UnityEngine.InputSystem.InputAction;
 
 public class PlayerController : MonoBehaviour
 {
