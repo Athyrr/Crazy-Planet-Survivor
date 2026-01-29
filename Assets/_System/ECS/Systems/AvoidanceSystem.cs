@@ -38,19 +38,21 @@ public partial struct AvoidanceSystem : ISystem
         var builder = new EntityQueryBuilder(Allocator.Temp)
             .WithAll<Avoidance, LocalTransform>()
             .WithAllRW<SteeringForce>();
+
         // Query for entities currently participating in avoidance
         _activeEnemyQuery = state.GetEntityQuery(builder);
 
         builder.Reset();
         builder.WithAll<Avoidance, LocalTransform>()
             .WithOptions(EntityQueryOptions.IgnoreComponentEnabledState);
+
         // Query for all potential enemies to handle LOD toggling
         _allEnemyQuery = state.GetEntityQuery(builder);
         builder.Dispose();
 
-        _transformLookup = state.GetComponentLookup<LocalTransform>(isReadOnly: true);
-
         _obstacleQuery = state.GetEntityQuery(ComponentType.ReadOnly<Obstacle>(), ComponentType.ReadOnly<LocalTransform>());
+
+        _transformLookup = state.GetComponentLookup<LocalTransform>(isReadOnly: true);
     }
 
     [BurstCompile]
@@ -234,7 +236,7 @@ public partial struct AvoidanceSystem : ISystem
                         {
                             do
                             {
-                                if (other.Entity == entity) 
+                                if (other.Entity == entity)
                                     continue;
 
                                 float3 toSelf = transform.Position - other.Position;

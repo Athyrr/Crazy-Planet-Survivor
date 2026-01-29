@@ -68,14 +68,15 @@ public partial struct LobbyInteractionSystem : ISystem
 
         switch (interactionType)
         {
-            case EInteractionType.StartRun:
+            case EInteractionType.PlanetSelection:
                 // Load planets map + select + Launch
+                ecb.AddComponent<OpenPlanetSelectionViewRequest>(eventEntity);
                 break;
             case EInteractionType.Shop:
                 //ecb.AddComponent<UI_DisplayShopMenuRequest>(eventEntity);
                 break;
             case EInteractionType.CharacterSelection:
-                ecb.AddComponent<OpenCharactersMenuRequest>(eventEntity);
+                ecb.AddComponent<OpenCharactersViewRequest>(eventEntity);
                 break;
             case EInteractionType.TrinketSelection:
                 //ecb.AddComponent<UI_DisplaytrinketSelectionMenuRequest>(eventEntity);

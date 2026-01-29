@@ -10,10 +10,11 @@ public struct GameState : IComponentData
 
 public enum EGameState
 {
-    Running,
     Lobby,
-    UpgradeSelection,
     CharacterSelection,
+    PlanetSelection,
+    Running,
     Paused,
-    GameOver
+    GameOver,
+    UpgradeSelection,
 }

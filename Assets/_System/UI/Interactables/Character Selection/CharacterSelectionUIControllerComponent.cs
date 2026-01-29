@@ -35,23 +35,10 @@ public class CharacterSelectionUIControllerComponent : MonoBehaviour
 
         InitUI();
 
-        _openMenuQuery = _entityManager.CreateEntityQuery(typeof(OpenCharactersMenuRequest));
+        _openMenuQuery = _entityManager.CreateEntityQuery(typeof(OpenCharactersViewRequest));
         CharacterSelectionPanel.SetActive(false);
 
         _currentSelectedCharacterIndex = 0;
-    }
-
-    private void Update()
-    {
-        // @todo if not in lobby do not update
-
-
-        // Detect display selection menu request from ECS systerm
-        if (!CharacterSelectionPanel.activeSelf && !_openMenuQuery.IsEmpty)
-        {
-            OpenMenu();
-            _entityManager.DestroyEntity(_openMenuQuery);
-        }
     }
 
     private void InitUI()
@@ -59,20 +46,19 @@ public class CharacterSelectionUIControllerComponent : MonoBehaviour
         CharacterListView.Init(this, Database);
     }
 
-    public void OpenMenu()
+    public void OpenView()
     {
-        CharacterSelectionPanel.SetActive(true);
+        Debug.Log($"[UI] Opening Character Selection. Panel: {CharacterSelectionPanel.name}");
 
-        _gameManager.ChangeState(EGameState.CharacterSelection);
+        CharacterSelectionPanel.SetActive(true);
 
         CharacterListView.RefreshCharacters();
         PreviewCharacter(_currentSelectedCharacterIndex);
     }
 
-    public void CloseMenu()
+    public void CloseView()
     {
         CharacterSelectionPanel.SetActive(false);
-        _gameManager.ChangeState(EGameState.Lobby);
     }
 
     public void PreviewCharacter(int index)
@@ -88,7 +74,6 @@ public class CharacterSelectionUIControllerComponent : MonoBehaviour
     public void ConfirmSelection()
     {
         ConfirmSelection(_currentSelectedCharacterIndex);
-        CloseMenu();
     }
 
     private void ConfirmSelection(int index)
@@ -98,6 +83,8 @@ public class CharacterSelectionUIControllerComponent : MonoBehaviour
         {
             CharacterIndex = index
         });
+
+        GameManager.Instance.ChangeState(EGameState.Lobby);
 
         Debug.Log($"Select Character Index {index}");
     }

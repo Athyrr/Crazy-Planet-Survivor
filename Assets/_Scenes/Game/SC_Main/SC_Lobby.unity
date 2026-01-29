@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: f531e09e2ad2fb440b4eed7605863143, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -172,26 +172,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 1207441189779327318, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
-      propertyPath: m_Convex
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1207441189779327318, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2693254250496633621, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
-      propertyPath: _findWaterLevel
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2693254250496633621, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
-      propertyPath: _autoFindPlanetRadius
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4621067963375093220, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 5148a4f3e28b40e4abb2560a97b3580b, type: 2}
     - target: {fileID: 4804159904702695074, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -235,10 +215,6 @@ PrefabInstance:
     - target: {fileID: 7431055858490708449, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
       propertyPath: m_Name
       value: PF_Planet_Lobby
-      objectReference: {fileID: 0}
-    - target: {fileID: 7431055858490708449, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
-      propertyPath: m_IsActive
-      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

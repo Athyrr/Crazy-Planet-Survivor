@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    public GameManager GameManager;
+    private RunManager RunManager;
 
     private GameInputs _gameInputs;
 
@@ -17,6 +17,9 @@ public class PlayerController : MonoBehaviour
     {
         if (_gameInputs == null)
             _gameInputs = new GameInputs();
+
+        if (RunManager == null)
+            RunManager = FindFirstObjectByType<RunManager>();
     }
 
     private void Start()
@@ -84,7 +87,7 @@ public class PlayerController : MonoBehaviour
     private void HandlePauseInput(CallbackContext ctx)
     {
         if (ctx.started)
-            GameManager.TogglePause();
+            RunManager.TogglePause();
     }
 
     private void HandleInteractInput(CallbackContext ctx)

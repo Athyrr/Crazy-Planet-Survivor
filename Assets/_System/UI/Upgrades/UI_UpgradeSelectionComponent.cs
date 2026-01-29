@@ -1,12 +1,14 @@
 using Unity.Entities;
 using UnityEngine.UI;
 using UnityEngine;
+using System;
 
 public class UI_UpgradeSelectionComponent : MonoBehaviour
 {
-    public GameManager GameManager;
     public GameObject UpgradeUIPrefab;
     public Transform UpgradesContainer;
+
+    private RunManager RunManager;
 
     private EntityManager _entityManager;
     private BlobAssetReference<UpgradeBlobs> _upgradesDatabaseRef;
@@ -60,7 +62,7 @@ public class UI_UpgradeSelectionComponent : MonoBehaviour
             DatabaseIndex = databaseIndex
         });
 
-        GameManager.TogglePause();
+        RunManager.TogglePause();
     }
 
     private void ClearSelection()
@@ -71,4 +73,8 @@ public class UI_UpgradeSelectionComponent : MonoBehaviour
         }
     }
 
+    public void Init(RunManager runManager)
+    {
+        RunManager = runManager;
+    }
 }
