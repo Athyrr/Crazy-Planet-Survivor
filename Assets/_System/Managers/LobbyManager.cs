@@ -47,7 +47,7 @@ public class LobbyManager : MonoBehaviour
     {
         CheckOpenViewRequests();
 
-        Debug.Log("Current Game State: " + GameManager.Instance.GetGameState());
+        // Debug.Log("Current Game State: " + GameManager.Instance.GetGameState());
     }
 
     private void CheckOpenViewRequests()

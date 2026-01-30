@@ -50,7 +50,7 @@ public class PlanetSelectionManager : MonoBehaviour
             PlanetSelectionPanel.SetActive(false);
 
 
-        Debug.Log("Selected Planet: " + _focusedPlanet);
+        // Debug.Log("Selected Planet: " + _focusedPlanet);
     }
 
     public void LaunchPlanet()
