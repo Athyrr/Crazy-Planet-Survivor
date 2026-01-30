@@ -56,7 +56,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
 
         //float3 playerPosition = _playerQuery.GetSingleton<LocalTransform>().Position;
         var playerEntity = _playerQuery.GetSingletonEntity();
-       var playerPosition = SystemAPI.GetComponent<LocalTransform>(playerEntity).Position;
+        var playerPosition = SystemAPI.GetComponent<LocalTransform>(playerEntity).Position;
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();

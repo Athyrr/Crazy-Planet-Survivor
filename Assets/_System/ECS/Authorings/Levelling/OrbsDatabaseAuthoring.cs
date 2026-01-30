@@ -56,7 +56,7 @@ public class OrbsDatabaseAuthoring : MonoBehaviour
             using var builder = new BlobBuilder(Allocator.Temp);
             ref var root = ref builder.ConstructRoot<ExpAttractionAnimationCurveBlob>();
 
-            var arrayBuilder = builder.Allocate(ref root.Samples, authoring.Resolution);
+            BlobBuilderArray<float> arrayBuilder = builder.Allocate(ref root.Samples, authoring.Resolution);
 
             for (int i = 0; i < authoring.Resolution; i++)
             {
@@ -67,12 +67,16 @@ public class OrbsDatabaseAuthoring : MonoBehaviour
             root.Duration = authoring.AttractionDuration;
             root.SampleCount = authoring.Resolution;
 
-            var blobRef = builder.CreateBlobAssetReference<ExpAttractionAnimationCurveBlob>(Allocator.Persistent);
+            var animCurveBlobRef = builder.CreateBlobAssetReference<ExpAttractionAnimationCurveBlob>(Allocator.Persistent);
 
             AddComponent(entity, new ExpAttractionAnimationCurveConfig
             {
-                CurveBlobRef = blobRef
+                CurveBlobRef = animCurveBlobRef
             });
+
+            AddBlobAsset(ref animCurveBlobRef, out var hash);
+
+            //builder.Dispose();
         }
     }
 }
