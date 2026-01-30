@@ -1,0 +1,19 @@
+#pragma kernel UpdateNumbers
+
+struct DamageData {
+    float3 position;
+    float value;
+    float startTime;
+    int digitCount;
+};
+
+RWStructuredBuffer<DamageData> _DamageBuffer;
+float _Time;
+
+[numthreads(64,1,1)]
+void UpdateNumbers (uint3 id : SV_DispatchThreadID) {
+    if (_Time - _DamageBuffer[id.x].startTime > 2.0) {
+        // "Désactive" le nombre en le mettant loin ou à alpha 0
+        _DamageBuffer[id.x].position = float3(0, -1000, 0);
+    }
+}
