@@ -17,6 +17,7 @@ public class LobbyManager : MonoBehaviour
     [Header("UI Controllers")]
 
     public CharacterSelectionUIControllerComponent CharacterSelectionUIController;
+    public PlanetSelectionUIController PlanetSelectionUIController;
 
     private EntityManager _entityManager;
     private EntityQuery _openCharacterSelectionViewQuery;
@@ -71,6 +72,7 @@ public class LobbyManager : MonoBehaviour
     {
         GalaxyContainer.SetActive(false);
         CharacterSelectionUIController.CloseView();
+        PlanetSelectionUIController.CloseView();
 
 
         bool isGalaxyMode = (newState == EGameState.PlanetSelection);
@@ -100,13 +102,12 @@ public class LobbyManager : MonoBehaviour
 
     private void OpenPlanetSelectionView()
     {
-        Debug.Log("[UI] Opening Planet Selection View.");
-
         if (!GalaxyContainer.activeSelf)
             GalaxyContainer.SetActive(true);
 
-        // Active planet selection camera
+        PlanetSelectionUIController.OpenView();
 
+        // Active planet selection camera
         PlanetSelectionCamera.Priority = 20;
     }
 }

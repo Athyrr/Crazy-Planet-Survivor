@@ -131,7 +131,6 @@ GameObject:
   - component: {fileID: 102697981}
   - component: {fileID: 102697980}
   - component: {fileID: 102697979}
-  - component: {fileID: 102697982}
   m_Layer: 3
   m_Name: Sun
   m_TagString: Untagged
@@ -233,22 +232,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 102697977}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
---- !u!114 &102697982
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 102697977}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6143322a35d8248428ccfd3c7e83f8ea, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlanetComponent
-  AllowRotate: 0
-  IdleSpeed: 10
-  FocusSpeed: 20
-  PlanetID: 0
 --- !u!1 &119710326
 GameObject:
   m_ObjectHideFlags: 0
@@ -398,8 +381,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1942668406}
+  m_Children: []
   m_Father: {fileID: 810295173}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &411879184
@@ -418,6 +400,7 @@ MonoBehaviour:
   PlanetSelectionCamera: {fileID: 1355349919}
   GalaxyContainer: {fileID: 1355349913}
   CharacterSelectionUIController: {fileID: 1488603913}
+  PlanetSelectionUIController: {fileID: 1154809228}
 --- !u!224 &435826083 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8357712587415318656, guid: 5a9c5c88b78c280449b7ed841858b7ad, type: 3}
@@ -810,10 +793,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6143322a35d8248428ccfd3c7e83f8ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlanetComponent
-  AllowRotate: 0
-  IdleSpeed: 10
-  FocusSpeed: 20
   PlanetID: 0
+  AllowRotate: 1
+  IdleSpeed: 10
+  SelectedSpeed: 50
+  HoverScaleMult: 1.5
+  SelectedScaleMult: 1.5
+  ScaleSpeed: 5
 --- !u!1 &757241500
 GameObject:
   m_ObjectHideFlags: 0
@@ -1309,10 +1295,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6143322a35d8248428ccfd3c7e83f8ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlanetComponent
-  AllowRotate: 0
+  PlanetID: 5
+  AllowRotate: 1
   IdleSpeed: 10
-  FocusSpeed: 20
-  PlanetID: 2
+  SelectedSpeed: 50
+  HoverScaleMult: 1.5
+  SelectedScaleMult: 1.5
+  ScaleSpeed: 5
 --- !u!1 &999450866
 GameObject:
   m_ObjectHideFlags: 0
@@ -1439,10 +1428,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6143322a35d8248428ccfd3c7e83f8ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlanetComponent
+  PlanetID: 1
   AllowRotate: 1
   IdleSpeed: 10
-  FocusSpeed: 20
-  PlanetID: 4
+  SelectedSpeed: 50
+  HoverScaleMult: 1.5
+  SelectedScaleMult: 1.5
+  ScaleSpeed: 5
 --- !u!224 &1012958784 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
@@ -1459,16 +1451,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4960646c6a0359b4e8194eefc1a633b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeSelectionComponent
---- !u!1 &1154809225 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 366621661023058013, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
-  m_PrefabInstance: {fileID: 685410021970099145}
-  m_PrefabAsset: {fileID: 0}
 --- !u!224 &1154809226 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4731708443538085709, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
   m_PrefabInstance: {fileID: 685410021970099145}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1154809228 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4710043037810787542, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+  m_PrefabInstance: {fileID: 685410021970099145}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 309b3e29c6c37d840a30e69ec65f234e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlanetSelectionManager
 --- !u!1 &1177978197
 GameObject:
   m_ObjectHideFlags: 0
@@ -2055,10 +2053,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6143322a35d8248428ccfd3c7e83f8ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlanetComponent
+  PlanetID: 4
   AllowRotate: 1
   IdleSpeed: 10
-  FocusSpeed: 20
-  PlanetID: 4
+  SelectedSpeed: 50
+  HoverScaleMult: 1.5
+  SelectedScaleMult: 1.5
+  ScaleSpeed: 5
 --- !u!1 &1355349913
 GameObject:
   m_ObjectHideFlags: 0
@@ -2776,10 +2777,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6143322a35d8248428ccfd3c7e83f8ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlanetComponent
+  PlanetID: 2
   AllowRotate: 1
   IdleSpeed: 10
-  FocusSpeed: 20
-  PlanetID: 4
+  SelectedSpeed: 50
+  HoverScaleMult: 1.5
+  SelectedScaleMult: 1.5
+  ScaleSpeed: 5
 --- !u!1 &1701464303
 GameObject:
   m_ObjectHideFlags: 0
@@ -2993,7 +2997,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
+  m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -3509,54 +3513,6 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!1 &1942668405
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1942668406}
-  - component: {fileID: 1942668407}
-  m_Layer: 0
-  m_Name: Planet Selection Manager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1942668406
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1942668405}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 411879183}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1942668407
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1942668405}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 309b3e29c6c37d840a30e69ec65f234e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlanetSelectionManager
-  GalaxyLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  PlanetSelectionPanel: {fileID: 1154809225}
 --- !u!1 &2043987041
 GameObject:
   m_ObjectHideFlags: 0
@@ -3683,10 +3639,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6143322a35d8248428ccfd3c7e83f8ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlanetComponent
+  PlanetID: 0
   AllowRotate: 1
   IdleSpeed: 10
-  FocusSpeed: 20
-  PlanetID: 0
+  SelectedSpeed: 50
+  HoverScaleMult: 1.5
+  SelectedScaleMult: 1.5
+  ScaleSpeed: 5
 --- !u!1 &2087372309 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5354578257132953450, guid: b0268771ccdb4444a92276a4ca75cd42, type: 3}
@@ -4154,7 +4113,19 @@ PrefabInstance:
     - target: {fileID: 8547243066090906457, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
-      objectReference: {fileID: 1942668407}
+      objectReference: {fileID: 1154809228}
+    - target: {fileID: 8547243066090906457, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: ExplorePlanet
+      objectReference: {fileID: 0}
+    - target: {fileID: 8547243066090906457, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: PlanetSelectionUIController, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 8640594336212863129, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
