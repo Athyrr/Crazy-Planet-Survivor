@@ -13,4 +13,6 @@ public enum ECharacterStat
     CooldownReduction,
     AreaSize,
     CollectRange,
+    BounceCount,
+    PierceCount,
 }

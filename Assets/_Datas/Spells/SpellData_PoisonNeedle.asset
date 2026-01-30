@@ -10,27 +10,27 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
-  m_Name: SpellData_Enemy_Projectile
+  m_Name: SpellData_PoisonNeedle
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 12
-  DisplayName: Projectile
+  ID: 11
+  DisplayName: Poison Needle
   Description: 
-  SpellPrefab: {fileID: 486797506737824905, guid: fb755105426288f4ebd204dd63a22f86, type: 3}
+  SpellPrefab: {fileID: 6887593587544738312, guid: 51933d6499942224a9bceba1adce5407, type: 3}
   Rarity: 0
-  Tags: 1
-  BaseDamage: 10
-  BaseCooldown: 1.5
-  BaseSpeed: 8
+  Tags: 32
+  BaseDamage: 20
+  BaseCooldown: 0.5
+  BaseSpeed: 40
   BaseSpawnOffset: {x: 0, y: 0, z: 0}
   BaseAreaOfEffect: 1
-  BaseCastRange: 15
-  TargetingMode: 3
-  Lifetime: 2
+  BaseCastRange: 10
+  TargetingMode: 0
+  Lifetime: 3
   Bounces: 0
   BouncesSearchRadius: 0
   Pierces: 0
-  BaseDamagePerTick: -1
-  TickRate: -1
+  BaseDamagePerTick: 1
+  TickRate: 1
   ChildPrefab: {fileID: 0}
   ChildrenCount: 0
   ChildrenSpawnRadius: 1
