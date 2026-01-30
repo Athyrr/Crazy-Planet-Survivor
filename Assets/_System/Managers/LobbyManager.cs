@@ -12,12 +12,7 @@ public class LobbyManager : MonoBehaviour
     [Tooltip("Camera used for the planet selection view (Galaxy).")]
     public CinemachineCamera PlanetSelectionCamera;
 
-    [Header("Galaxy")]
-
-    public LayerMask GalaxyLayer;
-
     public GameObject GalaxyContainer;
-
 
     [Header("UI Controllers")]
 
@@ -53,25 +48,6 @@ public class LobbyManager : MonoBehaviour
         CheckOpenViewRequests();
 
         Debug.Log("Current Game State: " + GameManager.Instance.GetGameState());
-
-
-
-        if (Input.GetKeyDown(KeyCode.Mouse0))
-        {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hitInfo, 1000f, GalaxyLayer))
-            {
-                if (hitInfo.collider.TryGetComponent<PlanetComponent>(out var planet))
-                {
-                    Debug.Log($"[Lobby] Selected Planet: {planet.PlanetID}");
-
-                    GameManager.Instance.LoadPlanetSubScene(planet.PlanetID);
-                    EGameState newState = planet.PlanetID == EPlanetID.Lobby ? EGameState.Lobby : EGameState.Running;
-                    GameManager.Instance.ChangeState(newState);
-                }
-            }
-        }
-
     }
 
     private void CheckOpenViewRequests()

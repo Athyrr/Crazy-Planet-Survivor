@@ -6,5 +6,6 @@ public enum EPlanetID
     Lava,
     Ice,
     Forest,
-    Sand
+    Sand,
+    None
 }

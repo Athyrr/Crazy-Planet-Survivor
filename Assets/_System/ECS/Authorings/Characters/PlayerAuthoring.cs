@@ -17,6 +17,10 @@ public class PlayerAuthoring : MonoBehaviour
     public bool UseSnappedMovement = true;
 
     [Header("Debug")]
+
+    [Tooltip("If true, the player will be invincible.")]
+    public bool IsInvincible = false;
+
     [Tooltip("Modifiers to apply on spawn (e.g. for testing specific builds).")]
     public StatModifier[] InitialModifiers;
 
@@ -195,6 +199,9 @@ public class PlayerAuthoring : MonoBehaviour
                 Level = 1,
                 NextLevelExperienceRequired = 500
             });
+
+            if (authoring.IsInvincible)
+                AddComponent(entity, new Invincible());
         }
     }
 }

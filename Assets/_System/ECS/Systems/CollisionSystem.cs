@@ -104,7 +104,6 @@ public partial struct CollisionSystem : ISystem
         state.Dependency = triggerJob.Schedule(simulationSingleton, state.Dependency);
     }
 
-
     [BurstCompile]
     private struct TriggerEventJob : ITriggerEventsJob
     {
@@ -245,6 +244,14 @@ public partial struct CollisionSystem : ISystem
             }
         }
 
+        private struct CollisionEventJob : ICollisionEventsJob
+        {
+            public void Execute(CollisionEvent collisionEvent)
+            {
+
+            }
+        }
+
         /// <summary>
         /// Try to resolve which entity is the damager and which is the target (enemy or player).
         /// </summary>
@@ -254,20 +261,30 @@ public partial struct CollisionSystem : ISystem
         /// <param name="target"></param>
         /// <param name="targetIsPlayer"></param>
         /// <returns></returns>
-        private bool TryResolveDamagerVsTarget(Entity entityA, Entity entityB, out Entity damager, out Entity target, bool targetIsPlayer = false)
+        private bool TryResolveDamagerVsTarget(Entity entityA, Entity entityB, out Entity damager, out Entity target)
         {
-            if (DamageOnContactLookup.HasComponent(entityA) && (targetIsPlayer ? PlayerLookup.HasComponent(entityB) : EnemyLookup.HasComponent(entityB)))
+            // @todo use instead HealthLookup to determine valid targets
+
+            // Case EntityA is Damager
+            if (DamageOnContactLookup.HasComponent(entityA))
             {
-                damager = entityA;
-                target = entityB;
-                return true;
+                if (EnemyLookup.HasComponent(entityB) || PlayerLookup.HasComponent(entityB))
+                {
+                    damager = entityA;
+                    target = entityB;
+                    return true;
+                }
             }
 
-            if (DamageOnContactLookup.HasComponent(entityB) && (targetIsPlayer ? PlayerLookup.HasComponent(entityA) : EnemyLookup.HasComponent(entityA)))
+            // Case EntityB is Damager
+            if (DamageOnContactLookup.HasComponent(entityB))
             {
-                damager = entityB;
-                target = entityA;
-                return true;
+                if (EnemyLookup.HasComponent(entityB) || PlayerLookup.HasComponent(entityB))
+                {
+                    damager = entityB;
+                    target = entityA;
+                    return true;
+                }
             }
 
             damager = Entity.Null;

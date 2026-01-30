@@ -37,13 +37,15 @@ public class CollectRangeFeedbackController : MonoBehaviour
             Debug.LogError($"Shader does not have property 'RadiusRatio'", this);
             this.enabled = false;
         }
-
-        //transform.localScale = ;
     }
 
     private void Update()
     {
         RefreshVisual();
+    }
+
+    private void LateUpdate()
+    {
         RefreshPosition();
     }
 

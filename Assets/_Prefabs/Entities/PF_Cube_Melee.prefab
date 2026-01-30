@@ -251,9 +251,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   UseSnappedMovement: 1
   BaseStats:
-    MaxHealth: 80
+    MaxHealth: 150
     Armor: 0
-    MoveSpeed: 6
+    MoveSpeed: 5
     Damage: 5
     CooldownReduction: 0
     ProjectileSpeedMultiplier: 0
@@ -283,8 +283,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9572930ed885f804eae7a2b7f785412d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExperienceLootAuthoring
-  ExperienceValue: 60
-  DropChance: 0.7
+  ExperienceValue: 100
+  DropChance: 1
 --- !u!114 &4190783909020484761
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -297,5 +297,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 569916e10732eba4caf53ace7f5ac10d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
-  _avoidanceDetectionRadius: 2.5
+  _avoidanceDetectionRadius: 2
   _avoidanceWeight: 0.8

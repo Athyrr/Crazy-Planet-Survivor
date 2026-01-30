@@ -64,7 +64,6 @@ public class RunManager : MonoBehaviour
         }
     }
 
-
     private void CheckOpenUpgradesRequest()
     {
         if (_gameStateQuery.IsEmpty)

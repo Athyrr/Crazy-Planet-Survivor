@@ -17,7 +17,7 @@ public partial struct StatsCalculationSystem : ISystem
             .WithAll<RecalculateStatsRequest, Stats, BaseStats, StatModifier>()
             .Build();
 
-        state.RequireForUpdate(_calculateQuery); 
+        state.RequireForUpdate(_calculateQuery);
     }
 
     [BurstCompile]
@@ -54,7 +54,8 @@ public partial struct StatsCalculationSystem : ISystem
             stats.CooldownReduction = baseStats.CooldownReduction;
             stats.EffectAreaRadiusMult = baseStats.EffectAreaRadiusMultiplier;
             stats.CollectRange = baseStats.CollectRange;
-
+            stats.BouncesAdded = baseStats.BouncesAdded;
+            stats.PierceAdded = baseStats.PierceAdded;
 
             float oldMaxHealth = stats.MaxHealth > 0 ? stats.MaxHealth : baseStats.MaxHealth; // Avoid division by zero
             if (oldMaxHealth <= 0) oldMaxHealth = 1;
@@ -95,6 +96,14 @@ public partial struct StatsCalculationSystem : ISystem
                     case ECharacterStat.CollectRange:
                         ApplyModifier(ref stats.CollectRange, modifiers[i]);
                         break;
+
+                    case ECharacterStat.BounceCount:
+                        ApplyModifier(ref stats.BouncesAdded, modifiers[i]);
+                        break;
+
+                    case ECharacterStat.PierceCount:
+                        ApplyModifier(ref stats.PierceAdded, modifiers[i]);
+                        break;
                 }
             }
 
@@ -117,5 +126,13 @@ public partial struct StatsCalculationSystem : ISystem
             statValue += modifier.Value;
         else if (modifier.Strategy == EStatModiferStrategy.Multiply)
             statValue *= modifier.Value;
+    }
+
+    private static void ApplyModifier(ref int statValue, in StatModifier modifier)
+    {
+        if (modifier.Strategy == EStatModiferStrategy.Flat)
+            statValue += (int)modifier.Value;
+        else if (modifier.Strategy == EStatModiferStrategy.Multiply)
+            statValue *= (int)modifier.Value;
     }
 }
