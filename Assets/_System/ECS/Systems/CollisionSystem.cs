@@ -228,10 +228,10 @@ public partial struct CollisionSystem : ISystem
                         // Do not destroy the projectile
                         shouldDestroy = false;
                     }
-                    //else
-                    //{
-                    //    shouldDestroy = true;
-                    //}
+                    else
+                    {
+                        shouldDestroy = true;
+                    }
                 }
 
                 if (shouldDestroy)
@@ -248,7 +248,7 @@ public partial struct CollisionSystem : ISystem
         {
             public void Execute(CollisionEvent collisionEvent)
             {
-
+                // @todo handle collisoin betwenen player and obstacle
             }
         }
 
