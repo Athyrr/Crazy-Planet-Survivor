@@ -2,7 +2,7 @@
 using PrimeTween;
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class Wheels : Animatable {
         [SerializeField] Demo demo;
         [SerializeField] Transform[] wheels;

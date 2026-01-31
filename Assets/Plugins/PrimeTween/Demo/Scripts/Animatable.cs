@@ -2,7 +2,7 @@
 using PrimeTween;
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public abstract class Clickable : MonoBehaviour {
         public virtual void OnClick() {}
     }

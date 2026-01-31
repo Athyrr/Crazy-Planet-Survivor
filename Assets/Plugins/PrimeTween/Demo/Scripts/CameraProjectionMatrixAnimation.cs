@@ -2,7 +2,7 @@
 using PrimeTween;
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class CameraProjectionMatrixAnimation : Clickable {
         [SerializeField] Camera mainCamera;
         float interpolationFactor;

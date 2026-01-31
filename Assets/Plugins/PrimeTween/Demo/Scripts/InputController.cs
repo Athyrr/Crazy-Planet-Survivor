@@ -7,7 +7,7 @@ using TouchPhase = UnityEngine.InputSystem.TouchPhase;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 #endif
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class InputController : MonoBehaviour {
         void Awake() {
             if (isNewInputSystemEnabled && !isLegacyInputManagerEnabled) {

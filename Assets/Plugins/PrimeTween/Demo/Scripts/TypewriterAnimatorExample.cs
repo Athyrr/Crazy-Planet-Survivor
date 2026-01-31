@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using PrimeTween;
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     [PublicAPI]
     public class TypewriterAnimatorExample : MonoBehaviour {
         enum AnimationType { Simple, WithPunctuations, ByWords }

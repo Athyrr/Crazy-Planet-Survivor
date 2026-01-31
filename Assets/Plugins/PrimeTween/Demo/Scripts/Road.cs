@@ -2,7 +2,7 @@
 using PrimeTween;
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class Road : Animatable {
         [SerializeField] MeshRenderer roadModel;
         [SerializeField] AnimationCurve ease;

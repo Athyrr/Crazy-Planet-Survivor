@@ -6,7 +6,7 @@ using PrimeTween;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     /// <summary>
     /// PrimeTween uses static delegates (lambdas with no external captures) to play animations.
     /// The first time a particular animation is played, C# runtime caches the delegate for this animation, and the GC.Alloc is shown in Profiler.

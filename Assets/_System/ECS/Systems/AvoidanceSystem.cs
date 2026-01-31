@@ -54,6 +54,7 @@ public partial struct AvoidanceSystem : ISystem
         builder.WithAll<Obstacle, LocalTransform>();
         _obstaclesQuery = state.GetEntityQuery(builder);
 
+        //Dispose
         builder.Dispose();
 
         _transformLookup = state.GetComponentLookup<LocalTransform>(isReadOnly: true);

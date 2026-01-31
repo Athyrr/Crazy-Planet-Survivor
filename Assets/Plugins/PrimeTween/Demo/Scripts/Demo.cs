@@ -4,7 +4,7 @@ using UnityEngine.UI;
 #endif
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class Demo : MonoBehaviour {
         #if PRIME_TWEEN_INSTALLED && UNITY_UGUI_INSTALLED
         [SerializeField] AnimateAllType animateAllType; enum AnimateAllType { Sequence, Async, Coroutine }

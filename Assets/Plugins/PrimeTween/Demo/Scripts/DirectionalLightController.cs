@@ -2,7 +2,7 @@
 using PrimeTween;
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class DirectionalLightController : MonoBehaviour {
         [SerializeField] Light directionalLight;
         [SerializeField] Camera mainCamera;
