@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 using EasyButtons;
@@ -6,8 +5,45 @@ using PrimeTween;
 using Random = UnityEngine.Random;
 
 [ExecuteAlways]
-public class DamageManager : MonoBehaviour
+public class DamageFeedbackManager : MonoBehaviour
 {
+    #region Instance
+
+    private static DamageFeedbackManager _instance;
+
+    public static DamageFeedbackManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindObjectOfType<DamageFeedbackManager>();
+                if (_instance == null)
+                {
+                    var go = new GameObject("DamageManager");
+                    _instance = go.AddComponent<DamageFeedbackManager>();
+                }
+            }
+
+            return _instance;
+        }
+    }
+
+    private void Awake()
+    {
+        if (_instance == null)
+            _instance = this;
+        else if (_instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        DontDestroyOnLoad(gameObject);
+    }
+
+    #endregion
+    
     struct DamageData {
         public Vector3 Position;
         public float Value;
@@ -51,21 +87,7 @@ public class DamageManager : MonoBehaviour
         return Application.isPlaying ? Time.time : (float)Time.realtimeSinceStartup;
     }
     
-    public void Start()
-    {
-        var coroutine = StartCoroutine(TrySpawnDamageVisualizer());
-    }
-    
-    IEnumerator TrySpawnDamageVisualizer()
-    {
-        while (true)
-        {
-            AddDamage(Random.Range(10, 999), Random.insideUnitSphere * 1f);
-            yield return new WaitForSeconds(1f);
-        }
-    }
-
-    void Update() {
+    void FixedUpdate() {
         if (_activeDamages.Count == 0 || _damageBuffer == null || computeShader == null || displayMaterial == null) 
             return;
 
