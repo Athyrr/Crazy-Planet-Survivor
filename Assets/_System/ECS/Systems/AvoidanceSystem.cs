@@ -15,7 +15,7 @@ public partial struct AvoidanceSystem : ISystem
 {
     private EntityQuery _activeEnemyQuery;
     private EntityQuery _allEnemyQuery;
-    private EntityQuery _obstacleQuery;
+    private EntityQuery _obstaclesQuery;
     private ComponentLookup<LocalTransform> _transformLookup;
 
     private float _timeSinceLastLOD;
@@ -35,22 +35,26 @@ public partial struct AvoidanceSystem : ISystem
         state.RequireForUpdate<Player>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
 
-        var builder = new EntityQueryBuilder(Allocator.Temp)
-            .WithAll<Avoidance, LocalTransform>()
-            .WithAllRW<SteeringForce>();
-
+        var builder = new EntityQueryBuilder(Allocator.Temp);
+        
         // Query for entities currently participating in avoidance
+        builder.WithAll<Avoidance, LocalTransform>()
+         .WithAllRW<SteeringForce>();
         _activeEnemyQuery = state.GetEntityQuery(builder);
 
+        // All enemies query
         builder.Reset();
         builder.WithAll<Avoidance, LocalTransform>()
             .WithOptions(EntityQueryOptions.IgnoreComponentEnabledState);
-
-        // Query for all potential enemies to handle LOD toggling
         _allEnemyQuery = state.GetEntityQuery(builder);
-        builder.Dispose();
 
-        _obstacleQuery = state.GetEntityQuery(ComponentType.ReadOnly<Obstacle>(), ComponentType.ReadOnly<LocalTransform>());
+        // Obstacles query
+        //_obstacleQuery = state.GetEntityQuery(ComponentType.ReadOnly<Obstacle>(), ComponentType.ReadOnly<LocalTransform>());
+        builder.Reset();
+        builder.WithAll<Obstacle, LocalTransform>();
+        _obstaclesQuery = state.GetEntityQuery(builder);
+
+        builder.Dispose();
 
         _transformLookup = state.GetComponentLookup<LocalTransform>(isReadOnly: true);
     }
@@ -83,7 +87,7 @@ public partial struct AvoidanceSystem : ISystem
 
         // --- PHASE 2: Spatial Hashing ---
         int activeCount = _activeEnemyQuery.CalculateEntityCount();
-        int obstacleCount = _obstacleQuery.CalculateEntityCount();
+        int obstacleCount = _obstaclesQuery.CalculateEntityCount();
 
         if (activeCount == 0)
             return;
@@ -105,7 +109,7 @@ public partial struct AvoidanceSystem : ISystem
             Map = spatialMap.AsParallelWriter(),
             CellSize = CellSize
         };
-        state.Dependency = populateObstaclesJob.ScheduleParallel(_obstacleQuery, state.Dependency);
+        state.Dependency = populateObstaclesJob.ScheduleParallel(_obstaclesQuery, state.Dependency);
 
         // --- PHASE 3: Avoidance Calculation ---
         var avoidanceJob = new AvoidanceJob

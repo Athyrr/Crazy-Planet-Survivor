@@ -37,7 +37,9 @@ public partial struct ExpOrbAttractionSystem : ISystem
         _statsLookup = state.GetComponentLookup<Stats>(isReadOnly: true);
         _planetLookup = state.GetComponentLookup<PlanetData>(isReadOnly: true);
 
-        _playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<LocalTransform>(), ComponentType.ReadOnly<Player>());
+        //_playerQuery = state.GetEntityQuery(typeof(Player));
+        ComponentType playerComponentType = ComponentType.ReadOnly<Player>();
+        _playerQuery = state.GetEntityQuery(playerComponentType);
     }
 
     [BurstCompile]
