@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 using EasyButtons;
+using PrimeTween;
 using Random = UnityEngine.Random;
 
 [ExecuteAlways]
@@ -34,16 +35,16 @@ public class DamageManager : MonoBehaviour
         InitBuffer();
 
         if (_activeDamages.Count >= _maxNumbers) _activeDamages.RemoveAt(0);
-
+        
         _activeDamages.Add(new DamageData {
             Position = pos,
             Value = (float)val,
             StartTime = GetCurrentTime(),
             DigitCount = val.ToString().Length
-        });
+        }); 
         
         _damageBuffer.SetData(_activeDamages.ToArray());
-        Debug.Log("hyv; damage feedback applied");
+        Debug.Log($"hyv; damage feedback applied {val}");
     }
 
     private float GetCurrentTime() {
@@ -96,6 +97,9 @@ public class DamageManager : MonoBehaviour
     
     [Button]
     void TestDamage() {
-        AddDamage(Random.Range(10, 999), Vector3.zero);
+        AddDamage(Random.Range(10, 999999), Vector3.zero);
+        
+        // Sequence.Create()
+        // Invoke((AddDamage(Random.Range(10, 999999), Vector3.zero), 1f);
     }
 }
