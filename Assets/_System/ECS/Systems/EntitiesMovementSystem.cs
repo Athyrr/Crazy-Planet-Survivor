@@ -1,4 +1,4 @@
-using Unity.Collections.LowLevel.Unsafe; // Required for the attribute
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -22,6 +22,8 @@ public partial struct EntitiesMovementSystem : ISystem
     /// <summary> Cached lookup for transforms, used to find targets or planet positions. </summary>
     private ComponentLookup<LocalTransform> _transformLookup;
 
+    private ComponentLookup<Player> _playerLookup;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -31,6 +33,7 @@ public partial struct EntitiesMovementSystem : ISystem
         _statsLookup = state.GetComponentLookup<Stats>(true);
         _steeringLookup = state.GetComponentLookup<SteeringForce>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
+        _playerLookup = state.GetComponentLookup<Player>(true);
     }
 
     [BurstCompile(OptimizeFor = OptimizeFor.Performance)]
@@ -50,6 +53,7 @@ public partial struct EntitiesMovementSystem : ISystem
         _statsLookup.Update(ref state);
         _steeringLookup.Update(ref state);
         _transformLookup.Update(ref state);
+        _playerLookup.Update(ref state);
 
         // --- JOB CHAINING ---
         // All movement jobs write to 'LocalTransform'. To prevent race conditions and satisfy 
@@ -61,7 +65,8 @@ public partial struct EntitiesMovementSystem : ISystem
             DeltaTime = delta,
             PhysicsCollisionWorld = collisionWorld,
             PlanetCenter = planetTransform.Position,
-            StatsLookup = _statsLookup
+            StatsLookup = _statsLookup,
+            PlayerLookup = _playerLookup
         };
         JobHandle linearSnappedHandle = linearSnappedJob.ScheduleParallel(state.Dependency);
 
@@ -70,7 +75,9 @@ public partial struct EntitiesMovementSystem : ISystem
             DeltaTime = delta,
             PlanetCenter = planetTransform.Position,
             PlanetRadius = planetData.Radius,
-            StatsLookup = _statsLookup
+            StatsLookup = _statsLookup,
+            PlayerLookup = _playerLookup,
+            PhysicsCollisionWorld = collisionWorld
         };
         JobHandle linearBareHandle = linearBareJob.ScheduleParallel(linearSnappedHandle);
 
@@ -140,6 +147,11 @@ public partial struct EntitiesMovementSystem : ISystem
         [NativeDisableParallelForRestriction]
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
+        [NativeDisableParallelForRestriction]
+        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
+
+        private const float OBSTACLE_CHECK_DIST = 1.0f;
+
         private const float SNAP_DISTANCE = 10f;
 
         private const float POS_SMOOTH_SPEED = 25.0f;
@@ -158,6 +170,42 @@ public partial struct EntitiesMovementSystem : ISystem
             }
 
             PlanetUtils.ProjectDirectionOnSurface(in movement.Direction, in currentNormal, out float3 tangentDirection);
+
+
+            // Obstacle collision check (only for players)
+            if (PlayerLookup.HasComponent(entity))
+            {
+                // On ne check que si le joueur essaie de bouger
+                if (math.lengthsq(tangentDirection) > 0.001f)
+                {
+                    var obstacleInput = new RaycastInput
+                    {
+                        Start = transform.Position + (currentNormal * 0.5f),
+                        End = transform.Position + (currentNormal * 0.5f) + (tangentDirection * OBSTACLE_CHECK_DIST),
+                        Filter = new CollisionFilter
+                        {
+                            BelongsTo = CollisionLayers.Raycast,
+                            CollidesWith = CollisionLayers.Obstacle
+                        }
+                    };
+
+                    if (PhysicsCollisionWorld.CastRay(obstacleInput, out var obstacleHit))
+                    {
+                        // Stop movement
+                        // tangentDirection = float3.zero;
+
+                        // Slide along the wall
+                        float3 wallNormal = obstacleHit.SurfaceNormal;
+                        // Project the tangent direction onto the wall plane
+                        tangentDirection = tangentDirection - wallNormal * math.dot(tangentDirection, wallNormal);
+                    }
+                }
+            }
+
+
+
+
+
             float3 desiredPosition = transform.Position + tangentDirection * (speed * DeltaTime);
 
             if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, desiredPosition, PlanetCenter,
@@ -166,7 +214,7 @@ public partial struct EntitiesMovementSystem : ISystem
             {
                 if (math.distancesq(transform.Position, hit.Position) > 1.0f)
                 {
-                    transform.Position = hit.Position; 
+                    transform.Position = hit.Position;
                 }
                 else
                 {
@@ -200,16 +248,53 @@ public partial struct EntitiesMovementSystem : ISystem
         [NativeDisableParallelForRestriction]
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
+        [NativeDisableParallelForRestriction]
+        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
+        [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
+
+        private const float OBSTACLE_CHECK_DIST = 1.0f;
+
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
         {
             float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
-            
+
             PlanetUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out var currentNormal);
+
             PlanetUtils.ProjectDirectionOnSurface(in movement.Direction, in currentNormal, out float3 tangentDirection);
-            
+
+            // Obstacle collision check (only for players)
+            //if (PlayerLookup.HasComponent(entity))
+            //{
+            //    if (math.lengthsq(tangentDirection) > 0.001f)
+            //    {
+            //        var obstacleInput = new RaycastInput
+            //        {
+            //            Start = transform.Position + (currentNormal * 0.5f),
+            //            End = transform.Position + (currentNormal * 0.5f) + (tangentDirection * OBSTACLE_CHECK_DIST),
+            //            Filter = new CollisionFilter
+            //            {
+            //                BelongsTo = CollisionLayers.Raycast,
+            //                CollidesWith = CollisionLayers.Obstacle
+            //            }
+            //        };
+
+            //        if (PhysicsCollisionWorld.CastRay(obstacleInput, out var obstacleHit))
+            //        {
+            //            // Stop movement
+            //            // tangentDirection = float3.zero;
+
+            //            // Slide along the wall
+            //            float3 wallNormal = obstacleHit.SurfaceNormal;
+            //            // Project the tangent direction onto the wall plane
+            //            tangentDirection = tangentDirection - wallNormal * math.dot(tangentDirection, wallNormal);
+            //        }
+            //    }
+            //}
+
+            // Apply movement
             float3 newPosition = transform.Position + tangentDirection * (speed * DeltaTime);
             PlanetUtils.SnapToSurfaceRadius(newPosition, PlanetCenter, PlanetRadius, out var snapped);
-            
+
             transform.Position = snapped;
             if (math.lengthsq(movement.Direction) > 0.001f)
             {
@@ -243,7 +328,7 @@ public partial struct EntitiesMovementSystem : ISystem
 
         public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
         {
-            if (movement.Target == Entity.Null || !TransformLookup.HasComponent(movement.Target)) 
+            if (movement.Target == Entity.Null || !TransformLookup.HasComponent(movement.Target))
                 return;
 
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
@@ -360,7 +445,8 @@ public partial struct EntitiesMovementSystem : ISystem
             float3 orbitNormal = math.normalize(orbitCenterPosition - PlanetCenter);
 
             // Find the normal at the orbit center
-            var input = new RaycastInput {
+            var input = new RaycastInput
+            {
                 Start = orbitCenterPosition + (orbitNormal * SNAP_DISTANCE),
                 End = orbitCenterPosition - (orbitNormal * SNAP_DISTANCE),
                 Filter = new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape }
@@ -408,7 +494,7 @@ public partial struct EntitiesMovementSystem : ISystem
             if (movement.OrbitCenterEntity == Entity.Null) return;
             float3 orbitCenterPosition = movement.OrbitCenterPosition;
             PlanetUtils.GetSurfaceNormalRadius(in orbitCenterPosition, in PlanetCenter, out float3 orbitNormal);
-            
+
             quaternion rotation = quaternion.AxisAngle(orbitNormal, movement.AngularSpeed * DeltaTime);
 
             movement.RelativeOffset = math.mul(rotation, movement.RelativeOffset);
