@@ -25,7 +25,7 @@ public class BiomeSphere : MonoBehaviour
     void Start()
     {
         if (zoneManager == null)
-            zoneManager = FindObjectOfType<FoliageZoneManager>();
+            zoneManager = FindAnyObjectByType<FoliageZoneManager>();
 
         if (zoneManager != null)
             zoneManager.AddZone(this.transform, radius, zoneColor, blendSmoothness);
@@ -62,7 +62,7 @@ public class BiomeSphere : MonoBehaviour
     {
         Gizmos.color = zoneColor;
         Gizmos.DrawWireSphere(transform.position, radius);
-        
+
         // Sphere semi-transparente pour mieux visualiser
         Gizmos.color = new Color(zoneColor.r, zoneColor.g, zoneColor.b, 0.1f);
         Gizmos.DrawSphere(transform.position, radius);

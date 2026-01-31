@@ -56,7 +56,7 @@ public class FoliageZoneManager : MonoBehaviour
     private Vector4[] zoneColors;
     private float[] zoneBlends;
 
-    private bool needsUpdate = false;
+    //private bool needsUpdate = false;
 
     void Start()
     {

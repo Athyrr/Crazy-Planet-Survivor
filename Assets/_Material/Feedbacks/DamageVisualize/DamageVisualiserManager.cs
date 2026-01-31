@@ -17,7 +17,7 @@ public class DamageFeedbackManager : MonoBehaviour
         {
             if (_instance == null)
             {
-                _instance = FindObjectOfType<DamageFeedbackManager>();
+                _instance = FindAnyObjectByType<DamageFeedbackManager>();
                 if (_instance == null)
                 {
                     var go = new GameObject("DamageManager");
@@ -43,52 +43,59 @@ public class DamageFeedbackManager : MonoBehaviour
     }
 
     #endregion
-    
-    struct DamageData {
+
+    struct DamageData
+    {
         public Vector3 Position;
         public float Value;
         public float StartTime;
         public int DigitCount;
     }
-    
+
     [SerializeField] public ComputeShader computeShader;
     [SerializeField] public Material displayMaterial;
     [SerializeField] public Mesh quadMesh;
-    
+
     private ComputeBuffer _damageBuffer;
     private List<DamageData> _activeDamages = new List<DamageData>();
     private const int _maxNumbers = 1000;
 
-    private void InitBuffer() {
-        if (_damageBuffer == null) {
+    private void InitBuffer()
+    {
+        if (_damageBuffer == null)
+        {
             _damageBuffer = new ComputeBuffer(_maxNumbers, sizeof(float) * 6);
             // On initialise avec des données vides pour éviter des glitchs visuels
             _damageBuffer.SetData(new DamageData[_maxNumbers]);
         }
     }
 
-    public void AddDamage(int val, Vector3 pos) {
+    public void AddDamage(int val, Vector3 pos)
+    {
         InitBuffer();
 
         if (_activeDamages.Count >= _maxNumbers) _activeDamages.RemoveAt(0);
-        
-        _activeDamages.Add(new DamageData {
+
+        _activeDamages.Add(new DamageData
+        {
             Position = pos,
             Value = (float)val,
             StartTime = GetCurrentTime(),
             DigitCount = val.ToString().Length
-        }); 
-        
+        });
+
         _damageBuffer.SetData(_activeDamages.ToArray());
         Debug.Log($"hyv; damage feedback applied {val}");
     }
 
-    private float GetCurrentTime() {
+    private float GetCurrentTime()
+    {
         return Application.isPlaying ? Time.time : (float)Time.realtimeSinceStartup;
     }
-    
-    void FixedUpdate() {
-        if (_activeDamages.Count == 0 || _damageBuffer == null || computeShader == null || displayMaterial == null) 
+
+    void FixedUpdate()
+    {
+        if (_activeDamages.Count == 0 || _damageBuffer == null || computeShader == null || displayMaterial == null)
             return;
 
         float currentTime = GetCurrentTime();
@@ -100,27 +107,30 @@ public class DamageFeedbackManager : MonoBehaviour
 
         displayMaterial.SetBuffer("_DamageBuffer", _damageBuffer);
         displayMaterial.SetFloat("_CurrentTime", currentTime);
-        
+
         // render part
-        Graphics.DrawMeshInstancedProcedural(quadMesh, 0, displayMaterial, 
+        Graphics.DrawMeshInstancedProcedural(quadMesh, 0, displayMaterial,
             new Bounds(Vector3.zero, Vector3.one * 1000), _activeDamages.Count);
     }
 
-    private void OnDestroy() {
+    private void OnDestroy()
+    {
         ReleaseBuffer();
     }
 
-    private void ReleaseBuffer() {
-        if (_damageBuffer != null) {
+    private void ReleaseBuffer()
+    {
+        if (_damageBuffer != null)
+        {
             _damageBuffer.Release();
             _damageBuffer = null;
         }
     }
-    
+
     [Button]
     void TestDamage()
     {
-        Sequence.Create(cycles: 10, CycleMode.Yoyo)
+        Sequence.Create(cycles: 10, Sequence.SequenceCycleMode.Yoyo)
             .ChainCallback(() => AddDamage(Random.Range(10, 999999), Vector3.zero))
             .ChainDelay(0.1f)
             .ChainCallback(() => AddDamage(Random.Range(10, 9999), Vector3.zero))
