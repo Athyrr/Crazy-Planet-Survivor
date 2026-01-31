@@ -46,6 +46,147 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpawnerAuthoring
   Waves:
   - SpawnDatas:
-    - Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 600
-  TimeBetweenWaves: 45
+    - Mode: 0
+      Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+      Amount: 50
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 0
+      MaxSpawnRange: 0
+  - SpawnDatas:
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 50
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 20
+      MaxSpawnRange: 30
+    - Mode: 2
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 50
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 0
+      MaxSpawnRange: 0
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+      Amount: 30
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 30
+      MaxSpawnRange: 60
+  - SpawnDatas:
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 85
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 30
+      MaxSpawnRange: 50
+    - Mode: 2
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 100
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 0
+      MaxSpawnRange: 0
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+      Amount: 100
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 30
+      MaxSpawnRange: 50
+  - SpawnDatas:
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 100
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 20
+      MaxSpawnRange: 30
+    - Mode: 2
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 200
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 0
+      MaxSpawnRange: 0
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+      Amount: 200
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 20
+      MaxSpawnRange: 30
+  - SpawnDatas:
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 100
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 20
+      MaxSpawnRange: 30
+    - Mode: 2
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 200
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 0
+      MaxSpawnRange: 0
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+      Amount: 200
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 40
+      MaxSpawnRange: 50
+  - SpawnDatas:
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 100
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 50
+      MaxSpawnRange: 60
+    - Mode: 2
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 200
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 0
+      MaxSpawnRange: 0
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+      Amount: 200
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 30
+      MaxSpawnRange: 60
+  - SpawnDatas:
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 100
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 40
+      MaxSpawnRange: 80
+    - Mode: 2
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 200
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 0
+      MaxSpawnRange: 0
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+      Amount: 200
+      SpawnerPrefab: {fileID: 0}
+      SpawnDelay: 0
+      MinSpawnRange: 20
+      MaxSpawnRange: 30
+  TimeBetweenWaves: 50
+  ShowDebugGizmos: 1
+  DebugPlanetCenter: {fileID: 0}
+  DebugPlanetRadius: 50
+  DebugPlayer: {fileID: 0}

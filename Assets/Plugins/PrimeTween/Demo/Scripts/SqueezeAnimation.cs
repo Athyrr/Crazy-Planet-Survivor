@@ -2,7 +2,7 @@
 using PrimeTween;
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class SqueezeAnimation : Clickable {
         [SerializeField] Transform target;
         Tween tween;

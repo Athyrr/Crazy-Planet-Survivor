@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 using PrimeTween;
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class HighlightedElementController : MonoBehaviour {
         [SerializeField] Camera mainCamera;
         [SerializeField] CameraProjectionMatrixAnimation cameraProjectionMatrixAnimation;

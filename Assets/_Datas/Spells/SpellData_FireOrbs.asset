@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
+  m_Name: SpellData_FireOrbs
+  m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
+  ID: 10
+  DisplayName: Fire Orbs
+  Description: 
+  SpellPrefab: {fileID: 5560325983370933078, guid: c46a8980eb0d6aa4d8e41b998aa0b540, type: 3}
+  Rarity: 0
+  Tags: 2
+  BaseDamage: 20
+  BaseCooldown: -1
+  BaseSpeed: 80
+  BaseSpawnOffset: {x: 0, y: 0, z: 0}
+  BaseAreaOfEffect: 1
+  BaseCastRange: 1
+  TargetingMode: 1
+  Lifetime: -1
+  Bounces: 0
+  BouncesSearchRadius: 0
+  Pierces: 0
+  BaseDamagePerTick: 1
+  TickRate: 1
+  ChildPrefab: {fileID: 3852721855287756135, guid: d4e51b82a30614442a68b0105444ee0b, type: 3}
+  ChildrenCount: 5
+  ChildrenSpawnRadius: 3

@@ -6,7 +6,8 @@ public class UpgradeSelectionComponent : MonoBehaviour
 {
     public GameObject UpgradeUIPrefab;
     public Transform UpgradesContainer;
-    public GameManager GameManager;
+
+    private RunManager RunManager;
 
     private EntityManager _entityManager;
     private BlobAssetReference<UpgradeBlobs> _upgradesDatabaseRef;
@@ -22,6 +23,11 @@ public class UpgradeSelectionComponent : MonoBehaviour
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         _upgradeDatabaseQuery = _entityManager.CreateEntityQuery(typeof(UpgradesDatabase));
         _isInitialized = true;
+    }
+
+    public void Init(RunManager runManager)
+    {
+        RunManager = runManager;
     }
 
     public void DisplaySelection(DynamicBuffer<UpgradeSelectionBufferElement> selection)
@@ -60,7 +66,7 @@ public class UpgradeSelectionComponent : MonoBehaviour
             DatabaseIndex = databaseIndex
         });
 
-        GameManager.TogglePause();
+        RunManager.TogglePause();
     }
 
     private void ClearSelection()

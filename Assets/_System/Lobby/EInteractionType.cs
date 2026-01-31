@@ -3,7 +3,7 @@ public enum EInteractionType
     /// <summary>
     /// Run launcher.
     /// </summary>
-    StartRun,
+    PlanetSelection,
 
     /// <summary>
     /// Purchase new equipment and accessories, and upgrade them.

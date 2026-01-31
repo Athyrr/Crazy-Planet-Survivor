@@ -2,7 +2,7 @@
 using PrimeTween;
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class Headlights : Animatable {
         [SerializeField] AnimationCurve ease;
         [SerializeField] Light[] lights;

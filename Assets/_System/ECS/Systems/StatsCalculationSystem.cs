@@ -17,7 +17,7 @@ public partial struct StatsCalculationSystem : ISystem
             .WithAll<RecalculateStatsRequest, Stats, BaseStats, StatModifier>()
             .Build();
 
-        state.RequireForUpdate(_calculateQuery); 
+        state.RequireForUpdate(_calculateQuery);
     }
 
     [BurstCompile]
@@ -54,7 +54,8 @@ public partial struct StatsCalculationSystem : ISystem
             stats.CooldownReduction = baseStats.CooldownReduction;
             stats.EffectAreaRadiusMult = baseStats.EffectAreaRadiusMultiplier;
             stats.CollectRange = baseStats.CollectRange;
-
+            stats.BouncesAdded = baseStats.BouncesAdded;
+            stats.PierceAdded = baseStats.PierceAdded;
 
             float oldMaxHealth = stats.MaxHealth > 0 ? stats.MaxHealth : baseStats.MaxHealth; // Avoid division by zero
             if (oldMaxHealth <= 0) oldMaxHealth = 1;
@@ -64,36 +65,44 @@ public partial struct StatsCalculationSystem : ISystem
             {
                 switch (modifiers[i].StatID)
                 {
-                    case EStatID.MaxHealth:
+                    case ECharacterStat.MaxHealth:
                         StatsCalculationSystem.ApplyModifier(ref stats.MaxHealth, modifiers[i]);
                         break;
 
-                    case EStatID.Speed:
+                    case ECharacterStat.Speed:
                         ApplyModifier(ref stats.MoveSpeed, modifiers[i]);
                         break;
 
-                    case EStatID.Damage:
+                    case ECharacterStat.Damage:
                         ApplyModifier(ref stats.Damage, modifiers[i]);
                         break;
 
-                    case EStatID.Armor:
+                    case ECharacterStat.Armor:
                         ApplyModifier(ref stats.Armor, modifiers[i]);
                         break;
 
-                    case EStatID.FireResistance:
+                    case ECharacterStat.FireResistance:
                         ApplyModifier(ref stats.FireResistance, modifiers[i]);
                         break;
 
-                    case EStatID.CooldownReduction:
+                    case ECharacterStat.CooldownReduction:
                         ApplyModifier(ref stats.CooldownReduction, modifiers[i]);
                         break;
 
-                    case EStatID.AreaSize:
+                    case ECharacterStat.AreaSize:
                         ApplyModifier(ref stats.EffectAreaRadiusMult, modifiers[i]);
                         break;
 
-                    case EStatID.CollectRange:
+                    case ECharacterStat.CollectRange:
                         ApplyModifier(ref stats.CollectRange, modifiers[i]);
+                        break;
+
+                    case ECharacterStat.BounceCount:
+                        ApplyModifier(ref stats.BouncesAdded, modifiers[i]);
+                        break;
+
+                    case ECharacterStat.PierceCount:
+                        ApplyModifier(ref stats.PierceAdded, modifiers[i]);
                         break;
                 }
             }
@@ -117,5 +126,13 @@ public partial struct StatsCalculationSystem : ISystem
             statValue += modifier.Value;
         else if (modifier.Strategy == EStatModiferStrategy.Multiply)
             statValue *= modifier.Value;
+    }
+
+    private static void ApplyModifier(ref int statValue, in StatModifier modifier)
+    {
+        if (modifier.Strategy == EStatModiferStrategy.Flat)
+            statValue += (int)modifier.Value;
+        else if (modifier.Strategy == EStatModiferStrategy.Multiply)
+            statValue *= (int)modifier.Value;
     }
 }

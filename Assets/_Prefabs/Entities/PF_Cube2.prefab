@@ -92,6 +92,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!114 &-809601175486125950
 MonoBehaviour:
@@ -191,7 +192,7 @@ MonoBehaviour:
     m_CollidesWithCategories:
       m_Override: 0
       m_Value:
-        Category00: 0
+        Category00: 1
         Category01: 0
         Category02: 1
         Category03: 0
@@ -251,24 +252,24 @@ MonoBehaviour:
   UseSnappedMovement: 1
   BaseStats:
     MaxHealth: 80
-    MoveSpeed: 4
-    ProjectileSpeedMultiplier: 0
-    Damage: 2
     Armor: 5
+    MoveSpeed: 6
+    Damage: 2
+    CooldownReduction: 0
+    ProjectileSpeedMultiplier: 0
+    EffectAreaRadiusMultiplier: 0
+    BouncesAdded: 0
+    PierceAdded: 0
     FireResistance: 50
     IceResistance: 0
     LightningResistance: 0
     ArcaneResistance: 0
-    CooldownReduction: 0
-    EffectAreaRadiusMult: 0
-    CollectRange: 0
-    MaxCollectRange: 0
-    BouncesAdded: 0
-    PierceAdded: 0
+    CollectRange: 1
+    MaxCollectRange: 1
   InitialSpells:
   - {fileID: 11400000, guid: 8938cdea3267e02449c0f0ea1beae59b, type: 2}
   InitialModifers:
-  - Type: 0
+  - StatID: 0
     Value: 0
     Strategy: 0
 --- !u!114 &7077652745905088192
@@ -297,5 +298,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 569916e10732eba4caf53ace7f5ac10d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
-  _avoidanceDetectionRadius: 15
-  _avoidanceWeight: 10
+  _avoidanceDetectionRadius: 1
+  _avoidanceWeight: 0.8

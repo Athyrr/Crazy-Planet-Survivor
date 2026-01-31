@@ -7,9 +7,12 @@ public struct UpgradeBlob
 
     public EUpgradeType UpgradeType;
 
-    public EStatID Stat;
-    public EStatModiferStrategy ModifierStrategy;
-    public float Value;
+    public ECharacterStat CharacterStat;
 
     public ESpellID SpellID;
+    public ESpellTag SpellTags;
+    public ESpellStat SpellStat;
+
+    public EStatModiferStrategy ModifierStrategy;
+    public float Value;
 }

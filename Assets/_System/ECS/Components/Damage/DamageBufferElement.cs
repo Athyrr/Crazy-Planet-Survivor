@@ -7,5 +7,5 @@ using Unity.Entities;
 public struct DamageBufferElement : IBufferElementData
 {
     public float Damage;
-    public ESpellElement Element;
+    public ESpellTag Element;
 }

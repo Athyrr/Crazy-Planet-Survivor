@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 404411a1130f95641a06c7eaa4cb7c17, type: 3}
+  m_Name: GlobalUpgradesConfigSO
+  m_EditorClassIdentifier: Assembly-CSharp::GlobalUpgradesConfigSO
+  GameStatUpgradesDatabase: {fileID: 11400000, guid: 65be180b5958ee040864032b0a195caf, type: 2}
+  CharacterSpellUpgradesDatabases:
+  - {fileID: 11400000, guid: 58171efd1d1c66b428a33360e869d815, type: 2}
+  - {fileID: 11400000, guid: 3b3afd668e44913458431834eafc4ca5, type: 2}

@@ -18,11 +18,13 @@ public class SpellDataSO : ScriptableObject
     [Tooltip("The GameObject prefab that will be baked into an Entity. Must have Authoring components.")]
     public GameObject SpellPrefab;
 
+    [Tooltip("The spell rarity used on spell selection.")]
+    public int Rarity = 0;
 
     [Header("Core Combat Stats")]
 
-    [Tooltip("Elemental type of the spell (Fire, Ice, etc.) used for resistance calculations.")]
-    public ESpellElement Element;
+    [Tooltip("Tags of the spell (Fire, Ice, etc.) used for resistance calculations.")]
+    public ESpellTag Tags;
 
     [Tooltip("Base damage applied on contact.")]
     public float BaseDamage = 10f;
@@ -40,7 +42,7 @@ public class SpellDataSO : ScriptableObject
     public Vector3 BaseSpawnOffset = Vector3.zero;
 
     [Tooltip("Radius of the area of effect (Explosion radius or Aura size).")]
-    public float BaseEffectArea = 1f;
+    public float BaseAreaOfEffect = 1f;
 
     [Tooltip("Max distance the spell can travel or target (if applicable).")]
     public float BaseCastRange = 5f;

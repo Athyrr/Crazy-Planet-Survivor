@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
+  m_Name: SpellData_LightningTornado
+  m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
+  ID: 8
+  DisplayName: Lightning Tornado
+  Description: 
+  SpellPrefab: {fileID: 8415228870159460076, guid: afd311c29c4a5b44081d98191487c5f3, type: 3}
+  Rarity: 0
+  Tags: 8
+  BaseDamage: 150
+  BaseCooldown: 3
+  BaseSpeed: 2
+  BaseSpawnOffset: {x: 0, y: 0, z: 0}
+  BaseAreaOfEffect: 1
+  BaseCastRange: 10
+  TargetingMode: 2
+  Lifetime: 10
+  Bounces: 0
+  BouncesSearchRadius: 0
+  Pierces: 0
+  BaseDamagePerTick: 10
+  TickRate: 0.3
+  ChildPrefab: {fileID: 0}
+  ChildrenCount: 0
+  ChildrenSpawnRadius: 1

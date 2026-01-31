@@ -20,19 +20,26 @@ public partial struct ExpOrbAttractionSystem : ISystem
     /// <summary> Cached lookup for planet-specific data. </summary>
     [ReadOnly] private ComponentLookup<PlanetData> _planetLookup;
 
+    private EntityQuery _playerQuery;
+
     private float _timeSinceLastScan;
     /// <summary> Frequency of the attraction scan (4 times per second). </summary>
-    private const float SCAN_INTERVAL = 0.25f; 
+    private const float SCAN_INTERVAL = 0.25f;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<Player>();
         state.RequireForUpdate<PlanetData>();
+        state.RequireForUpdate<ExpAttractionAnimationCurveConfig>();
 
         _transformLookup = state.GetComponentLookup<LocalTransform>(isReadOnly: true);
         _statsLookup = state.GetComponentLookup<Stats>(isReadOnly: true);
         _planetLookup = state.GetComponentLookup<PlanetData>(isReadOnly: true);
+
+        //_playerQuery = state.GetEntityQuery(typeof(Player));
+        ComponentType playerComponentType = ComponentType.ReadOnly<Player>();
+        _playerQuery = state.GetEntityQuery(playerComponentType);
     }
 
     [BurstCompile]
@@ -41,45 +48,52 @@ public partial struct ExpOrbAttractionSystem : ISystem
         // Refresh transform lookup for the current frame
         _transformLookup.Update(ref state);
 
-        // --- PHASE 1: Collection (Fast Path) ---
-        // This runs every frame to ensure that orbs disappear immediately upon touching the player.
-        if (SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity))
-        {
-            var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-            var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
+        if (_playerQuery.IsEmptyIgnoreFilter) return;
 
-            var collectJob = new CollectOrbJob()
+        float deltaTime = SystemAPI.Time.DeltaTime;
+
+        var config = SystemAPI.GetSingleton<ExpAttractionAnimationCurveConfig>();
+        if (!config.CurveBlobRef.IsCreated)
+            return;
+
+        //float3 playerPosition = _playerQuery.GetSingleton<LocalTransform>().Position;
+        var playerEntity = _playerQuery.GetSingletonEntity();
+        var playerPosition = SystemAPI.GetComponent<LocalTransform>(playerEntity).Position;
+
+        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
+
+        // Animation and Collection
+        var moveAndcollectJob = new MoveAndCollectExpJob()
+        {
+            ECB = ecb,
+            PlayerEntity = playerEntity,
+            PlayerPosition = playerPosition,
+            DeltaTime = deltaTime,
+            CurveBlobRef = config.CurveBlobRef
+        };
+        state.Dependency = moveAndcollectJob.ScheduleParallel(state.Dependency);
+
+        // Exp detection and Attraction 
+        _timeSinceLastScan += SystemAPI.Time.DeltaTime;
+        if (_timeSinceLastScan >= SCAN_INTERVAL)
+        {
+            _timeSinceLastScan = 0;
+
+            _statsLookup.Update(ref state);
+            _planetLookup.Update(ref state);
+
+            ref var curveData = ref config.CurveBlobRef.Value;
+
+            var attractJob = new AttractExpJob()
             {
                 ECB = ecb,
                 PlayerEntity = playerEntity,
-                TransformLookup = _transformLookup
+                PlayerPosition = playerPosition,
+                StatsLookup = _statsLookup,
+                AnimDuration = curveData.Duration
             };
-            state.Dependency = collectJob.ScheduleParallel(state.Dependency);
-
-            // --- PHASE 2: Attraction (Slow Path / Throttled) ---
-            // Scanning for new orbs is computationally expensive. Throttling this to 4Hz 
-            // significantly reduces CPU overhead without impacting perceived gameplay quality.
-            _timeSinceLastScan += SystemAPI.Time.DeltaTime;
-            if (_timeSinceLastScan >= SCAN_INTERVAL)
-            {
-                _timeSinceLastScan = 0;
-                _statsLookup.Update(ref state);
-                _planetLookup.Update(ref state);
-
-                if (SystemAPI.TryGetSingletonEntity<PlanetData>(out var planetEntity))
-                {
-                    var attractJob = new AttractOrbJob()
-                    {
-                        ECB = ecb,
-                        PlayerEntity = playerEntity,
-                        PlanetEntity = planetEntity,
-                        TransformLookup = _transformLookup,
-                        StatsLookup = _statsLookup,
-                        PlanetLookup = _planetLookup
-                    };
-                    state.Dependency = attractJob.ScheduleParallel(state.Dependency);
-                }
-            }
+            state.Dependency = attractJob.ScheduleParallel(state.Dependency);
         }
     }
 
@@ -88,39 +102,29 @@ public partial struct ExpOrbAttractionSystem : ISystem
     /// a movement component to pull them toward the player.
     /// </summary>
     [BurstCompile]
-    [WithNone(typeof(FollowTargetMovement))] // Only scan static orbs
-    private partial struct AttractOrbJob : IJobEntity
+    [WithNone(typeof(ExpAttractionAnimation))] // Only scan non animated orbs
+    private partial struct AttractExpJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
-
         public Entity PlayerEntity;
-        public Entity PlanetEntity;
 
-        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
+        public float3 PlayerPosition;
+
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
-        [ReadOnly] public ComponentLookup<PlanetData> PlanetLookup;
+        public float AnimDuration;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, in ExperienceOrb orb, in LocalTransform transform)
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in ExperienceOrb orb)
         {
-            if (!TransformLookup.HasComponent(PlayerEntity)) return;
-
-            float3 playerPos = TransformLookup[PlayerEntity].Position;
             float collectRange = StatsLookup[PlayerEntity].CollectRange;
-            float playerSpeed = StatsLookup[PlayerEntity].MoveSpeed;
 
-            // Optimization: Use Squared Euclidean Distance.
-            // At the ranges used for collection, the difference between a straight line 
-            // and the planet's arc is negligible, but the performance gain is significant.
-            float distSq = math.distancesq(playerPos, transform.Position);
-
-            // If within range, convert the static orb into a following entity
-            if (distSq <= collectRange * collectRange)
+            // Check if within collection range
+            if (math.distancesq(PlayerPosition, transform.Position) <= collectRange * collectRange)
             {
-                ECB.AddComponent(chunkIndex, entity, new FollowTargetMovement()
+                ECB.AddComponent(chunkIndex, entity, new ExpAttractionAnimation
                 {
-                    Target = PlayerEntity,
-                    Speed = playerSpeed * 1.25f,
-                    StopDistance = 1f
+                    StartPosition = transform.Position,
+                    ElapsedTime = 0f,
+                    Duration = AnimDuration
                 });
             }
         }
@@ -131,27 +135,45 @@ public partial struct ExpOrbAttractionSystem : ISystem
     /// If so, it rewards experience and destroys the orb.
     /// </summary>
     [BurstCompile]
-    private partial struct CollectOrbJob : IJobEntity
+    private partial struct MoveAndCollectExpJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
+        public float DeltaTime;
         public Entity PlayerEntity;
-        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
+        public float3 PlayerPosition;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, in ExperienceOrb orb, in LocalTransform transform, in FollowTargetMovement followMovement)
+        [ReadOnly] public BlobAssetReference<ExpAttractionAnimationCurveBlob> CurveBlobRef;
+
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref LocalTransform transform, ref ExpAttractionAnimation anim, in ExperienceOrb orb)
         {
-            if (!TransformLookup.HasComponent(PlayerEntity)) return;
+            anim.ElapsedTime += DeltaTime;
+            float progress01 = math.clamp(anim.ElapsedTime / anim.Duration, 0f, 1f);
 
-            float3 playerPos = TransformLookup[PlayerEntity].Position;
-            float distSq = math.distancesq(playerPos, transform.Position);
+            // Animation curve sampling
+            ref var animCurve = ref CurveBlobRef.Value;
 
-            // Check if the orb is close enough to be considered "collected"
-            if (distSq <= followMovement.StopDistance * followMovement.StopDistance)
+            // Determine sample indices
+            float sampleIndexFloat = progress01 * (animCurve.SampleCount - 1);
+            int indexLower = (int)math.floor(sampleIndexFloat);
+            int indexUpper = math.min(indexLower + 1, animCurve.SampleCount - 1);
+            float lerpFactor = sampleIndexFloat - indexLower;
+
+            // Interpolate curve value
+            float curveValue = math.lerp(animCurve.Samples[indexLower], animCurve.Samples[indexUpper], lerpFactor);
+
+            // Lerp position
+            transform.Position = math.lerp(anim.StartPosition, PlayerPosition, curveValue);
+
+            // Collection 
+            if (progress01 >= 1f)
             {
-                // Add experience to the player's buffer and flag the orb for removal
-                ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedExperienceBufferElement()
+                // Add experience to player
+                ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedExperienceBufferElement
                 {
                     Value = orb.Value
                 });
+
+                // Destruction
                 ECB.AddComponent<DestroyEntityFlag>(chunkIndex, entity);
             }
         }

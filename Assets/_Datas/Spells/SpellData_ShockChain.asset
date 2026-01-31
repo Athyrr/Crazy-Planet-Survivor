@@ -16,16 +16,17 @@ MonoBehaviour:
   DisplayName: Shock Chain
   Description: 
   SpellPrefab: {fileID: 8913368109206024948, guid: f491fbea88b5de84cb17d29b0c15b99b, type: 3}
-  Element: 3
-  BaseDamage: 50
-  BaseCooldown: 1
+  Rarity: 0
+  Tags: 8
+  BaseDamage: 15
+  BaseCooldown: 1.3
   BaseSpeed: 50
   BaseSpawnOffset: {x: 0, y: 0, z: 0}
-  BaseEffectArea: 0
-  BaseCastRange: 15
+  BaseAreaOfEffect: 1
+  BaseCastRange: 10
   TargetingMode: 0
   Lifetime: 15
-  Bounces: 1000
+  Bounces: 3
   BouncesSearchRadius: 10
   Pierces: 0
   BaseDamagePerTick: 1

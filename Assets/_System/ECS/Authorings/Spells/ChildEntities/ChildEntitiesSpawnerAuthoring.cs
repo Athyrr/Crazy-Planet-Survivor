@@ -10,9 +10,14 @@ public class ChildEntitiesSpawnerAuthoring : MonoBehaviour
         {
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            AddBuffer<Child>(entity);
+            AddComponent(entity, new ChildEntitiesSpawner
+            {
+                ChildEntityPrefab = Entity.Null,
+                DesiredChildrenCount = 0,
+                IsDirty = false
+            });
 
-            AddComponent<ChildEntitiesSpawner>(entity);
+            AddBuffer<Child>(entity);
         }
     }
 }

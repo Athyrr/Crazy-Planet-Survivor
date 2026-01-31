@@ -2,7 +2,7 @@
 using PrimeTween;
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class Baggage : Animatable {
         [SerializeField] Transform animationAnchor;
         Sequence sequence;

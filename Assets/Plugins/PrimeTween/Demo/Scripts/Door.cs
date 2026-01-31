@@ -2,7 +2,7 @@
 using PrimeTween;
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class Door : Animatable {
         [SerializeField] CameraController cameraController;
         [SerializeField] Transform animationAnchor;

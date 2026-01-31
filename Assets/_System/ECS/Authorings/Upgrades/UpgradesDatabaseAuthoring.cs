@@ -1,41 +1,53 @@
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
 public class UpgradesDatabaseAuthoring : MonoBehaviour
 {
-    public UpgradesDatabaseSO UpgradesDatabase;
+    [Tooltip("Reference to the global upgrades config.")]
+    public GameUpgradesConfigSO GlobalConfig;
 
     private class Baker : Baker<UpgradesDatabaseAuthoring>
     {
         public override void Bake(UpgradesDatabaseAuthoring authoring)
         {
+            if (authoring.GlobalConfig == null) 
+                return;
+
             Entity entity = GetEntity(TransformUsageFlags.None);
+
+            // All game upgrades in one list
+            List<UpgradeSO> allUpgrades = authoring.GlobalConfig.GetFlattenedUpgrades();
 
             // Create upgrade blobs for data
             var builder = new BlobBuilder(Allocator.Temp);
-
             ref UpgradeBlobs root = ref builder.ConstructRoot<UpgradeBlobs>();
-            int databaseLength = authoring.UpgradesDatabase.Upgrades.Length;
-            BlobBuilderArray<UpgradeBlob> arrayBuilder = builder.Allocate(ref root.Upgrades, databaseLength);
 
-            for (int i = 0; i < databaseLength; i++)
+            int count = allUpgrades.Count;
+            BlobBuilderArray<UpgradeBlob> arrayBuilder = builder.Allocate(ref root.Upgrades, count);
+
+            for (int i = 0; i < count; i++)
             {
-                UpgradeDataSO upgradeSO = authoring.UpgradesDatabase.Upgrades[i];
+                UpgradeSO upgradeSO = allUpgrades[i];
+                ref UpgradeBlob blob = ref arrayBuilder[i];
 
-                if (upgradeSO == null)
-                    continue;
+                builder.AllocateString(ref blob.DisplayName, upgradeSO.DisplayName);
+                builder.AllocateString(ref blob.Description, upgradeSO.Description);
 
-                ref UpgradeBlob upgradeBlobRoot = ref arrayBuilder[i];
+                blob.UpgradeType = upgradeSO.UpgradeType;
 
-                builder.AllocateString(ref upgradeBlobRoot.DisplayName, upgradeSO.DisplayName);
-                builder.AllocateString(ref upgradeBlobRoot.Description, upgradeSO.Description);
+                // Stat Player
+                blob.CharacterStat = upgradeSO.CharacterStat;
 
-                upgradeBlobRoot.UpgradeType = upgradeSO.UpgradeType;
-                upgradeBlobRoot.Stat = upgradeSO.Stat;
-                upgradeBlobRoot.ModifierStrategy = upgradeSO.ModifierStrategy;
-                upgradeBlobRoot.Value = upgradeSO.Value;
-                upgradeBlobRoot.SpellID = upgradeSO.SpellID;
+                // Spell Upgrade Logic
+                blob.SpellID = upgradeSO.SpellID;
+                blob.SpellTags = upgradeSO.RequiredTags;
+                blob.SpellStat = upgradeSO.SpellStat;
+
+                // Value
+                blob.ModifierStrategy = upgradeSO.ModifierStrategy;
+                blob.Value = upgradeSO.Value;
             }
 
             var upgradesDatabaseBlob = builder.CreateBlobAssetReference<UpgradeBlobs>(Allocator.Persistent);
@@ -45,7 +57,7 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
             AddBlobAsset(ref upgradesDatabaseBlob, out var hash);
 
             // Dispose builder
-            builder.Dispose();          
+            builder.Dispose();
         }
     }
 }

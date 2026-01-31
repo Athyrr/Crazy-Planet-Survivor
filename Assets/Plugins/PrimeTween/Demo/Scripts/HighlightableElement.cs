@@ -1,7 +1,7 @@
 #if PRIME_TWEEN_INSTALLED
 using UnityEngine;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class HighlightableElement : MonoBehaviour {
         [SerializeField] public Transform highlightAnchor;
         public MeshRenderer[] models { get; private set; }

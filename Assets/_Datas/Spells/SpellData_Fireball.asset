@@ -16,20 +16,21 @@ MonoBehaviour:
   DisplayName: Fireball
   Description: 
   SpellPrefab: {fileID: 486797506737824905, guid: 41fa62722a0249648b1dbdd9ff513461, type: 3}
-  Element: 0
-  BaseDamage: 30
-  BaseCooldown: 0.25
-  BaseSpeed: 15
+  Rarity: 0
+  Tags: 2
+  BaseDamage: 50
+  BaseCooldown: 0.5
+  BaseSpeed: 10
   BaseSpawnOffset: {x: 0, y: 0, z: 0}
-  BaseEffectArea: 1
-  BaseCastRange: 5
-  TargetingMode: 3
+  BaseAreaOfEffect: 1
+  BaseCastRange: 10
+  TargetingMode: 0
   Lifetime: 2
   Bounces: 0
   BouncesSearchRadius: 0
   Pierces: 0
-  BaseDamagePerTick: 1
-  TickRate: 1
+  BaseDamagePerTick: -1
+  TickRate: -1
   ChildPrefab: {fileID: 0}
   ChildrenCount: 0
   ChildrenSpawnRadius: 1

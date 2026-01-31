@@ -3,7 +3,7 @@ using PrimeTween;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     public class CameraController : Clickable {
         [SerializeField] HighlightedElementController highlightedElementController;
         [SerializeField] SwipeTutorial swipeTutorial;

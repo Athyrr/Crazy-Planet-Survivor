@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace PrimeTweenDemo {
+namespace PrimeTween {
     // p0 todo replace with AnimateOnClick and serialize TweenAnimation instead? no, because I need to reference all animations from one place to animate them all
     // p0 todo create Demo Pro. With which version of Unity?
     public class OnClick : MonoBehaviour {
