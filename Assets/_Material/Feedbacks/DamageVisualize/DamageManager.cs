@@ -96,10 +96,13 @@ public class DamageManager : MonoBehaviour
     }
     
     [Button]
-    void TestDamage() {
-        AddDamage(Random.Range(10, 999999), Vector3.zero);
-        
-        // Sequence.Create()
-        // Invoke((AddDamage(Random.Range(10, 999999), Vector3.zero), 1f);
+    void TestDamage()
+    {
+        Sequence.Create(cycles: 10, CycleMode.Yoyo)
+            .ChainCallback(() => AddDamage(Random.Range(10, 999999), Vector3.zero))
+            .ChainDelay(0.1f)
+            .ChainCallback(() => AddDamage(Random.Range(10, 9999), Vector3.zero))
+            .ChainDelay(0.1f)
+            .ChainCallback(() => AddDamage(Random.Range(10, 99), Vector3.zero));
     }
 }
