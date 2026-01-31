@@ -5,6 +5,7 @@ Shader "Custom/DamageNumbers"
         _MainTex ("Digit Atlas (0-9)", 2D) = "white" {}
         _LifeTime ("Life Time", Float) = 1.0
         _FloatSpeed ("Float Speed", Float) = 1.0
+        _EmissiveDuration ("Emissive Duration", Float) = 1.6
     }
 
     SubShader
@@ -39,6 +40,7 @@ Shader "Custom/DamageNumbers"
             float _CurrentTime;
             float _LifeTime;
             float _FloatSpeed;
+            float _EmissiveDuration;
 
             struct v2f
             {
@@ -56,13 +58,14 @@ Shader "Custom/DamageNumbers"
 
                 float age = _CurrentTime - data.startTime;
                 float life01 = saturate(1.0 - age / _LifeTime);
-                float size = data.digitCount * 0.1f;
+                float base = 0.3f;
+                float size = data.digitCount * base;
 
                 float2 quad[4] = {
-                    float2(-size, -size),
-                    float2(-size,  size),
-                    float2( size, -size),
-                    float2( size,  size)
+                    float2(-size, -base),
+                    float2(-size,  base),
+                    float2( size, -base),
+                    float2( size,  base)
                 };
 
                 float2 uvs[4] = {
@@ -107,7 +110,7 @@ Shader "Custom/DamageNumbers"
                     [unroll]
                     for (int d = MAX_DIGITS; d >= 0; d--)
                     {
-                        if (d > data.digitCount) continue;
+                        if (d > data.digitCount - 1) continue;
                         int digit = (int)floor(fmod(number / pow(10.0, d), 10.0));
 
                         float2 texCoord;
@@ -123,7 +126,12 @@ Shader "Custom/DamageNumbers"
                     }
                 }
 
-                finalColor.a *= i.alpha;
+                int emissivePow = max(pow(i.alpha * _EmissiveDuration, 10), 1);
+                
+                finalColor.a *= min(finalColor.r, i.alpha);
+                finalColor.r *= emissivePow;
+                finalColor.g *= emissivePow;
+                finalColor.b *= emissivePow;
                 return finalColor;
             }
             ENDCG
