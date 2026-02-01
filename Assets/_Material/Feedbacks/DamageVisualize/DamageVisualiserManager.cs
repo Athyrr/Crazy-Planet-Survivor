@@ -131,10 +131,10 @@ public class DamageFeedbackManager : MonoBehaviour
     void TestDamage()
     {
         Sequence.Create(cycles: 10, Sequence.SequenceCycleMode.Yoyo)
-            .ChainCallback(() => AddDamage(Random.Range(10, 999999), Vector3.zero))
+            .ChainCallback(() => AddDamage(Random.Range(10, 999999), transform.position))
             .ChainDelay(0.1f)
-            .ChainCallback(() => AddDamage(Random.Range(10, 9999), Vector3.zero))
+            .ChainCallback(() => AddDamage(Random.Range(10, 9999), transform.position))
             .ChainDelay(0.1f)
-            .ChainCallback(() => AddDamage(Random.Range(10, 99), Vector3.zero));
+            .ChainCallback(() => AddDamage(Random.Range(10, 99), transform.position));
     }
 }
