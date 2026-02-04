@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4346365634411007802}
   - component: {fileID: 7316857540962756769}
   - component: {fileID: 4380267814931800104}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: Background
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -32,10 +32,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 8357712587415318656}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7316857540962756769
 CanvasRenderer:
@@ -85,7 +85,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8357712587415318656}
   - component: {fileID: 3217705249959575418}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: PF_UI_TrinketSelection
   m_TagString: Untagged
   m_Icon: {fileID: 0}

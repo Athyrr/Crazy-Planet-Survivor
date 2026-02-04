@@ -4,39 +4,31 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    private RunManager RunManager;
-
+    private RunManager _runManager;
     private GameInputs _gameInputs;
-
     private EntityQuery _inputQuery;
-
     private Vector2 _inputDirection = Vector2.zero;
     private bool _isInteractPressed = false;
 
     private void Awake()
     {
-        if (_gameInputs == null)
-            _gameInputs = new GameInputs();
+        _gameInputs = new GameInputs();
 
-        if (RunManager == null)
-            RunManager = FindFirstObjectByType<RunManager>();
+        if (_runManager == null) 
+            _runManager = FindFirstObjectByType<RunManager>();
     }
 
     private void Start()
     {
         var world = World.DefaultGameObjectInjectionWorld;
-
-        var entityManager = world.EntityManager;
-        _inputQuery = entityManager.CreateEntityQuery(typeof(InputData));
+        _inputQuery = world.EntityManager.CreateEntityQuery(typeof(InputData));
     }
 
     void OnEnable()
     {
         _gameInputs.Player.Move.performed += HandleMoveInput;
         _gameInputs.Player.Move.canceled += HandleMoveInput;
-
         _gameInputs.Player.Pause.started += HandlePauseInput;
-
         _gameInputs.Player.Interact.started += HandleInteractInput;
 
         _gameInputs.Enable();
@@ -46,11 +38,9 @@ public class PlayerController : MonoBehaviour
     {
         _gameInputs.Player.Move.performed -= HandleMoveInput;
         _gameInputs.Player.Move.canceled -= HandleMoveInput;
-
         _gameInputs.Player.Pause.started -= HandlePauseInput;
-
         _gameInputs.Player.Interact.started -= HandleInteractInput;
-
+       
         _gameInputs.Disable();
     }
     void Update()
@@ -87,7 +77,7 @@ public class PlayerController : MonoBehaviour
     private void HandlePauseInput(CallbackContext ctx)
     {
         if (ctx.started)
-            RunManager.TogglePause();
+            _runManager.TogglePause();
     }
 
     private void HandleInteractInput(CallbackContext ctx)
@@ -95,4 +85,5 @@ public class PlayerController : MonoBehaviour
         if (ctx.started)
             _isInteractPressed = true;
     }
+
 }

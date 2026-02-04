@@ -1,52 +1,66 @@
-using TMPro;
 using UnityEngine;
+using TMPro; 
 
 public class UpgradeUIComponent : MonoBehaviour
 {
-    public TMP_Text Label;
-    public TMP_Text Description;
-    public Sprite Icon;
-    public TMP_Text Data;
+    [Header("Data")]
+    public int DbIndex { get; private set; }
 
+    [Header("3D Visuals")]
+    public Transform VisualRoot; 
+    public TextMeshPro LabelText;     
+    public TextMeshPro DescriptionText;
+    public TextMeshPro DetailsText;
+    public SpriteRenderer IconRenderer;
 
-    public void SetData(ref UpgradeBlob upgradeData)
+    [Header("Hover Feedback")]
+    public float HoverScale = 1.15f;
+    public float SmoothSpeed = 15f;
+
+    private bool _isHovered;
+
+    private void Awake()
     {
-        if (!Label || !Data)
+        if (VisualRoot == null) 
+            VisualRoot = transform;
+    }
+
+    public void SetData(ref UpgradeBlob upgradeData, int dbIndex)
+    {
+        DbIndex = dbIndex;
+
+        if (LabelText) LabelText.text = GetTitleFromType(upgradeData.UpgradeType);
+
+        if (DetailsText) DetailsText.text = FormatDetails(ref upgradeData);
+    }
+
+    public void SetHovered(bool isHovered)
+    {
+        if (_isHovered == isHovered)
             return;
-        
-        //Label.text = upgradeData.DisplayName.ToString();
-        //Description.text = upgradeData.Description.ToString();
 
-        switch (upgradeData.UpgradeType)
+        _isHovered = isHovered;
+
+        if (LabelText)
+            LabelText.color = isHovered ? Color.yellow : Color.white;
+    }
+
+
+
+    private string GetTitleFromType(EUpgradeType type)
+    {
+        return type == EUpgradeType.Stat ? "Stat Upgrade" : "New Spell";
+    }
+
+    private string FormatDetails(ref UpgradeBlob data)
+    {
+        if (data.UpgradeType == EUpgradeType.Stat)
         {
-            case EUpgradeType.Stat:
-                Label.text = "Stat";
-
-                Data.text = $"{upgradeData.CharacterStat}: \n";
-
-                switch (upgradeData.ModifierStrategy)
-                {
-                    case EStatModiferStrategy.Flat:
-                        Data.text += $"+{upgradeData.Value}";
-
-                        break;
-                    case EStatModiferStrategy.Multiply:
-                        Data.text += $"+{upgradeData.Value * 100 - 100}%";
-
-                        break;
-                    default:
-                        break;
-                }
-                break;
-
-            case EUpgradeType.UnlockSpell:
-                Label.text = "Unlock spell";
-
-                Data.text = $"{upgradeData.SpellID}";
-                break;
-
-            default:
-                break;
+            string val = data.ModifierStrategy == EStatModiferStrategy.Flat
+                ? $"+{data.Value}"
+                : $"+{(data.Value * 100 - 100):F0}%";
+            return $"{data.CharacterStat}\n<color=green>{val}</color>";
         }
+        return $"{data.SpellID}";
     }
 }
