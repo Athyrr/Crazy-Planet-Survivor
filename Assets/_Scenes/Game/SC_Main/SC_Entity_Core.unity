@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 0}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -322,10 +322,6 @@ PrefabInstance:
     - target: {fileID: 5342180323788850383, guid: 6ecfb52b658f42d409bc20abc8921769, type: 3}
       propertyPath: m_Name
       value: PF_Player_Mage
-      objectReference: {fileID: 0}
-    - target: {fileID: 7100956088993026704, guid: 6ecfb52b658f42d409bc20abc8921769, type: 3}
-      propertyPath: IsInvincible
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7956006388389453721, guid: 6ecfb52b658f42d409bc20abc8921769, type: 3}
       propertyPath: m_LocalPosition.x

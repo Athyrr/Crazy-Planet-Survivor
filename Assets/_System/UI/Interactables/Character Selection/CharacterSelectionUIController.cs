@@ -4,39 +4,27 @@ using UnityEngine;
 /// <summary>
 /// Represents the Character Selection panel that managed playable character to play.
 /// </summary>
-public class CharacterSelectionUIControllerComponent : MonoBehaviour
+public class CharacterSelectionUIController : MonoBehaviour
 {
     [Header("Characters database")]
 
     public CharactersDatabaseSO Database;
 
-    [Header("UI panels")]
-
-    public GameObject CharacterSelectionPanel;
+    [Header("UI Views")]
 
     public CharacterListView CharacterListView;
     public CharacterDetailViewComponent CharacterDetailView;
     public CharacterStatsViewComponent CharacterStatsView;
 
-    private GameManager _gameManager;
     private EntityManager _entityManager;
-    private EntityQuery _openMenuQuery;
 
     private int _currentSelectedCharacterIndex = 0;
 
     private void Awake()
     {
-        _gameManager = FindFirstObjectByType<GameManager>();
-    }
-
-    private void Start()
-    {
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
         InitUI();
-
-        _openMenuQuery = _entityManager.CreateEntityQuery(typeof(OpenCharactersViewRequest));
-        CharacterSelectionPanel.SetActive(false);
 
         _currentSelectedCharacterIndex = 0;
     }
@@ -48,17 +36,15 @@ public class CharacterSelectionUIControllerComponent : MonoBehaviour
 
     public void OpenView()
     {
-        Debug.Log($"[UI] Opening Character Selection. Panel: {CharacterSelectionPanel.name}");
-
-        CharacterSelectionPanel.SetActive(true);
-
         CharacterListView.RefreshCharacters();
         PreviewCharacter(_currentSelectedCharacterIndex);
     }
 
     public void CloseView()
     {
-        CharacterSelectionPanel.SetActive(false);
+        // hide children
+        foreach (Transform child in transform)
+            child.gameObject.SetActive(false);
     }
 
     public void PreviewCharacter(int index)

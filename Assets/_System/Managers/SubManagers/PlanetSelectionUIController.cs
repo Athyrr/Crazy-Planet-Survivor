@@ -1,13 +1,12 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlanetSelectionUIController : MonoBehaviour
 {
     public delegate void OnPlanetSelectedDelegate(EPlanetID planetID);
     public event OnPlanetSelectedDelegate OnPlanetSelected = null;
 
-    [Header("UI References")]
-
-    public GameObject PlanetSelectionPanel;
+    public Button ExploreButton;
 
     private EPlanetID _currentSelectedPlanet;
 
@@ -15,6 +14,17 @@ public class PlanetSelectionUIController : MonoBehaviour
     {
         _currentSelectedPlanet = EPlanetID.None;
     }
+
+    private void OnEnable()
+    {
+    }
+
+    private void OnDisable()
+    {
+        ExploreButton.gameObject.SetActive(false);
+        _currentSelectedPlanet = EPlanetID.None;
+    }
+
 
     public EPlanetID SelectedPlanet => _currentSelectedPlanet;
 
@@ -27,14 +37,13 @@ public class PlanetSelectionUIController : MonoBehaviour
 
         // Is a planet selected?
         bool hasSelection = _currentSelectedPlanet != EPlanetID.None;
-        PlanetSelectionPanel.SetActive(hasSelection);
+        ExploreButton.gameObject.SetActive(hasSelection);
 
         if (hasSelection)
             Debug.Log($"[Planet Selection] Selected Planet: {_currentSelectedPlanet}");
 
         OnPlanetSelected?.Invoke(_currentSelectedPlanet);
     }
-
 
     public void ExplorePlanet()
     {
@@ -47,11 +56,12 @@ public class PlanetSelectionUIController : MonoBehaviour
     public void OpenView()
     {
         SelectPlanet(EPlanetID.None);
+        ExploreButton.gameObject.SetActive(false);
     }
 
     public void CloseView()
     {
-        PlanetSelectionPanel.SetActive(false);
+        ExploreButton.gameObject.SetActive(false);
         _currentSelectedPlanet = EPlanetID.None;
     }
 }

@@ -12,11 +12,9 @@ public class LobbyManager : MonoBehaviour
     [Tooltip("Camera used for the planet selection view (Galaxy).")]
     public CinemachineCamera PlanetSelectionCamera;
 
-    public GameObject GalaxyContainer;
-
     [Header("UI Controllers")]
 
-    public CharacterSelectionUIControllerComponent CharacterSelectionUIController;
+    public CharacterSelectionUIController CharacterSelectionUIController;
     public PlanetSelectionUIController PlanetSelectionUIController;
 
     private EntityManager _entityManager;
@@ -70,9 +68,9 @@ public class LobbyManager : MonoBehaviour
 
     private void HandleStateChange(EGameState newState)
     {
-        GalaxyContainer.SetActive(false);
-        CharacterSelectionUIController.CloseView();
-        PlanetSelectionUIController.CloseView();
+        PlanetSelectionUIController.gameObject.SetActive(false);
+        CharacterSelectionUIController.gameObject.SetActive(false);
+        //PlanetSelectionUIController.CloseView();
 
 
         bool isGalaxyMode = (newState == EGameState.PlanetSelection);
@@ -94,16 +92,19 @@ public class LobbyManager : MonoBehaviour
 
     private void OpenCharacterSelectionView()
     {
-        if (CharacterSelectionUIController.CharacterSelectionPanel.activeSelf)
-            return;
+        //if (CharacterSelectionUIController.gameObject.activeSelf)
+        //    return;
+        CharacterSelectionUIController.gameObject.SetActive(true);
 
         CharacterSelectionUIController.OpenView();
     }
 
     private void OpenPlanetSelectionView()
     {
-        if (!GalaxyContainer.activeSelf)
-            GalaxyContainer.SetActive(true);
+        PlanetSelectionUIController.gameObject.SetActive(true);
+
+        //if (!GalaxyContainer.activeSelf)
+        //    GalaxyContainer.SetActive(true);
 
         PlanetSelectionUIController.OpenView();
 

@@ -1,15 +1,19 @@
 using TMPro;
 using UnityEngine;
 
-public class UI_UpgradeComponent : MonoBehaviour
+public class UpgradeUIComponent : MonoBehaviour
 {
     public TMP_Text Label;
     public TMP_Text Description;
     public Sprite Icon;
     public TMP_Text Data;
 
+
     public void SetData(ref UpgradeBlob upgradeData)
     {
+        if (!Label || !Data)
+            return;
+        
         //Label.text = upgradeData.DisplayName.ToString();
         //Description.text = upgradeData.Description.ToString();
 

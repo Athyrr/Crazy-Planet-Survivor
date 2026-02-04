@@ -14,23 +14,17 @@ public class CharacterListView : MonoBehaviour
 
     private CharactersDatabaseSO _characterDatabase;
     private List<CharacterListItem> _characterList = new();
-    private CharacterSelectionUIControllerComponent _controller;
-
+    private CharacterSelectionUIController _controller;
 
     #region Public API
 
-    public void Init(CharacterSelectionUIControllerComponent controller, CharactersDatabaseSO database)
-    {
-        _controller = controller;
-        SetDatabase(database);
-    }
-
-    public void SetDatabase(CharactersDatabaseSO database)
-    {
+    public void Init(CharacterSelectionUIController controller, CharactersDatabaseSO database)
+    {       
         if (database == null || _characterDatabase == database)
             return;
 
         _characterDatabase = database;
+        _controller = controller;
     }
 
     public void RefreshCharacters()
