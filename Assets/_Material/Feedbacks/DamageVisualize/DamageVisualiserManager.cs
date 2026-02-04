@@ -93,7 +93,7 @@ public class DamageFeedbackManager : MonoBehaviour
         return Application.isPlaying ? Time.time : (float)Time.realtimeSinceStartup;
     }
 
-    void FixedUpdate()
+    void Update()
     {
         if (_activeDamages.Count == 0 || _damageBuffer == null || computeShader == null || displayMaterial == null)
             return;
@@ -131,10 +131,17 @@ public class DamageFeedbackManager : MonoBehaviour
     void TestDamage()
     {
         Sequence.Create(cycles: 10, Sequence.SequenceCycleMode.Yoyo)
-            .ChainCallback(() => AddDamage(Random.Range(10, 999999), Vector3.zero))
+            .ChainCallback(() => AddDamage(Random.Range(10, 999999), transform.position))
             .ChainDelay(0.1f)
-            .ChainCallback(() => AddDamage(Random.Range(10, 9999), Vector3.zero))
+            .ChainCallback(() => AddDamage(Random.Range(10, 9999), transform.position))
             .ChainDelay(0.1f)
-            .ChainCallback(() => AddDamage(Random.Range(10, 99), Vector3.zero));
+            .ChainCallback(() => AddDamage(Random.Range(10, 99), transform.position));
+    }
+    
+    
+    [Button]
+    void TestDamageSingle()
+    {
+        AddDamage(Random.Range(10, 999999), transform.position);
     }
 }
