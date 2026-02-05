@@ -157,6 +157,15 @@ public partial struct CollisionSystem : ISystem
                         Damage = damageData.Damage,
                         Element = damageData.Element
                     });
+
+                    float3 targetPos = LocalTransformLookup[target].Position;
+                    TriggerDamageVisual(0, ECB, (int)damageData.Damage, targetPos);
+                    //if (EnemyLookup.HasComponent(target) /*&& !PlayerLookup.HasComponent(target)*/)
+                    //{
+                    //    float3 targetPos = LocalTransformLookup[target].Position;
+                    //    TriggerDamageVisual(0, ECB, (int)damageData.Damage, targetPos);
+                    //}
+
                 }
 
                 // Handle cases Ricochet and Piercing before destroying the projectile
@@ -244,13 +253,13 @@ public partial struct CollisionSystem : ISystem
             }
         }
 
-        private struct CollisionEventJob : ICollisionEventsJob
-        {
-            public void Execute(CollisionEvent collisionEvent)
-            {
-                // @todo handle collisoin betwenen player and obstacle
-            }
-        }
+        //private struct CollisionEventJob : ICollisionEventsJob
+        //{
+        //    public void Execute(CollisionEvent collisionEvent)
+        //    {
+        //        // @todo handle collisoin betwenen player and obstacle
+        //    }
+        //}
 
         /// <summary>
         /// Try to resolve which entity is the damager and which is the target (enemy or player).
@@ -292,6 +301,16 @@ public partial struct CollisionSystem : ISystem
             return false;
         }
 
+        private void TriggerDamageVisual(int key, EntityCommandBuffer.ParallelWriter ecb, int amount, float3 position)
+        {
+            Entity req = ecb.CreateEntity(key);
+            ecb.AddComponent(key, req, new DamageFeedbackRequest
+            {
+                Amount = amount,
+                Position = position
+            });
+        }
+
         /// <summary>
         /// Try to find the next target for a ricochet spell.
         /// </summary>
@@ -303,7 +322,7 @@ public partial struct CollisionSystem : ISystem
         private bool TryFindNextTarget(Entity ricochetEntity, Entity currentTarget, float range, out Entity newTarget, out float3 direction)
         {
             var currentPos = LocalTransformLookup[ricochetEntity].Position;
-            var hits = new NativeList<DistanceHit>(Allocator.TempJob);
+            var hits = new NativeList<DistanceHit>(Allocator.Temp);
 
             // @todo set proper collision layers based on caster
             // Set filter only for enemies
@@ -397,4 +416,6 @@ public partial struct CollisionSystem : ISystem
         //    return false;
         //}
     }
+
+
 }

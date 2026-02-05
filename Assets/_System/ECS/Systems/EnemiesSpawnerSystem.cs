@@ -343,6 +343,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
             ECB.SetComponent(index, entity, new FollowTargetMovement
             {
                 Target = PlayerEntity,
+                //StopDistance = 50f
             });
 
             // Stagger the activation of enemies to create a "streaming" spawn effect

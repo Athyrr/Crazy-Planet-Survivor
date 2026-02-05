@@ -7,6 +7,9 @@ public class EnemyAuthoring : MonoBehaviour
     [Tooltip("If true, the enemy will be snapped perfectly on the ground following the terrain height. Otherwise, it will follow the base radius.")]
     public bool UseSnappedMovement = true;
 
+    [Tooltip("The distance at which the enemy will stop following the target.")]
+    public float StopDistance = 1f;
+
     [Header("Stats \n" +
         "Resistances are value in %.")]
     public BaseStats BaseStats;
@@ -25,7 +28,7 @@ public class EnemyAuthoring : MonoBehaviour
 
             AddComponent(entity, new Enemy() { });
 
-            AddComponent(entity, new FollowTargetMovement() { Speed = authoring.BaseStats.MoveSpeed});
+            AddComponent(entity, new FollowTargetMovement() { Speed = authoring.BaseStats.MoveSpeed,StopDistance = authoring.StopDistance});
 
             if (authoring.UseSnappedMovement)
                 AddComponent<HardSnappedMovement>(entity);

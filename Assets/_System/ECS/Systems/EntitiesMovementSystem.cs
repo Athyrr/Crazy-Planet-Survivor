@@ -344,6 +344,13 @@ public partial struct EntitiesMovementSystem : ISystem
             if (math.lengthsq(finalDirection) < 0.001f)
                 finalDirection = transform.Forward();
 
+            float stopDistance = movement.StopDistance;
+            float distanceToTarget = math.length(directionToTarget);
+ 
+            // Within stopping distance, slow down
+            if (distanceToTarget < stopDistance)
+                finalDirection = math.normalize(finalDirection)  * (distanceToTarget / stopDistance);
+
             float3 desiredPosition = transform.Position + finalDirection * (speed * DeltaTime);
 
             // Raycast

@@ -156,6 +156,53 @@ Transform:
   - {fileID: 1177978200}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &233423649
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 233423650}
+  - component: {fileID: 233423651}
+  m_Layer: 0
+  m_Name: Damages Feedback
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &233423650
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 233423649}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1919278032}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &233423651
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 233423649}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 273bd3f1e3494fe9aacbb54a5825e62b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageFeedbackManager
+  computeShader: {fileID: 7200000, guid: 6667581f9b2f49089280b804d1f82dea, type: 3}
+  displayMaterial: {fileID: 2100000, guid: 55105a2f1d0fbf1439ec3323460eadfb, type: 2}
+  quadMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &238592963
 GameObject:
   m_ObjectHideFlags: 0
@@ -1724,7 +1771,7 @@ MonoBehaviour:
     DefaultMode: 2
   DefaultBlend:
     Style: 7
-    Time: 2
+    Time: 1.8
     CustomCurve:
       serializedVersion: 2
       m_Curve:
@@ -1738,22 +1785,22 @@ MonoBehaviour:
         inWeight: 0
         outWeight: 0
       - serializedVersion: 3
-        time: 0.33567956
-        value: 0.16900218
-        inSlope: 1.521318
-        outSlope: 1.521318
+        time: 0.2723679
+        value: 0.09365647
+        inSlope: 0.8571204
+        outSlope: 0.8571204
         tangentMode: 0
         weightedMode: 0
         inWeight: 0.14851287
-        outWeight: 0.33333334
+        outWeight: 0.37030542
       - serializedVersion: 3
-        time: 0.6382996
-        value: 0.7931282
-        inSlope: 1.3009703
-        outSlope: 1.3009703
+        time: 0.4223905
+        value: 0.45595703
+        inSlope: 2.4671788
+        outSlope: 2.4671788
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.33333334
+        inWeight: 0.19547802
         outWeight: 0.33333334
       - serializedVersion: 3
         time: 1
@@ -1988,6 +2035,7 @@ Transform:
   m_Children:
   - {fileID: 1684467034}
   - {fileID: 1478066651}
+  - {fileID: 233423650}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1937813472

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using EasyButtons;
 using PrimeTween;
 using Random = UnityEngine.Random;
+using Unity.Entities;
 
 [ExecuteAlways]
 public class DamageFeedbackManager : MonoBehaviour
@@ -39,7 +40,7 @@ public class DamageFeedbackManager : MonoBehaviour
             return;
         }
 
-        DontDestroyOnLoad(gameObject);
+        //DontDestroyOnLoad(gameObject);
     }
 
     #endregion
@@ -60,12 +61,23 @@ public class DamageFeedbackManager : MonoBehaviour
     private List<DamageData> _activeDamages = new List<DamageData>();
     private const int _maxNumbers = 1000;
 
+    private EntityManager _entityManager;
+    private EntityQuery _damageFeedbackQuery;
+
+    private void Start()
+    {
+        _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+        _damageFeedbackQuery = _entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
+
+        InitBuffer();   
+    }
+
+
     private void InitBuffer()
     {
         if (_damageBuffer == null)
         {
             _damageBuffer = new ComputeBuffer(_maxNumbers, sizeof(float) * 6);
-            // On initialise avec des données vides pour éviter des glitchs visuels
             _damageBuffer.SetData(new DamageData[_maxNumbers]);
         }
     }
@@ -93,9 +105,89 @@ public class DamageFeedbackManager : MonoBehaviour
         return Application.isPlaying ? Time.time : (float)Time.realtimeSinceStartup;
     }
 
+    //void Update()
+    //{
+    //    if (_activeDamages.Count == 0 || _damageBuffer == null || computeShader == null || displayMaterial == null)
+    //        return;
+
+    //    float currentTime = GetCurrentTime();
+
+    //    int kernel = computeShader.FindKernel("UpdateNumbers");
+    //    computeShader.SetBuffer(kernel, "_DamageBuffer", _damageBuffer);
+    //    computeShader.SetFloat("_Time", currentTime);
+    //    computeShader.Dispatch(kernel, Mathf.CeilToInt(_maxNumbers / 64f), 1, 1);
+
+    //    displayMaterial.SetBuffer("_DamageBuffer", _damageBuffer);
+    //    displayMaterial.SetFloat("_CurrentTime", currentTime);
+
+    //    // render part
+    //    Graphics.DrawMeshInstancedProcedural(quadMesh, 0, displayMaterial,
+    //        new Bounds(Vector3.zero, Vector3.one * 1000), _activeDamages.Count);
+
+    //    //if (!_damageFeedbackQuery.IsEmpty)
+    //    //{
+    //    //    var requests = _damageFeedbackQuery.ToComponentDataArray<DamageFeedbackRequest>(Unity.Collections.Allocator.Temp);
+    //    //    var entities = _damageFeedbackQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
+
+    //    //    for (int i = 0; i < entities.Length; i++)
+    //    //    {
+    //    //        AddDamage(requests[i].Amount, (Vector3)requests[i].Position + Vector3.up * 0.5f);
+    //    //        _entityManager.DestroyEntity(entities[i]);
+    //    //    }
+
+    //    //    requests.Dispose();
+    //    //    entities.Dispose();
+    //    //}
+    //    if (World.DefaultGameObjectInjectionWorld == null) return;
+
+    //    var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+    //    var requestQuery = entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
+
+    //    if (!requestQuery.IsEmpty)
+    //    {
+    //        var requests = requestQuery.ToComponentDataArray<DamageFeedbackRequest>(Unity.Collections.Allocator.Temp);
+    //        var entities = requestQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
+
+    //        for (int i = 0; i < entities.Length; i++)
+    //        {
+    //            AddDamage(requests[i].Amount, (Vector3)requests[i].Position + Vector3.up * 0.5f);
+    //            entityManager.DestroyEntity(entities[i]);
+    //        }
+
+    //        requests.Dispose();
+    //        entities.Dispose();
+    //    }
+
+    //}
+
     void Update()
     {
-        if (_activeDamages.Count == 0 || _damageBuffer == null || computeShader == null || displayMaterial == null)
+        if (World.DefaultGameObjectInjectionWorld != null)
+        {
+            var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            var requestQuery = entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
+
+            if (!requestQuery.IsEmpty)
+            {
+                var requests = requestQuery.ToComponentDataArray<DamageFeedbackRequest>(Unity.Collections.Allocator.Temp);
+                var entities = requestQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
+
+                for (int i = 0; i < entities.Length; i++)
+                {
+                    AddDamage(requests[i].Amount, (Vector3)requests[i].Position + Vector3.up * 0.5f);
+                    entityManager.DestroyEntity(entities[i]);
+                }
+
+                requests.Dispose();
+                entities.Dispose();
+            }
+        }
+
+
+        if (_damageBuffer == null || computeShader == null || displayMaterial == null)
+            return;
+
+        if (_activeDamages.Count == 0)
             return;
 
         float currentTime = GetCurrentTime();
@@ -108,7 +200,6 @@ public class DamageFeedbackManager : MonoBehaviour
         displayMaterial.SetBuffer("_DamageBuffer", _damageBuffer);
         displayMaterial.SetFloat("_CurrentTime", currentTime);
 
-        // render part
         Graphics.DrawMeshInstancedProcedural(quadMesh, 0, displayMaterial,
             new Bounds(Vector3.zero, Vector3.one * 1000), _activeDamages.Count);
     }
@@ -137,8 +228,7 @@ public class DamageFeedbackManager : MonoBehaviour
             .ChainDelay(0.1f)
             .ChainCallback(() => AddDamage(Random.Range(10, 99), transform.position));
     }
-    
-    
+
     [Button]
     void TestDamageSingle()
     {
