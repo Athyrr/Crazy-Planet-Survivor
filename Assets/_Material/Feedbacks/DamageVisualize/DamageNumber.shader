@@ -7,6 +7,7 @@ Shader "Custom/DamageNumbers"
         _FloatSpeed ("Float Speed", Float) = 1.0
         _EmissiveDuration ("Emissive Duration", Float) = 1.6
         _Color ("Color", Color) = (1,0,1,1)
+        _Scale ("Scale", Float) = 1.0
     }
 
     SubShader
@@ -43,6 +44,7 @@ Shader "Custom/DamageNumbers"
             float _FloatSpeed;
             float _EmissiveDuration;
             float4 _Color;
+            float _Scale;
 
             struct v2f
             {
@@ -60,16 +62,15 @@ Shader "Custom/DamageNumbers"
 
                 float age = _CurrentTime - data.startTime;
                 float life01 = saturate(1.0 - age / _LifeTime);
-
-                float baseSize = 0.3;
-                float width = data.digitCount * baseSize;
+                
+                float width = data.digitCount * _Scale;
 
                 float2 quad[4] =
                 {
-                    float2(-width, -baseSize),
-                    float2(-width,  baseSize),
-                    float2( width, -baseSize),
-                    float2( width,  baseSize)
+                    float2(-width, -_Scale),
+                    float2(-width,  _Scale),
+                    float2( width, -_Scale),
+                    float2( width,  _Scale)
                 };
 
                 float2 uvs[4] =
@@ -85,7 +86,16 @@ Shader "Custom/DamageNumbers"
                 float3 worldPos = data.position;
                 worldPos.y += age * _FloatSpeed;
 
-                o.pos = UnityObjectToClipPos(float4(worldPos + float3(quad[v], 0), 1));
+                float3 camRight = normalize(UNITY_MATRIX_V._m00_m01_m02);
+                float3 camUp    = normalize(UNITY_MATRIX_V._m10_m11_m12);
+                
+                float3 offset =
+                    camRight * quad[v].x +
+                    camUp    * quad[v].y;
+
+                float4 clipPos = mul(UNITY_MATRIX_VP, float4(worldPos + offset, 1.0));
+
+                o.pos = clipPos;
                 o.uv = uvs[v];
                 o.alpha = life01;
                 o.inst = inst;
