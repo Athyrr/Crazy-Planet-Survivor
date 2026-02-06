@@ -11,7 +11,7 @@ using Unity.Jobs;
 /// Primary system for entity locomotion. Handles Linear, Follow, and Orbital movement patterns.
 /// Supports two modes: "Snapped" (uses Physics Raycasts for terrain) and "Bare" (uses mathematical radius for perfect spheres).
 /// </summary>
-[UpdateInGroup(typeof(TestUpdateGroup))]
+[UpdateInGroup(typeof(CustomUpdateGroup))]
 [BurstCompile]
 public partial struct EntitiesMovementSystem : ISystem
 {

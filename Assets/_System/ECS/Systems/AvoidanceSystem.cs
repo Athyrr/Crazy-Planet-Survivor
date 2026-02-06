@@ -9,7 +9,7 @@ using Unity.Burst;
 /// This system optimizes performance by only processing entities within a certain range of the player
 /// and using a grid-based approach to avoid O(N^2) complexity.
 /// </summary>
-[UpdateInGroup(typeof(TestUpdateGroup))]
+[UpdateInGroup(typeof(CustomUpdateGroup))]
 [BurstCompile]
 public partial struct AvoidanceSystem : ISystem
 {

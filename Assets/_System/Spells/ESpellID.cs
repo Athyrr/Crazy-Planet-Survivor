@@ -18,7 +18,9 @@ public enum ESpellID : byte
     PoisonNeedle,
 
     // Enemy Spells
-    Enemy_Projectile
+    Enemy_Projectile,
+
+    VoidSlash
 }
 
 /// <summary>

@@ -5,7 +5,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
-[UpdateInGroup(typeof(TestUpdateGroup))]
+[UpdateInGroup(typeof(CustomUpdateGroup))]
 [UpdateBefore(typeof(TransformSystemGroup))]
 [UpdateAfter(typeof(EntitiesMovementSystem))]
 [BurstCompile]

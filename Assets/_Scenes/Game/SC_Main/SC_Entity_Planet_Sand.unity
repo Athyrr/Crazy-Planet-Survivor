@@ -124,6 +124,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8376252114286894405, guid: c900366a3519f8b42acea4e41cfaa8fd, type: 3}
   m_PrefabInstance: {fileID: 1325589910}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &315819014 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8248161088026959521, guid: 1b18f2afcac588645a3098a41289cde1, type: 3}
+  m_PrefabInstance: {fileID: 7927507593957282338}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &423588960
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -738,6 +743,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_EnemiesSpawner
       objectReference: {fileID: 0}
+    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
+      propertyPath: DebugPlanetCenter
+      value: 
+      objectReference: {fileID: 315819014}
     - target: {fileID: 5966468792438554073, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -848,10 +857,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 106217666219920685, guid: 1b18f2afcac588645a3098a41289cde1, type: 3}
-      propertyPath: _useHeightMap
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 3808975488889457239, guid: 1b18f2afcac588645a3098a41289cde1, type: 3}
       propertyPath: m_Name
       value: PF_Planet_Sand_Test

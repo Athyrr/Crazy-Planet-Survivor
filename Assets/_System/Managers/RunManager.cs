@@ -14,6 +14,7 @@ public class RunManager : MonoBehaviour
 
     private EntityManager _entityManager;
     private EntityQuery _playerHealthQuery;
+    private EntityQuery _endRunQuery;
     private EntityQuery _openUpgradesRequestQuery;
     private EntityQuery _gameStateQuery;
 
@@ -36,19 +37,40 @@ public class RunManager : MonoBehaviour
         _playerHealthQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Health));
         _openUpgradesRequestQuery = _entityManager.CreateEntityQuery(typeof(GameState), typeof(OpenUpgradesSelectionMenuRequest));
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
+        _endRunQuery = _entityManager.CreateEntityQuery(typeof(EndRunRequest));
 
         InitPanels();
     }
 
     private void Update()
     {
-        CheckPlayerHealth();
+        // CheckPlayerHealth();
+
+        CheckEndRun();
         CheckOpenUpgradesRequest();
     }
 
     private void InitPanels()
     {
         UpgradeSelectionController.Init(this);
+    }
+
+    private void CheckEndRun()
+    {
+        if (GameManager.Instance.GetGameState() != EGameState.Running)
+            return;
+
+        if (!_endRunQuery.IsEmpty)
+        {
+            if (GameManager.Instance.GetGameState() != EGameState.GameOver)
+                GameManager.Instance.ChangeState(EGameState.GameOver);
+
+            //@todo change text depending on end run state (death/timeout)
+
+            // Destroy request
+            var reqEntity = _endRunQuery.GetSingletonEntity();
+            _entityManager.DestroyEntity(reqEntity);
+        }
     }
 
     private void CheckPlayerHealth()

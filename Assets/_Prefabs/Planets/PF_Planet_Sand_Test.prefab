@@ -11,8 +11,8 @@ GameObject:
   - component: {fileID: 8248161088026959521}
   - component: {fileID: 4871376805425057523}
   - component: {fileID: 6816637634890148980}
-  - component: {fileID: 106217666219920685}
   - component: {fileID: 404540080954963908}
+  - component: {fileID: 106217666219920685}
   m_Layer: 0
   m_Name: PF_Planet_Sand_Test
   m_TagString: Untagged
@@ -92,18 +92,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &106217666219920685
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3808975488889457239}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5075d250c6a932b44900fd1ab8740d9c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlanetDataAuthoring
 --- !u!114 &404540080954963908
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -247,3 +235,19 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
+--- !u!114 &106217666219920685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3808975488889457239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5075d250c6a932b44900fd1ab8740d9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlanetDataAuthoring
+  _planetID: 4
+  _radius: 50
+  _autoFindPlanetRadius: 0
+  _runDuration: 180

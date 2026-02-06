@@ -102,7 +102,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
     /// a movement component to pull them toward the player.
     /// </summary>
     [BurstCompile]
-    [WithNone(typeof(ExpAttractionAnimation))] // Only scan non animated orbs
+    [WithNone(typeof(ExpAttractionAnimation))]
     private partial struct AttractExpJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;

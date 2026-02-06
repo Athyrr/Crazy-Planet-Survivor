@@ -1,6 +1,6 @@
+using Unity.Entities.Serialization;
 using System.Collections;
 using Unity.Entities;
-using Unity.Entities.Serialization;
 using Unity.Scenes;
 using UnityEngine;
 
