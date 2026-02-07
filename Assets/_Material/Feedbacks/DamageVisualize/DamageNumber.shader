@@ -107,7 +107,7 @@ Shader "Custom/DamageNumbers"
             {
                 DamageData data = _DamageBuffer[i.inst];
 
-                float number = data.value;
+                float number = data.value -1;
                 float2 uv = i.uv;
 
                 fixed4 col = fixed4(0,0,0,0);
