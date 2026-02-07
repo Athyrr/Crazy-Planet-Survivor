@@ -10,8 +10,8 @@ public class SpawnDataDrawer : PropertyDrawer
     {
         var modeProp = property.FindPropertyRelative("Mode");
 
-        // Hauteur de base : Mode + Prefab + Amount (3 lignes)
-        int lines = 3;
+        // Hauteur de base : Mode + Prefab + Amount + KillPercentageToAdvance (4 lignes)
+        int lines = 4;
 
         // Si le mode est "Single", on ajoute 2 lignes pour SpawnerPrefab et SpawnDelay
         if (IsMode(modeProp, "Single"))
@@ -40,6 +40,7 @@ public class SpawnDataDrawer : PropertyDrawer
         var spawnDelayProp = property.FindPropertyRelative("SpawnDelay");
         var minRangeProp = property.FindPropertyRelative("MinSpawnRange");
         var maxRangeProp = property.FindPropertyRelative("MaxSpawnRange");
+        var killPercentageProp = property.FindPropertyRelative("KillPercentageToAdvance");
 
         // Rectangle pour la première ligne
         Rect rect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
@@ -55,8 +56,12 @@ public class SpawnDataDrawer : PropertyDrawer
         // 3. Dessiner Amount (Toujours visible)
         EditorGUI.PropertyField(rect, amountProp);
         rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+        
+        // 4. Dessiner KillPercentageToAdvance (Toujours visible)
+        EditorGUI.PropertyField(rect, killPercentageProp);
+        rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
-        // 4. Dessiner les champs conditionnels si Mode == Single
+        // 5. Dessiner les champs conditionnels si Mode == Single
         if (IsMode(modeProp, "Single"))
         {
             EditorGUI.PropertyField(rect, spawnerPrefabProp);

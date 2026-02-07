@@ -7,6 +7,8 @@ public enum SpawnMode { EntirePlanet, Single, Opposite, AroundPlayer }
 public struct SpawnerSettings : IComponentData
 {
     public float TimeBetweenWaves;
+    /// <summary> Maximum number of enemies allowed in the game at once. </summary>
+    public int MaxEnemies;
 }
 
 public struct WaveElement : IBufferElementData

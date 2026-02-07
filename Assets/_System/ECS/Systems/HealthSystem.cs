@@ -1,10 +1,10 @@
 using Unity.Burst;
-using Unity.Entities;
 using Unity.Collections;
+using Unity.Entities;
 using Unity.Mathematics;
 
 /// <summary>
-/// Processes incoming damage from the <see cref="DamageBufferElement"/>, applying elemental 
+/// Processes incoming damage from the <see cref="DamageBufferElement"/>, applying elemental
 /// resistances and armor reductions before updating the entity's health.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -34,12 +34,12 @@ public partial struct HealthSystem : ISystem
             return;
 
         // Use the EndSimulation ECB to handle entity destruction at the end of the frame
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var ecbSingleton =
+            SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
-
 
         var applyDamageJob = new ApplyDamageJob
         {
@@ -55,21 +55,33 @@ public partial struct HealthSystem : ISystem
     }
 
     /// <summary>
-    /// Calculates the total damage for an entity by iterating through its damage buffer 
+    /// Calculates the total damage for an entity by iterating through its damage buffer
     /// and applying defensive stats.
     /// </summary>
     [BurstCompile]
     private partial struct ApplyDamageJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
-        /// <summary> Used to check if an entity is already flagged for destruction. </summary>
-        [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
-        /// <summary> Provided for potential future filtering or logic (currently unused). </summary>
-        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        /// <summary> Provided for potential future filtering or logic (currently unused). </summary>
-        [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
 
-        public void Execute([ChunkIndexInQuery] int index, Entity entity, ref Health health, in Stats stats, ref DynamicBuffer<DamageBufferElement> damageBuffer)
+        /// <summary> Used to check if an entity is already flagged for destruction. </summary>
+        [ReadOnly]
+        public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
+
+        /// <summary> Provided for potential future filtering or logic (currently unused). </summary>
+        [ReadOnly]
+        public ComponentLookup<Player> PlayerLookup;
+
+        /// <summary> Provided for potential future filtering or logic (currently unused). </summary>
+        [ReadOnly]
+        public ComponentLookup<Enemy> EnemyLookup;
+
+        public void Execute(
+            [ChunkIndexInQuery] int index,
+            Entity entity,
+            ref Health health,
+            in Stats stats,
+            ref DynamicBuffer<DamageBufferElement> damageBuffer
+        )
         {
             // Skip entities already marked for destruction
             if (DestroyFlagLookup.HasComponent(entity))
@@ -129,9 +141,27 @@ public partial struct HealthSystem : ISystem
                 if (isPlayer)
                 {
                     var endRunReqEntity = ECB.CreateEntity(0);
-                    ECB.AddComponent(index, endRunReqEntity, new EndRunRequest() { State = EEndRunState.Death });
+                    ECB.AddComponent(
+                        index,
+                        endRunReqEntity,
+                        new EndRunRequest() { State = EEndRunState.Death }
+                    );
+                }
+                else if (EnemyLookup.HasComponent(entity))
+                {
+                    var killedEventEntity = ECB.CreateEntity(index);
+                    ECB.AddComponent(
+                        index,
+                        killedEventEntity,
+                        new EnemyKilledEvent { WaveIndex = EnemyLookup[entity].WaveIndex }
+                    );
                 }
             }
         }
     }
+}
+
+public struct EnemyKilledEvent : IComponentData
+{
+    public int WaveIndex;
 }
