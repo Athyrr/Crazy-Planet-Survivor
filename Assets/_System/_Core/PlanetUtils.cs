@@ -154,6 +154,7 @@ public static partial class PlanetUtils
         // End ray below the position
         float3 rayEnd = position - normal * startRayHeight;
 
+        // todo: set ray end at 0 ?
         var rayInput = new RaycastInput
         {
             Start = rayStart,
