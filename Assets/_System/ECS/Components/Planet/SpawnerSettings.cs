@@ -19,6 +19,8 @@ public struct WaveElement : IBufferElementData
     public float SpawnDelay;
     public float MinSpawnRange;
     public float MaxSpawnRange;
+    /// <summary> Percentage of enemies (0-1) that must be killed to trigger next wave early. </summary>
+    public float KillPercentageToAdvance;
 }
 
 
@@ -31,4 +33,11 @@ public struct SpawnerState : IComponentData
     public int PendingSpawnCount;
     public int SpawnsProcessed;
     public int CurrentWaveElementIndex;
+    
+    // Fields for tracking wave progress
+    public int TotalEnemiesInCurrentWave;
+    public int EnemiesKilledInCurrentWave;
+    
+    /// <summary> Current number of active enemies in the game. </summary>
+    public int CurrentEnemyCount;
 }

@@ -25,6 +25,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
         state.RequireForUpdate<PlanetData>();
         state.RequireForUpdate<Player>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<RunProgression>();
     }
 
     [BurstCompile]
@@ -36,21 +37,77 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
         ref var spawnerState = ref SystemAPI.GetSingletonRW<SpawnerState>().ValueRW;
         var waveBuffer = SystemAPI.GetSingletonBuffer<WaveElement>(true);
+        ref var runProgression = ref SystemAPI.GetSingletonRW<RunProgression>().ValueRW;
+        var settings = SystemAPI.GetSingleton<SpawnerSettings>();
+
+        // Process enemy kill events to update kill count
+        // We need to query for EnemyKilledEvent entities
+        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        
+        foreach (var (killedEvent, entity) in SystemAPI.Query<RefRO<EnemyKilledEvent>>().WithEntityAccess())
+        {
+            if (killedEvent.ValueRO.WaveIndex == spawnerState.CurrentWaveIndex)
+            {
+                spawnerState.EnemiesKilledInCurrentWave++;
+            }
+            spawnerState.CurrentEnemyCount--;
+            // Destroy the event entity
+            ecb.DestroyEntity(entity);
+        }
+        
+        // Ensure CurrentEnemyCount doesn't go below zero (safety check)
+        if (spawnerState.CurrentEnemyCount < 0) spawnerState.CurrentEnemyCount = 0;
+        
+        // Update RunProgression ratio
+        if (spawnerState.TotalEnemiesInCurrentWave > 0)
+        {
+            runProgression.EnemiesKilledRatio = (float)spawnerState.EnemiesKilledInCurrentWave / spawnerState.TotalEnemiesInCurrentWave;
+        }
+        else
+        {
+            runProgression.EnemiesKilledRatio = 0;
+        }
 
         // If we have pending spawns from a previous frame, continue processing them
         if (spawnerState.PendingSpawnCount > 0)
         {
-            ProcessPendingSpawns(ref state, ref spawnerState, waveBuffer);
+            ProcessPendingSpawns(ref state, ref spawnerState, waveBuffer, settings.MaxEnemies);
             return;
         }
 
         // --- Wave Timer Management ---
         spawnerState.WaveTimer -= SystemAPI.Time.DeltaTime;
         
-        if (spawnerState.WaveTimer > 0)
+        // Check if we should advance to the next wave based on kill percentage
+        bool advanceWaveEarly = false;
+        
+        // Calculate kill ratio for current wave
+        if (spawnerState.TotalEnemiesInCurrentWave > 0)
+        {
+            // We need to find the kill percentage requirement for the current wave.
+            float killPercentageRequired = 0f;
+            bool foundWave = false;
+            for(int i=0; i<waveBuffer.Length; i++)
+            {
+                if (waveBuffer[i].WaveIndex == spawnerState.CurrentWaveIndex)
+                {
+                    killPercentageRequired = waveBuffer[i].KillPercentageToAdvance;
+                    foundWave = true;
+                    break; // Assuming all elements in the same wave have the same requirement
+                }
+            }
+            
+            // Use the ratio from RunProgression
+            if (foundWave && killPercentageRequired > 0 && runProgression.EnemiesKilledRatio >= killPercentageRequired)
+            {
+                advanceWaveEarly = true;
+            }
+        }
+
+        if (spawnerState.WaveTimer > 0 && !advanceWaveEarly)
             return;
 
-        var settings = SystemAPI.GetSingleton<SpawnerSettings>();
         spawnerState.WaveTimer = settings.TimeBetweenWaves;
 
         // --- New Wave Initialization ---
@@ -68,6 +125,18 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
         if (waveHasElements)
         {
+            // Reset wave tracking stats
+            spawnerState.TotalEnemiesInCurrentWave = 0;
+            spawnerState.EnemiesKilledInCurrentWave = 0;
+            runProgression.EnemiesKilledRatio = 0;
+            
+            // Calculate total enemies for this new wave
+            for(int i=0; i<waveBuffer.Length; i++) {
+                if(waveBuffer[i].WaveIndex == spawnerState.CurrentWaveIndex) {
+                    spawnerState.TotalEnemiesInCurrentWave += waveBuffer[i].Amount;
+                }
+            }
+
             // Find the first element index for this wave to begin the spawning sequence
             spawnerState.CurrentWaveElementIndex = 0; // We'll search for the first matching element index
             
@@ -88,7 +157,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 spawnerState.SpawnsProcessed = 0;
                 
                 // Immediately process some spawns this frame
-                ProcessPendingSpawns(ref state, ref spawnerState, waveBuffer);
+                ProcessPendingSpawns(ref state, ref spawnerState, waveBuffer, settings.MaxEnemies);
             }
             else
             {
@@ -109,7 +178,8 @@ public partial struct EnemiesSpawnerSystem : ISystem
     /// <param name="state">The current system state.</param>
     /// <param name="spawnerState">The mutable state of the spawner singleton.</param>
     /// <param name="waveBuffer">The buffer containing wave configuration data.</param>
-    private void ProcessPendingSpawns(ref SystemState state, ref SpawnerState spawnerState, DynamicBuffer<WaveElement> waveBuffer)
+    /// <param name="maxEnemies">The maximum number of enemies allowed in the game.</param>
+    private void ProcessPendingSpawns(ref SystemState state, ref SpawnerState spawnerState, DynamicBuffer<WaveElement> waveBuffer, int maxEnemies)
     {
         // Validate index
         if (spawnerState.CurrentWaveElementIndex < 0 || spawnerState.CurrentWaveElementIndex >= waveBuffer.Length)
@@ -128,8 +198,21 @@ public partial struct EnemiesSpawnerSystem : ISystem
             return;
         }
 
-        // Clamp the amount to spawn this frame to the maximum allowed
+        // Check if we have reached the maximum number of enemies
+        if (spawnerState.CurrentEnemyCount >= maxEnemies)
+        {
+            // We can't spawn more enemies right now. 
+            // We will try again next frame.
+            return;
+        }
+
+        // Clamp the amount to spawn this frame to the maximum allowed per frame
+        // AND clamp to the remaining slots available before hitting MaxEnemies
+        int remainingSlots = maxEnemies - spawnerState.CurrentEnemyCount;
         int amountToSpawn = math.min(spawnerState.PendingSpawnCount, MaxSpawnsPerFrame);
+        amountToSpawn = math.min(amountToSpawn, remainingSlots);
+        
+        if (amountToSpawn <= 0) return;
         
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
@@ -185,13 +268,15 @@ public partial struct EnemiesSpawnerSystem : ISystem
             DelayBetweenSpawns = waveElement.SpawnDelay,
             Mode = waveElement.Mode,
             MinRange = waveElement.MinSpawnRange,
-            MaxRange = waveElement.MaxSpawnRange
+            MaxRange = waveElement.MaxSpawnRange,
+            WaveIndex = spawnerState.CurrentWaveIndex
         };
 
         state.Dependency = spawnJob.ScheduleParallel(amountToSpawn, 64, state.Dependency);
 
         spawnerState.PendingSpawnCount -= amountToSpawn;
         spawnerState.SpawnsProcessed += amountToSpawn;
+        spawnerState.CurrentEnemyCount += amountToSpawn;
 
         // Check if we need to move to the next element in the current wave or increment the wave index
         if (spawnerState.PendingSpawnCount <= 0)
@@ -248,6 +333,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
         public float MinRange;
         public float MaxRange;
         public SpawnMode Mode;
+        public int WaveIndex;
 
         /// <summary>
         /// Executes the spawning logic for a single entity in the batch.
@@ -354,6 +440,9 @@ public partial struct EnemiesSpawnerSystem : ISystem
             
             // Enemies start disabled and are enabled by the SpawnDelaySystem
             ECB.AddComponent<Disabled>(index, entity);
+            
+            // Set the wave index on the enemy component
+            ECB.SetComponent(index, entity, new Enemy { WaveIndex = WaveIndex });
         }
     }
 }

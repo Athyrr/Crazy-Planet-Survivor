@@ -36,6 +36,10 @@ public class SpawnerAuthoring : MonoBehaviour
         
         [Tooltip("Maximum distance from the player (only for AroundPlayer mode).")]
         public float MaxSpawnRange;
+        
+        [Tooltip("Percentage of enemies (0-1) that must be killed to trigger next wave early.")]
+        [Range(0f, 1f)]
+        public float KillPercentageToAdvance;
     }
 
     /// <summary>
@@ -55,6 +59,9 @@ public class SpawnerAuthoring : MonoBehaviour
     
     [Tooltip("Time in seconds to wait before the next wave starts.")]
     public float TimeBetweenWaves = 5f;
+    
+    [Tooltip("Maximum number of enemies allowed in the game at once.")]
+    public int MaxEnemies = 500;
 
     #region Debug Visualization
 #if UNITY_EDITOR
@@ -135,14 +142,16 @@ public class SpawnerAuthoring : MonoBehaviour
             // Add global settings
             AddComponent(entity, new SpawnerSettings
             {
-                TimeBetweenWaves = authoring.TimeBetweenWaves
+                TimeBetweenWaves = authoring.TimeBetweenWaves,
+                MaxEnemies = authoring.MaxEnemies
             });
 
             // Initialize state
             AddComponent(entity, new SpawnerState
             {
                 CurrentWaveIndex = 0,
-                WaveTimer = 0 
+                WaveTimer = 0,
+                CurrentEnemyCount = 0
             });
 
             // Flatten the wave data into a single buffer
@@ -176,7 +185,8 @@ public class SpawnerAuthoring : MonoBehaviour
                         SpawnPosition = spawnPos,
                         SpawnDelay = spawnDelay,
                         MinSpawnRange = spawnData.MinSpawnRange,
-                        MaxSpawnRange = spawnData.MaxSpawnRange
+                        MaxSpawnRange = spawnData.MaxSpawnRange,
+                        KillPercentageToAdvance = spawnData.KillPercentageToAdvance
                     });
                 }
             }
