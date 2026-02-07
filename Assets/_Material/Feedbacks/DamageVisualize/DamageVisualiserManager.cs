@@ -97,7 +97,7 @@ public class DamageFeedbackManager : MonoBehaviour
         });
 
         _damageBuffer.SetData(_activeDamages.ToArray());
-        Debug.Log($"hyv; damage feedback applied {val}");
+        //Debug.Log($"hyv; damage feedback applied {val}");
     }
 
     private float GetCurrentTime()
