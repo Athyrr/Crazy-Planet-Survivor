@@ -152,7 +152,7 @@ public partial struct EntitiesMovementSystem : ISystem
 
         private const float OBSTACLE_CHECK_DIST = 1.0f;
 
-        private const float SNAP_DISTANCE = 10f;
+        private const float SNAP_DISTANCE = 1500f;
 
         private const float POS_SMOOTH_SPEED = 25.0f;
         private const float ROT_SMOOTH_SPEED = 15.0f;
