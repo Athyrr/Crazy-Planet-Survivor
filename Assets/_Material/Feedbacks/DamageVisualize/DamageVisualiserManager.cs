@@ -39,8 +39,6 @@ public class DamageFeedbackManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-
-        //DontDestroyOnLoad(gameObject);
     }
 
     #endregion
@@ -104,61 +102,6 @@ public class DamageFeedbackManager : MonoBehaviour
     {
         return Application.isPlaying ? Time.time : (float)Time.realtimeSinceStartup;
     }
-
-    //void Update()
-    //{
-    //    if (_activeDamages.Count == 0 || _damageBuffer == null || computeShader == null || displayMaterial == null)
-    //        return;
-
-    //    float currentTime = GetCurrentTime();
-
-    //    int kernel = computeShader.FindKernel("UpdateNumbers");
-    //    computeShader.SetBuffer(kernel, "_DamageBuffer", _damageBuffer);
-    //    computeShader.SetFloat("_Time", currentTime);
-    //    computeShader.Dispatch(kernel, Mathf.CeilToInt(_maxNumbers / 64f), 1, 1);
-
-    //    displayMaterial.SetBuffer("_DamageBuffer", _damageBuffer);
-    //    displayMaterial.SetFloat("_CurrentTime", currentTime);
-
-    //    // render part
-    //    Graphics.DrawMeshInstancedProcedural(quadMesh, 0, displayMaterial,
-    //        new Bounds(Vector3.zero, Vector3.one * 1000), _activeDamages.Count);
-
-    //    //if (!_damageFeedbackQuery.IsEmpty)
-    //    //{
-    //    //    var requests = _damageFeedbackQuery.ToComponentDataArray<DamageFeedbackRequest>(Unity.Collections.Allocator.Temp);
-    //    //    var entities = _damageFeedbackQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
-
-    //    //    for (int i = 0; i < entities.Length; i++)
-    //    //    {
-    //    //        AddDamage(requests[i].Amount, (Vector3)requests[i].Position + Vector3.up * 0.5f);
-    //    //        _entityManager.DestroyEntity(entities[i]);
-    //    //    }
-
-    //    //    requests.Dispose();
-    //    //    entities.Dispose();
-    //    //}
-    //    if (World.DefaultGameObjectInjectionWorld == null) return;
-
-    //    var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-    //    var requestQuery = entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
-
-    //    if (!requestQuery.IsEmpty)
-    //    {
-    //        var requests = requestQuery.ToComponentDataArray<DamageFeedbackRequest>(Unity.Collections.Allocator.Temp);
-    //        var entities = requestQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
-
-    //        for (int i = 0; i < entities.Length; i++)
-    //        {
-    //            AddDamage(requests[i].Amount, (Vector3)requests[i].Position + Vector3.up * 0.5f);
-    //            entityManager.DestroyEntity(entities[i]);
-    //        }
-
-    //        requests.Dispose();
-    //        entities.Dispose();
-    //    }
-
-    //}
 
     void Update()
     {
