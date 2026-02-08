@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Transforms;
 
 /// <summary>
 /// Processes incoming damage from the <see cref="DamageBufferElement"/>, applying elemental
@@ -13,6 +14,7 @@ public partial struct HealthSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
+    private ComponentLookup<LocalTransform> _transformLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -21,6 +23,7 @@ public partial struct HealthSystem : ISystem
 
         _playerLookup = state.GetComponentLookup<Player>(true);
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
+        _transformLookup = state.GetComponentLookup<LocalTransform>(true);
     }
 
     [BurstCompile]
@@ -40,6 +43,7 @@ public partial struct HealthSystem : ISystem
 
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
+        _transformLookup.Update(ref state);
 
         var applyDamageJob = new ApplyDamageJob
         {
@@ -47,8 +51,7 @@ public partial struct HealthSystem : ISystem
             DestroyFlagLookup = SystemAPI.GetComponentLookup<DestroyEntityFlag>(true),
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
-            //PlayerLookup = SystemAPI.GetComponentLookup<Player>(true),
-            //EnemyLookup = SystemAPI.GetComponentLookup<Enemy>(true),
+            TransformLookup = _transformLookup
         };
 
         state.Dependency = applyDamageJob.ScheduleParallel(state.Dependency);
@@ -75,13 +78,10 @@ public partial struct HealthSystem : ISystem
         [ReadOnly]
         public ComponentLookup<Enemy> EnemyLookup;
 
-        public void Execute(
-            [ChunkIndexInQuery] int index,
-            Entity entity,
-            ref Health health,
-            in Stats stats,
-            ref DynamicBuffer<DamageBufferElement> damageBuffer
-        )
+        [ReadOnly]
+        public ComponentLookup<LocalTransform> TransformLookup;
+
+        public void Execute([ChunkIndexInQuery] int index, Entity entity, ref Health health, in Stats stats, ref DynamicBuffer<DamageBufferElement> damageBuffer)
         {
             // Skip entities already marked for destruction
             if (DestroyFlagLookup.HasComponent(entity))
@@ -132,6 +132,13 @@ public partial struct HealthSystem : ISystem
 
             damageBuffer.Clear();
 
+            // Send feedback request
+            if (!isPlayer)
+            {
+                var transform = TransformLookup[entity];
+                TriggerDamageVisual(index, ECB, (int)totalDamage, transform);
+            }
+
             // Check for death condition
             if (health.Value <= 0)
             {
@@ -157,6 +164,15 @@ public partial struct HealthSystem : ISystem
                     );
                 }
             }
+        }
+        private void TriggerDamageVisual(int key, EntityCommandBuffer.ParallelWriter ecb, int amount, LocalTransform transform)
+        {
+            Entity req = ecb.CreateEntity(key);
+            ecb.AddComponent(key, req, new DamageFeedbackRequest
+            {
+                Amount = amount,
+                Transform = transform
+            });
         }
     }
 }

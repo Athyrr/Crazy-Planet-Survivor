@@ -158,12 +158,10 @@ public partial struct CollisionSystem : ISystem
                         Element = damageData.Element
                     });
 
-                    float3 targetPos = LocalTransformLookup[target].Position;
-                    TriggerDamageVisual(0, ECB, (int)damageData.Damage, targetPos);
                     //if (EnemyLookup.HasComponent(target) /*&& !PlayerLookup.HasComponent(target)*/)
                     //{
-                    //    float3 targetPos = LocalTransformLookup[target].Position;
-                    //    TriggerDamageVisual(0, ECB, (int)damageData.Damage, targetPos);
+                    //    var transform = LocalTransformLookup[target];
+                    //    TriggerDamageVisual(0, ECB, (int)damageData.Damage, transform);
                     //}
 
                 }
@@ -301,15 +299,15 @@ public partial struct CollisionSystem : ISystem
             return false;
         }
 
-        private void TriggerDamageVisual(int key, EntityCommandBuffer.ParallelWriter ecb, int amount, float3 position)
-        {
-            Entity req = ecb.CreateEntity(key);
-            ecb.AddComponent(key, req, new DamageFeedbackRequest
-            {
-                Amount = amount,
-                Position = position
-            });
-        }
+        //private void TriggerDamageVisual(int key, EntityCommandBuffer.ParallelWriter ecb, int amount, LocalTransform transform)
+        //{
+        //    Entity req = ecb.CreateEntity(key);
+        //    ecb.AddComponent(key, req, new DamageFeedbackRequest
+        //    {
+        //        Amount = amount,
+        //        Transform = transform
+        //    });
+        //}
 
         /// <summary>
         /// Try to find the next target for a ricochet spell.

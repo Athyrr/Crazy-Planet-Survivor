@@ -122,8 +122,10 @@ public partial struct AuraDamageSystem : ISystem
 
             foreach (var hit in hits)
             {
+                var isEnemyHit = EnemyLookup.HasComponent(hit.Entity);
+
                 // Ignore entities that are neither player nor enemy
-                if (!EnemyLookup.HasComponent(hit.Entity) && !PlayerLookup.HasComponent(hit.Entity))
+                if (!isEnemyHit && !PlayerLookup.HasComponent(hit.Entity))
                     continue;
 
                 // Ignore entities that cannot receive damage

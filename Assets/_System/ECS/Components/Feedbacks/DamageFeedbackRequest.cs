@@ -1,8 +1,9 @@
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Transforms;
 
 public struct DamageFeedbackRequest : IComponentData
 {
     public int Amount;
-    public float3 Position;
+    public LocalTransform Transform;
 }
