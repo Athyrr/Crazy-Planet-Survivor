@@ -152,9 +152,9 @@ public partial struct EntitiesMovementSystem : ISystem
 
         private const float OBSTACLE_CHECK_DIST = 1.0f;
 
-        private const float SNAP_DISTANCE = 1500f;
+        private const float SNAP_DISTANCE = 500;
 
-        private const float POS_SMOOTH_SPEED = 25.0f;
+        private const float POS_SMOOTH_SPEED = 10.0f;
         private const float ROT_SMOOTH_SPEED = 15.0f;
 
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
@@ -170,7 +170,6 @@ public partial struct EntitiesMovementSystem : ISystem
             }
 
             PlanetUtils.ProjectDirectionOnSurface(in movement.Direction, in currentNormal, out float3 tangentDirection);
-
 
             // Obstacle collision check (only for players)
             if (PlayerLookup.HasComponent(entity))
@@ -202,10 +201,6 @@ public partial struct EntitiesMovementSystem : ISystem
                 }
             }
 
-
-
-
-
             float3 desiredPosition = transform.Position + tangentDirection * (speed * DeltaTime);
 
             if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, desiredPosition, PlanetCenter,
@@ -216,10 +211,6 @@ public partial struct EntitiesMovementSystem : ISystem
                 {
                     transform.Position = hit.Position;
                 }
-                else
-                {
-                    transform.Position = math.lerp(transform.Position, hit.Position, DeltaTime * POS_SMOOTH_SPEED);
-                }
 
                 if (math.lengthsq(movement.Direction) > 0.001f)
                 {
@@ -227,10 +218,8 @@ public partial struct EntitiesMovementSystem : ISystem
                     transform.Rotation = math.slerp(transform.Rotation, targetRotation, DeltaTime * ROT_SMOOTH_SPEED);
                 }
             }
-            else
-            {
-                transform.Position = desiredPosition;
-            }
+
+            transform.Position = math.lerp(transform.Position, hit.Position, DeltaTime * POS_SMOOTH_SPEED);
         }
     }
 
@@ -346,10 +335,10 @@ public partial struct EntitiesMovementSystem : ISystem
 
             float stopDistance = movement.StopDistance;
             float distanceToTarget = math.length(directionToTarget);
- 
+
             // Within stopping distance, slow down
             if (distanceToTarget < stopDistance)
-                finalDirection = math.normalize(finalDirection)  * (distanceToTarget / stopDistance);
+                finalDirection = math.normalize(finalDirection) * (distanceToTarget / stopDistance);
 
             float3 desiredPosition = transform.Position + finalDirection * (speed * DeltaTime);
 

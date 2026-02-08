@@ -1,9 +1,9 @@
-using UnityEngine;
+using Random = UnityEngine.Random;
 using System.Collections.Generic;
+using Unity.Entities;
+using UnityEngine;
 using EasyButtons;
 using PrimeTween;
-using Random = UnityEngine.Random;
-using Unity.Entities;
 
 [ExecuteAlways]
 public class DamageFeedbackManager : MonoBehaviour
@@ -67,7 +67,7 @@ public class DamageFeedbackManager : MonoBehaviour
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         _damageFeedbackQuery = _entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
 
-        InitBuffer();   
+        InitBuffer();
     }
 
 
@@ -95,7 +95,6 @@ public class DamageFeedbackManager : MonoBehaviour
         });
 
         _damageBuffer.SetData(_activeDamages.ToArray());
-        //Debug.Log($"hyv; damage feedback applied {val}");
     }
 
     private float GetCurrentTime()
@@ -117,7 +116,7 @@ public class DamageFeedbackManager : MonoBehaviour
 
                 for (int i = 0; i < entities.Length; i++)
                 {
-                    AddDamage(requests[i].Amount, (Vector3)requests[i].Position + Vector3.up * 0.5f);
+                    AddDamage(requests[i].Amount, (Vector3)requests[i].Transform.Position + (Vector3)requests[i].Transform.Up() * 1.5f);
                     entityManager.DestroyEntity(entities[i]);
                 }
 
