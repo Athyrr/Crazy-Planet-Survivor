@@ -3,7 +3,7 @@ using Unity.Entities;
 /// <summary>
 /// Component data for spell that bounce between mulitple targets.
 /// </summary>
-public struct Ricochet : IComponentData, IEnableableComponent
+public struct Bounce : IComponentData, IEnableableComponent
 {
     /// <summary>
     /// Remaining bounces.

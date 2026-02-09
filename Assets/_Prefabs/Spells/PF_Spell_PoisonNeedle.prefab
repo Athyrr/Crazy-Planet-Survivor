@@ -10022,6 +10022,7 @@ GameObject:
   - component: {fileID: 3558082145554582538}
   - component: {fileID: -6305402041419256528}
   - component: {fileID: -6472442093212292483}
+  - component: {fileID: -6262013560366396838}
   m_Layer: 0
   m_Name: PF_Spell_PoisonNeedle
   m_TagString: Untagged
@@ -15191,6 +15192,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3340c3376cd3294d9e8613d09ce72cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PierceAuthoring
+--- !u!114 &-6262013560366396838
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6887593587544738312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6fbacaf139918b4bbe3416bfcc81482, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitMemoryAuthoring
 --- !u!1 &6887593587911532340
 GameObject:
   m_ObjectHideFlags: 0

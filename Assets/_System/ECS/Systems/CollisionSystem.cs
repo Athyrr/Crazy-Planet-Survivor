@@ -18,7 +18,7 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<DestroyOnContact> _destroyOnContactLookup;
 
     private ComponentLookup<LocalTransform> _transformLookup;
-    private ComponentLookup<Ricochet> _ricochetLookup;
+    private ComponentLookup<Bounce> _ricochetLookup;
     private ComponentLookup<Pierce> _pierceLookup;
     private ComponentLookup<LinearMovement> _linearMovementLookup;
     private ComponentLookup<FollowTargetMovement> _followMovementLookup;
@@ -40,7 +40,7 @@ public partial struct CollisionSystem : ISystem
         _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
         _destroyOnContactLookup = state.GetComponentLookup<DestroyOnContact>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
-        _ricochetLookup = state.GetComponentLookup<Ricochet>(false);
+        _ricochetLookup = state.GetComponentLookup<Bounce>(false);
         _pierceLookup = state.GetComponentLookup<Pierce>(false);
         _linearMovementLookup = state.GetComponentLookup<LinearMovement>(false);
         _followMovementLookup = state.GetComponentLookup<FollowTargetMovement>(false);
@@ -120,7 +120,7 @@ public partial struct CollisionSystem : ISystem
         public ComponentLookup<LinearMovement> LinearMovementLookup;
         public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
 
-        public ComponentLookup<Ricochet> RicochetLookup;
+        public ComponentLookup<Bounce> RicochetLookup;
         public ComponentLookup<Pierce> PierceLookup;
         public BufferLookup<HitEntityMemory> HitMemoryLookup;
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
@@ -251,14 +251,6 @@ public partial struct CollisionSystem : ISystem
             }
         }
 
-        //private struct CollisionEventJob : ICollisionEventsJob
-        //{
-        //    public void Execute(CollisionEvent collisionEvent)
-        //    {
-        //        // @todo handle collisoin betwenen player and obstacle
-        //    }
-        //}
-
         /// <summary>
         /// Try to resolve which entity is the damager and which is the target (enemy or player).
         /// </summary>
@@ -298,16 +290,6 @@ public partial struct CollisionSystem : ISystem
             target = Entity.Null;
             return false;
         }
-
-        //private void TriggerDamageVisual(int key, EntityCommandBuffer.ParallelWriter ecb, int amount, LocalTransform transform)
-        //{
-        //    Entity req = ecb.CreateEntity(key);
-        //    ecb.AddComponent(key, req, new DamageFeedbackRequest
-        //    {
-        //        Amount = amount,
-        //        Transform = transform
-        //    });
-        //}
 
         /// <summary>
         /// Try to find the next target for a ricochet spell.

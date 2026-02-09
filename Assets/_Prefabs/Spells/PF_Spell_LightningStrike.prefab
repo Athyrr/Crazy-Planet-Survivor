@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: -25037534898820844}
   - component: {fileID: -1122021280280150147}
   - component: {fileID: -3161422996106231680}
+  - component: {fileID: -2768277888885974291}
   m_Layer: 0
   m_Name: PF_Spell_LightningStrike
   m_TagString: Untagged
@@ -94,6 +95,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!114 &1617985317442812095
 MonoBehaviour:
@@ -338,3 +340,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3340c3376cd3294d9e8613d09ce72cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PierceAuthoring
+--- !u!114 &-2768277888885974291
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5138817672301412260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6fbacaf139918b4bbe3416bfcc81482, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitMemoryAuthoring

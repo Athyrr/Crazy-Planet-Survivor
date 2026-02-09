@@ -37,7 +37,7 @@ public partial struct SpellCastingSystem : ISystem
     private ComponentLookup<ChildEntitiesLayout_Circle> _childCircleLayoutLookup;
 
     // Enableable Components
-    private ComponentLookup<Ricochet> _ricochetLookup;
+    private ComponentLookup<Bounce> _ricochetLookup;
     private ComponentLookup<Pierce> _pierceLookup;
     //private ComponentLookup<ExplodeOnContact> _explodeLookup;
 
@@ -70,7 +70,7 @@ public partial struct SpellCastingSystem : ISystem
         _followMovementLookup = SystemAPI.GetComponentLookup<FollowTargetMovement>(true);
         _childSpawnerLookup = SystemAPI.GetComponentLookup<ChildEntitiesSpawner>(true);
         _childCircleLayoutLookup = SystemAPI.GetComponentLookup<ChildEntitiesLayout_Circle>(true);
-        _ricochetLookup = SystemAPI.GetComponentLookup<Ricochet>(true);
+        _ricochetLookup = SystemAPI.GetComponentLookup<Bounce>(true);
         _pierceLookup = SystemAPI.GetComponentLookup<Pierce>(true);
         //_explodeLookup = SystemAPI.GetComponentLookup<ExplodeOnContact>(true);
     }
@@ -175,7 +175,7 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
         [ReadOnly] public ComponentLookup<ChildEntitiesSpawner> ChildSpawnerLookup;
         [ReadOnly] public ComponentLookup<ChildEntitiesLayout_Circle> ChildCircleLayoutLookup;
-        [ReadOnly] public ComponentLookup<Ricochet> RicochetLookup;
+        [ReadOnly] public ComponentLookup<Bounce> RicochetLookup;
         [ReadOnly] public ComponentLookup<Pierce> PierceLookup;
         //[ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeLookup;
 
@@ -481,8 +481,8 @@ public partial struct SpellCastingSystem : ISystem
                 bool forceBounce = (addedTags & ESpellTag.Bouncing) != 0;
                 if ((totalBounces > 0 || forceBounce) && RicochetLookup.HasComponent(spellPrefab))
                 {
-                    ECB.SetComponentEnabled<Ricochet>(chunkIndex, spellEntity, true);
-                    ECB.SetComponent(chunkIndex, spellEntity, new Ricochet
+                    ECB.SetComponentEnabled<Bounce>(chunkIndex, spellEntity, true);
+                    ECB.SetComponent(chunkIndex, spellEntity, new Bounce
                     {
                         RemainingBounces = totalBounces,
                         BounceRange = baseSpellData.BouncesSearchRadius * mulArea,

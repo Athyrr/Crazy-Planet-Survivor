@@ -116,7 +116,7 @@ public class DamageFeedbackManager : MonoBehaviour
 
                 for (int i = 0; i < entities.Length; i++)
                 {
-                    AddDamage(requests[i].Amount, (Vector3)requests[i].Transform.Position + (Vector3)requests[i].Transform.Up() * 1.5f);
+                    AddDamage(requests[i].Amount, (Vector3)requests[i].Transform.Position + (Vector3)requests[i].Transform.Up() * 1.5f * Random.Range(1, 3f));
                     entityManager.DestroyEntity(entities[i]);
                 }
 

@@ -9953,6 +9953,7 @@ GameObject:
   - component: {fileID: 7825980258523557773}
   - component: {fileID: 5929712285938456970}
   - component: {fileID: -8299039528202092753}
+  - component: {fileID: -4313806968661794332}
   m_Layer: 0
   m_Name: PF_Spell_FireOrb_Child
   m_TagString: Untagged
@@ -15003,6 +15004,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5640ef44bda7e8e458075717de2dfbe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageOnContactAuthoring
+--- !u!114 &-4313806968661794332
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3852721855287756135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6fbacaf139918b4bbe3416bfcc81482, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitMemoryAuthoring
 --- !u!1 &3852721855359025203
 GameObject:
   m_ObjectHideFlags: 0

@@ -68,7 +68,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 74dac378a46cb2241bd1ead526ca953e, type: 2}
+  - {fileID: 2100000, guid: 59bfa6a92b6574b42ac1fb4b35df4868, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -90,6 +90,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!65 &195833640390504098
 BoxCollider:
@@ -125,4 +126,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractableAuthoring
   InteractionType: 3
-  InteractionRadius: 5
+  InteractionRadius: 7.03

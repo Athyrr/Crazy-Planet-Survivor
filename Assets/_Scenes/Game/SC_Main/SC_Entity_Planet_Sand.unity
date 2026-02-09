@@ -314,15 +314,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b275e5f92732148048d7b77e264ac30e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Physics.Custom::Unity.Physics.Authoring.PhysicsShapeAuthoring
-  m_ShapeType: 0
+  m_ShapeType: 2
   m_PrimitiveCenter:
     x: 0
-    y: 0.13500226
+    y: -0.55
     z: -0.16
   m_PrimitiveSize:
-    x: 2.0477283
-    y: 2.2720287
-    z: 2.0209506
+    x: 3.2
+    y: 3.2
+    z: 3.2
   m_PrimitiveOrientation:
     Value:
       x: -0
@@ -330,15 +330,15 @@ MonoBehaviour:
       z: 0
     RotationOrder: 4
   m_Capsule:
-    Height: 2.2720287
-    Radius: 1.0238642
-    Axis: 1
+    Height: 3.2
+    Radius: 1.6
+    Axis: 2
   m_Cylinder:
-    Height: 2.2720287
-    Radius: 1.0238642
-    Axis: 1
+    Height: 3.2
+    Radius: 1.6
+    Axis: 2
   m_CylinderSideCount: 20
-  m_SphereRadius: 1.1360143
+  m_SphereRadius: 1.6
   m_MinimumSkinnedVertexWeight: 0.1
   m_ConvexHullGenerationParameters:
     m_SimplificationTolerance: 0.05600539
@@ -461,7 +461,7 @@ MonoBehaviour:
   AutoCalculateRadius: 1
   ManualRadius: 1
   Padding: -2.5
-  _currentRadiusDisplay: 7.410572
+  _currentRadiusDisplay: 7.449915
 --- !u!1001 &1063776909
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -484,43 +484,43 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 731c7daa6c99522429230f43d09a67fd, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -30.07
+      value: -37.64
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 731c7daa6c99522429230f43d09a67fd, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 39.24
+      value: 31.63
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 731c7daa6c99522429230f43d09a67fd, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -2.28
+      value: -1.57
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 731c7daa6c99522429230f43d09a67fd, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9439754
+      value: 0.90158933
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 731c7daa6c99522429230f43d09a67fd, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.021479225
+      value: -0.029118344
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 731c7daa6c99522429230f43d09a67fd, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.025348997
+      value: 0.022516234
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 731c7daa6c99522429230f43d09a67fd, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.32833913
+      value: 0.4310241
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 731c7daa6c99522429230f43d09a67fd, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: -3.279
+      value: -4.124
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 731c7daa6c99522429230f43d09a67fd, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 1.937
+      value: 0.89
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 731c7daa6c99522429230f43d09a67fd, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 38.303
+      value: 51.07
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 731c7daa6c99522429230f43d09a67fd, type: 3}
       propertyPath: m_ConstrainProportionsScale
@@ -744,81 +744,9 @@ PrefabInstance:
       value: PF_EnemiesSpawner
       objectReference: {fileID: 0}
     - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: MaxEnemies
-      value: 1500
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: ShowDebugGizmos
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
       propertyPath: DebugPlanetCenter
       value: 
       objectReference: {fileID: 315819014}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[0].SpawnDatas.Array.data[0].KillPercentageToAdvance
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[1].SpawnDatas.Array.data[0].KillPercentageToAdvance
-      value: 0.8
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[1].SpawnDatas.Array.data[1].KillPercentageToAdvance
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[1].SpawnDatas.Array.data[2].KillPercentageToAdvance
-      value: 0.7
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[2].SpawnDatas.Array.data[0].KillPercentageToAdvance
-      value: 0.7
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[2].SpawnDatas.Array.data[1].KillPercentageToAdvance
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[2].SpawnDatas.Array.data[2].KillPercentageToAdvance
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[3].SpawnDatas.Array.data[0].KillPercentageToAdvance
-      value: 0.9
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[3].SpawnDatas.Array.data[1].KillPercentageToAdvance
-      value: 0.9
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[3].SpawnDatas.Array.data[2].KillPercentageToAdvance
-      value: 0.9
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[4].SpawnDatas.Array.data[0].KillPercentageToAdvance
-      value: 0.777
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[4].SpawnDatas.Array.data[1].KillPercentageToAdvance
-      value: 0.7
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[4].SpawnDatas.Array.data[2].KillPercentageToAdvance
-      value: 0.4
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[5].SpawnDatas.Array.data[0].KillPercentageToAdvance
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[5].SpawnDatas.Array.data[1].KillPercentageToAdvance
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[5].SpawnDatas.Array.data[2].KillPercentageToAdvance
-      value: 0.5
-      objectReference: {fileID: 0}
     - target: {fileID: 5966468792438554073, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
