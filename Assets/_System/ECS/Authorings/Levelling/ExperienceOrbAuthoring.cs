@@ -14,13 +14,13 @@ public class ExperienceOrbAuthoring : MonoBehaviour
         public override void Bake(ExperienceOrbAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
-           
+
             AddComponent(entity, new ExperienceOrb { Value = authoring.Value });
-           
+
+            AddComponent(entity, new RunScope());
+
             if (authoring.HardSnapToGround)
-            {
                 AddComponent<HardSnappedMovement>(entity);
-            }
         }
     }
 }

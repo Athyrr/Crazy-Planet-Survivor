@@ -326,6 +326,8 @@ public partial struct SpellCastingSystem : ISystem
             {
                 var spellEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
+                ECB.AddComponent(0, spellEntity, new RunScope());
+
                 // --- A. Transform & Spread ---
                 quaternion finalRotation = baseRotation;
                 float3 finalDirection = fireDirection;

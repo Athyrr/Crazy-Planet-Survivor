@@ -165,6 +165,7 @@ public partial struct HealthSystem : ISystem
                 }
             }
         }
+
         private void TriggerDamageVisual(int key, EntityCommandBuffer.ParallelWriter ecb, int amount, LocalTransform transform)
         {
             Entity req = ecb.CreateEntity(key);

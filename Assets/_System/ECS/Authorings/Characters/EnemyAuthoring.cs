@@ -30,6 +30,9 @@ public class EnemyAuthoring : MonoBehaviour
 
             AddComponent(entity, new FollowTargetMovement() { Speed = authoring.BaseStats.MoveSpeed,StopDistance = authoring.StopDistance});
 
+            AddComponent(entity, new RunScope() { });
+
+
             if (authoring.UseSnappedMovement)
                 AddComponent<HardSnappedMovement>(entity);
 

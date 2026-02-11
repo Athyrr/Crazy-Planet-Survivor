@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Unity.Entities;
 using Unity.Mathematics;
-using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
 public class PlayerAuthoring : MonoBehaviour
@@ -128,6 +127,9 @@ public class PlayerAuthoring : MonoBehaviour
 
             // Request to reacalultate stats using stat modfiers values.
             AddComponent<RecalculateStatsRequest>(entity);
+            
+            // Base spells
+            var baseSpells = AddBuffer<BaseSpell>(entity);
 
             // Active Spells
             AddBuffer<ActiveSpell>(entity);
@@ -143,6 +145,11 @@ public class PlayerAuthoring : MonoBehaviour
                     spellActivationBuffer.Add(new SpellActivationRequest
                     {
                         ID = spellSO.ID,
+                    });
+
+                    baseSpells.Add(new BaseSpell
+                    {
+                        ID = spellSO.ID
                     });
                 }
             }

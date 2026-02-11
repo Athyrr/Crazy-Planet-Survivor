@@ -3,7 +3,6 @@ using Unity.Entities;
 using Unity.Transforms;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(PlayerInitializerSystem))]
 public partial struct PlayerInitializerSystem : ISystem
 {
     [BurstCompile]

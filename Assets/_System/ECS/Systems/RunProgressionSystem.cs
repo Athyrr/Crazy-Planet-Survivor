@@ -1,6 +1,5 @@
 using Unity.Entities;
 using Unity.Burst;
-using UnityEngine;
 
 /// <summary>
 /// System that manages the progression timer of a run. 
@@ -9,11 +8,15 @@ using UnityEngine;
 [BurstCompile]
 public partial struct RunProgressionSystem : ISystem
 {
+    private EntityQuery _killedEventsQuery;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<PlanetData>();
+        //state.RequireForUpdate<PlanetData>();
         state.RequireForUpdate<GameState>();
+
+        _killedEventsQuery = state.GetEntityQuery(ComponentType.ReadOnly<EnemyKilledEvent>());
     }
 
     [BurstCompile]
@@ -21,20 +24,36 @@ public partial struct RunProgressionSystem : ISystem
     {
         if (!SystemAPI.TryGetSingleton<GameState>(out GameState gameState))
             return;
+
         if (gameState.State != EGameState.Running)
             return;
 
         if (!SystemAPI.TryGetSingleton<PlanetData>(out PlanetData planetData))
             return;
-        if (!SystemAPI.TryGetSingleton<RunProgression>(out var timer))
+
+        if (!SystemAPI.TryGetSingletonEntity<RunProgression>(out var progressionEntity))
         {
-            var progressionEntity = state.EntityManager.CreateEntity();
+            progressionEntity = state.EntityManager.CreateEntity();
             state.EntityManager.AddComponentData(progressionEntity, new RunProgression
             {
                 Timer = 0,
                 ProgressRatio = 0,
-                PlanetID = planetData.PlanetID
+                PlanetID = planetData.PlanetID,
+                EnemiesKilledCount = 0
             });
+
+            // Run scope for end run destruction of the run progression
+            state.EntityManager.AddComponent<RunScope>(progressionEntity);
+        }
+
+        int enemiesKilledInFrame = _killedEventsQuery.CalculateEntityCount();
+        if (enemiesKilledInFrame > 0)
+        {
+            var runProgression = SystemAPI.GetComponent<RunProgression>(progressionEntity);
+            runProgression.EnemiesKilledCount += enemiesKilledInFrame;
+            SystemAPI.SetComponent(progressionEntity, runProgression);
+
+            state.EntityManager.DestroyEntity(_killedEventsQuery);
         }
 
         if (SystemAPI.TryGetSingleton<EndRunRequest>(out var _))
@@ -43,7 +62,6 @@ public partial struct RunProgressionSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-
         var runProgressionJob = new RunProgressionJob
         {
             ECB = ecb.AsParallelWriter(),
@@ -51,10 +69,6 @@ public partial struct RunProgressionSystem : ISystem
             RunDuration = planetData.RunDuration
         };
         state.Dependency = runProgressionJob.Schedule(state.Dependency);
-
-        //Debug.Log("Planet: " + timer.PlanetID +
-        //    "\nTimer: " + timer.Timer +
-        //    "\n Progression: " + timer.ProgressRatio);
     }
 
     [BurstCompile]

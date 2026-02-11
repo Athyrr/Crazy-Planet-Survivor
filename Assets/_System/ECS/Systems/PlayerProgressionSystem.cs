@@ -51,7 +51,8 @@ public partial struct PlayerProgressionSystem : ISystem
                 experience.Experience -= experience.NextLevelExperienceRequired;
                 experience.Level++;
 
-                float nextLevelExperience = (experience.NextLevelExperienceRequired + (experience.NextLevelExperienceRequired * experience.Level * 0.5f)) + 1000;
+                //float nextLevelExperience = (experience.NextLevelExperienceRequired + (experience.NextLevelExperienceRequired * experience.Level * 0.5f)) + 1000;
+                float nextLevelExperience = experience.Level * 500 + (experience.NextLevelExperienceRequired * 0.5f) + 1000;
                 experience.NextLevelExperienceRequired = (int)nextLevelExperience;
 
                 ECB.AddComponent(chunkIndex, entity, new PlayerLevelUpRequest() { });

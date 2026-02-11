@@ -158,8 +158,12 @@ public class GameManager : MonoBehaviour
 
     public void ReturnToLobby()
     {
+        // Create request to clear run
+        var entity = _entityManager.CreateEntity();
+        _entityManager.AddComponentData(entity, new ClearRunRequest());
+
         LoadSceneInternal(EPlanetID.Lobby);
-        ChangeState(EGameState.Lobby);
+        //ChangeState(EGameState.Lobby);
     }
 
     public void Quit()
