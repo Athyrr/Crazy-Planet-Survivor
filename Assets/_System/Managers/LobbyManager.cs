@@ -70,8 +70,6 @@ public class LobbyManager : MonoBehaviour
     {
         PlanetSelectionUIController.gameObject.SetActive(false);
         CharacterSelectionUIController.gameObject.SetActive(false);
-        //PlanetSelectionUIController.CloseView();
-
 
         bool isGalaxyMode = (newState == EGameState.PlanetSelection);
         bool isCharacterMode = (newState == EGameState.CharacterSelection);

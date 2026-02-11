@@ -3,6 +3,7 @@ using System.Collections;
 using Unity.Entities;
 using Unity.Scenes;
 using UnityEngine;
+using System;
 
 [DefaultExecutionOrder(-100)]
 public class GameManager : MonoBehaviour
@@ -39,6 +40,23 @@ public class GameManager : MonoBehaviour
         DontDestroyOnLoad(this.gameObject);
     }
 
+    private void OnEnable()
+    {
+        OnGameStateChanged += HandleInternalStateChange;
+    }
+
+    private void HandleInternalStateChange(EGameState newState)
+    {
+        if (LoadingPanel != null)
+            LoadingPanel.SetActive(newState == EGameState.Loading);
+    }
+
+    private void OnDisable()
+    {
+        OnGameStateChanged -= HandleInternalStateChange;
+    }
+
+
     private void Start()
     {
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -74,8 +92,8 @@ public class GameManager : MonoBehaviour
     {
         LoadSceneInternal(planet);
 
-        EGameState newState = planet == EPlanetID.Lobby ? EGameState.Lobby : EGameState.Running;
-        ChangeState(newState);
+        //EGameState newState = planet == EPlanetID.Lobby ? EGameState.Lobby : EGameState.Running;
+        //ChangeState(newState);
     }
 
     private void LoadSceneInternal(EPlanetID planetID)
@@ -108,6 +126,9 @@ public class GameManager : MonoBehaviour
         LoadingPanel.SetActive(true);
 
         EGameState targetState = (planetID == EPlanetID.Lobby) ? EGameState.Lobby : EGameState.Running;
+
+        ChangeState(EGameState.Loading);
+
         StartCoroutine(LoadSceneCororoutine(targetSceneRef, targetState));
 
         Debug.Log($"[GameManager] Scene Loaded: {planetID}");
@@ -142,7 +163,7 @@ public class GameManager : MonoBehaviour
             yield return new WaitForSeconds(remainingTime);
         }
 
-        LoadingPanel.SetActive(false);
+        //LoadingPanel.SetActive(false);
 
         ChangeState(targetState);
     }
