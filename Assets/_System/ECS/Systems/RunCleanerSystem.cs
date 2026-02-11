@@ -11,6 +11,10 @@ using Unity.Burst;
 [BurstCompile]
 public partial struct RunCleanerSystem : ISystem
 {
+
+    //@todo detruire le joueur aussi et juste refaire spawn via playerspawnersys
+
+
     private EntityQuery _runScopeEntitiesQuery;
 
     [BurstCompile]

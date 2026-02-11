@@ -1,7 +1,6 @@
-using System;
 using System.Collections;
-using TMPro;
 using UnityEngine;
+using TMPro;
 
 public class GameOverUIController : MonoBehaviour
 {
@@ -65,7 +64,6 @@ public class GameOverUIController : MonoBehaviour
             yield return null;
         }
 
-        // Set final pour être sûr d'être à la valeur exacte
         color.a = endAlpha;
         GameOverText.color = color;
     }

@@ -31,6 +31,7 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
 
                 ref var spellBlob = ref arrayBuilder[i];
 
+                spellBlob.DisplayName = spellSO.DisplayName;
                 spellBlob.ID = spellSO.ID;
                 spellBlob.BaseCooldown = spellSO.BaseCooldown;
                 spellBlob.BaseDamage = spellSO.BaseDamage;
@@ -78,7 +79,7 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
             }
 
             var spellsDatabaseBlob = builder.CreateBlobAssetReference<SpellBlobs>(Allocator.Persistent);
-           
+
             AddComponent(dbEntity, new SpellsDatabase { Blobs = spellsDatabaseBlob });
 
             // Register blob asset (auto free memory)

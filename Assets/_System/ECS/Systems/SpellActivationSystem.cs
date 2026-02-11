@@ -2,8 +2,6 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using Unity.Mathematics;
-using Unity.Transforms;
 
 /// <summary>
 /// System that handles activation of spells when requested. Activate Initial spells for entities then when a new spell is unlocked..

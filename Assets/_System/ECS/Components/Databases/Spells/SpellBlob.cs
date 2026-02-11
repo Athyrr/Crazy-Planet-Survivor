@@ -1,7 +1,10 @@
+using Unity.Collections;
 using Unity.Mathematics;
 
 public struct SpellBlob
 {
+    public FixedString512Bytes DisplayName;
+
     public ESpellID ID;
     public float BaseDamage;
     public float BaseSpeed;
