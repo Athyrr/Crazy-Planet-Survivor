@@ -4,19 +4,25 @@ using UnityEditor;
 
 public class VATTool : EditorWindow
 {
+    #region Member
+    
+    private AnimationClip _clip;
+    private GameObject _animatedGameObject;
+    private SkinnedMeshRenderer _skinnedMeshRenderer;
+    private float _minSamplingRate = 60.0f;
+    private bool _powerOfTwo = true;
+
+    private bool _hasResults = false;
+    private Texture2D _results_texture;
+    private float _results_duration;
+    private Vector2 _results_bounds;
+
     private const int MAX_TEXTURE_SIZE = 4096;
-
-    private AnimationClip clip;
-    private GameObject animatedGameObject;
-    private SkinnedMeshRenderer skinnedMeshRenderer;
-    private float minSamplingRate = 60.0f;
-    private bool powerOfTwo = true;
-
-    private bool hasResults = false;
-    private Texture2D results_texture;
-    private float results_duration;
-    private Vector2 results_bounds;
-
+    
+    #endregion
+    
+    #region Editor
+    
     [MenuItem("Tools/Vertex Animation Texture Tool")]
     static void Init()
     {
@@ -26,19 +32,19 @@ public class VATTool : EditorWindow
 
     private void OnGUI()
     {
-        clip = (AnimationClip)EditorGUILayout.ObjectField("Animation clip", clip, typeof(AnimationClip), false);
-        animatedGameObject = (GameObject)EditorGUILayout.ObjectField("Animated GameObject", animatedGameObject, typeof(GameObject), true);
-        skinnedMeshRenderer = (SkinnedMeshRenderer)EditorGUILayout.ObjectField("Skinned mesh renderer", skinnedMeshRenderer, typeof(SkinnedMeshRenderer), true);
+        _clip = (AnimationClip)EditorGUILayout.ObjectField("Animation clip", _clip, typeof(AnimationClip), false);
+        _animatedGameObject = (GameObject)EditorGUILayout.ObjectField("Animated GameObject", _animatedGameObject, typeof(GameObject), true);
+        _skinnedMeshRenderer = (SkinnedMeshRenderer)EditorGUILayout.ObjectField("Skinned mesh renderer", _skinnedMeshRenderer, typeof(SkinnedMeshRenderer), true);
         EditorGUILayout.Space();
-        minSamplingRate = EditorGUILayout.FloatField("Sampling rate (per sec.)", minSamplingRate);
-        powerOfTwo = EditorGUILayout.Toggle("Power of two", powerOfTwo);
+        _minSamplingRate = EditorGUILayout.FloatField("Sampling rate (per sec.)", _minSamplingRate);
+        _powerOfTwo = EditorGUILayout.Toggle("Power of two", _powerOfTwo);
 
         GUI.enabled =
-            clip &&
-            animatedGameObject &&
-            skinnedMeshRenderer &&
-            skinnedMeshRenderer.sharedMesh
-            && minSamplingRate > 0;
+            _clip &&
+            _animatedGameObject &&
+            _skinnedMeshRenderer &&
+            _skinnedMeshRenderer.sharedMesh
+            && _minSamplingRate > 0;
 
         if (GUILayout.Button("Generate"))
             GenerateTexture();
@@ -46,44 +52,48 @@ public class VATTool : EditorWindow
         GUI.enabled = true;
 
 
-        if (hasResults)
+        if (_hasResults)
         {
             EditorGUILayout.Space();
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("Last results:");
             EditorGUI.indentLevel++;
-            EditorGUILayout.ObjectField("Asset: ", results_texture, typeof(Texture), false);
-            EditorGUILayout.FloatField("Duration: ", results_duration);
-            EditorGUILayout.Vector2Field("Bounds: ", results_bounds);
+            EditorGUILayout.ObjectField("Asset: ", _results_texture, typeof(Texture), false);
+            EditorGUILayout.FloatField("Duration: ", _results_duration);
+            EditorGUILayout.Vector2Field("Bounds: ", _results_bounds);
             EditorGUI.indentLevel--;
             EditorGUILayout.EndVertical();
         }
     }
+    
+    #endregion
 
+    #region Methods
+    
     public void GenerateTexture()
     {
-        Vector3[] defaultVertexPositions = skinnedMeshRenderer.sharedMesh.vertices; //the vertex positions when the mesh is not animated
+        Vector3[] defaultVertexPositions = _skinnedMeshRenderer.sharedMesh.vertices; //the vertex positions when the mesh is not animated
 
         int textureHeight = defaultVertexPositions.Length;
-        if (powerOfTwo)
+        if (_powerOfTwo)
             textureHeight = GetNearestPowerOfTwo(textureHeight);
 
         if (textureHeight > MAX_TEXTURE_SIZE)
         {
             EditorUtility.DisplayDialog(
-                "Error",
-                string.Format("Vertices count of {0} exceeds the max texture size ({1})", skinnedMeshRenderer.sharedMesh.name, MAX_TEXTURE_SIZE),
+                "VAT_Tool: Error",
+                string.Format("Vertices count of {0} exceeds the max texture size ({1})", _skinnedMeshRenderer.sharedMesh.name, MAX_TEXTURE_SIZE),
                 "OK");
             return;
         }
 
-        int textureWidth = Mathf.CeilToInt(clip.length * minSamplingRate);
-        if (powerOfTwo)
+        int textureWidth = Mathf.CeilToInt(_clip.length * _minSamplingRate);
+        if (_powerOfTwo)
             textureWidth = GetNearestPowerOfTwo(textureWidth);
 
         if (textureWidth > MAX_TEXTURE_SIZE || textureHeight > MAX_TEXTURE_SIZE)
         {
-            EditorUtility.DisplayDialog("Error", string.Format("Animation clip is too long to be sampled at {0}FPS for a max texture size of {1}!", minSamplingRate, MAX_TEXTURE_SIZE), "OK");
+            EditorUtility.DisplayDialog("VAT_Tool: Error", string.Format("Animation clip is too long to be sampled at {0}FPS for a max texture size of {1}!", _minSamplingRate, MAX_TEXTURE_SIZE), "OK");
             return;
         }
 
@@ -92,14 +102,14 @@ public class VATTool : EditorWindow
         List<Vector3> tmpVPos = new List<Vector3>(); //tmp list to store the vertex positions of the baked mesh
         Vector2 bounds = new Vector2(float.PositiveInfinity, float.NegativeInfinity); //minimum and maximum x, y or z values of each vertex positions, bounds.x is min / bounds.y is max
 
-        Undo.RegisterFullObjectHierarchyUndo(animatedGameObject, "Sample animation"); //remember the current "pose" of the gameobject to be animated, horrible but necessary
+        Undo.RegisterFullObjectHierarchyUndo(_animatedGameObject, "Sample animation"); //remember the current "pose" of the gameobject to be animated, horrible but necessary
 
         for (int x = 0; x < textureWidth; x++)
         {
-            float t = (x / (float)textureWidth) * clip.length;
+            float t = (x / (float)textureWidth) * _clip.length;
 
-            clip.SampleAnimation(animatedGameObject, t);
-            skinnedMeshRenderer.BakeMesh(bakedMesh, false);
+            _clip.SampleAnimation(_animatedGameObject, t);
+            _skinnedMeshRenderer.BakeMesh(bakedMesh, false);
             bakedMesh.GetVertices(tmpVPos);
 
             for (int y = 0; y < tmpVPos.Count; y++)
@@ -136,11 +146,11 @@ public class VATTool : EditorWindow
 
         texture.Apply();
 
-        string path = EditorUtility.SaveFilePanelInProject("Save Texture", "VATTexture_" + clip.name, "png", "Select destination");
+        string path = EditorUtility.SaveFilePanelInProject("Save Texture", "VATTexture_" + _clip.name, "png", "Select destination");
 
         if (string.IsNullOrEmpty(path))
         {
-            EditorUtility.DisplayDialog("Error", "Path is invalid!", "OK");
+            EditorUtility.DisplayDialog("VAT_Tool: Error", "Path is invalid!", "OK");
             return;
         }
 
@@ -159,18 +169,26 @@ public class VATTool : EditorWindow
             importer.filterMode = FilterMode.Bilinear;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.maxTextureSize = Mathf.RoundToInt(Mathf.Max(GetNearestPowerOfTwo(textureWidth), GetNearestPowerOfTwo(textureHeight)));
-            importer.npotScale = powerOfTwo ? TextureImporterNPOTScale.ToNearest : TextureImporterNPOTScale.None;
+            importer.npotScale = _powerOfTwo ? TextureImporterNPOTScale.ToNearest : TextureImporterNPOTScale.None;
             EditorUtility.SetDirty(importer);
             importer.SaveAndReimport();
             AssetDatabase.Refresh();
 
-            hasResults = true;
-            results_duration = clip.length;
-            results_bounds = bounds;
-            results_texture = (Texture2D)AssetDatabase.LoadMainAssetAtPath(path);
+            _hasResults = true;
+            _results_duration = _clip.length;
+            _results_bounds = bounds;
+            _results_texture = (Texture2D)AssetDatabase.LoadMainAssetAtPath(path);
+        }
+        else
+        {
+            Debug.LogError("VAT_Tool: EncodeToPNG failed");
         }
     }
 
+    #endregion
+
+    #region Utils
+    
     private int GetNearestPowerOfTwo(int x)
     {
         if (x < 0) { return 0; }
@@ -182,4 +200,6 @@ public class VATTool : EditorWindow
         x |= x >> 16;
         return x + 1;
     }
+
+    #endregion
 }
