@@ -17,4 +17,5 @@ public enum EGameState
     Paused,
     GameOver,
     UpgradeSelection,
+    Loading
 }

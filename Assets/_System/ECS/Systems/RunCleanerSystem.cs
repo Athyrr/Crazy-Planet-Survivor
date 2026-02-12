@@ -89,6 +89,7 @@ public partial struct RunCleanerSystem : ISystem
             // Reset Experience
             experience.ValueRW.Experience = 0;
             experience.ValueRW.Level = 1;
+            experience.ValueRW.NextLevelExperienceRequired = 500;
 
             // Force Recalculate Stats
             //state.EntityManager.AddComponent<RecalculateStatsRequest>(entity);

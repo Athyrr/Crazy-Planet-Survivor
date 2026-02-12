@@ -3,6 +3,7 @@ using Unity.Entities;
 using Unity.Transforms;
 using Unity.Collections;
 using Unity.Mathematics;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 /// <summary>
 /// Manages the lifecycle of experience orbs, handling both the detection of nearby orbs (attraction) 
@@ -45,10 +46,15 @@ public partial struct ExpOrbAttractionSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        // Refresh transform lookup for the current frame
+        var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
+        var gameState = SystemAPI.GetComponent<GameState>(gameStateEntity);
+        if (gameState.State != EGameState.Running)
+            return;
+
         _transformLookup.Update(ref state);
 
-        if (_playerQuery.IsEmptyIgnoreFilter) return;
+        if (_playerQuery.IsEmptyIgnoreFilter)
+            return;
 
         float deltaTime = SystemAPI.Time.DeltaTime;
 
