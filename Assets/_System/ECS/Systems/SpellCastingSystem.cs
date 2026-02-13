@@ -42,6 +42,8 @@ public partial struct SpellCastingSystem : ISystem
     //private ComponentLookup<ExplodeOnContact> _explodeLookup;
 
 
+    //@todo Planet ref center
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -197,7 +199,6 @@ public partial struct SpellCastingSystem : ISystem
                 return;
             }
 
-
             // Default values (No modifiers)
             float mulDmg = 1f, mulSpeed = 1f, mulArea = 1f, mulDuration = 1f;
             int addAmount = 0, addBounces = 0, addPierces = 0;
@@ -244,6 +245,10 @@ public partial struct SpellCastingSystem : ISystem
             Entity targetEntity = Entity.Null;
             bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
 
+            float3 baseSpawnPos = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseSpawnOffset);
+            quaternion baseRotation = casterTransform.Rotation;
+            float3 fireDirection = casterTransform.Forward();
+
             var filter = new CollisionFilter
             {
                 BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
@@ -286,17 +291,36 @@ public partial struct SpellCastingSystem : ISystem
                     }
                     break;
                 case ESpellTargetingMode.RandomInRange:
-                    // Simple random on flat plane for now (Replace with PlanetUtils if needed)
-                    float2 rndCircle = random.NextFloat2Direction() * random.NextFloat(0, baseSpellData.BaseCastRange);
-                    targetPosition = casterTransform.Position + new float3(rndCircle.x, 0, rndCircle.y);
-                    targetFound = true;
+                    float3 planetCenter = float3.zero;
+                    var groundFilter = new CollisionFilter
+                    {
+                        BelongsTo = CollisionLayers.Raycast,
+                        CollidesWith = CollisionLayers.Landscape
+                    };
+
+                    if (PlanetUtils.GetRandomPointOnSurface(
+                        ref CollisionWorld,
+                        ref random,
+                        casterTransform.Position,
+                        planetCenter,
+                        baseSpellData.BaseCastRange,
+                        ref groundFilter,
+                        out var p,
+                        out var n)) 
+                    {
+                        targetPosition = p;
+                        //PlanetUtils.ProjectDirectionOnSurface(casterTransform.Forward(), n, out var r);
+                        baseRotation = quaternion.LookRotationSafe(casterTransform.Forward(), n);
+                        targetFound = true;
+                    }
+                    else
+                    {
+                        targetPosition = casterTransform.Position;
+                    }
                     break;
             }
 
             // SPAWN CALCULATION (Position & Rotation Basis)
-            float3 baseSpawnPos = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseSpawnOffset);
-            quaternion baseRotation = casterTransform.Rotation;
-            float3 fireDirection = casterTransform.Forward();
 
             bool isProjectile = LinearMovementLookup.HasComponent(spellPrefab);
             bool isAttached = AttachLookup.HasComponent(spellPrefab);

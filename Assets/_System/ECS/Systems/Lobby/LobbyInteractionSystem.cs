@@ -26,8 +26,8 @@ public partial struct LobbyInteractionSystem : ISystem
         //if (!SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity))
         //    return;
 
-        SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity);
-
+        if (!SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity))
+            return;
 
         var playerTransform = SystemAPI.GetComponent<LocalTransform>(playerEntity);
 

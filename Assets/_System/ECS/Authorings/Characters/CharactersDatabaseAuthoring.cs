@@ -18,18 +18,19 @@ public class CharactersDatabaseAuthoring : MonoBehaviour
             }
 
             AddComponent<CharactersDatabase>(entity);
+
             var prefabsBuffer = AddBuffer<CharacterPrefabBufferElement>(entity);
 
             for (int i = 0; i < authoring.CharactersDatabase.Characters.Length ; i++)
             {
-                var character = authoring.CharactersDatabase.Characters[i];
+                var characterData = authoring.CharactersDatabase.Characters[i];
 
-                if (character == null)
+                if (characterData == null)
                 {
-                    Debug.LogError($"Character prefab for character: {character.name} is missing in database asset!", authoring);
+                    Debug.LogError($"Character prefab for character: {characterData.name} is missing in database asset!", authoring);
                     continue;
                 }
-                var characterPrefabEntity = GetEntity(character.GamePrefab, TransformUsageFlags.Dynamic);
+                var characterPrefabEntity = GetEntity(characterData.GamePrefab, TransformUsageFlags.Dynamic);
 
                 prefabsBuffer.Add(new CharacterPrefabBufferElement()
                 {

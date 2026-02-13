@@ -74,6 +74,11 @@ public class EnemyAuthoring : MonoBehaviour
                     ID = spellSO.ID,
                 });
             }
+
+            // HitFrame feedback component
+            var hitColor = new HitFrameFreedbackSystem.HitFrameColor { Value = 0 };
+            AddComponent(entity, hitColor);
+            SetComponentEnabled<HitFrameFreedbackSystem.HitFrameColor>(entity, false);
         }
     }
 }

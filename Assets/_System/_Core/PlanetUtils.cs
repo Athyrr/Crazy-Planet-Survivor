@@ -184,7 +184,8 @@ public static partial class PlanetUtils
        in float3 planetCenter,
         float range,
        ref CollisionFilter filter,
-        out float3 foundPosition)
+        out float3 foundPosition,
+        out float3 normal)
     {
         float3 up = math.normalize(centerPos - planetCenter);
 
@@ -199,7 +200,7 @@ public static partial class PlanetUtils
 
         var success = SnapToSurfaceRaycast(ref collisionWorld, roughPosition, planetCenter, filter, 50f, out var hit);
         foundPosition = hit.Position;
-
+        normal = hit.SurfaceNormal;
         return success;
     }
 

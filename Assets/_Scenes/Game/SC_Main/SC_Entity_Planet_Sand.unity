@@ -254,6 +254,63 @@ Transform:
   - {fileID: 1005509909}
   m_Father: {fileID: 818922488}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &775485091
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 170483052861109736, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
+      propertyPath: m_Name
+      value: PF_PlayerStart
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592248329459185350, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3.1099997
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592248329459185350, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592248329459185350, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.53
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592248329459185350, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592248329459185350, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592248329459185350, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592248329459185350, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592248329459185350, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592248329459185350, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592248329459185350, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: e3215006c9c9cc94ebfd64448a809372, type: 3}
 --- !u!1 &818922487
 GameObject:
   m_ObjectHideFlags: 0
@@ -747,6 +804,38 @@ PrefabInstance:
       propertyPath: DebugPlanetCenter
       value: 
       objectReference: {fileID: 315819014}
+    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
+      propertyPath: Waves.Array.data[6].SpawnDatas.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
+      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].Mode
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
+      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].Amount
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
+      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].Prefab
+      value: 
+      objectReference: {fileID: 4960229139857780973, guid: e365daea1873ad948a8ba513adf1bd9e, type: 3}
+    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
+      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].MaxSpawnRange
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
+      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].MinSpawnRange
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
+      propertyPath: Waves.Array.data[4].SpawnDatas.Array.data[0].KillPercentageToAdvance
+      value: 0.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
+      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].KillPercentageToAdvance
+      value: 0.7
+      objectReference: {fileID: 0}
     - target: {fileID: 5966468792438554073, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -914,6 +1003,7 @@ PrefabInstance:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 775485091}
   - {fileID: 1731986617}
   - {fileID: 7927507593957282338}
   - {fileID: 818922488}

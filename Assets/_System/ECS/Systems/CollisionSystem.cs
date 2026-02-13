@@ -1,10 +1,11 @@
-using Unity.Physics.Systems;
-using Unity.Collections;
-using Unity.Mathematics;
-using Unity.Transforms;
-using Unity.Entities;
-using Unity.Physics;
 using Unity.Burst;
+using Unity.Collections;
+using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Physics;
+using Unity.Physics.Systems;
+using Unity.Transforms;
+using static HitFrameFreedbackSystem;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [UpdateAfter(typeof(PhysicsSystemGroup))]
@@ -164,6 +165,7 @@ public partial struct CollisionSystem : ISystem
                     //    TriggerDamageVisual(0, ECB, (int)damageData.Damage, transform);
                     //}
 
+                    ApplyFeedbacks(target);
                 }
 
                 // Handle cases Ricochet and Piercing before destroying the projectile
@@ -202,10 +204,6 @@ public partial struct CollisionSystem : ISystem
                             // Decrease remaining bounces
                             ricochet.RemainingBounces--;
                             RicochetLookup[damagerEntity] = ricochet;
-
-                            // Create camera shake feedback request
-                            var feedbackReqEntity = ECB.CreateEntity(0);
-                            ECB.AddComponent<ShakeFeedbackRequest>(0, feedbackReqEntity);
 
                             // Do not destroy the projectile
                             shouldDestroy = false;
@@ -249,6 +247,28 @@ public partial struct CollisionSystem : ISystem
                     // If needed, create feedback request 
                 }
             }
+        }
+
+        private void ApplyFeedbacks(Entity hitEntity)
+        {
+            // If not enemy
+            if (!EnemyLookup.HasComponent(hitEntity))
+                return;
+
+            // If Player
+            if (PlayerLookup.HasComponent(hitEntity))
+                return;
+
+            // Create camera shake feedback request
+            var shakeFeedbackReqEntity = ECB.CreateEntity(0);
+            ECB.AddComponent<ShakeFeedbackRequest>(0, shakeFeedbackReqEntity);
+
+            // Create camera shake feedback request
+            var hitFrameFeedbackReqEntity = ECB.CreateEntity(0);
+            ECB.AddComponent<HitFrameColorRequest>(0, hitFrameFeedbackReqEntity, new HitFrameColorRequest
+            {
+                TargetEntity = hitEntity
+            });
         }
 
         /// <summary>
@@ -353,26 +373,26 @@ public partial struct CollisionSystem : ISystem
             return found;
         }
 
-        //private bool TryResolveEnemyVsPlayer(Entity entityA, Entity entityB, out Entity enemy, out Entity player)
-        //{
-        //    if (EnemyLookup.HasComponent(entityA) && PlayerLookup.HasComponent(entityB))
-        //    {
-        //        enemy = entityA;
-        //        player = entityB;
-        //        return true;
-        //    }
+        private bool TryResolveEnemyVsPlayer(Entity entityA, Entity entityB, out Entity enemy, out Entity player)
+        {
+            if (EnemyLookup.HasComponent(entityA) && PlayerLookup.HasComponent(entityB))
+            {
+                enemy = entityA;
+                player = entityB;
+                return true;
+            }
 
-        //    if (EnemyLookup.HasComponent(entityB) && PlayerLookup.HasComponent(entityA))
-        //    {
-        //        enemy = entityB;
-        //        player = entityA;
-        //        return true;
-        //    }
+            if (EnemyLookup.HasComponent(entityB) && PlayerLookup.HasComponent(entityA))
+            {
+                enemy = entityB;
+                player = entityA;
+                return true;
+            }
 
-        //    enemy = Entity.Null;
-        //    player = Entity.Null;
-        //    return false;
-        //}
+            enemy = Entity.Null;
+            player = Entity.Null;
+            return false;
+        }
 
 
         //private bool TryResolveProjectileVsObstacle(Entity entityA, Entity entityB, out Entity projectile, out Entity obstacle)

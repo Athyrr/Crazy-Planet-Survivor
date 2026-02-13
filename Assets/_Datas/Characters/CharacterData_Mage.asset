@@ -20,20 +20,21 @@ MonoBehaviour:
   StatsUpgradesPool: {fileID: 11400000, guid: 65be180b5958ee040864032b0a195caf, type: 2}
   SpellUpgradesPool: {fileID: 11400000, guid: 58171efd1d1c66b428a33360e869d815, type: 2}
   InitialSpells:
-  - {fileID: 11400000, guid: a13ca1f0a33c36a46bac651b45432abc, type: 2}
+  - {fileID: 11400000, guid: ae5bbb8d89c2ebb46b2b957b87ec7ae1, type: 2}
+  - {fileID: 11400000, guid: de9b0eda8b3a72c40b8d8d2dc3e977ec, type: 2}
   BaseStats:
-    MaxHealth: 100
-    Armor: 10
-    MoveSpeed: 18
+    MaxHealth: 500
+    Armor: 2
+    MoveSpeed: 20
     Damage: 15
     CooldownReduction: 0
     ProjectileSpeedMultiplier: 1.5
     EffectAreaRadiusMultiplier: 0
     BouncesAdded: 0
     PierceAdded: 0
-    FireResistance: 10
-    IceResistance: 5
-    LightningResistance: 12
-    ArcaneResistance: 20
-    CollectRange: 10
+    FireResistance: 0.79999995
+    IceResistance: 0.79999995
+    LightningResistance: 0.79999995
+    ArcaneResistance: 0.79999995
+    CollectRange: 15
     MaxCollectRange: 35
