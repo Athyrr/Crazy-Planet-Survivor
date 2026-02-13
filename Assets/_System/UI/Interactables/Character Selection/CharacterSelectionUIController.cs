@@ -28,7 +28,6 @@ public class CharacterSelectionUIController : MonoBehaviour
 
         _currentSelectedCharacterIndex = 0;
     }
-
     private void InitUI()
     {
         CharacterListView.Init(this, Database);
@@ -42,7 +41,7 @@ public class CharacterSelectionUIController : MonoBehaviour
 
     public void CloseView()
     {
-        // hide children
+        // Hide children
         foreach (Transform child in transform)
             child.gameObject.SetActive(false);
     }
@@ -71,7 +70,6 @@ public class CharacterSelectionUIController : MonoBehaviour
         });
 
         GameManager.Instance.ChangeState(EGameState.Lobby);
-
-        Debug.Log($"Select Character Index {index}");
+        //Debug.Log($"Select Character Index {index}");
     }
 }

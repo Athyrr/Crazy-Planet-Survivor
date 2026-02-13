@@ -15,6 +15,11 @@ public class GameStateAuthoring : MonoBehaviour
 
             // Store upgrade selection 
             AddBuffer<UpgradeSelectionBufferElement>(entity);
+
+            AddComponent(entity, new SelectedCharacterData
+            {
+                CharacterIndex = 0,
+            });
         }
     }
 }
