@@ -187,20 +187,60 @@ public static partial class PlanetUtils
         out float3 foundPosition,
         out float3 normal)
     {
+        return GetRandomPointOnSurface(ref collisionWorld, ref random, centerPos, planetCenter, 0, range, ref filter, out foundPosition, out normal);
+    }
+
+    /// <summary>
+    /// Get a random point on the planet surface within a minimum and maximum range (Ring/Annulus) around an origin point.
+    /// Uses uniform area distribution to prevent clustering near the minimum range.
+    /// </summary>
+    /// <param name="collisionWorld">Collision world reference.</param>
+    /// <param name="random">Random struct reference.</param>
+    /// <param name="centerPos">Origin point around which the point is.</param>
+    /// <param name="planetCenter">Planet center postion.</param>
+    /// <param name="minRange">Minimum distance from centerPos.</param>
+    /// <param name="maxRange">Maximum distance from centerPos.</param>
+    /// <param name="filter">Collision filter.</param>
+    /// <param name="foundPosition">Found position.</param>
+    /// <param name="normal">Surface normal at found position.</param>
+    /// <returns>Returns true if a point was found succesfully.</returns>
+    [BurstCompile]
+    public static bool GetRandomPointOnSurface(
+        [ReadOnly] ref CollisionWorld collisionWorld,
+        ref Random random,
+        in float3 centerPos,
+        in float3 planetCenter,
+        float minRange,
+        float maxRange,
+        ref CollisionFilter filter,
+        out float3 foundPosition,
+        out float3 normal)
+    {
         float3 up = math.normalize(centerPos - planetCenter);
 
-        float2 randCircle = random.NextFloat2Direction() * random.NextFloat(0, range);
+        float2 randomDir = random.NextFloat2Direction(); 
 
-        quaternion alignmentRot = quaternion.LookRotationSafe(math.cross(up, math.right()), up);
+        float t = random.NextFloat();
+        float radiusSquared = (minRange * minRange) + t * ((maxRange * maxRange) - (minRange * minRange));
+        float radius = math.sqrt(radiusSquared);
+
+        float2 randCircle = randomDir * radius;
+
+        float3 tangent = math.cross(up, new float3(0, 1, 0));
+        if (math.lengthsq(tangent) < 0.001f)
+            tangent = math.cross(up, new float3(1, 0, 0));
+
+        quaternion alignmentRot = quaternion.LookRotationSafe(tangent, up);
 
         float3 localOffset = new float3(randCircle.x, 0f, randCircle.y);
         float3 worldOffset = math.rotate(alignmentRot, localOffset);
-
         float3 roughPosition = centerPos + worldOffset;
 
-        var success = SnapToSurfaceRaycast(ref collisionWorld, roughPosition, planetCenter, filter, 50f, out var hit);
+        var success = SnapToSurfaceRaycast(ref collisionWorld, roughPosition, planetCenter, filter, 100f, out var hit);
+
         foundPosition = hit.Position;
         normal = hit.SurfaceNormal;
+
         return success;
     }
 
