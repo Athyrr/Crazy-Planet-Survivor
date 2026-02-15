@@ -1,110 +1,118 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-// Ce drawer cible spécifiquement la struct SpawnData à l'intérieur de SpawnerAuthoring
-[CustomPropertyDrawer(typeof(SpawnerAuthoring.SpawnData))]
-public class SpawnDataDrawer : PropertyDrawer
+/// <summary>
+/// Custom property drawer for SpawnGroupData.
+/// It dynamically adjusts the inspector UI based on the selected SpawnMode,
+/// showing only relevant fields for a cleaner experience.
+/// </summary>
+[CustomPropertyDrawer(typeof(EnemiesSpawnerAuthoring.SpawnGroupData))]
+public class SpawnGroupDataDrawer : PropertyDrawer
 {
-    // Définit la hauteur totale de la propriété dans l'inspecteur
+    // Constants for layout
+    private const float VerticalSpacing = 2f;
+
+    /// <summary>
+    /// Calculates the total height of the property in the inspector based on visible fields.
+    /// </summary>
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
         var modeProp = property.FindPropertyRelative("Mode");
 
-        // Hauteur de base : Mode + Prefab + Amount + KillPercentageToAdvance (4 lignes)
+        // Retrieve the actual Enum value safely using the index
+        SpawnMode currentMode = (SpawnMode)modeProp.enumValueIndex;
+
+        // Base height: Mode + Prefab + Amount + Delay (4 lines)
         int lines = 4;
 
-        // Si le mode est "Single", on ajoute 2 lignes pour SpawnerPrefab et SpawnDelay
-        if (IsMode(modeProp, "Single"))
+        // Add lines based on the selected mode
+        if (currentMode == SpawnMode.Zone)
         {
-            lines += 2;
+            lines += 1; // ZoneTransform
         }
-        else if (IsMode(modeProp, "AroundPlayer"))
+        else if (currentMode == SpawnMode.AroundPlayer)
         {
-            lines += 2;
+            lines += 2; // MinRange + MaxRange
         }
+        // "RandomInPlanet" and "PlayerOpposite" use default lines
 
-        // Calcul final avec l'espacement standard entre les lignes
-        return lines * EditorGUIUtility.singleLineHeight + (lines - 1) * EditorGUIUtility.standardVerticalSpacing;
+        // Calculate final height with standard spacing
+        return lines * EditorGUIUtility.singleLineHeight + (lines - 1) * VerticalSpacing;
     }
 
-    // Dessine l'interface
+    /// <summary>
+    /// Renders the GUI for the property.
+    /// </summary>
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
         EditorGUI.BeginProperty(position, label, property);
 
-        // Récupération des sous-propriétés
+        // Retrieve properties
         var modeProp = property.FindPropertyRelative("Mode");
         var prefabProp = property.FindPropertyRelative("Prefab");
         var amountProp = property.FindPropertyRelative("Amount");
-        var spawnerPrefabProp = property.FindPropertyRelative("SpawnerPrefab");
-        var spawnDelayProp = property.FindPropertyRelative("SpawnDelay");
-        var minRangeProp = property.FindPropertyRelative("MinSpawnRange");
-        var maxRangeProp = property.FindPropertyRelative("MaxSpawnRange");
-        var killPercentageProp = property.FindPropertyRelative("KillPercentageToAdvance");
+        var zoneTransformProp = property.FindPropertyRelative("ZoneTransform");
+        var delayProp = property.FindPropertyRelative("Delay");
+        var minRangeProp = property.FindPropertyRelative("MinRange");
+        var maxRangeProp = property.FindPropertyRelative("MaxRange");
 
-        // Rectangle pour la première ligne
+        // Retrieve the actual Enum value safely
+        SpawnMode currentMode = (SpawnMode)modeProp.enumValueIndex;
+
+        // Set up the initial rect for the first line
         Rect rect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
 
-        // 1. Dessiner le Mode
+        // 1. Draw Mode
         EditorGUI.PropertyField(rect, modeProp);
-        rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+        rect.y += EditorGUIUtility.singleLineHeight + VerticalSpacing;
 
-        // 2. Dessiner Prefab (Toujours visible)
+        // 2. Draw Prefab (Always visible)
         EditorGUI.PropertyField(rect, prefabProp);
-        rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+        rect.y += EditorGUIUtility.singleLineHeight + VerticalSpacing;
 
-        // 3. Dessiner Amount (Toujours visible)
+        // 3. Draw Amount (Always visible)
         EditorGUI.PropertyField(rect, amountProp);
-        rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
-        
-        // 4. Dessiner KillPercentageToAdvance (Toujours visible)
-        EditorGUI.PropertyField(rect, killPercentageProp);
-        rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+        rect.y += EditorGUIUtility.singleLineHeight + VerticalSpacing;
 
-        // 5. Dessiner les champs conditionnels si Mode == Single
-        if (IsMode(modeProp, "Single"))
+        // 4. Draw Delay (Always visible)
+        EditorGUI.PropertyField(rect, delayProp);
+        rect.y += EditorGUIUtility.singleLineHeight + VerticalSpacing;
+
+        // 5. Draw Conditional Fields based on Mode
+        if (currentMode == SpawnMode.Zone)
         {
-            EditorGUI.PropertyField(rect, spawnerPrefabProp);
-            rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
-
-            EditorGUI.PropertyField(rect, spawnDelayProp);
+            EditorGUI.PropertyField(rect, zoneTransformProp);
+            rect.y += EditorGUIUtility.singleLineHeight + VerticalSpacing;
         }
-        else if (IsMode(modeProp, "AroundPlayer"))
+        else if (currentMode == SpawnMode.AroundPlayer)
         {
+            // Draw Min Range
             EditorGUI.BeginChangeCheck();
             EditorGUI.PropertyField(rect, minRangeProp);
             if (EditorGUI.EndChangeCheck())
             {
+                // Auto-correct: Min cannot be greater than Max
                 if (minRangeProp.floatValue > maxRangeProp.floatValue)
                 {
                     maxRangeProp.floatValue = minRangeProp.floatValue;
                 }
             }
+            rect.y += EditorGUIUtility.singleLineHeight + VerticalSpacing;
 
-            rect.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
-
+            // Draw Max Range
             EditorGUI.BeginChangeCheck();
             EditorGUI.PropertyField(rect, maxRangeProp);
             if (EditorGUI.EndChangeCheck())
             {
+                // Auto-correct: Max cannot be smaller than Min
                 if (maxRangeProp.floatValue < minRangeProp.floatValue)
                 {
                     minRangeProp.floatValue = maxRangeProp.floatValue;
                 }
             }
+            rect.y += EditorGUIUtility.singleLineHeight + VerticalSpacing;
         }
 
         EditorGUI.EndProperty();
-    }
-
-    // Helper pour vérifier la valeur de l'enum de manière sécurisée
-    private bool IsMode(SerializedProperty modeProp, string modeName)
-    {
-        // Vérifie si le nom de l'enum sélectionné correspond
-        if (modeProp.enumValueIndex >= 0 && modeProp.enumValueIndex < modeProp.enumNames.Length)
-        {
-            return modeProp.enumNames[modeProp.enumValueIndex] == modeName;
-        }
-        return false;
     }
 }
