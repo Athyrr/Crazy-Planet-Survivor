@@ -351,7 +351,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
             if (Mode == SpawnMode.EntirePlanet)
             {
                 float3 randomDirection = rand.NextFloat3Direction();
-                spawnPosition = PlanetCenter + randomDirection * PlanetRadius;
+                spawnPosition = PlanetCenter + randomDirection * PlanetRadius * 1.1f;
                 normal = randomDirection;
             }
             else if (Mode == SpawnMode.Single)

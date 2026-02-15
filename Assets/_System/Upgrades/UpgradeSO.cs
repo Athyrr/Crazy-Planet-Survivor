@@ -19,14 +19,13 @@ public class UpgradeSO : ScriptableObject
     [Tooltip("Spell to unlock or upgrade.None if we target all tagged spell.")]
     public ESpellID SpellID;
 
-    [Header("Spell Upgrade")]
+    [Header("Target Tags")]
     [Tooltip("Spell Tags to upgrade a spell. E.g. 'Fire' will upgrade all Fire tagged spells.")]
     public ESpellTag RequiredTags;
 
+    [Header("Upgrade")]
     [Tooltip("Property of the spell to modify (Damage, Cooldown, Amount...).")]
     public ESpellStat SpellStat;
-
-    [Header("Value")]
     public EStatModiferStrategy ModifierStrategy;
     public float Value;
 }

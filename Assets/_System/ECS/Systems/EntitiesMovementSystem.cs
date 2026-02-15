@@ -59,7 +59,6 @@ public partial struct EntitiesMovementSystem : ISystem
         // All movement jobs write to 'LocalTransform'. To prevent race conditions and satisfy 
         // Unity's safety system, we must chain the JobHandles so they execute sequentially.
 
-        // 1. Linear Movement Phase
         var linearSnappedJob = new MoveLinearSnappedJob
         {
             DeltaTime = delta,
@@ -70,18 +69,17 @@ public partial struct EntitiesMovementSystem : ISystem
         };
         JobHandle linearSnappedHandle = linearSnappedJob.ScheduleParallel(state.Dependency);
 
-        var linearBareJob = new MoveLinearBareJob
-        {
-            DeltaTime = delta,
-            PlanetCenter = planetTransform.Position,
-            PlanetRadius = planetData.Radius,
-            StatsLookup = _statsLookup,
-            PlayerLookup = _playerLookup,
-            PhysicsCollisionWorld = collisionWorld
-        };
-        JobHandle linearBareHandle = linearBareJob.ScheduleParallel(linearSnappedHandle);
+        //var linearBareJob = new MoveLinearBareJob
+        //{
+        //    DeltaTime = delta,
+        //    PlanetCenter = planetTransform.Position,
+        //    PlanetRadius = planetData.Radius,
+        //    StatsLookup = _statsLookup,
+        //    PlayerLookup = _playerLookup,
+        //    PhysicsCollisionWorld = collisionWorld
+        //};
+        //JobHandle linearBareHandle = linearBareJob.ScheduleParallel(linearSnappedHandle);
 
-        // 2. Follow Movement Phase (Targets and Steering)
         var followSnappedJob = new MoveFollowSnappedJob
         {
             PhysicsCollisionWorld = collisionWorld,
@@ -91,26 +89,26 @@ public partial struct EntitiesMovementSystem : ISystem
             SteeringLookup = _steeringLookup,
             TransformLookup = _transformLookup
         };
-        JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearBareHandle);
+        JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearSnappedHandle);
+        //JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearBareHandle);
 
-        var followBareJob = new MoveFollowBareJob
-        {
-            DeltaTime = delta,
-            PlanetCenter = planetTransform.Position,
-            PlanetRadius = planetData.Radius,
-            StatsLookup = _statsLookup,
-            SteeringLookup = _steeringLookup,
-            TransformLookup = _transformLookup
-        };
-        JobHandle followBareHandle = followBareJob.ScheduleParallel(followSnappedHandle);
+        //var followBareJob = new MoveFollowBareJob
+        //{
+        //    DeltaTime = delta,
+        //    PlanetCenter = planetTransform.Position,
+        //    PlanetRadius = planetData.Radius,
+        //    StatsLookup = _statsLookup,
+        //    SteeringLookup = _steeringLookup,
+        //    TransformLookup = _transformLookup
+        //};
+        //JobHandle followBareHandle = followBareJob.ScheduleParallel(followSnappedHandle);
 
-        // 3. Orbit Movement Phase
-        // First, update the internal position of the orbit centers
         var updateOrbitCenterJob = new UpdateOrbitCenterPositionJob
         {
             LocalTransformLookup = _transformLookup
         };
-        JobHandle orbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(followBareHandle);
+        //JobHandle orbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(followBareHandle);
+        JobHandle orbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(followSnappedHandle);
 
         var orbitSnappedJob = new MoveOrbitSnappedJob
         {
@@ -137,7 +135,7 @@ public partial struct EntitiesMovementSystem : ISystem
     /// Moves entities in a straight line while using raycasts to snap them to uneven terrain.
     /// </summary>
     [BurstCompile]
-    [WithAll(typeof(LinearMovement), typeof(HardSnappedMovement))]
+    [WithAll(typeof(LinearMovement)/*, typeof(HardSnappedMovement)*/)]
     private partial struct MoveLinearSnappedJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;

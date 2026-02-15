@@ -142,20 +142,27 @@ public class GameManager : MonoBehaviour
             yield return null;
         }
 
-        _currentSceneEntity = SceneSystem.LoadSceneAsync(World.DefaultGameObjectInjectionWorld.Unmanaged, sceneRef);
+        // Load
+        var worldUnmanaged = World.DefaultGameObjectInjectionWorld.Unmanaged;
+        _currentSceneEntity = SceneSystem.LoadSceneAsync(worldUnmanaged, sceneRef);
 
-        float timer = 0f;
         bool isLoaded = false;
+        float timer = 0f;
 
         while (!isLoaded || timer < _minLoadingTime)
         {
-            //isLoaded = SceneSystem.IsSceneLoaded(World.DefaultGameObjectInjectionWorld.Unmanaged, _currentSceneEntity);
-            if (_entityManager.Exists(_currentSceneEntity))
+
+            SceneSystem.SceneStreamingState loadingState = SceneSystem.GetSceneStreamingState(worldUnmanaged, _currentSceneEntity);
+
+            if (loadingState == SceneSystem.SceneStreamingState.LoadedSuccessfully)
                 isLoaded = true;
 
             timer += Time.deltaTime;
             yield return null;
         }
+
+        // Next frame for physics
+        yield return new WaitForFixedUpdate();
 
         if (timer < _minLoadingTime)
         {

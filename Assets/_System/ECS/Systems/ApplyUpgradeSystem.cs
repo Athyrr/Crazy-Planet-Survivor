@@ -103,13 +103,11 @@ public partial struct ApplyUpgradeSystem : ISystem
                             bool matchID = upgradeData.SpellID != ESpellID.None && baseData.ID == upgradeData.SpellID;
 
                             // Target specific tag
-                            bool matchTag = upgradeData.SpellID == ESpellID.None && (baseData.Tag & upgradeData.SpellTags) != 0;
+                            bool matchTag = upgradeData.SpellID == ESpellID.None && (baseData.Tag & upgradeData.SpellTags) > 0;
 
                             if (matchID || matchTag)
                             {
                                 ApplyModification(ref activeSpell, ref upgradeData);
-
-                                // 5. On réécrit la struct modifiée dans le buffer
                                 activeSpellsBuffer[i] = activeSpell;
                             }
                         }
@@ -129,7 +127,6 @@ public partial struct ApplyUpgradeSystem : ISystem
 
         private void ApplyModification(ref ActiveSpell spell, ref UpgradeBlob upgrade)
         {
-            //@todo use strategy
             switch (upgrade.SpellStat)
             {
                 case ESpellStat.Damage:
@@ -158,6 +155,10 @@ public partial struct ApplyUpgradeSystem : ISystem
 
                 case ESpellStat.Amount:
                     spell.BonusAmount += (int)upgrade.Value;
+
+                    //@todo check for ChildEntitiesSpawner and set dirty and set DesiredChildrenCount +Value
+
+
                     break;
 
                 case ESpellStat.TickRate:

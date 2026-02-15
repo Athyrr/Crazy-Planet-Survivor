@@ -4,7 +4,10 @@ using UnityEngine;
 public class LinearMovementAuthoring : MonoBehaviour
 {
     [SerializeField]
-    public bool EnabledOnInit = true;
+    private bool _enabledOnInit = true;
+
+    [SerializeField]
+    private bool _hardSnapOnSurface = false;
 
     class Baker : Baker<LinearMovementAuthoring>
     {
@@ -13,7 +16,10 @@ public class LinearMovementAuthoring : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
             AddComponent<LinearMovement>(entity);
-            SetComponentEnabled<LinearMovement>(entity, authoring.EnabledOnInit);
+            SetComponentEnabled<LinearMovement>(entity, authoring._enabledOnInit);
+
+            if (authoring._hardSnapOnSurface)
+                AddComponent<HardSnappedMovement>(entity);
         }
     }
 }

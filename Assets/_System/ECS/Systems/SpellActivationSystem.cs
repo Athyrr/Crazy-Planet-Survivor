@@ -116,7 +116,6 @@ public partial struct SpellActivationSystem : ISystem
                     if (isAlreadyActive)
                         continue;
 
-
                     ref var spellData = ref SpellsDatabaseRef.Value.Spells[spellIndex];
 
                     // If spell is an active spell with cooldown
