@@ -201,23 +201,42 @@ public partial struct EntitiesMovementSystem : ISystem
 
             float3 desiredPosition = transform.Position + tangentDirection * (speed * DeltaTime);
 
-            if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, desiredPosition, PlanetCenter,
-                new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape },
-                SNAP_DISTANCE, out Unity.Physics.RaycastHit hit))
+            if (PlanetUtils.SnapToSurfaceRaycast(
+                    ref PhysicsCollisionWorld,
+                    desiredPosition,
+                    PlanetCenter,
+                    new CollisionFilter
+                    {
+                        BelongsTo = CollisionLayers.Raycast,
+                        CollidesWith = CollisionLayers.Landscape
+                    },
+                    SNAP_DISTANCE,
+                    out Unity.Physics.RaycastHit hit))
             {
-                if (math.distancesq(transform.Position, hit.Position) > 1.0f)
-                {
-                    transform.Position = hit.Position;
-                }
+                float3 targetPosition = hit.Position;
 
-                if (math.lengthsq(movement.Direction) > 0.001f)
+                float3 delta = targetPosition - transform.Position;
+                float maxStep = speed * DeltaTime * 1.2f; // petit buffer
+
+                if (math.lengthsq(delta) > maxStep * maxStep)
+                    delta = math.normalize(delta) * maxStep;
+
+                transform.Position += delta;
+
+                if (math.lengthsq(tangentDirection) > 0.001f)
                 {
-                    PlanetUtils.GetRotationOnSurface(in tangentDirection, hit.SurfaceNormal, out quaternion targetRotation);
-                    transform.Rotation = math.slerp(transform.Rotation, targetRotation, DeltaTime * ROT_SMOOTH_SPEED);
+                    PlanetUtils.GetRotationOnSurface(
+                        in tangentDirection,
+                        hit.SurfaceNormal,
+                        out quaternion targetRotation);
+
+                    transform.Rotation = math.slerp(
+                        transform.Rotation,
+                        targetRotation,
+                        DeltaTime * ROT_SMOOTH_SPEED
+                    );
                 }
             }
-
-            transform.Position = math.lerp(transform.Position, hit.Position, DeltaTime * POS_SMOOTH_SPEED);
         }
     }
 
