@@ -61,6 +61,7 @@ public class GeodeAnimator : MonoBehaviour
     private void OnClick(InputAction.CallbackContext ctx)
     {
         Jitter();
+        PlayHammerHit();
     }
     
     private void Jitter()
@@ -68,13 +69,37 @@ public class GeodeAnimator : MonoBehaviour
         var cursorWs = GetWorldSpaceCursorLocation();
         OnGeodeClicked?.Invoke(cursorWs);
         
-        // calc offset based on bounds
         var offset = (cursorWs - _bounds.center * 0.01f) * -1;
         Debug.Log($"click, {offset}");
-        // Tween.PunchLocalPosition(_geode.transform, strength: offset, duration: 0.2f, frequency: 10);
 
         Tween.ShakeLocalPosition(_geode.transform, strength: new Vector3(0, 1), duration: 1, frequency: 10);
         Tween.ShakeLocalRotation(_geode.transform, strength: new Vector3(0, 0, 15), duration: 1, frequency: 10);
+    }
+    
+    private void PlayHammerHit()
+    {
+        var hammerTr = _hammer.transform;
+
+        Vector3 startPos = hammerTr.localPosition;
+        Quaternion startRot = hammerTr.localRotation;
+
+        Vector3 hitDir = (_geode.transform.position - _hammer.transform.position).normalized;
+
+        Vector3 raiseOffset = -hitDir * 0.5f;
+        Vector3 hitOffset   = hitDir * 0.8f;
+
+        var seq = Sequence.Create();
+
+        seq.Group(Tween.LocalPosition(hammerTr, startPos + raiseOffset, 0.08f, Ease.OutQuad));
+        seq.Group(Tween.LocalRotation(hammerTr, Quaternion.Euler(30f, 0, 0), 0.08f, Ease.OutQuad));
+
+        seq.Chain(Tween.LocalPosition(hammerTr, startPos + hitOffset, 0.06f, Ease.InQuad));
+        seq.Group(Tween.LocalRotation(hammerTr, Quaternion.Euler(-60f, 0, 0), 0.06f, Ease.InQuad));
+
+        seq.Group(Tween.ShakeLocalRotation(hammerTr, new Vector3(0, 0, 10), 0.1f, frequency: 25));
+
+        seq.Chain(Tween.LocalPosition(hammerTr, startPos, 0.12f, Ease.OutBack));
+        seq.Group(Tween.LocalRotation(hammerTr, startRot, 0.12f, Ease.OutBack));
     }
 
     [Button]
@@ -104,7 +129,6 @@ public class GeodeAnimator : MonoBehaviour
         _hammer.transform.position = cursorWs;
         
         _geode.transform.rotation = Quaternion.Euler(_geode.transform.rotation.eulerAngles +
-                                                     (new Vector3(1f, 1f, 0) * Time.deltaTime));
-        
+                                                     (new Vector3(1f, 1f, 0) * Time.deltaTime * 10f));
     }
 }
