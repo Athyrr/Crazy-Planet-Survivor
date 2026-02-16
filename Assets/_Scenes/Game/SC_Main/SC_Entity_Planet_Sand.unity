@@ -906,6 +906,14 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 729490415981307824, guid: 9ab831b5a442474459f3c9a3d8c5c7b5, type: 3}
+      propertyPath: _manualRadius
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 729490415981307824, guid: 9ab831b5a442474459f3c9a3d8c5c7b5, type: 3}
+      propertyPath: _autoCalculate
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 729490415981307824, guid: 9ab831b5a442474459f3c9a3d8c5c7b5, type: 3}
       propertyPath: _manualCenterOffset.x
       value: 0
       objectReference: {fileID: 0}
@@ -956,6 +964,10 @@ PrefabInstance:
     - target: {fileID: 3334742790754603621, guid: 9ab831b5a442474459f3c9a3d8c5c7b5, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4291386327404299676, guid: 9ab831b5a442474459f3c9a3d8c5c7b5, type: 3}
+      propertyPath: m_Material.m_CollisionResponse.m_Value
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

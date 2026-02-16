@@ -50,7 +50,7 @@ public class PlanetSelectionUIController : MonoBehaviour
         if (_currentSelectedPlanet == EPlanetID.None)
             return;
 
-        GameManager.Instance.LoadPlanetSubScene(_currentSelectedPlanet);
+        GameManager.Instance.StartRun(_currentSelectedPlanet);
     }
 
     public void OpenView()

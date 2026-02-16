@@ -1,16 +1,16 @@
-using Unity.Burst;
-using Unity.Collections;
-using Unity.Entities;
 using Unity.Mathematics;
-using Unity.Physics;
+using Unity.Collections;
 using Unity.Transforms;
+using Unity.Entities;
+using Unity.Physics;
+using Unity.Burst;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(PlayerSpawnerSystem))]
 [BurstCompile]
 public partial struct SpellCastingSystem : ISystem
 {
-    // --- LOOKUPS ---
-    // Caster info
+    // player
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
@@ -41,8 +41,9 @@ public partial struct SpellCastingSystem : ISystem
     private ComponentLookup<Pierce> _pierceLookup;
     //private ComponentLookup<ExplodeOnContact> _explodeLookup;
 
+    // Queries
+    //private EntityQuery _playerQuery;
 
-    //@todo Planet ref center
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -51,6 +52,7 @@ public partial struct SpellCastingSystem : ISystem
         state.RequireForUpdate<SpellPrefab>();
         state.RequireForUpdate<ActiveSpell>();
         state.RequireForUpdate<SpellsDatabase>();
+        //state.RequireForUpdate<StartRunRequest>();
         state.RequireForUpdate<CastSpellRequest>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
 
@@ -75,6 +77,8 @@ public partial struct SpellCastingSystem : ISystem
         _ricochetLookup = SystemAPI.GetComponentLookup<Bounce>(true);
         _pierceLookup = SystemAPI.GetComponentLookup<Pierce>(true);
         //_explodeLookup = SystemAPI.GetComponentLookup<ExplodeOnContact>(true);
+
+        //_playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
     }
 
     [BurstCompile]
@@ -82,6 +86,9 @@ public partial struct SpellCastingSystem : ISystem
     {
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
             return;
+
+        //if (_playerQuery.IsEmpty)
+        //    return;
 
         // Update all lookups
         _playerLookup.Update(ref state);
@@ -306,7 +313,7 @@ public partial struct SpellCastingSystem : ISystem
                         baseSpellData.BaseCastRange,
                         ref groundFilter,
                         out var p,
-                        out var n)) 
+                        out var n))
                     {
                         targetPosition = p;
                         //PlanetUtils.ProjectDirectionOnSurface(casterTransform.Forward(), n, out var r);

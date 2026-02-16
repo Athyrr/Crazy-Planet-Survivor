@@ -12,9 +12,13 @@ using Unity.Jobs;
 /// performance spikes, and calculates spawn positions based on various geometric modes.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(PlayerSpawnerSystem))]
 [BurstCompile]
 public partial struct EnemiesSpawnerSystem : ISystem
 {
+    // Queries
+    //private EntityQuery _playerQuery;
+
     /// <summary>
     /// Limits the number of entities instantiated in a single frame to maintain a stable frame rate.
     /// </summary>
@@ -23,10 +27,13 @@ public partial struct EnemiesSpawnerSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        //state.RequireForUpdate<StartRunRequest>();
         state.RequireForUpdate<SpawnerSettings>();
         state.RequireForUpdate<SpawnerState>();
         state.RequireForUpdate<PlanetData>();
         state.RequireForUpdate<Player>();
+
+        //_playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
     }
 
     [BurstCompile]
@@ -34,6 +41,9 @@ public partial struct EnemiesSpawnerSystem : ISystem
     {
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
             return;
+
+        //if (_playerQuery.IsEmpty)
+        //    return;
 
         ref var spawnerState = ref SystemAPI.GetSingletonRW<SpawnerState>().ValueRW;
         DynamicBuffer<Wave> waves = SystemAPI.GetSingletonBuffer<Wave>(true);
@@ -202,6 +212,10 @@ public partial struct EnemiesSpawnerSystem : ISystem
         var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
+
+        if (playerEntity == Entity.Null)
+            return;
+
         var playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
 
         var spawnJob = new SpawnJob

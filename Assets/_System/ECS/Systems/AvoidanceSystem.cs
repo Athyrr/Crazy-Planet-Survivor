@@ -278,7 +278,9 @@ public partial struct AvoidanceSystem : ISystem
             avoidanceForce -= surfaceNormal * math.dot(avoidanceForce, surfaceNormal);
 
             float forceMagnitude = math.length(avoidanceForce);
-            if (forceMagnitude > 100f) avoidanceForce = math.normalize(avoidanceForce) * 100f;
+            float maxSteeringForce = 5f;
+            if (forceMagnitude > maxSteeringForce)
+                avoidanceForce = math.normalize(avoidanceForce) * maxSteeringForce;
 
             steering.Value = avoidanceForce * avoidance.Weight;
         }

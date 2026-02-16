@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f95afcbbc4bb6e347b8fec784ae02fa9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpawnerAuthoring
-  MaxEnemies: 1500
+  MaxEnemies: 5000
   Waves:
   - Name: 
     Duration: 30
@@ -52,20 +52,45 @@ MonoBehaviour:
     Groups:
     - Mode: 3
       Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 500
+      Amount: 800
       ZoneTransform: {fileID: 0}
-      Delay: 1
+      Delay: 0.2
       MinRange: 10
-      MaxRange: 60
+      MaxRange: 150
+    - Mode: 0
+      Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+      Amount: 200
+      ZoneTransform: {fileID: 0}
+      Delay: 0.2
+      MinRange: 20
+      MaxRange: 80
   - Name: 
-    Duration: 20
+    Duration: 30
     KillPercentageToAdvance: 1
     Groups:
     - Mode: 3
       Prefab: {fileID: 4960229139857780973, guid: e365daea1873ad948a8ba513adf1bd9e, type: 3}
       Amount: 500
       ZoneTransform: {fileID: 0}
+      Delay: 1
+      MinRange: 10
+      MaxRange: 363
+  - Name: 
+    Duration: 30
+    KillPercentageToAdvance: 0.8
+    Groups:
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 500
+      ZoneTransform: {fileID: 0}
       Delay: 0.1
+      MinRange: 0
+      MaxRange: 30
+    - Mode: 0
+      Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+      Amount: 100
+      ZoneTransform: {fileID: 0}
+      Delay: 0.5
       MinRange: 0
       MaxRange: 30
   ShowDebugGizmos: 0

@@ -1,6 +1,4 @@
 using Unity.Collections;
-using Unity.Mathematics;
-using Unity.Transforms;
 using Unity.Entities;
 using Unity.Burst;
 
@@ -11,7 +9,6 @@ using Unity.Burst;
 [BurstCompile]
 public partial struct RunCleanerSystem : ISystem
 {
-    //@todo detruire le joueur aussi et juste refaire spawn via playerspawnersys
     private EntityQuery _runScopeEntitiesQuery;
     private EntityQuery _playerQuery;
 
@@ -23,77 +20,6 @@ public partial struct RunCleanerSystem : ISystem
         _runScopeEntitiesQuery = state.GetEntityQuery(ComponentType.ReadOnly<RunScope>());
         _playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
     }
-
-    //[BurstCompile]
-    //public void OnUpdate(ref SystemState state)
-    //{
-    //    var ecbSingleton = SystemAPI.GetSingleton<EndInitializationEntityCommandBufferSystem.Singleton>();
-    //    var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-
-    //    // Destroy run scoped entities
-    //    var entities = _runScopeEntitiesQuery.ToEntityArray(Allocator.Temp);
-    //    state.EntityManager.DestroyEntity(entities);
-    //    entities.Dispose();
-
-    //    // Query player
-    //    foreach (var (transform, health, baseStats, experience, statModifiers, activeSpells, expBuffer,/* damagesBuffer,*/ entity)
-    //            in SystemAPI.Query<
-    //                RefRW<LocalTransform>,
-    //                RefRW<Health>,
-    //                RefRO<BaseStats>,
-    //                RefRW<PlayerExperience>,
-    //                DynamicBuffer<StatModifier>,
-    //                DynamicBuffer<ActiveSpell>,
-    //            DynamicBuffer<CollectedExperienceBufferElement>
-    //            //DynamicBuffer<DamageBufferElement>
-    //            >()
-    //            .WithAll<Player>()
-    //            .WithEntityAccess())
-    //    {
-    //        if (state.EntityManager.HasComponent<DestroyEntityFlag>(entity))
-    //            ecb.RemoveComponent<DestroyEntityFlag>(entity);
-
-    //        // Reset position
-    //        transform.ValueRW.Position = new float3(0, 51, 0); // @todo use proper spawn point
-    //        transform.ValueRW.Rotation = quaternion.identity;
-
-    //        // Reset Health
-    //        health.ValueRW.Value = baseStats.ValueRO.MaxHealth;
-
-    //        // Reset Stats Modifiers
-    //        statModifiers.Clear();
-
-    //        // Reset Active Spells
-    //        activeSpells.Clear();
-    //        var baseSpellsBuffer = state.EntityManager.GetBuffer<BaseSpell>(entity);
-    //        var spellActivationBuffer = state.EntityManager.GetBuffer<SpellActivationRequest>(entity);
-    //        foreach (var baseSpell in baseSpellsBuffer)
-    //        {
-    //            spellActivationBuffer.Add(new SpellActivationRequest
-    //            {
-    //                ID = baseSpell.ID
-    //            });
-    //        }
-
-
-    //        // Reset collected exp buffer
-    //        expBuffer.Clear();
-
-    //        // Reset Experience
-    //        experience.ValueRW.Experience = 0;
-    //        experience.ValueRW.Level = 1;
-    //        experience.ValueRW.NextLevelExperienceRequired = 500;
-
-    //        // Force Recalculate Stats
-    //        //state.EntityManager.AddComponent<RecalculateStatsRequest>(entity);
-    //        ecb.AddComponent<RecalculateStatsRequest>(entity);
-    //    }
-
-    //    // Destroy clear run request
-    //    var clearRequestEntity = SystemAPI.GetSingletonEntity<ClearRunRequest>();
-    //    state.EntityManager.DestroyEntity(clearRequestEntity);
-    //}
-
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)

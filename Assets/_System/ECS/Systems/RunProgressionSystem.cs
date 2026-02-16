@@ -13,8 +13,10 @@ public partial struct RunProgressionSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<StartRunRequest>();
         //state.RequireForUpdate<PlanetData>();
         state.RequireForUpdate<GameState>();
+
 
         _killedEventsQuery = state.GetEntityQuery(ComponentType.ReadOnly<EnemyKilledEvent>());
     }
