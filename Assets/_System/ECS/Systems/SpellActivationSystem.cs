@@ -18,6 +18,7 @@ public partial struct SpellActivationSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<SpellsDatabase>();
+
         _spellIndexMap = new NativeHashMap<SpellKey, int>(64, Allocator.Persistent);
     }
 
@@ -103,53 +104,37 @@ public partial struct SpellActivationSystem : ISystem
                 if (SpellIndexMap.TryGetValue(new SpellKey { Value = activationRequest.ID }, out var spellIndex))
                 {
                     // if spell is already active, skip
-                    bool isAlreadyActive = false;
-                    for (int i = 0; i < activeSpellsBuffer.Length; i++)
-                    {
-                        if (activeSpellsBuffer[i].DatabaseIndex == spellIndex)
-                        {
-                            isAlreadyActive = true;
-                            break;
-                        }
-                    }
+                    bool isAlreadyActive = HasSpell(ref activeSpellsBuffer, spellIndex);
 
                     if (isAlreadyActive)
                         continue;
 
                     ref var spellData = ref SpellsDatabaseRef.Value.Spells[spellIndex];
 
-                    // If spell is an active spell with cooldown
-                    if (spellData.BaseCooldown > 0)
+                    activeSpellsBuffer.Add(new ActiveSpell
                     {
-                        activeSpellsBuffer.Add(new ActiveSpell
-                        {
-                            DatabaseIndex = spellIndex,
-                            Level = 1,
+                        DatabaseIndex = spellIndex,
+                        Level = 1,
+                        DamageMultiplier = 1f,
+                        CooldownMultiplier = 1f,
+                        AreaMultiplier = 1f,
+                        SpeedMultiplier = 1f,
+                        DurationMultiplier = 1f,
+                        RangeMultiplier = 1f,
+                        TickRateMultiplier = 1f,
+                        LifetimeMultiplier = 1f,
 
-                            DamageMultiplier = 1f,
-                            CooldownMultiplier = 1f,
-                            AreaMultiplier = 1f,
-                            SpeedMultiplier = 1f,
-                            DurationMultiplier = 1f,
-                            RangeMultiplier = 1f,
-                            TickRateMultiplier = 1f,
-                            LifetimeMultiplier = 1f,
+                        BonusAmount = 0,
+                        BonusBounces = 0,
+                        BonusPierces = 0,
 
-                            BonusAmount = 0,
-                            BonusBounces = 0,
-                            BonusPierces = 0,
+                        CurrentCooldown = 0f
+                    });
 
-                            // Runtime
-                            CurrentCooldown = 0f 
-                        });
-                    }
 
-                    //@todo use passive spell tag to keep tracking passives
-
-                    // Else if spell is a passive spell that should be instanciated once
-                    else
+                    bool isPassiveOrPermanent = spellData.BaseCooldown <= 0;
+                    if (isPassiveOrPermanent)
                     {
-                        // Create CastSpellRequest to launch the spell 
                         var castRequestEntity = ECB.CreateEntity(chunkIndex);
                         ECB.AddComponent(chunkIndex, castRequestEntity, new CastSpellRequest
                         {
@@ -163,6 +148,21 @@ public partial struct SpellActivationSystem : ISystem
 
             // Clear request buffer
             activationRequestBuffer.Clear();
+        }
+
+        private static bool HasSpell(ref DynamicBuffer<ActiveSpell> activeSpellsBuffer, int spellIndex)
+        {
+            bool isAlreadyActive = false;
+            for (int i = 0; i < activeSpellsBuffer.Length; i++)
+            {
+                if (activeSpellsBuffer[i].DatabaseIndex == spellIndex)
+                {
+                    isAlreadyActive = true;
+                    break;
+                }
+            }
+
+            return isAlreadyActive;
         }
     }
 }

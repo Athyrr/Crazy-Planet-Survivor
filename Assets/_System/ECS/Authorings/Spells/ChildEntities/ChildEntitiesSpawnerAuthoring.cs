@@ -10,10 +10,10 @@ public class ChildEntitiesSpawnerAuthoring : MonoBehaviour
         {
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            AddComponent(entity, new ChildEntitiesSpawner
+            AddComponent(entity, new SubSpellsSpawner
             {
                 ChildEntityPrefab = Entity.Null,
-                DesiredChildrenCount = 0,
+                DesiredSubSpellsCount = 0,
                 IsDirty = false
             });
 

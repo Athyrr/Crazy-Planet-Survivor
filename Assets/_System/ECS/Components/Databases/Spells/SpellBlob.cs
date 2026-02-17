@@ -35,6 +35,6 @@ public struct SpellBlob
 
     // Children based spells
     public int ChildPrefabIndex;
-    public int ChildrenCount;
+    public int SubSpellsCount;
     public float ChildrenSpawnRadius;
 }

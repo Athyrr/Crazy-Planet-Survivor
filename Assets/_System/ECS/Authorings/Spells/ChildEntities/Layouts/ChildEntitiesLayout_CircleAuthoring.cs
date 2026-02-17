@@ -9,7 +9,7 @@ public class ChildEntitiesLayout_CircleAuthoring : MonoBehaviour
         {
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            AddComponent(entity, new ChildEntitiesLayout_Circle
+            AddComponent(entity, new SubSpellsLayout_Circle
             {
                 Radius = 0, 
                 AngleInDegrees = 360

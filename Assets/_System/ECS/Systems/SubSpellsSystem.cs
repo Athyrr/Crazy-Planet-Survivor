@@ -9,8 +9,9 @@ using Unity.Transforms;
 /// Represents a system that handle spells that spawn child entities with specific layouts (ex: Circle layout, ...).
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateBefore(typeof(TransformSystemGroup))]
 [BurstCompile]
-public partial struct ChildEntitiesSpellSystem : ISystem
+public partial struct SubSpellsSystem : ISystem
 {
     private ComponentLookup<LocalTransform> _transformLookup;
     private BufferLookup<Child> _childBufferLookup;
@@ -21,7 +22,7 @@ public partial struct ChildEntitiesSpellSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<GameState>();
-        state.RequireForUpdate<ChildEntitiesSpawner>();
+        state.RequireForUpdate<SubSpellsSpawner>();
 
         _transformLookup = state.GetComponentLookup<LocalTransform>(false);
         _childBufferLookup = state.GetBufferLookup<Child>(false);
@@ -51,7 +52,7 @@ public partial struct ChildEntitiesSpellSystem : ISystem
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
         foreach (var (spawner, parentEntity) in
-                         SystemAPI.Query<RefRW<ChildEntitiesSpawner>>().WithEntityAccess())
+                         SystemAPI.Query<RefRW<SubSpellsSpawner>>().WithEntityAccess())
         {
             DamageOnContact parentDamage = default;
             bool hasDamage = _damageLookup.HasComponent(parentEntity);
@@ -60,11 +61,11 @@ public partial struct ChildEntitiesSpellSystem : ISystem
                 parentDamage = _damageLookup[parentEntity];
             }
 
-            int desiredCount = spawner.ValueRO.DesiredChildrenCount;
+            int desiredCount = spawner.ValueRO.DesiredSubSpellsCount;
             int currentCount = 0;
-            bool hasChilduffer = _childBufferLookup.HasBuffer(parentEntity);
+            bool hasChildren = _childBufferLookup.HasBuffer(parentEntity);
 
-            if (hasChilduffer)
+            if (hasChildren)
             {
                 currentCount = _childBufferLookup[parentEntity].Length;
             }
@@ -83,8 +84,9 @@ public partial struct ChildEntitiesSpellSystem : ISystem
                 {
                     var childEntity = ecb.Instantiate(spawner.ValueRO.ChildEntityPrefab);
 
+                    //ecb.AddComponent(childEntity, new LocalTransform { Scale = 1, Rotation = quaternion.identity });
+                    ecb.AddComponent(childEntity, new LocalTransform { Scale = 0, Rotation = quaternion.identity });
                     ecb.AddComponent(childEntity, new Parent { Value = parentEntity });
-                    ecb.AddComponent(childEntity, new LocalTransform { Scale = 1, Rotation = quaternion.identity });
 
                     ecb.AppendToBuffer(parentEntity, new Child { Value = childEntity });
 
@@ -100,14 +102,13 @@ public partial struct ChildEntitiesSpellSystem : ISystem
                     if (hasDamage)
                     {
                         ecb.SetComponent(childEntity, parentDamage);
-                        //ecb.AddComponent(childEntity, parentDamage);
                     }
                 }
                 spawner.ValueRW.IsDirty = false;
             }
 
             // extra children
-            else if (hasChilduffer && currentCount > desiredCount)
+            else if (hasChildren && currentCount > desiredCount)
             {
                 var children = _childBufferLookup[parentEntity];
                 for (int i = currentCount - 1; i >= desiredCount; i--)
@@ -116,15 +117,15 @@ public partial struct ChildEntitiesSpellSystem : ISystem
                 }
 
                 // Create buffer via ecb
-                var newBufferCommand = ecb.SetBuffer<Child>(parentEntity);
+                var childrenBuffer = ecb.SetBuffer<Child>(parentEntity);
                 for (int i = 0; i < desiredCount; i++)
-                    newBufferCommand.Add(children[i]);
+                    childrenBuffer.Add(children[i]);
 
                 spawner.ValueRW.IsDirty = true;
             }
         }
 
-        var circleLayoutJob = new CircleLayoutChildrenJob()
+        var circleLayoutJob = new SubSpellsCircleLayoutJob()
         {
             ECB = ecb.AsParallelWriter(),
             TransformLookup = _transformLookup,
@@ -133,21 +134,20 @@ public partial struct ChildEntitiesSpellSystem : ISystem
     }
 
     [BurstCompile]
-    [WithAll(typeof(ChildEntitiesLayout_Circle))]
-    private partial struct CircleLayoutChildrenJob : IJobEntity
+    [WithAll(typeof(SubSpellsLayout_Circle))]
+    private partial struct SubSpellsCircleLayoutJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
         [NativeDisableParallelForRestriction]
         public ComponentLookup<LocalTransform> TransformLookup;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity parentEntity, in ChildEntitiesLayout_Circle circleLayout, DynamicBuffer<Child> children)
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity parentEntity, in SubSpellsLayout_Circle circleLayout, DynamicBuffer<Child> children)
         {
             if (children.IsEmpty)
                 return;
 
-            float angleStep = (circleLayout.AngleInDegrees * 2) / children.Length;
-            //float angleStep = circleLayout.AngleInDegrees / children.Length;
+            float angleStep = circleLayout.AngleInDegrees / children.Length;
 
             float currentAngle = 0f;
 
@@ -164,10 +164,9 @@ public partial struct ChildEntitiesSpellSystem : ISystem
 
                 float angleRad = math.radians(currentAngle);
 
-
                 float3 localOffset = new float3(
                     circleLayout.Radius * math.sin(angleRad), // X
-                    0f,
+                    1f,
                     circleLayout.Radius * math.cos(angleRad)  // Z
                 );
 
@@ -181,6 +180,7 @@ public partial struct ChildEntitiesSpellSystem : ISystem
 
                 childTransform.Position = localOffset;
                 childTransform.Rotation = quaternion.LookRotationSafe(math.normalize(localOffset), math.up());
+                childTransform.Scale = 1f;
 
                 TransformLookup[childEntity] = childTransform;
 

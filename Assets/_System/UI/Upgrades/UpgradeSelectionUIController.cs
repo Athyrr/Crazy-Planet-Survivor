@@ -2,13 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Entities;
 using UnityEngine;
-using UnityEngine.InputSystem; // Indispensable pour le New Input System
+using UnityEngine.InputSystem; 
 
 public class UpgradeSelectionUIController : MonoBehaviour
 {
     [Header("Interaction")]
     public Camera UICamera;
-    public LayerMask UI3DLayer; // Doit être réglé sur "UI_3D" uniquement
+    public LayerMask UI3DLayer;
 
     [Header("References")]
     public Transform UpgradesContainer;
@@ -24,12 +24,10 @@ public class UpgradeSelectionUIController : MonoBehaviour
     public float PopDuration = 0.4f;
     public AnimationCurve PopCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
-    // --- State ---
     private List<GameObject> _spawnedCards = new List<GameObject>();
     private UpgradeUIComponent _currentHoveredCard;
     private bool _canInteract = false;
 
-    // --- ECS ---
     private RunManager RunManager;
     private EntityManager _entityManager;
     private EntityQuery _upgradeDatabaseQuery;
@@ -118,7 +116,8 @@ public class UpgradeSelectionUIController : MonoBehaviour
         for (int i = 0; i < selection.Length; i++)
         {
             int dbIndex = selection[i].DatabaseIndex;
-            if (dbIndex < 0 || dbIndex >= upgradesDatabase.Length) continue;
+            if (dbIndex < 0 || dbIndex >= upgradesDatabase.Length)
+                continue;
 
             ref UpgradeBlob upgradeData = ref upgradesDatabase[dbIndex];
 
@@ -128,7 +127,8 @@ public class UpgradeSelectionUIController : MonoBehaviour
 
             // Setup Data
             var uiComp = cardObj.GetComponent<UpgradeUIComponent>();
-            if (uiComp != null) uiComp.SetData(ref upgradeData, dbIndex);
+            if (uiComp != null) 
+                uiComp.SetData(ref upgradeData, dbIndex);
 
             cardObj.transform.localScale = Vector3.zero;
         }

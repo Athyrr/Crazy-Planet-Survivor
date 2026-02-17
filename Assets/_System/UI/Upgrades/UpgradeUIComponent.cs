@@ -1,5 +1,6 @@
 using UnityEngine;
-using TMPro; 
+using TMPro;
+using System;
 
 public class UpgradeUIComponent : MonoBehaviour
 {
@@ -7,8 +8,8 @@ public class UpgradeUIComponent : MonoBehaviour
     public int DbIndex { get; private set; }
 
     [Header("3D Visuals")]
-    public Transform VisualRoot; 
-    public TextMeshPro LabelText;     
+    public Transform VisualRoot;
+    public TextMeshPro LabelText;
     public TextMeshPro DescriptionText;
     public TextMeshPro DetailsText;
     public SpriteRenderer IconRenderer;
@@ -21,7 +22,7 @@ public class UpgradeUIComponent : MonoBehaviour
 
     private void Awake()
     {
-        if (VisualRoot == null) 
+        if (VisualRoot == null)
             VisualRoot = transform;
     }
 
@@ -29,10 +30,31 @@ public class UpgradeUIComponent : MonoBehaviour
     {
         DbIndex = dbIndex;
 
-        if (LabelText) LabelText.text = GetTitleFromType(upgradeData.UpgradeType);
+        if (LabelText)
+            LabelText.text = GetTitle(ref upgradeData);
 
-        if (DetailsText) DetailsText.text = FormatDetails(ref upgradeData);
+        if (DetailsText)
+            DetailsText.text = FormatDetails(ref upgradeData);
+
+        // Colors
+        if (LabelText)
+        {
+            switch (upgradeData.UpgradeType)
+            {
+                case EUpgradeType.Stat:
+                    LabelText.color = Color.white;
+                    break;
+                case EUpgradeType.UnlockSpell:
+                    LabelText.color = Color.yellow;
+                    break;
+                case EUpgradeType.UpgradeSpell:
+                    LabelText.color = Color.green;
+                    break;
+            }
+        }
     }
+
+    private string GetTitle(ref UpgradeBlob upgradeData) => upgradeData.DisplayName.ToString();
 
     public void SetHovered(bool isHovered)
     {
@@ -46,11 +68,6 @@ public class UpgradeUIComponent : MonoBehaviour
     }
 
 
-
-    private string GetTitleFromType(EUpgradeType type)
-    {
-        return type == EUpgradeType.Stat ? "Stat Upgrade" : "New Spell";
-    }
 
     private string FormatDetails(ref UpgradeBlob data)
     {
