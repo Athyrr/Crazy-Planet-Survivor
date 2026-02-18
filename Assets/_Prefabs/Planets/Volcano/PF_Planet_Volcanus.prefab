@@ -49,6 +49,7 @@ MonoBehaviour:
   ManualRadius: 45
   Padding: 0
   _currentRadiusDisplay: 45
+  _debug: 0
 --- !u!1001 &3012305184992032142
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -358,6 +359,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::_System.ECS.Components.Flowfield.FlowFieldExtension
   _excludeMeshRenderers: []
   _flowFieldData: {fileID: 11400000, guid: 65d738c1e88cc5d4082464b7aa2d9214, type: 2}
+  _startIndex: 1250
+  _targetIndex: 9000
 --- !u!4 &3334742790754603621 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 48bce0025aaa52348bb39e68fbf518a0, type: 3}

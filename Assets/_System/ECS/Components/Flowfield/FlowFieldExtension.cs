@@ -5,119 +5,216 @@ using UnityEngine;
 
 namespace _System.ECS.Components.Flowfield
 {
-    /// <summary>
-    /// place this on Planet ref to setup custom flowfield params. like void location or some other
-    /// </summary>
-    public class FlowFieldExtension: MonoBehaviour
+    // used only to fill data prebaked. to optimize obstacle detection or some like it (static entity with avoidance)
+    // any data used in ECS only to bake data and save in Scriptable Object to load ECS side and load in cache
+    // (usefully for complexity logic)
+    public class FlowFieldExtension : MonoBehaviour
     {
         [SerializeField] private List<MeshFilter> _excludeMeshRenderers;
-        [SerializeField] private FlowFieldData _flowFieldData; 
+        [SerializeField] private FlowFieldData _flowFieldData;
+
+        #region  Debug
+#if UNITY_EDITOR
+        [Header("Simulation Debug")]
+        [SerializeField] private int _startIndex;
+        [SerializeField] private int _targetIndex;
+        private float[] _debugDistances;
+        private List<int> _debugPath = new List<int>();
+#endif
+        #endregion
+
+
+        #region Methods
+
         
-        #region Editor
+        private void AddNeighbor(List<List<int>> adjacency, int a, int b)
+        {
+            if (!adjacency[a].Contains(b)) adjacency[a].Add(b);
+            if (!adjacency[b].Contains(a)) adjacency[b].Add(a);
+        }
+        
+        #endregion
+
+        #region Debug
 #if UNITY_EDITOR
 
+        
         [Button]
         private void BakeFlowField()
         {
-            var allMf = GetComponentsInChildren<MeshFilter>();
-            if (allMf.Length == 0)
-            {
-                Debug.LogError("No MeshFilter found");
-                return;
-            }
+            var allMf = GetComponentsInChildren<MeshFilter>()
+                .Where(mf => !_excludeMeshRenderers.Contains(mf)).ToArray();
 
-            int vc = allMf
-                .Where(mf => !_excludeMeshRenderers.Contains(mf))
-                .Sum(mf => mf.sharedMesh.vertexCount);
+            if (allMf.Length == 0) return;
 
-            _flowFieldData.FlowFieldTypes = new FlowFieldType[vc];
-
-            List<int>[] adjacency = new List<int>[vc];
-            for (int i = 0; i < vc; i++)
-                adjacency[i] = new List<int>();
-
-            int globalOffset = 0;
+            // use dic to find with snapped position (mb save Vector3i if possible to reduce float precision error ?)
+            Dictionary<Vector3, int> posToId = new Dictionary<Vector3, int>();
+            List<Vector3> uniquePositions = new List<Vector3>();
+            List<List<int>> adjacency = new List<List<int>>();
 
             foreach (var mf in allMf)
             {
-                if (_excludeMeshRenderers.Contains(mf))
-                    continue;
-
                 var mesh = mf.sharedMesh;
                 var verts = mesh.vertices;
                 var tris = mesh.triangles;
+                int[] meshToGlobal = new int[verts.Length];
 
-                // Fill vertices
-                for (int j = 0; j < verts.Length; j++)
+                for (int i = 0; i < verts.Length; i++)
                 {
-                    Vector3 worldPos = mf.transform.TransformPoint(verts[j]);
-                    _flowFieldData.FlowFieldTypes[globalOffset + j] = new FlowFieldType(worldPos, Vector3.zero);
+                    Vector3 wPos = mf.transform.TransformPoint(verts[i]);
+                    
+                    // snap to remove float precision error
+                    Vector3 snappedPos = new Vector3(
+                        Mathf.Round(wPos.x * 1000f) / 1000f,
+                        Mathf.Round(wPos.y * 1000f) / 1000f,
+                        Mathf.Round(wPos.z * 1000f) / 1000f
+                    );
+
+                    if (!posToId.TryGetValue(snappedPos, out int existingId))
+                    {
+                        existingId = uniquePositions.Count;
+                        posToId.Add(snappedPos, existingId);
+                        uniquePositions.Add(wPos);
+                        adjacency.Add(new List<int>());
+                    }
+                    meshToGlobal[i] = existingId;
                 }
 
-                // Build adjacency
-                for (int j = 0; j < tris.Length; j += 3)
+                // manage neighbor link
+                for (int i = 0; i < tris.Length; i += 3)
                 {
-                    int a = globalOffset + tris[j];
-                    int b = globalOffset + tris[j + 1];
-                    int c = globalOffset + tris[j + 2];
-
+                    int a = meshToGlobal[tris[i]];
+                    int b = meshToGlobal[tris[i + 1]];
+                    int c = meshToGlobal[tris[i + 2]];
                     AddNeighbor(adjacency, a, b);
-                    AddNeighbor(adjacency, a, c);
                     AddNeighbor(adjacency, b, c);
+                    AddNeighbor(adjacency, c, a);
                 }
-
-                globalOffset += verts.Length;
             }
-            
-            // Compute direction
-            for (int i = 0; i < _flowFieldData.FlowFieldTypes.Length; i++)
+
+            // transform data into flat index to send into ScriptableObject (Format ECS-Ready, dev friendly)
+            int totalCount = uniquePositions.Count;
+            List<int> flatNeighbors = new List<int>();
+            int[] offsets = new int[totalCount];
+            int[] counts = new int[totalCount];
+
+            for (int i = 0; i < totalCount; i++)
             {
-                var neighbors = adjacency[i];
-                if (neighbors.Count == 0)
-                {
-                    _flowFieldData.FlowFieldTypes[i] = new FlowFieldType(Vector3.zero, Vector3.zero);
-                    continue;
-                }
-
-                Vector3 sumDir = Vector3.zero;
-                Vector3 currentPos = _flowFieldData.FlowFieldTypes[i].Position;
-
-                for (int j = 0; j < neighbors.Count; j++)
-                {
-                    Vector3 neighborPos = _flowFieldData.FlowFieldTypes[neighbors[j]].Position;
-                    sumDir += (neighborPos - currentPos).normalized;
-                }
-
-                _flowFieldData.FlowFieldTypes[i] = new FlowFieldType(currentPos, sumDir.normalized);
+                offsets[i] = flatNeighbors.Count;
+                counts[i] = adjacency[i].Count;
+                flatNeighbors.AddRange(adjacency[i]);
             }
 
-            _flowFieldData.FlowFieldTypes = _flowFieldData.FlowFieldTypes
-                .Where(el => el.Position != Vector3.zero).ToArray();
+            _flowFieldData.Positions = uniquePositions.ToArray();
+            _flowFieldData.Neighbors = flatNeighbors.ToArray();
+            _flowFieldData.NeighborOffsets = offsets;
+            _flowFieldData.NeighborCounts = counts;
 
-            Debug.Log("FlowField baked: " + _flowFieldData.FlowFieldTypes.Length + " vertices");
+            Debug.Log($"BakeFlowField : {totalCount} total nods linked.");
         }
-
         
-        private void AddNeighbor(List<int>[] adjacency, int a, int b)
+        [Button]
+        private void SimulatePath()
         {
-            if (!adjacency[a].Contains(b))
-                adjacency[a].Add(b);
+            if (_flowFieldData == null || _flowFieldData.Positions == null) return;
+            
+            int count = _flowFieldData.Positions.Length;
+            _debugDistances = new float[count];
+            for (int i = 0; i < count; i++) _debugDistances[i] = float.MaxValue;
 
-            if (!adjacency[b].Contains(a))
-                adjacency[b].Add(a);
+            // Dijkstra BFS
+            Queue<int> queue = new Queue<int>();
+            _debugDistances[_targetIndex] = 0;
+            queue.Enqueue(_targetIndex);
+
+            while (queue.Count > 0)
+            {
+                int current = queue.Dequeue();
+                int start = _flowFieldData.NeighborOffsets[current];
+                int nCount = _flowFieldData.NeighborCounts[current];
+
+                for (int i = 0; i < nCount; i++)
+                {
+                    int neighbor = _flowFieldData.Neighbors[start + i];
+                    float dist = _debugDistances[current] + Vector3.Distance(_flowFieldData.Positions[current], _flowFieldData.Positions[neighbor]);
+
+                    if (dist < _debugDistances[neighbor])
+                    {
+                        _debugDistances[neighbor] = dist;
+                        queue.Enqueue(neighbor);
+                    }
+                }
+            }
+
+            // Path Tracing
+            _debugPath.Clear();
+            int currPathNode = _startIndex;
+            _debugPath.Add(currPathNode);
+
+            int safety = 0;
+            while (currPathNode != _targetIndex && safety < 1000)
+            {
+                int start = _flowFieldData.NeighborOffsets[currPathNode];
+                int nCount = _flowFieldData.NeighborCounts[currPathNode];
+                int bestNeighbor = -1;
+                float minDist = _debugDistances[currPathNode];
+
+                for (int i = 0; i < nCount; i++)
+                {
+                    int neighbor = _flowFieldData.Neighbors[start + i];
+                    if (_debugDistances[neighbor] < minDist)
+                    {
+                        minDist = _debugDistances[neighbor];
+                        bestNeighbor = neighbor;
+                    }
+                    Debug.Log($"hyv; exec {i}");
+                }
+
+                if (bestNeighbor == -1) break;
+                currPathNode = bestNeighbor;
+                _debugPath.Add(currPathNode);
+                safety++;
+            }
+
+            Debug.Log($"hyv; success: {_debugPath.Count}");
         }
-        
-        // draw debug
+
+        // todo @hyverno bench mark with ECS 
+        [Button]
+        public void BenchPathfinding()
+        {
+            int iterations = 100;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            for (int i = 0; i < iterations; i++)
+            {
+                SimulatePath();
+            }
+
+            sw.Stop();
+            double averageMs = sw.Elapsed.TotalMilliseconds / iterations;
+            Debug.Log($"hyv; {iterations} runs : {averageMs:F4} ms");
+        }
+
         private void OnDrawGizmos()
         {
-            if (_flowFieldData == null) return;
-            for (int i = 0; i < _flowFieldData.FlowFieldTypes.Length; i++)
+            if (_flowFieldData == null || _flowFieldData.Positions == null) return;
+
+            // draw path
+            if (_debugPath != null && _debugPath.Count > 1)
             {
-                Gizmos.color = new Color(_flowFieldData.FlowFieldTypes[i].Position.x * 0.1f % 1, _flowFieldData.FlowFieldTypes[i].Position.y * 0.1f % 1, _flowFieldData.FlowFieldTypes[i].Position.z * 0.1f % 1);
-                var pos = _flowFieldData.FlowFieldTypes[i].Position;
-                Gizmos.DrawLine(pos, pos + _flowFieldData.FlowFieldTypes[i].Forward * 0.2f);
+                Gizmos.color = Color.red;
+                for (int i = 0; i < _debugPath.Count - 1; i++)
+                {
+                    Gizmos.DrawLine(_flowFieldData.Positions[_debugPath[i]], _flowFieldData.Positions[_debugPath[i+1]]);
+                    Gizmos.DrawSphere(_flowFieldData.Positions[_debugPath[i]], 0.2f);
+                }
             }
+
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireSphere(_flowFieldData.Positions[_targetIndex], 0.2f);
         }
+        
 #endif
         #endregion
     }
