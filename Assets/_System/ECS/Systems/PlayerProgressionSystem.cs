@@ -31,6 +31,22 @@ public partial struct PlayerProgressionSystem : ISystem
             ECB = ecb,
         };
         state.Dependency = gainExpJob.ScheduleParallel(state.Dependency);
+
+        // Stats Tracking
+        if (SystemAPI.TryGetSingletonRW<RunProgression>(out var progression))
+        {
+            var expQuery = SystemAPI.QueryBuilder().WithAll<Player, CollectedExperienceBufferElement>().Build();
+            if (!expQuery.IsEmptyIgnoreFilter)
+            {
+                var buffers = expQuery.GetBufferLookup<CollectedExperienceBufferElement>(true);
+                var entities = expQuery.ToEntityArray(Allocator.Temp);
+                foreach (var e in entities)
+                {
+                    foreach (var exp in buffers[e])
+                        progression.ValueRW.TotalExperienceCollected += exp.Value;
+                }
+            }
+        }
     }
 
     [BurstCompile]

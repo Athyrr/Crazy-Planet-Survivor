@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Entities;
 using UnityEngine;
-using UnityEngine.InputSystem; 
+using UnityEngine.InputSystem;
 
 public class UpgradeSelectionUIController : MonoBehaviour
 {
@@ -40,7 +40,8 @@ public class UpgradeSelectionUIController : MonoBehaviour
 
     private void InitDatabase()
     {
-        if (_isInitialized) return;
+        if (_isInitialized)
+            return;
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         _upgradeDatabaseQuery = _entityManager.CreateEntityQuery(typeof(UpgradesDatabase));
         _isInitialized = true;
@@ -85,10 +86,10 @@ public class UpgradeSelectionUIController : MonoBehaviour
 
         if (hitCard != _currentHoveredCard)
         {
-            if (_currentHoveredCard != null) 
+            if (_currentHoveredCard != null)
                 _currentHoveredCard.SetHovered(false);
 
-            if (hitCard != null) 
+            if (hitCard != null)
                 hitCard.SetHovered(true);
 
             _currentHoveredCard = hitCard;
@@ -104,7 +105,8 @@ public class UpgradeSelectionUIController : MonoBehaviour
         ClearSelection();
         _canInteract = false;
 
-        if (_upgradeDatabaseQuery.IsEmptyIgnoreFilter) return;
+        if (_upgradeDatabaseQuery.IsEmptyIgnoreFilter)
+            return;
 
         var dbEntity = _upgradeDatabaseQuery.GetSingletonEntity();
         var blobs = _entityManager.GetComponentData<UpgradesDatabase>(dbEntity).Blobs;
@@ -127,7 +129,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
 
             // Setup Data
             var uiComp = cardObj.GetComponent<UpgradeUIComponent>();
-            if (uiComp != null) 
+            if (uiComp != null)
                 uiComp.SetData(ref upgradeData, dbIndex);
 
             cardObj.transform.localScale = Vector3.zero;
@@ -136,14 +138,15 @@ public class UpgradeSelectionUIController : MonoBehaviour
         //Layout
         ApplyLayout(cardsTransforms);
 
-        // Animation 
+        // Animation
         StartCoroutine(AnimateCardsEntry());
     }
 
     private void ApplyLayout(List<Transform> cards)
     {
         int count = cards.Count;
-        if (count == 0) return;
+        if (count == 0)
+            return;
 
         float totalWidth = (count - 1) * Spacing;
         float startX = -totalWidth / 2f;
@@ -157,7 +160,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
             float normalizedPos = count > 1 ? (float)i / (count - 1) : 0.5f;
 
             // Calcul Arc
-            float xSym = (normalizedPos - 0.5f) * 2f; // -1 à 1
+            float xSym = (normalizedPos - 0.5f) * 2f; // -1 ï¿½ 1
             float yPos = -Mathf.Abs(xSym) * ArcHeight;
 
             // Calcul Rotation
@@ -189,10 +192,12 @@ public class UpgradeSelectionUIController : MonoBehaviour
             float t = elapsed / PopDuration;
             float scaleValue = PopCurve.Evaluate(t);
 
-            if (target != null) target.localScale = finalScale * scaleValue;
+            if (target != null)
+                target.localScale = finalScale * scaleValue;
             yield return null;
         }
-        if (target != null) target.localScale = finalScale;
+        if (target != null)
+            target.localScale = finalScale;
     }
 
     public void OnUpgradeSelected(int databaseIndex)
@@ -201,7 +206,10 @@ public class UpgradeSelectionUIController : MonoBehaviour
 
         InitDatabase();
         var requestEntity = _entityManager.CreateEntity();
-        _entityManager.AddComponentData(requestEntity, new ApplyUpgradeRequest { DatabaseIndex = databaseIndex });
+        _entityManager.AddComponentData(
+            requestEntity,
+            new ApplyUpgradeRequest { DatabaseIndex = databaseIndex }
+        );
 
         RunManager.TogglePause();
     }
@@ -218,5 +226,8 @@ public class UpgradeSelectionUIController : MonoBehaviour
         _currentHoveredCard = null;
     }
 
-    public void Init(RunManager runManager) { RunManager = runManager; }
+    public void Init(RunManager runManager)
+    {
+        RunManager = runManager;
+    }
 }

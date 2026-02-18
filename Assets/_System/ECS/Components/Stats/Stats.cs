@@ -77,7 +77,7 @@ public struct BaseStats : IComponentData
     public float ProjectileSpeedMultiplier;
 
     [Tooltip("Multiplier applied to the radius of Area of Effect spells.")]
-    [UIStat("AoE Radius", "{0:+0\u0025;-0\u0025;0\u0025}")]// c'est {0:0%} mais % marche pas
+    [UIStat("AoE Radius", "{0:+0\u0025;-0\u0025;0\u0025}")]
     public float EffectAreaRadiusMultiplier;
 
     [Tooltip("Number of additional bounces for ricochet projectiles.")]

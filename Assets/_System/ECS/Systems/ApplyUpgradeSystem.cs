@@ -193,36 +193,37 @@ public partial struct ApplyUpgradeSystem : ISystem
             switch (upgrade.SpellStat)
             {
                 case ESpellStat.Damage:
-                    spell.DamageMultiplier *= upgrade.Value;
+                    spell.DamageMultiplier += (upgrade.Value - 1.0f);
                     break;
 
                 case ESpellStat.Cooldown:
-                    spell.CooldownMultiplier *= upgrade.Value;
+                    // Cooldown is usually negative for reduction, e.g. 0.9 (-10%)
+                    // If we want reduction, we add the delta
+                    spell.CooldownMultiplier += (upgrade.Value - 1.0f);
                     break;
 
                 case ESpellStat.Speed:
-                    spell.SpeedMultiplier *= upgrade.Value;
+                    spell.SpeedMultiplier += (upgrade.Value - 1.0f);
                     break;
 
                 case ESpellStat.AreaOfEffectSize:
-                    spell.AreaMultiplier *= upgrade.Value;
+                    spell.AreaMultiplier += (upgrade.Value - 1.0f);
                     break;
 
                 case ESpellStat.Range:
-                    spell.RangeMultiplier *= upgrade.Value;
+                    spell.RangeMultiplier += (upgrade.Value - 1.0f);
                     break;
 
                 case ESpellStat.Duration:
-                    spell.LifetimeMultiplier *= upgrade.Value;
+                    spell.LifetimeMultiplier += (upgrade.Value - 1.0f);
                     break;
 
                 case ESpellStat.Amount:
-                    //@todo check for ChildEntitiesSpawner and set dirty and set DesiredChildrenCount +Value
                     spell.BonusAmount += (int)upgrade.Value;
                     break;
 
                 case ESpellStat.TickRate:
-                    spell.TickRateMultiplier *= upgrade.Value;
+                    spell.TickRateMultiplier += (upgrade.Value - 1.0f);
                     break;
 
                 case ESpellStat.BounceCount:

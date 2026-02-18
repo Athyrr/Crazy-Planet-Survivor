@@ -1,16 +1,17 @@
 using UnityEngine;
+using TMPro;
 
+/// <summary>
+/// Represents a single stat row in the end-of-run summary view.
+/// </summary>
 public class SummaryStat : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    public TMP_Text LabelText;
+    public TMP_Text ValueText;
 
-    // Update is called once per frame
-    void Update()
+    public void Init(string label, string value)
     {
-        
+        LabelText.text = label;
+        ValueText.text = value;
     }
 }

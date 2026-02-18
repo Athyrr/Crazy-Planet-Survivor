@@ -55,6 +55,35 @@ public partial struct HealthSystem : ISystem
         };
 
         state.Dependency = applyDamageJob.ScheduleParallel(state.Dependency);
+
+        // Stats Tracking
+        if (SystemAPI.TryGetSingletonRW<RunProgression>(out var progression))
+        {
+            var playerDamageQuery = SystemAPI.QueryBuilder().WithAll<Player, DamageBufferElement>().Build();
+            var enemyDamageQuery = SystemAPI.QueryBuilder().WithAll<Enemy, DamageBufferElement>().Build();
+
+            if (!playerDamageQuery.IsEmptyIgnoreFilter)
+            {
+                var buffers = playerDamageQuery.GetBufferLookup<DamageBufferElement>(true);
+                var entities = playerDamageQuery.ToEntityArray(Allocator.Temp);
+                foreach (var e in entities)
+                {
+                    foreach (var dbe in buffers[e])
+                        progression.ValueRW.TotalDamageTaken += dbe.Damage;
+                }
+            }
+
+            if (!enemyDamageQuery.IsEmptyIgnoreFilter)
+            {
+                var buffers = enemyDamageQuery.GetBufferLookup<DamageBufferElement>(true);
+                var entities = enemyDamageQuery.ToEntityArray(Allocator.Temp);
+                foreach (var e in entities)
+                {
+                    foreach (var dbe in buffers[e])
+                        progression.ValueRW.TotalDamageDealt += dbe.Damage;
+                }
+            }
+        }
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 using Unity.Entities;
 using UnityEngine;
 using System;
+using System.Reflection;
 using TMPro;
 
 public class SummaryView : MonoBehaviour
@@ -95,15 +96,55 @@ public class SummaryView : MonoBehaviour
 
     private void RefreshStatsSummary()
     {
+        // Clear previous items
+        foreach (Transform child in StatsContainer)
+            Destroy(child.gameObject);
+
+        // 1. Display Run Progression Stats
+        if (!_runProgressionQuery.IsEmptyIgnoreFilter)
+        {
+            var run = _runProgressionQuery.GetSingleton<RunProgression>();
+            
+            CreateStatUI("Total Damage Dealt", $"{(int)run.TotalDamageDealt}");
+            CreateStatUI("Total Damage Taken", $"{(int)run.TotalDamageTaken}");
+            CreateStatUI("Exp. Collected", $"{(int)run.TotalExperienceCollected}");
+        }
+
+        // 2. Display Player Character Stats (Final Values)
+        var playerStatsQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Stats));
+        if (!playerStatsQuery.IsEmptyIgnoreFilter)
+        {
+            var stats = playerStatsQuery.GetSingleton<Stats>();
+            
+            // Re-use logic from CharacterStatsViewComponent or implement reflection here
+            System.Type type = typeof(BaseStats); // We use BaseStats type for the attributes mapping
+            // But we have a Stats instance. We need a way to map Stats fields to BaseStats attributes.
+            // Since they are synchronized (same names), we can iterate on BaseStats fields to get the UI attributes
+            // then get the value from Stats.
+
+            var fields = type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            var statsType = typeof(Stats);
+
+            foreach (var field in fields)
+            {
+                var attr = field.GetCustomAttribute<UIStatAttribute>();
+                if (attr == null) continue;
+
+                // Get value from the runtime Stats component
+                var runtimeField = statsType.GetField(field.Name);
+                if (runtimeField != null)
+                {
+                    object rawValue = runtimeField.GetValue(stats);
+                    string displayValue = string.Format(attr.Format, rawValue);
+                    CreateStatUI(attr.DisplayName, displayValue);
+                }
+            }
+        }
     }
 
-    private void CreateSpellUI(ref SpellBlob spellData, ActiveSpell activeSpell)
+    private void CreateStatUI(string label, string value)
     {
-        var uiInstance = Instantiate(SummarySpellPrefab, SpellsContainer);
-        uiInstance.Refresh(spellData, activeSpell);
-    }
-
-    private void CreateStatUI()
-    {
+        var uiInstance = Instantiate(SummaryStatPrefab, StatsContainer);
+        uiInstance.Init(label, value);
     }
 }

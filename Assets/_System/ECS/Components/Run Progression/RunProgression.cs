@@ -11,4 +11,8 @@ public struct RunProgression : IComponentData
     /// <summary> Ratio of enemies killed in the current wave (0 to 1). </summary>
     public float EnemiesKilledRatio;
     public float EnemiesKilledCount;
+
+    public float TotalDamageDealt;
+    public float TotalDamageTaken;
+    public float TotalExperienceCollected;
 }
