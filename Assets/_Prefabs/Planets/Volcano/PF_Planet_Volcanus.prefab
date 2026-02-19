@@ -177,7 +177,7 @@ MonoBehaviour:
     m_Template: {fileID: 0}
     m_CollisionResponse:
       m_Override: 0
-      m_Value: 1
+      m_Value: 3
     m_Friction:
       m_Override: 0
       m_Value:
@@ -284,9 +284,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlanetDataAuthoring
   _planetID: 4
-  _autoCalculate: 1
+  _autoCalculate: 0
   _planetRenderer: {fileID: 7609811355825631638}
-  _manualRadius: 50
+  _manualRadius: 100
   _manualCenterOffset: {x: 0, y: 0, z: 0}
   _runDuration: 3600
 --- !u!23 &7609811355825631638 stripped

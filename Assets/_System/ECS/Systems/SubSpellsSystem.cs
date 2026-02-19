@@ -84,11 +84,12 @@ public partial struct SubSpellsSystem : ISystem
                 {
                     var childEntity = ecb.Instantiate(spawner.ValueRO.ChildEntityPrefab);
 
-                    //ecb.AddComponent(childEntity, new LocalTransform { Scale = 1, Rotation = quaternion.identity });
-                    ecb.AddComponent(childEntity, new LocalTransform { Scale = 0, Rotation = quaternion.identity });
                     ecb.AddComponent(childEntity, new Parent { Value = parentEntity });
 
-                    ecb.AppendToBuffer(parentEntity, new Child { Value = childEntity });
+                    ecb.AddComponent(childEntity, new LocalTransform { Scale = 1, Rotation = quaternion.identity });
+                    //ecb.AddComponent(childEntity, new LocalTransform { Scale = 0, Rotation = quaternion.identity });
+
+                    //ecb.AppendToBuffer(parentEntity, new Child { Value = childEntity });
 
                     // Collisions
                     if (_colliderLookup.HasComponent(spawner.ValueRO.ChildEntityPrefab))
@@ -121,7 +122,7 @@ public partial struct SubSpellsSystem : ISystem
                 for (int i = 0; i < desiredCount; i++)
                     childrenBuffer.Add(children[i]);
 
-                spawner.ValueRW.IsDirty = true;
+                spawner.ValueRW.IsDirty = false;
             }
         }
 
@@ -169,6 +170,12 @@ public partial struct SubSpellsSystem : ISystem
                     1f,
                     circleLayout.Radius * math.cos(angleRad)  // Z
                 );
+
+                //float3 localOffset = new float3(
+                //    circleLayout.Radius * math.cos(currentAngle),
+                //    1f,
+                //    circleLayout.Radius * math.sin(currentAngle)
+                //);
 
                 //float3 localOffset = new float3(
                 //    circleLayout.Radius * math.cos(currentAngle),
