@@ -12,10 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7bef2e6ca0a354f4ca2e4c967e2f9429, type: 3}
   m_Name: Upgrade_UnlockSpell_ShockChain
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeDataSO
-  DisplayName: 'Unlock spell: Shock Chain'
+  DisplayName: Shock Chain
   Description: 
+  Icon: {fileID: 0}
   UpgradeType: 2
-  Stat: 0
+  CharacterStat: 0
+  SpellID: 4
+  RequiredTags: 0
+  SpellStat: 0
   ModifierStrategy: 1
   Value: 0
-  SpellID: 4

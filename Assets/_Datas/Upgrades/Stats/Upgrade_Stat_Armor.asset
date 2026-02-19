@@ -12,10 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7bef2e6ca0a354f4ca2e4c967e2f9429, type: 3}
   m_Name: Upgrade_Stat_Armor
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeDataSO
-  DisplayName: 'Improve stat: Armor'
+  DisplayName: Stone skin
   Description: 
+  Icon: {fileID: 0}
   UpgradeType: 0
-  Stat: 5
+  CharacterStat: 5
+  SpellID: 0
+  RequiredTags: 0
+  SpellStat: 0
   ModifierStrategy: 1
   Value: 1.05
-  SpellID: 0

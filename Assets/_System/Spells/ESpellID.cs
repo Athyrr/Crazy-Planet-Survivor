@@ -6,11 +6,11 @@ public enum ESpellID : byte
 
     // Player Spells
     Fireball = 1,
-    LightningStrike = 2,
+    ShockShard = 2,
     FrozenZone = 3,
     ShockChain = 4,
     TechHoles = 5,
-    ShockBeam = 6,
+    ShockStrike = 6,
     DraconicVomit = 7,
     LightningTornado = 8,
     PoisonFloor= 9,
