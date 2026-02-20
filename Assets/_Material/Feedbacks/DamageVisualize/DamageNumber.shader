@@ -34,6 +34,7 @@ Shader "Custom/DamageNumbers"
                 float value;
                 float startTime;
                 int digitCount;
+                int isCrit;
             };
 
             StructuredBuffer<DamageData> _DamageBuffer;
@@ -63,14 +64,16 @@ Shader "Custom/DamageNumbers"
                 float age = _CurrentTime - data.startTime;
                 float life01 = saturate(1.0 - age / _LifeTime);
                 
-                float width = data.digitCount * _Scale;
+                float critScaleMult = 1.0 + (data.isCrit * 0.5); // 50% bigger
+                float currentScale = _Scale * critScaleMult;
+                float width = data.digitCount * currentScale;
 
                 float2 quad[4] =
                 {
-                    float2(-width, -_Scale),
-                    float2(-width,  _Scale),
-                    float2( width, -_Scale),
-                    float2( width,  _Scale)
+                    float2(-width, -currentScale),
+                    float2(-width,  currentScale),
+                    float2( width, -currentScale),
+                    float2( width,  currentScale)
                 };
 
                 float2 uvs[4] =
@@ -144,8 +147,10 @@ Shader "Custom/DamageNumbers"
                 float age = _CurrentTime - data.startTime;
                 float emissive = saturate(1.0 - age / _EmissiveDuration);
 
+                float4 finalColor = lerp(_Color, float4(1.0, 0.6, 0.0, 1.0), data.isCrit);
+
                 col.a *= min(col.r, i.alpha);
-                col.rgb *= _Color.rgb * emissive;
+                col.rgb *= finalColor.rgb * emissive;
 
                 return col;
             }
