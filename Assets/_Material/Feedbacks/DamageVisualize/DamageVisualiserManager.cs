@@ -49,7 +49,7 @@ public class DamageFeedbackManager : MonoBehaviour
         public float Value;
         public float StartTime;
         public int DigitCount;
-        public int IsCrit; // Using int for buffer compatibility
+        public float CritIntensity; // Changed from int IsCrit to float CritIntensity
     }
 
     [SerializeField] public ComputeShader computeShader;
@@ -81,7 +81,7 @@ public class DamageFeedbackManager : MonoBehaviour
         }
     }
 
-    public void AddDamage(int val, Vector3 pos, bool isCrit)
+    public void AddDamage(int val, Vector3 pos, float critIntensity)
     {
         InitBuffer();
 
@@ -93,7 +93,7 @@ public class DamageFeedbackManager : MonoBehaviour
             Value = (float)val,
             StartTime = GetCurrentTime(),
             DigitCount = val.ToString().Length,
-            IsCrit = isCrit ? 1 : 0
+            CritIntensity = critIntensity
         });
 
         _damageBuffer.SetData(_activeDamages.ToArray());
@@ -118,7 +118,7 @@ public class DamageFeedbackManager : MonoBehaviour
 
                 for (int i = 0; i < entities.Length; i++)
                 {
-                    AddDamage(requests[i].Amount, (Vector3)requests[i].Transform.Position + (Vector3)requests[i].Transform.Up() * 1.5f * Random.Range(1, 3f), requests[i].IsCrit);
+                    AddDamage(requests[i].Amount, (Vector3)requests[i].Transform.Position + (Vector3)requests[i].Transform.Up() * 1.5f * Random.Range(1, 3f), requests[i].CritIntensity);
                     entityManager.DestroyEntity(entities[i]);
                 }
 
@@ -166,16 +166,16 @@ public class DamageFeedbackManager : MonoBehaviour
     void TestDamage()
     {
         Sequence.Create(cycles: 10, Sequence.SequenceCycleMode.Yoyo)
-            .ChainCallback(() => AddDamage(Random.Range(10, 999999), transform.position, false))
+            .ChainCallback(() => AddDamage(Random.Range(10, 999999), transform.position, 0f))
             .ChainDelay(0.1f)
-            .ChainCallback(() => AddDamage(Random.Range(10, 9999), transform.position, false))
+            .ChainCallback(() => AddDamage(Random.Range(10, 9999), transform.position, 1.0f))
             .ChainDelay(0.1f)
-            .ChainCallback(() => AddDamage(Random.Range(10, 99), transform.position, false));
+            .ChainCallback(() => AddDamage(Random.Range(10, 99), transform.position, 2.0f));
     }
 
     [Button]
     void TestDamageSingle()
     {
-        AddDamage(Random.Range(10, 999999), transform.position, false);
+        AddDamage(Random.Range(10, 999999), transform.position, 0f);
     }
 }

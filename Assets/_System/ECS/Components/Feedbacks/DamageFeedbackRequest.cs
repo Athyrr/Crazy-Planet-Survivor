@@ -6,5 +6,5 @@ public struct DamageFeedbackRequest : IComponentData
 {
     public int Amount;
     public LocalTransform Transform;
-    public bool IsCrit;
+    public float CritIntensity;
 }

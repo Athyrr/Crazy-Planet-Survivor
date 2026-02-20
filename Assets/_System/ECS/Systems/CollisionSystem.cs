@@ -157,7 +157,7 @@ public partial struct CollisionSystem : ISystem
                     {
                         Damage = damageData.Damage,
                         Element = damageData.Element,
-                        IsCrit = damageData.IsCrit
+                        CritIntensity = damageData.CritIntensity
                     });
 
                     //if (EnemyLookup.HasComponent(target) /*&& !PlayerLookup.HasComponent(target)*/)

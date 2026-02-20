@@ -5,5 +5,5 @@ public struct DamageOnContact : IComponentData
     public float Damage;
     public ESpellTag Element;
     public float AreaRadius;
-    public bool IsCrit;
+    public float CritIntensity;
 }

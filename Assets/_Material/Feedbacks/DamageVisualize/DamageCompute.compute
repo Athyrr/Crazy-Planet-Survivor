@@ -5,7 +5,7 @@ struct DamageData {
     float value;
     float startTime;
     int digitCount;
-    int isCrit;
+    float critIntensity;
 };
 
 RWStructuredBuffer<DamageData> _DamageBuffer;

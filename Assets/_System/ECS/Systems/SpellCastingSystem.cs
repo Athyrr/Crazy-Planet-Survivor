@@ -251,14 +251,21 @@ public partial struct SpellCastingSystem : ISystem
 
             // Crit Logic
             float finalCritChance = stats.CritChance + bonusSpellCritChance;
-            float finalCritMultiplier = stats.CritMultiplier + bonusSpellCritMultiplier;
+            float finalCritMultiplier = math.max(1f, stats.CritMultiplier + bonusSpellCritMultiplier);
             bool isCrit = random.NextFloat(0f, 1f) < finalCritChance;
 
-            float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * mulDmg;
+            float critIntensity = 0f;
+            float actualMultiplier = 1f;
+
             if (isCrit)
             {
-                finalDamage *= math.max(1f, finalCritMultiplier);
+                // Random variance +/- 25%
+                float variance = random.NextFloat(0.75f, 1.25f);
+                actualMultiplier = math.max(1.0f, finalCritMultiplier * variance);
+                critIntensity = actualMultiplier / finalCritMultiplier;
             }
+
+            float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * mulDmg * actualMultiplier;
 
             float finalSpeed = baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) * mulSpeed;
             float finalArea = baseSpellData.BaseEffectArea * math.max(1f, stats.EffectAreaRadiusMult) * mulArea;
@@ -468,7 +475,7 @@ public partial struct SpellCastingSystem : ISystem
                         Damage = finalDamage,
                         Element = baseSpellData.Tag | addedTags,
                         AreaRadius = finalArea,
-                        IsCrit = isCrit
+                        CritIntensity = critIntensity
                     });
                 }
 
@@ -478,10 +485,10 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         Caster = request.Caster,
                         TickRate = baseSpellData.TickRate, // Could have TickRateMultiplier too
-                        DamagePerTick = (baseSpellData.BaseDamagePerTick + stats.Damage) * mulDmg * (isCrit ? math.max(1f, finalCritMultiplier) : 1f),
+                        DamagePerTick = (baseSpellData.BaseDamagePerTick + stats.Damage) * mulDmg * actualMultiplier,
                         AreaRadius = finalArea,
                         Element = baseSpellData.Tag | addedTags,
-                        IsCrit = isCrit
+                        CritIntensity = critIntensity
                     });
                 }
 

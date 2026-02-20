@@ -94,13 +94,14 @@ public partial struct HealthSystem : ISystem
             var isPlayer = PlayerLookup.HasComponent(entity);
 
             float totalDamage = 0;
-            bool anyCrit = false;
+            float maxCritIntensity = 0f;
             // Process every damage instance stored in the buffer this frame
-            foreach (var dbe in damageBuffer)
+            for(int i = 0; i < damageBuffer.Length; i++)
             {
+                var dbe = damageBuffer[i];
                 float damage = dbe.Damage;
                 ESpellTag element = dbe.Element;
-                if (dbe.IsCrit) anyCrit = true;
+                maxCritIntensity = math.max(maxCritIntensity, dbe.CritIntensity);
 
                 // Apply Elemental resistance reduction
                 switch (element)
@@ -138,7 +139,7 @@ public partial struct HealthSystem : ISystem
             if (!isPlayer)
             {
                 var transform = TransformLookup[entity];
-                TriggerDamageVisual(index, ECB, (int)totalDamage, transform, anyCrit);
+                TriggerDamageVisual(index, ECB, (int)totalDamage, transform, maxCritIntensity);
             }
 
             // Check for death condition
@@ -168,14 +169,14 @@ public partial struct HealthSystem : ISystem
             }
         }
 
-        private void TriggerDamageVisual(int key, EntityCommandBuffer.ParallelWriter ecb, int amount, LocalTransform transform, bool isCrit)
+        private void TriggerDamageVisual(int key, EntityCommandBuffer.ParallelWriter ecb, int amount, LocalTransform transform, float critIntensity)
         {
             Entity req = ecb.CreateEntity(key);
             ecb.AddComponent(key, req, new DamageFeedbackRequest
             {
                 Amount = amount,
                 Transform = transform,
-                IsCrit = isCrit
+                CritIntensity = critIntensity
             });
         }
     }
