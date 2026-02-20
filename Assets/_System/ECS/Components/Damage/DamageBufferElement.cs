@@ -8,4 +8,5 @@ public struct DamageBufferElement : IBufferElementData
 {
     public float Damage;
     public ESpellTag Element;
+    public bool IsCrit;
 }
