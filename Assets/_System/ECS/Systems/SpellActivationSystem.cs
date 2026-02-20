@@ -128,6 +128,9 @@ public partial struct SpellActivationSystem : ISystem
                         BonusBounces = 0,
                         BonusPierces = 0,
 
+                        BonusCritChance = 0f,
+                        BonusCritMultiplier = 0f,
+
                         CurrentCooldown = 0f
                     });
 

@@ -102,6 +102,8 @@ public class PlayerAuthoring : MonoBehaviour
 
                 Damage = baseStats.Damage,
                 CooldownReduction = baseStats.CooldownReduction,
+                CritChance = baseStats.CritChance,
+                CritMultiplier = baseStats.CritMultiplier,
 
                 ProjectileSpeedMultiplier = baseStats.ProjectileSpeedMultiplier,
                 EffectAreaRadiusMult = baseStats.EffectAreaRadiusMultiplier,

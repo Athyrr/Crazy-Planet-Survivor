@@ -48,7 +48,9 @@ public class EnemyAuthoring : MonoBehaviour
                 MoveSpeed = authoring.BaseStats.MoveSpeed,
                 Damage = authoring.BaseStats.Damage,
                 Armor = authoring.BaseStats.Armor,
-                CooldownReduction = authoring.BaseStats.CooldownReduction
+                CooldownReduction = authoring.BaseStats.CooldownReduction,
+                CritChance = authoring.BaseStats.CritChance,
+                CritMultiplier = authoring.BaseStats.CritMultiplier
             });
 
             DynamicBuffer<StatModifier> modifierBuffer = AddBuffer<StatModifier>(entity);

@@ -233,6 +233,14 @@ public partial struct ApplyUpgradeSystem : ISystem
                     spell.BonusPierces += (int)upgrade.Value;
                     break;
 
+                case ESpellStat.CritChance:
+                    spell.BonusCritChance += upgrade.Value;
+                    break;
+
+                case ESpellStat.CritMultiplier:
+                    spell.BonusCritMultiplier += upgrade.Value;
+                    break;
+
                 default:
                     break;
             }

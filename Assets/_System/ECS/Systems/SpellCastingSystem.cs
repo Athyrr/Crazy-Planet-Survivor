@@ -217,6 +217,9 @@ public partial struct SpellCastingSystem : ISystem
             ESpellTag addedTags = ESpellTag.None;
 
             // Try to find the ActiveSpell config on the caster (Player only usually)
+            float bonusSpellCritChance = 0f;
+            float bonusSpellCritMultiplier = 0f;
+
             if (ActiveSpellLookup.TryGetBuffer(request.Caster, out var activeSpells))
             {
                 for (int i = 0; i < activeSpells.Length; i++)
@@ -232,6 +235,9 @@ public partial struct SpellCastingSystem : ISystem
                         addBounces = mod.BonusBounces;
                         addPierces = mod.BonusPierces;
                         addedTags = mod.AddedTags;
+
+                        bonusSpellCritChance = mod.BonusCritChance;
+                        bonusSpellCritMultiplier = mod.BonusCritMultiplier;
                         break;
                     }
                 }
@@ -243,7 +249,24 @@ public partial struct SpellCastingSystem : ISystem
             var stats = StatsLookup[request.Caster];
             var random = Random.CreateFromIndex(Seed);
 
-            float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * mulDmg;
+            // Crit Logic
+            float finalCritChance = stats.CritChance + bonusSpellCritChance;
+            float finalCritMultiplier = math.max(1f, stats.CritMultiplier + bonusSpellCritMultiplier);
+            bool isCrit = random.NextFloat(0f, 1f) < finalCritChance;
+
+            float critIntensity = 0f;
+            float actualMultiplier = 1f;
+
+            if (isCrit)
+            {
+                // Random variance +/- 25%
+                float variance = random.NextFloat(0.75f, 1.25f);
+                actualMultiplier = math.max(1.0f, finalCritMultiplier * variance);
+                critIntensity = actualMultiplier / finalCritMultiplier;
+            }
+
+            float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * mulDmg * actualMultiplier;
+
             float finalSpeed = baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) * mulSpeed;
             float finalArea = baseSpellData.BaseEffectArea * math.max(1f, stats.EffectAreaRadiusMult) * mulArea;
             float finalDuration = baseSpellData.Lifetime * mulDuration;
@@ -451,7 +474,8 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         Damage = finalDamage,
                         Element = baseSpellData.Tag | addedTags,
-                        AreaRadius = finalArea
+                        AreaRadius = finalArea,
+                        CritIntensity = critIntensity
                     });
                 }
 
@@ -461,9 +485,10 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         Caster = request.Caster,
                         TickRate = baseSpellData.TickRate, // Could have TickRateMultiplier too
-                        DamagePerTick = (baseSpellData.BaseDamagePerTick + stats.Damage) * mulDmg,
+                        DamagePerTick = (baseSpellData.BaseDamagePerTick + stats.Damage) * mulDmg * actualMultiplier,
                         AreaRadius = finalArea,
-                        Element = baseSpellData.Tag | addedTags
+                        Element = baseSpellData.Tag | addedTags,
+                        CritIntensity = critIntensity
                     });
                 }
 

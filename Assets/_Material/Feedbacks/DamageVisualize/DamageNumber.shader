@@ -34,6 +34,7 @@ Shader "Custom/DamageNumbers"
                 float value;
                 float startTime;
                 int digitCount;
+                float critIntensity;
             };
 
             StructuredBuffer<DamageData> _DamageBuffer;
@@ -63,14 +64,21 @@ Shader "Custom/DamageNumbers"
                 float age = _CurrentTime - data.startTime;
                 float life01 = saturate(1.0 - age / _LifeTime);
                 
-                float width = data.digitCount * _Scale;
+                // Crit Logic for Scale
+                // if critIntensity <= 0, scale mult is 1.0
+                // if critIntensity > 0, scale mult increases.
+                // e.g. 1.0 intensity -> 1.5 scale. 2.0 intensity -> 2.0 scale.
+                float critScaleMult = 1.0 + max(0, data.critIntensity * 0.5); 
+                
+                float currentScale = _Scale * critScaleMult;
+                float width = data.digitCount * currentScale;
 
                 float2 quad[4] =
                 {
-                    float2(-width, -_Scale),
-                    float2(-width,  _Scale),
-                    float2( width, -_Scale),
-                    float2( width,  _Scale)
+                    float2(-width, -currentScale),
+                    float2(-width,  currentScale),
+                    float2( width, -currentScale),
+                    float2( width,  currentScale)
                 };
 
                 float2 uvs[4] =
@@ -144,8 +152,43 @@ Shader "Custom/DamageNumbers"
                 float age = _CurrentTime - data.startTime;
                 float emissive = saturate(1.0 - age / _EmissiveDuration);
 
+                // Color Logic
+                float4 finalColor = _Color;
+                if (data.critIntensity > 0)
+                {
+                    // Yellow (Weak) -> Orange (Base) -> Red (Strong)
+                    float4 colWeak   = float4(1.0, 1.0, 0.0, 1.0); // Yellow
+                    float4 colBase   = float4(1.0, 0.6, 0.0, 1.0); // Orange
+                    float4 colStrong = float4(1.0, 0.0, 0.0, 1.0); // Red
+
+                    float t = data.critIntensity;
+                    
+                    // Remap t so 1.0 is the "center"
+                    // 0.5 -> Weak
+                    // 1.0 -> Base
+                    // 1.5 -> Strong
+
+                    if (t <= 1.0)
+                    {
+                        // Lerp Yellow -> Orange
+                        // t goes 0.5 to 1.0
+                        // (t - 0.5) / 0.5 => 0..1
+                        // Clamp t to min 0.5 just in case
+                        float lerpVal = saturate((t - 0.5) * 2.0);
+                        finalColor = lerp(colWeak, colBase, lerpVal);
+                    }
+                    else
+                    {
+                        // Lerp Orange -> Red
+                        // t goes 1.0 to 1.5
+                        // (t - 1.0) / 0.5 => 0..1
+                        float lerpVal = saturate((t - 1.0) * 2.0);
+                        finalColor = lerp(colBase, colStrong, lerpVal);
+                    }
+                }
+
                 col.a *= min(col.r, i.alpha);
-                col.rgb *= _Color.rgb * emissive;
+                col.rgb *= finalColor.rgb * emissive;
 
                 return col;
             }
