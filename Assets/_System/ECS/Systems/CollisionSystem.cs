@@ -156,7 +156,8 @@ public partial struct CollisionSystem : ISystem
                     ECB.AppendToBuffer(0, target, new DamageBufferElement
                     {
                         Damage = damageData.Damage,
-                        Element = damageData.Element
+                        Element = damageData.Element,
+                        IsCrit = damageData.IsCrit
                     });
 
                     //if (EnemyLookup.HasComponent(target) /*&& !PlayerLookup.HasComponent(target)*/)

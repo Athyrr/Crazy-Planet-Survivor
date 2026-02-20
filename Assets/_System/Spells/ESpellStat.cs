@@ -21,4 +21,6 @@ public enum ESpellStat
     // Specifics
     BounceCount,        
     PierceCount,        
+    CritChance,
+    CritMultiplier,
 }

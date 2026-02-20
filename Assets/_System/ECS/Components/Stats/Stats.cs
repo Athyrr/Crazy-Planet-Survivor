@@ -18,6 +18,8 @@ public struct Stats : IComponentData
     [Header("Offensive")]
     public float Damage;
     public float CooldownReduction;
+    public float CritChance;
+    public float CritMultiplier;
 
     [Header("Spell Modifiers")]
     public float ProjectileSpeedMultiplier;
@@ -68,6 +70,15 @@ public struct BaseStats : IComponentData
     [UIStat("Cooldown Reduc.", "-{0:0\u0025}")]
     [StepRange(0, 1, 0.01f)]
     public float CooldownReduction;
+
+    [Tooltip("Probability of landing a critical hit (0.0 = 0%, 1.0 = 100%).")]
+    [UIStat("Crit Chance", "{0:0\u0025}")]
+    [StepRange(0, 1, 0.01f)]
+    public float CritChance;
+
+    [Tooltip("Multiplier applied to damage on a critical hit (e.g. 2.0 = double damage).")]
+    [UIStat("Crit Mult.", "x{0:0.0}")]
+    public float CritMultiplier;
 
 
     [Header("Spell Modifiers")]

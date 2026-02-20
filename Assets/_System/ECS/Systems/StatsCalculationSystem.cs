@@ -52,6 +52,8 @@ public partial struct StatsCalculationSystem : ISystem
             stats.Armor = baseStats.Armor;
             stats.FireResistance = baseStats.FireResistance;
             stats.CooldownReduction = baseStats.CooldownReduction;
+            stats.CritChance = baseStats.CritChance;
+            stats.CritMultiplier = baseStats.CritMultiplier;
             stats.EffectAreaRadiusMult = baseStats.EffectAreaRadiusMultiplier;
             stats.CollectRange = baseStats.CollectRange;
             stats.BouncesAdded = baseStats.BouncesAdded;
@@ -87,6 +89,14 @@ public partial struct StatsCalculationSystem : ISystem
 
                     case ECharacterStat.CooldownReduction:
                         ApplyModifier(ref stats.CooldownReduction, modifiers[i]);
+                        break;
+
+                    case ECharacterStat.CritChance:
+                        ApplyModifier(ref stats.CritChance, modifiers[i]);
+                        break;
+
+                    case ECharacterStat.CritMultiplier:
+                        ApplyModifier(ref stats.CritMultiplier, modifiers[i]);
                         break;
 
                     case ECharacterStat.AreaSize:

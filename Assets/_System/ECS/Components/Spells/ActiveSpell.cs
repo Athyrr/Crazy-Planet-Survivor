@@ -20,7 +20,13 @@ public struct ActiveSpell : IBufferElementData
     public float TickRateMultiplier;
     public float LifetimeMultiplier;
 
+    public float CritChanceAdded;
+    public float CritMultiplierMultiplier;
+
     public int BonusAmount;
     public int BonusBounces;
     public int BonusPierces;
+
+    public float BonusCritChance;
+    public float BonusCritMultiplier;
 }
