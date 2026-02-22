@@ -57,7 +57,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
         // Handle kills
         ProcessKills(ref ecb, ref state, ref spawnerState);
         // Handle timer and wave progression
-        ManageWaveProgression(ref state, ref spawnerState, waves);
+        ManageWaveProgression(ref state, ref ecb, ref spawnerState, waves);
         // Handle Spawning
         ManageSpawning(ref ecb, ref state, ref spawnerState, groups, settings.MaxEnemies);
     }
@@ -77,7 +77,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
         }
     }
 
-    private void ManageWaveProgression(ref SystemState systemState, ref SpawnerState spawnerState, DynamicBuffer<Wave> waves)
+    private void ManageWaveProgression(ref SystemState systemState, ref EntityCommandBuffer ecb, ref SpawnerState spawnerState, DynamicBuffer<Wave> waves)
     {
         if (spawnerState.CurrentWaveIndex == -1)
         {
@@ -110,8 +110,12 @@ public partial struct EnemiesSpawnerSystem : ISystem
             }
             else
             {
-                // @todo Handle finished run
-                // state.IsWaveActive = false; 
+                //state.IsWaveActive = false;
+                var endRunRequestEntity = ecb.CreateEntity();
+                ecb.AddComponent(endRunRequestEntity, new EndRunRequest
+                {
+                    State = EEndRunState.Success
+                });
             }
         }
     }
@@ -319,7 +323,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     float3 opositePoint = PlanetCenter - (dirToOrigin * PlanetRadius * 1f);
 
                     // Avoid stacking
-                    float oppositePositionRadius = math.max(15f, TotalAmount * 0.5f); 
+                    float oppositePositionRadius = math.max(15f, TotalAmount * 0.5f);
 
                     positionFound = PlanetUtils.GetRandomPointOnSurface(
                         ref CollisionWorld, ref rand, opositePoint, PlanetCenter, oppositePositionRadius, ref groundFilter,

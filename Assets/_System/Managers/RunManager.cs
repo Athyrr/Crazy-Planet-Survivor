@@ -62,13 +62,14 @@ public class RunManager : MonoBehaviour
 
         if (!_endRunQuery.IsEmpty)
         {
+            var reqEntity = _endRunQuery.GetSingletonEntity();
+            var endRunRequest = _entityManager.GetComponentData<EndRunRequest>(reqEntity);
+
             if (GameManager.Instance.GetGameState() != EGameState.GameOver)
                 GameManager.Instance.ChangeState(EGameState.GameOver);
 
-            //@todo change text depending on end run state (death/timeout)
+            GameOverUIController.OpenView(endRunRequest.State);
 
-            // Destroy request
-            var reqEntity = _endRunQuery.GetSingletonEntity();
             _entityManager.DestroyEntity(reqEntity);
         }
     }
@@ -81,8 +82,11 @@ public class RunManager : MonoBehaviour
             var playerHealth = _playerHealthQuery.GetSingleton<Health>();
             if (playerHealth.Value <= 0)
             {
-                if (GameManager.Instance.GetGameState() != EGameState.GameOver)
-                    GameManager.Instance.ChangeState(EGameState.GameOver);
+                var reqEntity = _entityManager.CreateEntity();
+                _entityManager.AddComponentData(reqEntity, new EndRunRequest { State = EEndRunState.Death });
+
+                //if (GameManager.Instance.GetGameState() != EGameState.GameOver)
+                //    GameManager.Instance.ChangeState(EGameState.GameOver);
             }
         }
     }
@@ -140,8 +144,8 @@ public class RunManager : MonoBehaviour
                 PausePanel.SetActive(true);
                 break;
             case EGameState.GameOver:
-                GameOverUIController.gameObject.SetActive(true);
-                GameOverUIController.OpenView();
+                //GameOverUIController.gameObject.SetActive(true);
+                //GameOverUIController.OpenView();
                 break;
             case EGameState.UpgradeSelection:
                 UpgradeSelectionController.gameObject.SetActive(true);

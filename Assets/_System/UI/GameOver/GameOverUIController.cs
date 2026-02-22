@@ -4,7 +4,6 @@ using TMPro;
 
 public class GameOverUIController : MonoBehaviour
 {
-
     [Header("Game Over View")]
     public GameObject GameOverView;
     public TMP_Text GameOverText;
@@ -15,14 +14,43 @@ public class GameOverUIController : MonoBehaviour
     public SummaryView RunSummaryView;
 
 
-    public void OpenView()
+    public void OpenView(EEndRunState endState)
     {
+        gameObject.SetActive(true);
         GameOverView.SetActive(true);
         RunSummaryView.gameObject.SetActive(false);
+
+        SetupText(endState);
 
         SetTextAlpha(0f);
 
         StartCoroutine(PlaySequenceCoroutine());
+    }
+
+    private void SetupText(EEndRunState state)
+    {
+        switch (state)
+        {
+            case EEndRunState.Success:
+                GameOverText.text = "YOUPI";
+                GameOverText.color = Color.yellow;
+                break;
+
+            case EEndRunState.Death:
+                GameOverText.text = "YOU DIED (nulos)";
+                GameOverText.color = Color.red;
+                break;
+
+            case EEndRunState.Timeout:
+                GameOverText.text = "TIME OUT";
+                GameOverText.color = Color.gray;
+                break;
+
+            default:
+                GameOverText.text = "NULOS";
+                GameOverText.color = Color.red;
+                break;
+        }
     }
 
     private void SetTextAlpha(float alpha)
