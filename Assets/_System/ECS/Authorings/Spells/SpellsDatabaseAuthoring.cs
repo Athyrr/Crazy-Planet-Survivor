@@ -31,21 +31,27 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
 
                 ref var spellBlob = ref arrayBuilder[i];
 
-                spellBlob.DisplayName = spellSO.DisplayName;
+                // Identity
                 spellBlob.ID = spellSO.ID;
-                spellBlob.BaseCooldown = spellSO.BaseCooldown;
-                spellBlob.BaseDamage = spellSO.BaseDamage;
-                spellBlob.BaseEffectArea = spellSO.BaseAreaOfEffect;
-                spellBlob.BaseCastRange = spellSO.BaseCastRange;
-                spellBlob.BaseSpeed = spellSO.BaseSpeed;
+                spellBlob.DisplayName = spellSO.DisplayName;
                 spellBlob.Tag = spellSO.Tags;
-                spellBlob.Lifetime = spellSO.Lifetime;
-                spellBlob.BouncesSearchRadius = spellSO.BouncesSearchRadius;
-                spellBlob.BaseSpawnOffset = spellSO.BaseSpawnOffset;
 
+                // Base Stats
+                spellBlob.BaseDamage = spellSO.BaseDamage;
+                spellBlob.BaseCooldown = spellSO.BaseCooldown;
+                spellBlob.BaseSpeed = spellSO.BaseSpeed;
+                spellBlob.Lifetime = spellSO.Lifetime;
+                spellBlob.BaseCastRange = spellSO.BaseCastRange;
+                spellBlob.BaseEffectArea = spellSO.BaseAreaOfEffect;
+                spellBlob.BaseSpawnOffset = spellSO.BaseSpawnOffset;
+                spellBlob.BaseSize = spellSO.BaseSize;
+
+                // Targeting
                 spellBlob.TargetingMode = spellSO.TargetingMode;
 
+                // Mechanics
                 spellBlob.Bounces = spellSO.Bounces;
+                spellBlob.BouncesSearchRadius = spellSO.BouncesSearchRadius;
                 spellBlob.Pierces = spellSO.Pierces;
 
                 // Tick effects (for auras)
@@ -78,7 +84,9 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 }
             }
 
-            var spellsDatabaseBlob = builder.CreateBlobAssetReference<SpellBlobs>(Allocator.Persistent);
+            var spellsDatabaseBlob = builder.CreateBlobAssetReference<SpellBlobs>(
+                Allocator.Persistent
+            );
 
             AddComponent(dbEntity, new SpellsDatabase { Blobs = spellsDatabaseBlob });
 
@@ -87,7 +95,6 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
 
             // Dispose builder
             builder.Dispose();
-
         }
     }
 }

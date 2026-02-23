@@ -1,9 +1,9 @@
-using Unity.Mathematics;
-using Unity.Collections;
-using Unity.Transforms;
-using Unity.Entities;
-using Unity.Physics;
 using Unity.Burst;
+using Unity.Collections;
+using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Physics;
+using Unity.Transforms;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(PlayerSpawnerSystem))]
@@ -39,11 +39,11 @@ public partial struct SpellCastingSystem : ISystem
     // Enableable Components
     private ComponentLookup<Bounce> _ricochetLookup;
     private ComponentLookup<Pierce> _pierceLookup;
+
     //private ComponentLookup<ExplodeOnContact> _explodeLookup;
 
     // Queries
     //private EntityQuery _playerQuery;
-
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -84,7 +84,10 @@ public partial struct SpellCastingSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
+        if (
+            !SystemAPI.TryGetSingleton<GameState>(out var gameState)
+            || gameState.State != EGameState.Running
+        )
             return;
 
         //if (_playerQuery.IsEmpty)
@@ -113,7 +116,8 @@ public partial struct SpellCastingSystem : ISystem
         _pierceLookup.Update(ref state);
         //_explodeLookup.Update(ref state);
 
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var ecbSingleton =
+            SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var physicsWorldSingleton = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
         var spellDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
@@ -161,34 +165,82 @@ public partial struct SpellCastingSystem : ISystem
         public EntityCommandBuffer.ParallelWriter ECB;
         public uint Seed;
 
-        [ReadOnly] public CollisionWorld CollisionWorld;
-        [ReadOnly] public DynamicBuffer<SpellPrefab> MainSpellPrefabs;
-        [ReadOnly] public DynamicBuffer<ChildSpellPrefab> ChildSpellPrefabs;
-        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
+        [ReadOnly]
+        public CollisionWorld CollisionWorld;
 
-        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
-        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
-        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        [ReadOnly]
+        public DynamicBuffer<SpellPrefab> MainSpellPrefabs;
 
-        [ReadOnly] public ComponentLookup<Lifetime> LifetimeLookup;
-        [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
-        [ReadOnly] public ComponentLookup<AttachToCaster> AttachLookup;
-        [ReadOnly] public ComponentLookup<CopyEntityPosition> CopyPositionLookup;
-        [ReadOnly] public ComponentLookup<SelfRotate> SelfRotateLookup;
-        [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
-        [ReadOnly] public ComponentLookup<DamageOnTick> DamageOnTickLookup;
-        [ReadOnly] public ComponentLookup<LinearMovement> LinearMovementLookup;
-        [ReadOnly] public ComponentLookup<OrbitMovement> OrbitMovementLookup;
-        [ReadOnly] public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
-        [ReadOnly] public ComponentLookup<SubSpellsSpawner> SubSpellsSpawnerLookup;
-        [ReadOnly] public ComponentLookup<SubSpellsLayout_Circle> SubSpellsCircleLayoutLookup;
-        [ReadOnly] public ComponentLookup<Bounce> RicochetLookup;
-        [ReadOnly] public ComponentLookup<Pierce> PierceLookup;
+        [ReadOnly]
+        public DynamicBuffer<ChildSpellPrefab> ChildSpellPrefabs;
+
+        [ReadOnly]
+        public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
+
+        [ReadOnly]
+        public ComponentLookup<Player> PlayerLookup;
+
+        [ReadOnly]
+        public ComponentLookup<Enemy> EnemyLookup;
+
+        [ReadOnly]
+        public ComponentLookup<LocalTransform> TransformLookup;
+
+        [ReadOnly]
+        public ComponentLookup<Stats> StatsLookup;
+
+        [ReadOnly]
+        public BufferLookup<ActiveSpell> ActiveSpellLookup;
+
+        [ReadOnly]
+        public ComponentLookup<Lifetime> LifetimeLookup;
+
+        [ReadOnly]
+        public ComponentLookup<PhysicsCollider> ColliderLookup;
+
+        [ReadOnly]
+        public ComponentLookup<AttachToCaster> AttachLookup;
+
+        [ReadOnly]
+        public ComponentLookup<CopyEntityPosition> CopyPositionLookup;
+
+        [ReadOnly]
+        public ComponentLookup<SelfRotate> SelfRotateLookup;
+
+        [ReadOnly]
+        public ComponentLookup<DamageOnContact> DamageOnContactLookup;
+
+        [ReadOnly]
+        public ComponentLookup<DamageOnTick> DamageOnTickLookup;
+
+        [ReadOnly]
+        public ComponentLookup<LinearMovement> LinearMovementLookup;
+
+        [ReadOnly]
+        public ComponentLookup<OrbitMovement> OrbitMovementLookup;
+
+        [ReadOnly]
+        public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
+
+        [ReadOnly]
+        public ComponentLookup<SubSpellsSpawner> SubSpellsSpawnerLookup;
+
+        [ReadOnly]
+        public ComponentLookup<SubSpellsLayout_Circle> SubSpellsCircleLayoutLookup;
+
+        [ReadOnly]
+        public ComponentLookup<Bounce> RicochetLookup;
+
+        [ReadOnly]
+        public ComponentLookup<Pierce> PierceLookup;
+
         //[ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeLookup;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
+        public void Execute(
+            [ChunkIndexInQuery] int chunkIndex,
+            Entity requestEntity,
+            in CastSpellRequest request
+        )
         {
             if (!SpellDatabaseRef.IsCreated || !TransformLookup.HasComponent(request.Caster))
             {
@@ -196,7 +248,9 @@ public partial struct SpellCastingSystem : ISystem
                 return;
             }
 
-            ref readonly var baseSpellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
+            ref readonly var baseSpellData = ref SpellDatabaseRef.Value.Spells[
+                request.DatabaseIndex
+            ];
             var spellPrefab = MainSpellPrefabs[request.DatabaseIndex].Prefab;
 
             //if (baseSpellData.BaseCooldown <= 0)
@@ -212,8 +266,13 @@ public partial struct SpellCastingSystem : ISystem
             }
 
             // Default values (No modifiers)
-            float mulDmg = 1f, mulSpeed = 1f, mulArea = 1f, mulDuration = 1f;
-            int addAmount = 0, addBounces = 0, addPierces = 0;
+            float mulDmg = 1f,
+                mulSpeed = 1f,
+                mulArea = 1f,
+                mulDuration = 1f;
+            int addAmount = 0,
+                addBounces = 0,
+                addPierces = 0;
             ESpellTag addedTags = ESpellTag.None;
 
             // Try to find the ActiveSpell config on the caster (Player only usually)
@@ -251,7 +310,10 @@ public partial struct SpellCastingSystem : ISystem
 
             // Crit Logic
             float finalCritChance = stats.CritChance + bonusSpellCritChance;
-            float finalCritMultiplier = math.max(1f, stats.CritMultiplier + bonusSpellCritMultiplier);
+            float finalCritMultiplier = math.max(
+                1f,
+                stats.CritMultiplier + bonusSpellCritMultiplier
+            );
             bool isCrit = random.NextFloat(0f, 1f) < finalCritChance;
 
             float critIntensity = 0f;
@@ -265,14 +327,16 @@ public partial struct SpellCastingSystem : ISystem
                 critIntensity = actualMultiplier / finalCritMultiplier;
             }
 
-            float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * mulDmg * actualMultiplier;
+            float finalDamage =
+                (baseSpellData.BaseDamage + stats.Damage) * mulDmg * actualMultiplier;
 
-            float finalSpeed = baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) * mulSpeed;
-            float finalArea = baseSpellData.BaseEffectArea * math.max(1f, stats.EffectAreaRadiusMult) * mulArea;
+            float finalSpeed =
+                baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) * mulSpeed;
+            float finaleSize = baseSpellData.BaseSize * math.max(1f, stats.SizeMult) * mulArea;
             float finalDuration = baseSpellData.Lifetime * mulDuration;
 
             // Multishot Logic
-            int finalProjectileCount = math.max(1, 1 + addAmount); 
+            int finalProjectileCount = math.max(1, 1 + addAmount);
 
             if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
                 finalProjectileCount = 1;
@@ -283,14 +347,20 @@ public partial struct SpellCastingSystem : ISystem
             Entity targetEntity = Entity.Null;
             bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
 
-            float3 baseSpawnPos = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseSpawnOffset);
+            float3 baseSpawnPos =
+                casterTransform.Position
+                + (casterTransform.Forward() * baseSpellData.BaseSpawnOffset);
             quaternion baseRotation = casterTransform.Rotation;
             float3 fireDirection = casterTransform.Forward();
 
             var filter = new CollisionFilter
             {
-                BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
-                CollidesWith = (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) | CollisionLayers.Obstacle,
+                BelongsTo = isPlayerCaster
+                    ? CollisionLayers.PlayerSpell
+                    : CollisionLayers.EnemySpell,
+                CollidesWith =
+                    (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player)
+                    | CollisionLayers.Obstacle,
             };
 
             switch (baseSpellData.TargetingMode)
@@ -301,7 +371,9 @@ public partial struct SpellCastingSystem : ISystem
                     targetFound = true;
                     break;
                 case ESpellTargetingMode.CastForward:
-                    targetPosition = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseCastRange);
+                    targetPosition =
+                        casterTransform.Position
+                        + (casterTransform.Forward() * baseSpellData.BaseCastRange);
                     targetFound = true;
                     break;
                 case ESpellTargetingMode.NearestTarget:
@@ -313,19 +385,25 @@ public partial struct SpellCastingSystem : ISystem
                         Filter = new CollisionFilter
                         {
                             BelongsTo = CollisionLayers.Raycast,
-                            CollidesWith = isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player,
-                        }
+                            CollidesWith = isPlayerCaster
+                                ? CollisionLayers.Enemy
+                                : CollisionLayers.Player,
+                        },
                     };
                     if (CollisionWorld.CalculateDistance(input, out DistanceHit hit))
                     {
                         targetEntity = hit.Entity;
-                        targetPosition = TransformLookup.HasComponent(hit.Entity) ? TransformLookup[hit.Entity].Position : hit.Position;
+                        targetPosition = TransformLookup.HasComponent(hit.Entity)
+                            ? TransformLookup[hit.Entity].Position
+                            : hit.Position;
                         targetFound = true;
                     }
                     else
                     {
                         // Fallback Forward
-                        targetPosition = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseCastRange);
+                        targetPosition =
+                            casterTransform.Position
+                            + (casterTransform.Forward() * baseSpellData.BaseCastRange);
                     }
                     break;
                 case ESpellTargetingMode.RandomInRange:
@@ -333,18 +411,21 @@ public partial struct SpellCastingSystem : ISystem
                     var groundFilter = new CollisionFilter
                     {
                         BelongsTo = CollisionLayers.Raycast,
-                        CollidesWith = CollisionLayers.Landscape
+                        CollidesWith = CollisionLayers.Landscape,
                     };
 
-                    if (PlanetUtils.GetRandomPointOnSurface(
-                        ref CollisionWorld,
-                        ref random,
-                        casterTransform.Position,
-                        planetCenter,
-                        baseSpellData.BaseCastRange,
-                        ref groundFilter,
-                        out var p,
-                        out var n))
+                    if (
+                        PlanetUtils.GetRandomPointOnSurface(
+                            ref CollisionWorld,
+                            ref random,
+                            casterTransform.Position,
+                            planetCenter,
+                            baseSpellData.BaseCastRange,
+                            ref groundFilter,
+                            out var p,
+                            out var n
+                        )
+                    )
                     {
                         targetPosition = p;
                         //PlanetUtils.ProjectDirectionOnSurface(casterTransform.Forward(), n, out var r);
@@ -390,13 +471,17 @@ public partial struct SpellCastingSystem : ISystem
 
                 ECB.AddComponent(0, spellEntity, new RunScope());
 
-                ECB.AddComponent(chunkIndex, spellEntity, new SpellLink
-                {
-                    CasterEntity = request.Caster,
-                    DatabaseIndex = request.DatabaseIndex
-                });
+                ECB.AddComponent(
+                    chunkIndex,
+                    spellEntity,
+                    new SpellLink
+                    {
+                        CasterEntity = request.Caster,
+                        DatabaseIndex = request.DatabaseIndex,
+                    }
+                );
 
-                // Spread 
+                // Spread
                 quaternion finalRotation = baseRotation;
                 float3 finalDirection = fireDirection;
 
@@ -408,58 +493,81 @@ public partial struct SpellCastingSystem : ISystem
                     finalDirection = math.forward(finalRotation);
                 }
 
-                ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
-                {
-                    Position = baseSpawnPos,
-                    Rotation = finalRotation,
-                    Scale = spellPrefabTransform.Scale * finalArea // Area acts as Scale
-                });
+                ECB.SetComponent(
+                    chunkIndex,
+                    spellEntity,
+                    new LocalTransform
+                    {
+                        Position = baseSpawnPos,
+                        Rotation = finalRotation,
+                        Scale = spellPrefabTransform.Scale * finaleSize, // Area acts as Scale
+                    }
+                );
 
                 // Movement
                 if (LinearMovementLookup.HasComponent(spellPrefab))
                 {
-                    ECB.SetComponent(chunkIndex, spellEntity, new LinearMovement
-                    {
-                        Direction = finalDirection,
-                        Speed = finalSpeed
-                    });
+                    ECB.SetComponent(
+                        chunkIndex,
+                        spellEntity,
+                        new LinearMovement { Direction = finalDirection, Speed = finalSpeed }
+                    );
                 }
 
                 if (FollowMovementLookup.HasComponent(spellPrefab) && targetEntity != Entity.Null)
                 {
-                    ECB.SetComponent(chunkIndex, spellEntity, new FollowTargetMovement
-                    {
-                        Target = targetEntity,
-                        Speed = finalSpeed,
-                        StopDistance = 0
-                    });
+                    ECB.SetComponent(
+                        chunkIndex,
+                        spellEntity,
+                        new FollowTargetMovement
+                        {
+                            Target = targetEntity,
+                            Speed = finalSpeed,
+                            StopDistance = 0,
+                        }
+                    );
                 }
 
                 if (OrbitMovementLookup.HasComponent(spellPrefab))
                 {
                     float orbitRadius = math.length(baseSpellData.BaseSpawnOffset) * mulArea;
-                    ECB.SetComponent(chunkIndex, spellEntity, new OrbitMovement
-                    {
-                        OrbitCenterEntity = request.Caster,
-                        Radius = orbitRadius,
-                        AngularSpeed = finalSpeed,
-                        RelativeOffset = new float3(0, 0, orbitRadius),
-                        OrbitCenterPosition = casterTransform.Position
-                    });
+                    ECB.SetComponent(
+                        chunkIndex,
+                        spellEntity,
+                        new OrbitMovement
+                        {
+                            OrbitCenterEntity = request.Caster,
+                            Radius = orbitRadius,
+                            AngularSpeed = finalSpeed,
+                            RelativeOffset = new float3(0, 0, orbitRadius),
+                            OrbitCenterPosition = casterTransform.Position,
+                        }
+                    );
                 }
 
                 if (AttachLookup.HasComponent(spellPrefab))
                 {
-                    ECB.AddComponent(chunkIndex, spellEntity, new Parent { Value = request.Caster });
-                    ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
-                    {
-                        Position = float3.zero,
-                        Rotation = quaternion.identity,
-                        Scale = finalArea
-                    });
+                    ECB.AddComponent(
+                        chunkIndex,
+                        spellEntity,
+                        new Parent { Value = request.Caster }
+                    );
+                    ECB.SetComponent(
+                        chunkIndex,
+                        spellEntity,
+                        new LocalTransform
+                        {
+                            Position = float3.zero,
+                            Rotation = quaternion.identity,
+                            Scale = finaleSize,
+                        }
+                    );
                 }
 
-                if (!AttachLookup.HasComponent(spellPrefab) && CopyPositionLookup.HasComponent(spellPrefab))
+                if (
+                    !AttachLookup.HasComponent(spellPrefab)
+                    && CopyPositionLookup.HasComponent(spellPrefab)
+                )
                 {
                     var copyPos = CopyPositionLookup[spellPrefab];
                     copyPos.Target = request.Caster;
@@ -470,51 +578,66 @@ public partial struct SpellCastingSystem : ISystem
                 // Combat Stats
                 if (DamageOnContactLookup.HasComponent(spellPrefab))
                 {
-                    ECB.SetComponent(chunkIndex, spellEntity, new DamageOnContact
-                    {
-                        Damage = finalDamage,
-                        Element = baseSpellData.Tag | addedTags,
-                        AreaRadius = finalArea,
-                        CritIntensity = critIntensity
-                    });
+                    ECB.SetComponent(
+                        chunkIndex,
+                        spellEntity,
+                        new DamageOnContact
+                        {
+                            Damage = finalDamage,
+                            Element = baseSpellData.Tag | addedTags,
+                            AreaRadius = finaleSize,
+                            CritIntensity = critIntensity,
+                        }
+                    );
                 }
 
                 if (DamageOnTickLookup.HasComponent(spellPrefab))
                 {
-                    ECB.SetComponent(chunkIndex, spellEntity, new DamageOnTick
-                    {
-                        Caster = request.Caster,
-                        TickRate = baseSpellData.TickRate, // Could have TickRateMultiplier too
-                        DamagePerTick = (baseSpellData.BaseDamagePerTick + stats.Damage) * mulDmg * actualMultiplier,
-                        AreaRadius = finalArea,
-                        Element = baseSpellData.Tag | addedTags,
-                        CritIntensity = critIntensity
-                    });
+                    ECB.SetComponent(
+                        chunkIndex,
+                        spellEntity,
+                        new DamageOnTick
+                        {
+                            Caster = request.Caster,
+                            TickRate = baseSpellData.TickRate, // Could have TickRateMultiplier too
+                            DamagePerTick =
+                                (baseSpellData.BaseDamagePerTick + stats.Damage)
+                                * mulDmg
+                                * actualMultiplier,
+                            AreaRadius = finaleSize,
+                            Element = baseSpellData.Tag | addedTags,
+                            CritIntensity = critIntensity,
+                        }
+                    );
                 }
 
                 // Lifetime
                 if (LifetimeLookup.HasComponent(spellPrefab))
                 {
-                    ECB.SetComponent(chunkIndex, spellEntity, new Lifetime
-                    {
-                        Duration = finalDuration,
-                        TimeLeft = finalDuration
-                    });
+                    ECB.SetComponent(
+                        chunkIndex,
+                        spellEntity,
+                        new Lifetime { Duration = finalDuration, TimeLeft = finalDuration }
+                    );
                 }
 
                 // Self Rotate
                 if (SelfRotateLookup.HasComponent(spellPrefab))
                 {
-                    ECB.SetComponent(chunkIndex, spellEntity, new SelfRotate
-                    {
-                        RotationSpeed = finalSpeed
-                    });
+                    ECB.SetComponent(
+                        chunkIndex,
+                        spellEntity,
+                        new SelfRotate { RotationSpeed = finalSpeed }
+                    );
                 }
 
                 // Child Spawner
                 if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
                 {
-                    if (baseSpellData.ChildPrefabIndex >= 0 && baseSpellData.ChildPrefabIndex < ChildSpellPrefabs.Length)
+                    if (
+                        baseSpellData.ChildPrefabIndex >= 0
+                        && baseSpellData.ChildPrefabIndex < ChildSpellPrefabs.Length
+                    )
                     {
                         SubSpellsSpawner childSpawnerData = SubSpellsSpawnerLookup[spellPrefab];
 
@@ -522,7 +645,8 @@ public partial struct SpellCastingSystem : ISystem
                         Entity subPrefabEntity = ChildSpellPrefabs[subPrefabIndex].Prefab;
 
                         childSpawnerData.ChildEntityPrefab = subPrefabEntity;
-                        childSpawnerData.DesiredSubSpellsCount = baseSpellData.SubSpellsCount + addAmount;
+                        childSpawnerData.DesiredSubSpellsCount =
+                            baseSpellData.SubSpellsCount + addAmount;
                         childSpawnerData.IsDirty = true;
                         childSpawnerData.CollisionFilter = filter;
 
@@ -531,16 +655,20 @@ public partial struct SpellCastingSystem : ISystem
                         // Config Circle Layout if applicable
                         if (SubSpellsCircleLayoutLookup.HasComponent(spellPrefab))
                         {
-                            ECB.SetComponent(chunkIndex, spellEntity, new SubSpellsLayout_Circle
-                            {
-                                Radius = baseSpellData.ChildrenSpawnRadius,
-                                AngleInDegrees = 360
-                            });
+                            ECB.SetComponent(
+                                chunkIndex,
+                                spellEntity,
+                                new SubSpellsLayout_Circle
+                                {
+                                    Radius = baseSpellData.ChildrenSpawnRadius,
+                                    AngleInDegrees = 360,
+                                }
+                            );
                         }
                     }
                 }
 
-                // Collision 
+                // Collision
                 if (ColliderLookup.HasComponent(spellPrefab))
                 {
                     var col = ColliderLookup[spellPrefab];
@@ -556,12 +684,16 @@ public partial struct SpellCastingSystem : ISystem
                 if ((totalBounces > 0 || forceBounce) && RicochetLookup.HasComponent(spellPrefab))
                 {
                     ECB.SetComponentEnabled<Bounce>(chunkIndex, spellEntity, true);
-                    ECB.SetComponent(chunkIndex, spellEntity, new Bounce
-                    {
-                        RemainingBounces = totalBounces,
-                        BounceRange = baseSpellData.BouncesSearchRadius * mulArea,
-                        BounceSpeed = finalSpeed
-                    });
+                    ECB.SetComponent(
+                        chunkIndex,
+                        spellEntity,
+                        new Bounce
+                        {
+                            RemainingBounces = totalBounces,
+                            BounceRange = baseSpellData.BouncesSearchRadius * mulArea,
+                            BounceSpeed = finalSpeed,
+                        }
+                    );
                 }
 
                 // Pierce
@@ -570,7 +702,11 @@ public partial struct SpellCastingSystem : ISystem
                 if ((totalPierce > 0 || forcePierce) && PierceLookup.HasComponent(spellPrefab))
                 {
                     ECB.SetComponentEnabled<Pierce>(chunkIndex, spellEntity, true);
-                    ECB.SetComponent(chunkIndex, spellEntity, new Pierce { RemainingPierces = totalPierce });
+                    ECB.SetComponent(
+                        chunkIndex,
+                        spellEntity,
+                        new Pierce { RemainingPierces = totalPierce }
+                    );
                 }
 
                 // Explosion
@@ -580,7 +716,7 @@ public partial struct SpellCastingSystem : ISystem
                 //    ECB.SetComponentEnabled<ExplodeOnContact>(chunkIndex, spellEntity, true);
                 //    var exData = ExplodeLookup[spellPrefab];
                 //    exData.Radius *= mulArea; // Scale explosion with area mod
-                //    // @todo add Damage multiplier for explosion 
+                //    // @todo add Damage multiplier for explosion
                 //    ECB.SetComponent(chunkIndex, spellEntity, exData);
                 //}
             }
