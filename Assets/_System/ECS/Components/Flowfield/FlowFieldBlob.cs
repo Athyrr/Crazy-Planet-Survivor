@@ -6,7 +6,7 @@ using UnityEngine;
 public struct FlowFieldData
 {
     [Header("Static Data")]
-    public Vector3[] Positions;       // position for each vertex
+    public float3[] Positions;       // position for each vertex
     
     // flat index
     public int[] Neighbors;           // all neighbors
@@ -18,7 +18,7 @@ public struct FlowFieldData
 
 // same as FlowFieldData for ECS
 // required but Blob can't serialize (in editor)
-public struct FlowField
+public struct FlowFieldBlob
 {
     // Static Data
     public BlobArray<float3> Positions;       // position for each vertex
@@ -29,4 +29,9 @@ public struct FlowField
     public BlobArray<int> NeighborCounts;      // neighbor counts for each vertex
     
     public int VertexCount => Positions.Length;
+}
+
+public struct FlowFieldDatabase : IComponentData
+{
+    public BlobAssetReference<FlowFieldBlob> Blobs;
 }

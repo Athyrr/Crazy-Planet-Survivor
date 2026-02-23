@@ -1,4 +1,7 @@
+using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Physics;
 using UnityEngine;
 
 namespace _System.ECS.Components.Flowfield
@@ -22,9 +25,27 @@ namespace _System.ECS.Components.Flowfield
                     Debug.LogError("flowFieldSo missing in FlowFieldAuthoring!");
                     return;
                 }
+
+                var dbEntity = GetEntity(TransformUsageFlags.None);
                 
-                // transit serialized data into ECS
-                // authoring._flowFieldSo.Data;
+                // Create spell blobs for data
+                BlobBuilder builder = new BlobBuilder(Allocator.Temp); // but save in database after
+                ref var root = ref builder.ConstructRoot<FlowFieldBlob>();
+                
+                var spellsDatabaseBlob = builder.CreateBlobAssetReference<FlowFieldBlob>(Allocator.Persistent);
+
+                BlobBuilderArray<float3> position = builder.Construct(ref root.Positions, authoring._flowFieldSo.Data.Positions);
+                BlobBuilderArray<int> neighbors = builder.Construct(ref root.Neighbors, authoring._flowFieldSo.Data.Neighbors);
+                BlobBuilderArray<int> neighborsCounts = builder.Construct(ref root.NeighborCounts, authoring._flowFieldSo.Data.NeighborCounts);
+                BlobBuilderArray<int> neighborsOffsets = builder.Construct(ref root.NeighborOffsets, authoring._flowFieldSo.Data.NeighborOffsets);
+
+                AddComponent(dbEntity, new FlowFieldDatabase() { Blobs = spellsDatabaseBlob });
+
+                // Register blob asset (auto free memory)
+                AddBlobAsset(ref spellsDatabaseBlob, out var hash);
+
+                // Dispose builder
+                builder.Dispose();
             }
         }
 
@@ -32,13 +53,13 @@ namespace _System.ECS.Components.Flowfield
 
         #region Members
         
-        private FlowField flowField;
+        private FlowFieldBlob flowFieldBlob;
 
         #endregion
         
         #region Accessors
 
-        public FlowField ActualFlowField => flowField;
+        public FlowFieldBlob ActualFlowFieldBlob => flowFieldBlob;
 
         #endregion
 

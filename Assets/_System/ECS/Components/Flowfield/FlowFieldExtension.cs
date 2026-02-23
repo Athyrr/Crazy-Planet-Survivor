@@ -50,7 +50,7 @@ namespace _System.ECS.Components.Flowfield
 
             // use dic to find with snapped position (mb save Vector3i if possible to reduce float precision error ?)
             Dictionary<Vector3, int> posToId = new Dictionary<Vector3, int>();
-            List<Vector3> uniquePositions = new List<Vector3>();
+            List<float3> uniquePositions = new List<float3>();
             List<List<int>> adjacency = new List<List<int>>();
 
             foreach (var mf in allMf)
