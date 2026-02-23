@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using EasyButtons;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace _System.ECS.Components.Flowfield
@@ -11,7 +12,7 @@ namespace _System.ECS.Components.Flowfield
     public class FlowFieldExtension : MonoBehaviour
     {
         [SerializeField] private List<MeshFilter> _excludeMeshRenderers;
-        [SerializeField] private FlowFieldData _flowFieldData;
+        [SerializeField] private FlowFieldSO flowFieldSo;
 
         #region  Debug
 #if UNITY_EDITOR
@@ -105,10 +106,10 @@ namespace _System.ECS.Components.Flowfield
                 flatNeighbors.AddRange(adjacency[i]);
             }
 
-            _flowFieldData.Positions = uniquePositions.ToArray();
-            _flowFieldData.Neighbors = flatNeighbors.ToArray();
-            _flowFieldData.NeighborOffsets = offsets;
-            _flowFieldData.NeighborCounts = counts;
+            flowFieldSo.Data.Positions = uniquePositions.ToArray();
+            flowFieldSo.Data.Neighbors = flatNeighbors.ToArray();
+            flowFieldSo.Data.NeighborOffsets = offsets;
+            flowFieldSo.Data.NeighborCounts = counts;
 
             Debug.Log($"BakeFlowField : {totalCount} total nods linked.");
         }
@@ -116,9 +117,9 @@ namespace _System.ECS.Components.Flowfield
         [Button]
         private void SimulatePath()
         {
-            if (_flowFieldData == null || _flowFieldData.Positions == null) return;
+            if (flowFieldSo == null || flowFieldSo.Data.Positions == null) return;
             
-            int count = _flowFieldData.Positions.Length;
+            int count = flowFieldSo.Data.Positions.Length;
             _debugDistances = new float[count];
             for (int i = 0; i < count; i++) _debugDistances[i] = float.MaxValue;
 
@@ -130,13 +131,13 @@ namespace _System.ECS.Components.Flowfield
             while (queue.Count > 0)
             {
                 int current = queue.Dequeue();
-                int start = _flowFieldData.NeighborOffsets[current];
-                int nCount = _flowFieldData.NeighborCounts[current];
+                int start = flowFieldSo.Data.NeighborOffsets[current];
+                int nCount = flowFieldSo.Data.NeighborCounts[current];
 
                 for (int i = 0; i < nCount; i++)
                 {
-                    int neighbor = _flowFieldData.Neighbors[start + i];
-                    float dist = _debugDistances[current] + Vector3.Distance(_flowFieldData.Positions[current], _flowFieldData.Positions[neighbor]);
+                    int neighbor = flowFieldSo.Data.Neighbors[start + i];
+                    float dist = _debugDistances[current] + Vector3.Distance(flowFieldSo.Data.Positions[current], flowFieldSo.Data.Positions[neighbor]);
 
                     if (dist < _debugDistances[neighbor])
                     {
@@ -154,14 +155,14 @@ namespace _System.ECS.Components.Flowfield
             int safety = 0;
             while (currPathNode != _targetIndex && safety < 1000)
             {
-                int start = _flowFieldData.NeighborOffsets[currPathNode];
-                int nCount = _flowFieldData.NeighborCounts[currPathNode];
+                int start = flowFieldSo.Data.NeighborOffsets[currPathNode];
+                int nCount = flowFieldSo.Data.NeighborCounts[currPathNode];
                 int bestNeighbor = -1;
                 float minDist = _debugDistances[currPathNode];
 
                 for (int i = 0; i < nCount; i++)
                 {
-                    int neighbor = _flowFieldData.Neighbors[start + i];
+                    int neighbor = flowFieldSo.Data.Neighbors[start + i];
                     if (_debugDistances[neighbor] < minDist)
                     {
                         minDist = _debugDistances[neighbor];
@@ -198,7 +199,7 @@ namespace _System.ECS.Components.Flowfield
 
         private void OnDrawGizmos()
         {
-            if (_flowFieldData == null || _flowFieldData.Positions == null) return;
+            if (flowFieldSo == null || flowFieldSo.Data.Positions == null) return;
 
             // draw path
             if (_debugPath != null && _debugPath.Count > 1)
@@ -206,13 +207,13 @@ namespace _System.ECS.Components.Flowfield
                 Gizmos.color = Color.red;
                 for (int i = 0; i < _debugPath.Count - 1; i++)
                 {
-                    Gizmos.DrawLine(_flowFieldData.Positions[_debugPath[i]], _flowFieldData.Positions[_debugPath[i+1]]);
-                    Gizmos.DrawSphere(_flowFieldData.Positions[_debugPath[i]], 0.2f);
+                    Gizmos.DrawLine(flowFieldSo.Data.Positions[_debugPath[i]], flowFieldSo.Data.Positions[_debugPath[i+1]]);
+                    Gizmos.DrawSphere(flowFieldSo.Data.Positions[_debugPath[i]], 0.2f);
                 }
             }
 
             Gizmos.color = Color.green;
-            Gizmos.DrawWireSphere(_flowFieldData.Positions[_targetIndex], 0.2f);
+            Gizmos.DrawWireSphere(flowFieldSo.Data.Positions[_targetIndex], 0.2f);
         }
         
 #endif
