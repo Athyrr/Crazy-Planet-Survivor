@@ -13,7 +13,8 @@ public partial struct StatsCalculationSystem : ISystem
         state.RequireForUpdate<BaseStats>();
         state.RequireForUpdate<Stats>();
 
-        _calculateQuery = SystemAPI.QueryBuilder()
+        _calculateQuery = SystemAPI
+            .QueryBuilder()
             .WithAll<RecalculateStatsRequest, Stats, BaseStats, StatModifier>()
             .Build();
 
@@ -29,13 +30,11 @@ public partial struct StatsCalculationSystem : ISystem
         //if (gameState.State != EGameState.Running)
         //    return;
 
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var ecbSingleton =
+            SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-        var job = new CalculateStatsJob()
-        {
-            ECB = ecb.AsParallelWriter()
-        };
+        var job = new CalculateStatsJob() { ECB = ecb.AsParallelWriter() };
         state.Dependency = job.ScheduleParallel(state.Dependency);
     }
 
@@ -44,7 +43,15 @@ public partial struct StatsCalculationSystem : ISystem
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        public void Execute([ChunkIndexInQuery] int index, Entity entity, in RecalculateStatsRequest recalculateStatsRequest, ref Stats stats, ref Health health, in BaseStats baseStats, in DynamicBuffer<StatModifier> modifiers)
+        public void Execute(
+            [ChunkIndexInQuery] int index,
+            Entity entity,
+            in RecalculateStatsRequest recalculateStatsRequest,
+            ref Stats stats,
+            ref Health health,
+            in BaseStats baseStats,
+            in DynamicBuffer<StatModifier> modifiers
+        )
         {
             stats.MaxHealth = baseStats.MaxHealth;
             stats.MoveSpeed = baseStats.MoveSpeed;
@@ -58,10 +65,11 @@ public partial struct StatsCalculationSystem : ISystem
             stats.CollectRange = baseStats.CollectRange;
             stats.BouncesAdded = baseStats.BouncesAdded;
             stats.PierceAdded = baseStats.PierceAdded;
+            stats.SizeMult = baseStats.SizeMultiplier;
 
             float oldMaxHealth = stats.MaxHealth > 0 ? stats.MaxHealth : baseStats.MaxHealth; // Avoid division by zero
-            if (oldMaxHealth <= 0) oldMaxHealth = 1;
-
+            if (oldMaxHealth <= 0)
+                oldMaxHealth = 1;
 
             for (var i = 0; i < modifiers.Length; i++)
             {
@@ -113,6 +121,10 @@ public partial struct StatsCalculationSystem : ISystem
 
                     case ECharacterStat.PierceCount:
                         ApplyModifier(ref stats.PierceAdded, modifiers[i]);
+                        break;
+
+                    case ECharacterStat.SizeMultiplier:
+                        ApplyModifier(ref stats.SizeMult, modifiers[i]);
                         break;
                 }
             }
