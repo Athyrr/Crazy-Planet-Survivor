@@ -24744,6 +24744,7 @@ GameObject:
   - component: {fileID: 8462075292813735880}
   - component: {fileID: -2818057739905876064}
   - component: {fileID: -3431376353980038448}
+  - component: {fileID: 944056044138721706}
   - component: {fileID: -1632804181427813820}
   m_Layer: 0
   m_Name: PF_Spell_VoidSlash
@@ -30075,6 +30076,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2b84fa8e8cbd674c8acfb417a3276e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LifetimeAuthoring
+--- !u!114 &944056044138721706
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8462075292813735881}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6a222335cc428f468a48548f619754c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CopyEntityPositionAuthoring
 --- !u!114 &-1632804181427813820
 MonoBehaviour:
   m_ObjectHideFlags: 0

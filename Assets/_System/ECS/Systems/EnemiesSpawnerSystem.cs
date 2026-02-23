@@ -1,8 +1,10 @@
-using Unity.Jobs;
-using Unity.Burst;
-using Unity.Entities;
-using Unity.Transforms;
+using Unity.Collections;
 using Unity.Mathematics;
+using Unity.Transforms;
+using Unity.Entities;
+using Unity.Physics;
+using Unity.Burst;
+using Unity.Jobs;
 
 /// <summary>
 /// Handles the logic for spawning enemies in waves on a spherical planet surface.
@@ -10,438 +12,358 @@ using Unity.Mathematics;
 /// performance spikes, and calculates spawn positions based on various geometric modes.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(PlayerSpawnerSystem))]
 [BurstCompile]
 public partial struct EnemiesSpawnerSystem : ISystem
 {
+    // Queries
+    //private EntityQuery _playerQuery;
+
     /// <summary>
     /// Limits the number of entities instantiated in a single frame to maintain a stable frame rate.
     /// </summary>
-    private const int MaxSpawnsPerFrame = 100;
+    private const int MAX_SPAWNS_PER_FRAME = 50;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        //state.RequireForUpdate<StartRunRequest>();
         state.RequireForUpdate<SpawnerSettings>();
+        state.RequireForUpdate<SpawnerState>();
         state.RequireForUpdate<PlanetData>();
         state.RequireForUpdate<Player>();
-        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
-        state.RequireForUpdate<RunProgression>();
+
+        //_playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        // Only process spawning logic while the game is in the 'Running' state
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
             return;
 
-        ref var spawnerState = ref SystemAPI.GetSingletonRW<SpawnerState>().ValueRW;
-        var waveBuffer = SystemAPI.GetSingletonBuffer<WaveElement>(true);
-        ref var runProgression = ref SystemAPI.GetSingletonRW<RunProgression>().ValueRW;
-        var settings = SystemAPI.GetSingleton<SpawnerSettings>();
+        //if (_playerQuery.IsEmpty)
+        //    return;
 
-        // Process enemy kill events to update kill count
-        // We need to query for EnemyKilledEvent entities
+        ref var spawnerState = ref SystemAPI.GetSingletonRW<SpawnerState>().ValueRW;
+        DynamicBuffer<Wave> waves = SystemAPI.GetSingletonBuffer<Wave>(true);
+        DynamicBuffer<SpawnGroup> groups = SystemAPI.GetSingletonBuffer<SpawnGroup>(true);
+        SpawnerSettings settings = SystemAPI.GetSingleton<SpawnerSettings>();
+
+
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-        
-        foreach (var (killedEvent, entity) in SystemAPI.Query<RefRO<EnemyKilledEvent>>().WithEntityAccess())
+
+        // Handle kills
+        ProcessKills(ref ecb, ref state, ref spawnerState);
+        // Handle timer and wave progression
+        ManageWaveProgression(ref state, ref ecb, ref spawnerState, waves);
+        // Handle Spawning
+        ManageSpawning(ref ecb, ref state, ref spawnerState, groups, settings.MaxEnemies);
+    }
+
+    private void ProcessKills(ref EntityCommandBuffer ecb, ref SystemState state, ref SpawnerState spawnerState)
+    {
+        foreach (var (evt, entity) in SystemAPI.Query<RefRO<EnemyKilledEvent>>().WithEntityAccess())
         {
-            if (killedEvent.ValueRO.WaveIndex == spawnerState.CurrentWaveIndex)
-            {
-                spawnerState.EnemiesKilledInCurrentWave++;
-            }
-            spawnerState.CurrentEnemyCount--;
-            // Destroy the event entity
+            if (evt.ValueRO.WaveIndex == spawnerState.CurrentWaveIndex)
+                spawnerState.EnemiesKilledInWave++;
+
+            spawnerState.ActiveEnemyCount--;
+            if (spawnerState.ActiveEnemyCount < 0)
+                spawnerState.ActiveEnemyCount = 0;
+
             ecb.DestroyEntity(entity);
-        }
-        
-        // Ensure CurrentEnemyCount doesn't go below zero (safety check)
-        if (spawnerState.CurrentEnemyCount < 0) spawnerState.CurrentEnemyCount = 0;
-        
-        // Update RunProgression ratio
-        if (spawnerState.TotalEnemiesInCurrentWave > 0)
-        {
-            runProgression.EnemiesKilledRatio = (float)spawnerState.EnemiesKilledInCurrentWave / spawnerState.TotalEnemiesInCurrentWave;
-        }
-        else
-        {
-            runProgression.EnemiesKilledRatio = 0;
-        }
-
-        // If we have pending spawns from a previous frame, continue processing them
-        if (spawnerState.PendingSpawnCount > 0)
-        {
-            ProcessPendingSpawns(ref state, ref spawnerState, waveBuffer, settings.MaxEnemies);
-            return;
-        }
-
-        // --- Wave Timer Management ---
-        spawnerState.WaveTimer -= SystemAPI.Time.DeltaTime;
-        
-        // Check if we should advance to the next wave based on kill percentage
-        bool advanceWaveEarly = false;
-        
-        // Calculate kill ratio for current wave
-        if (spawnerState.TotalEnemiesInCurrentWave > 0)
-        {
-            // We need to find the kill percentage requirement for the current wave.
-            float killPercentageRequired = 0f;
-            bool foundWave = false;
-            for(int i=0; i<waveBuffer.Length; i++)
-            {
-                if (waveBuffer[i].WaveIndex == spawnerState.CurrentWaveIndex)
-                {
-                    killPercentageRequired = waveBuffer[i].KillPercentageToAdvance;
-                    foundWave = true;
-                    break; // Assuming all elements in the same wave have the same requirement
-                }
-            }
-            
-            // Use the ratio from RunProgression
-            if (foundWave && killPercentageRequired > 0 && runProgression.EnemiesKilledRatio >= killPercentageRequired)
-            {
-                advanceWaveEarly = true;
-            }
-        }
-
-        if (spawnerState.WaveTimer > 0 && !advanceWaveEarly)
-            return;
-
-        spawnerState.WaveTimer = settings.TimeBetweenWaves;
-
-        // --- New Wave Initialization ---
-        
-        // Check if there are any elements for the current wave
-        bool waveHasElements = false;
-        for (int i = 0; i < waveBuffer.Length; i++)
-        {
-            if (waveBuffer[i].WaveIndex == spawnerState.CurrentWaveIndex)
-            {
-                waveHasElements = true;
-                break;
-            }
-        }
-
-        if (waveHasElements)
-        {
-            // Reset wave tracking stats
-            spawnerState.TotalEnemiesInCurrentWave = 0;
-            spawnerState.EnemiesKilledInCurrentWave = 0;
-            runProgression.EnemiesKilledRatio = 0;
-            
-            // Calculate total enemies for this new wave
-            for(int i=0; i<waveBuffer.Length; i++) {
-                if(waveBuffer[i].WaveIndex == spawnerState.CurrentWaveIndex) {
-                    spawnerState.TotalEnemiesInCurrentWave += waveBuffer[i].Amount;
-                }
-            }
-
-            // Find the first element index for this wave to begin the spawning sequence
-            spawnerState.CurrentWaveElementIndex = 0; // We'll search for the first matching element index
-            
-            // Find the first element index for this wave
-            int firstElementIndex = -1;
-            for(int i=0; i<waveBuffer.Length; i++) {
-                if(waveBuffer[i].WaveIndex == spawnerState.CurrentWaveIndex) {
-                    firstElementIndex = i;
-                    break;
-                }
-            }
-            
-            if (firstElementIndex != -1)
-            {
-                spawnerState.CurrentWaveElementIndex = firstElementIndex;
-                var element = waveBuffer[firstElementIndex];
-                spawnerState.PendingSpawnCount = element.Amount;
-                spawnerState.SpawnsProcessed = 0;
-                
-                // Immediately process some spawns this frame
-                ProcessPendingSpawns(ref state, ref spawnerState, waveBuffer, settings.MaxEnemies);
-            }
-            else
-            {
-                // Should not happen if waveHasElements is true, but just in case
-                spawnerState.CurrentWaveIndex++;
-            }
-        }
-        else
-        {
-            // If a wave index is empty, increment to prevent the spawner from stalling
-             spawnerState.CurrentWaveIndex++;
         }
     }
 
-    /// <summary>
-    /// Calculates spawn parameters for the current batch and schedules the parallel instantiation job.
-    /// </summary>
-    /// <param name="state">The current system state.</param>
-    /// <param name="spawnerState">The mutable state of the spawner singleton.</param>
-    /// <param name="waveBuffer">The buffer containing wave configuration data.</param>
-    /// <param name="maxEnemies">The maximum number of enemies allowed in the game.</param>
-    private void ProcessPendingSpawns(ref SystemState state, ref SpawnerState spawnerState, DynamicBuffer<WaveElement> waveBuffer, int maxEnemies)
+    private void ManageWaveProgression(ref SystemState systemState, ref EntityCommandBuffer ecb, ref SpawnerState spawnerState, DynamicBuffer<Wave> waves)
     {
-        // Validate index
-        if (spawnerState.CurrentWaveElementIndex < 0 || spawnerState.CurrentWaveElementIndex >= waveBuffer.Length)
+        if (spawnerState.CurrentWaveIndex == -1)
         {
-            // Something went wrong or we finished all elements?
-            spawnerState.PendingSpawnCount = 0;
+            StartWave(ref spawnerState, waves, 0);
             return;
         }
 
-        var waveElement = waveBuffer[spawnerState.CurrentWaveElementIndex];
-        
-        // Double check we are on the right wave (should be guaranteed by logic)
-        if (waveElement.WaveIndex != spawnerState.CurrentWaveIndex) 
-        {
-            spawnerState.PendingSpawnCount = 0;
+        if (spawnerState.CurrentWaveIndex >= waves.Length)
             return;
+
+        Wave currentWave = waves[spawnerState.CurrentWaveIndex];
+        spawnerState.WaveTimer -= SystemAPI.Time.DeltaTime;
+
+        // Next wave conditions
+        bool timeOut = spawnerState.WaveTimer <= 0;
+        bool killPercentReached = false;
+
+        if (currentWave.TotalEnemyCount > 0)
+        {
+            float killRatio = (float)spawnerState.EnemiesKilledInWave / currentWave.TotalEnemyCount;
+            killPercentReached = killRatio >= currentWave.KillPercentage;
         }
 
-        // Check if we have reached the maximum number of enemies
-        if (spawnerState.CurrentEnemyCount >= maxEnemies)
+        if (timeOut || killPercentReached)
         {
-            // We can't spawn more enemies right now. 
-            // We will try again next frame.
+            // Exists next wave?
+            if (spawnerState.CurrentWaveIndex + 1 < waves.Length)
+            {
+                StartWave(ref spawnerState, waves, spawnerState.CurrentWaveIndex + 1);
+            }
+            else
+            {
+                //state.IsWaveActive = false;
+                var endRunRequestEntity = ecb.CreateEntity();
+                ecb.AddComponent(endRunRequestEntity, new EndRunRequest
+                {
+                    State = EEndRunState.Success
+                });
+            }
+        }
+    }
+
+    private void ManageSpawning(ref EntityCommandBuffer ecb, ref SystemState systemState, ref SpawnerState spawnerState, DynamicBuffer<SpawnGroup> groups, int maxEnemies)
+    {
+        if (spawnerState.CurrentWaveIndex < 0)
             return;
-        }
 
-        // Clamp the amount to spawn this frame to the maximum allowed per frame
-        // AND clamp to the remaining slots available before hitting MaxEnemies
-        int remainingSlots = maxEnemies - spawnerState.CurrentEnemyCount;
-        int amountToSpawn = math.min(spawnerState.PendingSpawnCount, MaxSpawnsPerFrame);
-        amountToSpawn = math.min(amountToSpawn, remainingSlots);
-        
-        if (amountToSpawn <= 0) return;
-        
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
+        // Cancel spawning if max enemies count is reached
+        if (spawnerState.ActiveEnemyCount >= maxEnemies)
+            return;
 
-        Entity planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
-        Entity playerEntity = SystemAPI.GetSingletonEntity<Player>();
-        LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
+        var waves = SystemAPI.GetSingletonBuffer<Wave>(true);
+        var currentWave = waves[spawnerState.CurrentWaveIndex];
+        int endGroupIndex = currentWave.GroupStartIndex + currentWave.GroupCount;
 
-        PlanetData planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
-        float planetRadius = planetData.Radius;
-        LocalTransform planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
-        float3 planetCenter = planetTransform.Position;
-
-        // --- Spawn Origin Calculation ---
-        float3 spawnOrigin = float3.zero;
-        uint seedOffset = 0;
-
-        switch (waveElement.Mode)
+        // If -1 -> init new group 
+        bool mustInitGroup = spawnerState.RemainingSpawnsInGroup == -1;
+        if (mustInitGroup)
         {
-            case SpawnMode.Single:
-                spawnOrigin = waveElement.SpawnPosition;
-                seedOffset = 0;
-                break;
-            case SpawnMode.Opposite:
-                // Calculate the point on the planet surface directly opposite to the player
-                float3 dirToPlayer = math.normalize(playerTransform.Position - planetCenter);
-                if (math.lengthsq(dirToPlayer) < 0.001f) dirToPlayer = new float3(0, 1, 0);
-                spawnOrigin = planetCenter - dirToPlayer * planetRadius;
-                seedOffset = 2;
-                break;
-            case SpawnMode.EntirePlanet:
-                // Origin is irrelevant for EntirePlanet mode as it uses random directions
-                spawnOrigin = float3.zero; 
-                seedOffset = 1;
-                break;
-            case SpawnMode.AroundPlayer:
-                spawnOrigin = playerTransform.Position;
-                seedOffset = 3;
-                break;
+            if (spawnerState.CurrentGroupIndex < endGroupIndex) // Still remaining groups in wave
+            {
+                spawnerState.RemainingSpawnsInGroup = groups[spawnerState.CurrentGroupIndex].Amount;
+            }
+            else
+            {
+                spawnerState.RemainingSpawnsInGroup = 0; // Notify no more enemies in group
+                return;
+            }
         }
+
+        // Remains enemies to spawn
+        if (spawnerState.RemainingSpawnsInGroup > 0)
+        {
+            var group = groups[spawnerState.CurrentGroupIndex];
+
+            int canSpawnCount = math.min(MAX_SPAWNS_PER_FRAME, maxEnemies - spawnerState.ActiveEnemyCount);
+            int countToSpawn = math.min(canSpawnCount, spawnerState.RemainingSpawnsInGroup);
+
+            if (countToSpawn > 0)
+            {
+                // Spawn enemies
+                ScheduleSpawnJob(ref ecb, ref systemState, group, countToSpawn, spawnerState.CurrentWaveIndex);
+
+                // Update state
+                spawnerState.RemainingSpawnsInGroup -= countToSpawn;
+                spawnerState.ActiveEnemyCount += countToSpawn;
+                spawnerState.TotalEnemiesSpawnedInWave += countToSpawn;
+            }
+        }
+        else
+        {
+            // Group spawning ended
+            spawnerState.CurrentGroupIndex++;
+            if (spawnerState.CurrentGroupIndex < endGroupIndex)
+            {
+                spawnerState.RemainingSpawnsInGroup = groups[spawnerState.CurrentGroupIndex].Amount;
+            }
+            else
+            {
+                // All groups of this wave have been spawned
+                // Wait for next wave spawn condtion (ManageWaveProgression)
+            }
+        }
+    }
+
+    private void StartWave(ref SpawnerState spawnerState, DynamicBuffer<Wave> waves, int index)
+    {
+        Wave wave = waves[index];
+        spawnerState.CurrentWaveIndex = index;
+        spawnerState.WaveTimer = wave.Duration;
+
+        // Reset counters
+        spawnerState.EnemiesKilledInWave = 0;
+        spawnerState.TotalEnemiesSpawnedInWave = 0;
+        spawnerState.TotalEnemiesToSpawnInWave = wave.TotalEnemyCount;
+
+        spawnerState.CurrentGroupIndex = wave.GroupStartIndex;
+
+        bool hasGroups = wave.GroupCount > 0;
+        if (hasGroups)
+        {
+            spawnerState.RemainingSpawnsInGroup = -1; // -1 = Has to be filled by ManageSpawning
+        }
+        else
+        {
+            spawnerState.RemainingSpawnsInGroup = 0; // 0 = No more enemies to spawn, process the next group
+        }
+    }
+
+    private void ScheduleSpawnJob(ref EntityCommandBuffer ecb, ref SystemState state, SpawnGroup group, int count, int waveIndex)
+    {
+        var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
+
+        var planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
+        var planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
+        var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
+
+        var playerEntity = SystemAPI.GetSingletonEntity<Player>();
+
+        if (playerEntity == Entity.Null)
+            return;
+
+        var playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
 
         var spawnJob = new SpawnJob
         {
-            ECB = ecb,
+            ECB = ecb.AsParallelWriter(),
+
+            CollisionWorld = physicsWorld.CollisionWorld,
+
             PlayerEntity = playerEntity,
-            TotalAmount = waveElement.Amount,
-            StartIndex = spawnerState.SpawnsProcessed,
-            Prefab = waveElement.Prefab,
-            PlanetCenter = planetCenter,
-            PlanetRadius = planetRadius,
-            SpawnOrigin = spawnOrigin,
-            BaseSeed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + (uint)spawnerState.CurrentWaveElementIndex * 7919 + seedOffset,
-            DelayBetweenSpawns = waveElement.SpawnDelay,
-            Mode = waveElement.Mode,
-            MinRange = waveElement.MinSpawnRange,
-            MaxRange = waveElement.MaxSpawnRange,
-            WaveIndex = spawnerState.CurrentWaveIndex
+            PlayerTransform = playerTransform,
+            Prefab = group.Prefab,
+
+            TotalAmount = group.Amount,
+            StartIndex = group.Amount - count,
+            Mode = group.Mode,
+            WaveIndex = waveIndex,
+
+            PlanetCenter = planetTransform.Position,
+            PlanetRadius = planetData.Radius,
+
+            SpawnOrigin = group.Position,
+            MinRange = group.MinRange,
+            MaxRange = group.MaxRange,
+
+            Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1
         };
 
-        state.Dependency = spawnJob.ScheduleParallel(amountToSpawn, 64, state.Dependency);
-
-        spawnerState.PendingSpawnCount -= amountToSpawn;
-        spawnerState.SpawnsProcessed += amountToSpawn;
-        spawnerState.CurrentEnemyCount += amountToSpawn;
-
-        // Check if we need to move to the next element in the current wave or increment the wave index
-        if (spawnerState.PendingSpawnCount <= 0)
-        {
-            // Look for next element with same WaveIndex
-            int nextElementIndex = -1;
-            for (int i = spawnerState.CurrentWaveElementIndex + 1; i < waveBuffer.Length; i++)
-            {
-                if (waveBuffer[i].WaveIndex == spawnerState.CurrentWaveIndex)
-                {
-                    nextElementIndex = i;
-                    break;
-                }
-            }
-
-            if (nextElementIndex != -1)
-            {
-                // Found another element for this wave, setup for next frame (or next call)
-                spawnerState.CurrentWaveElementIndex = nextElementIndex;
-                spawnerState.PendingSpawnCount = waveBuffer[nextElementIndex].Amount;
-                spawnerState.SpawnsProcessed = 0;
-            }
-            else
-            {
-                // No more elements for this wave, we are done with this wave
-                spawnerState.CurrentWaveIndex++;
-                spawnerState.PendingSpawnCount = 0;
-                spawnerState.SpawnsProcessed = 0;
-                spawnerState.CurrentWaveElementIndex = -1;
-            }
-        }
+        state.Dependency = spawnJob.ScheduleParallel(count, 64, state.Dependency);
     }
 
-    /// <summary>
-    /// Parallel job that calculates the specific world position and orientation for each enemy 
-    /// based on the selected spawn mode and projects them onto the planet surface.
-    /// </summary>
     [BurstCompile]
     private struct SpawnJob : IJobFor
     {
         public EntityCommandBuffer.ParallelWriter ECB;
-        public Entity PlayerEntity;
-        /// <summary> Total amount for the whole wave element, used for uniform distribution in circle modes. </summary>
+
+        [ReadOnly] public CollisionWorld CollisionWorld;
+
+        [ReadOnly] public Entity PlayerEntity;
+        [ReadOnly] public LocalTransform PlayerTransform;
+        [ReadOnly] public Entity Prefab;
+
+        // Spawn Configuration
         public int TotalAmount;
-        /// <summary> The global index offset for this batch to ensure unique random seeds. </summary>
-        public int StartIndex; 
-        public Entity Prefab;
-        public float3 PlanetCenter;
-        public float PlanetRadius;
-        public float3 SpawnOrigin;
-        /// <summary> Base seed combined with global index for deterministic-ish randomness. </summary>
-        public uint BaseSeed;
-        public float DelayBetweenSpawns;
-        public float MinRange;
-        public float MaxRange;
+        public int StartIndex;
         public SpawnMode Mode;
         public int WaveIndex;
 
-        /// <summary>
-        /// Executes the spawning logic for a single entity in the batch.
-        /// </summary>
+        // Planet Data
+        public float3 PlanetCenter;
+        public float PlanetRadius;
+
+        // Spawn Parameters
+        public float3 SpawnOrigin;
+        public float MinRange;
+        public float MaxRange;
+
+        // Random
+        public uint Seed;
+
         public void Execute(int index)
         {
-            // Calculate the actual global index for this spawn
             int globalIndex = StartIndex + index;
-            
-            var rand = Random.CreateFromIndex(BaseSeed + (uint)globalIndex);
+            var rand = Random.CreateFromIndex(Seed + (uint)globalIndex);
+
             float3 spawnPosition = float3.zero;
-            float3 normal = float3.zero;
+            float3 surfaceNormal = float3.zero;
+            bool positionFound = false;
 
-            // --- Position Calculation Logic ---
-            if (Mode == SpawnMode.EntirePlanet)
+            var groundFilter = new CollisionFilter
             {
-                float3 randomDirection = rand.NextFloat3Direction();
-                spawnPosition = PlanetCenter + randomDirection * PlanetRadius * 1.1f;
-                normal = randomDirection;
-            }
-            else if (Mode == SpawnMode.Single)
-            {
-                spawnPosition = SpawnOrigin;
-                normal = math.normalize(spawnPosition - PlanetCenter);
-            }
-            else if (Mode == SpawnMode.Opposite)
-            {
-                // Calculate a coordinate basis (tangent/bitangent) at the antipodal point
-                float3 up = math.normalize(SpawnOrigin - PlanetCenter);
-                
-                // Create an arbitrary tangent to start the basis
-                float3 tangent = math.cross(up, new float3(0, 1, 0));
-                if (math.lengthsq(tangent) < 0.001f)
-                    tangent = math.cross(up, new float3(1, 0, 0));
-                tangent = math.normalize(tangent);
-                
-                float3 bitangent = math.cross(up, tangent);
+                BelongsTo = CollisionLayers.Raycast,
+                CollidesWith = CollisionLayers.Landscape
+            };
 
-                // Distribute spawns in a circle around the antipodal point
-                float angle = (2 * math.PI * globalIndex) / TotalAmount;
-                // Scale radius based on amount to prevent immediate crowding
-                float radius = math.max(3f, TotalAmount * 0.25f); 
-                
-                float3 offset = (tangent * math.cos(angle) + bitangent * math.sin(angle)) * radius;
-                
-                // Project back onto sphere surface
-                float3 rawPos = SpawnOrigin + offset;
-                normal = math.normalize(rawPos - PlanetCenter);
-                spawnPosition = PlanetCenter + normal * PlanetRadius;
-            }
-            else if (Mode == SpawnMode.AroundPlayer)
+            // Calculate spawn postion based on spawning mode
+            switch (Mode)
             {
-                float3 playerUp = math.normalize(SpawnOrigin - PlanetCenter);
-                
-                // Calculate a random distance from the player in radians (arc length / radius)
-                float minAngle = MinRange / PlanetRadius;
-                float maxAngle = MaxRange / PlanetRadius;
-                float randomAngle = rand.NextFloat(minAngle, maxAngle);
-                
-                // Random azimuth (0 to 360 degrees)
-                float randomAzimuth = rand.NextFloat(0, 2 * math.PI);
-                
-                // Construct rotation
-                float3 tangent = math.cross(playerUp, new float3(0, 1, 0));
-                if (math.lengthsq(tangent) < 0.001f) tangent = math.cross(playerUp, new float3(1, 0, 0));
-                tangent = math.normalize(tangent);
-                
-                quaternion rotAzimuth = quaternion.AxisAngle(playerUp, randomAzimuth);
-                float3 rotationAxis = math.rotate(rotAzimuth, tangent);
-                
-                quaternion rotArc = quaternion.AxisAngle(rotationAxis, randomAngle);
-                float3 newNormal = math.rotate(rotArc, playerUp);
-                
-                spawnPosition = PlanetCenter + newNormal * PlanetRadius;
-                normal = newNormal;
+                case SpawnMode.RandomInPlanet:
+                    float3 randomDir = rand.NextFloat3Direction();
+                    float3 roughPos = PlanetCenter + randomDir * PlanetRadius;
+
+                    if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, roughPos, PlanetCenter, groundFilter, 150f, out var hit))
+                    {
+                        spawnPosition = hit.Position;
+                        surfaceNormal = hit.SurfaceNormal;
+                        positionFound = true;
+                    }
+                    break;
+
+                case SpawnMode.Zone:
+                    float zoneRadius = math.max(5f, TotalAmount * 0.5f);
+                    positionFound = PlanetUtils.GetRandomPointOnSurface(
+                        ref CollisionWorld, ref rand, SpawnOrigin, PlanetCenter, zoneRadius, ref groundFilter,
+                        out spawnPosition, out surfaceNormal);
+                    break;
+
+                case SpawnMode.PlayerOpposite:
+                    // Opposite point from player
+                    float3 playerPosition = PlayerTransform.Position;
+                    float3 dirToOrigin = math.normalize(playerPosition - PlanetCenter);
+                    float3 opositePoint = PlanetCenter - (dirToOrigin * PlanetRadius * 1f);
+
+                    // Avoid stacking
+                    float oppositePositionRadius = math.max(15f, TotalAmount * 0.5f);
+
+                    positionFound = PlanetUtils.GetRandomPointOnSurface(
+                        ref CollisionWorld, ref rand, opositePoint, PlanetCenter, oppositePositionRadius, ref groundFilter,
+                        out spawnPosition, out surfaceNormal);
+                    break;
+
+                case SpawnMode.AroundPlayer:
+                    positionFound = PlanetUtils.GetRandomPointOnSurface(
+                        ref CollisionWorld, ref rand, SpawnOrigin, PlanetCenter, MinRange, MaxRange, ref groundFilter,
+                        out spawnPosition, out surfaceNormal);
+                    break;
             }
 
-            // --- Orientation Calculation ---
-            // Ensure the enemy is looking in a direction tangent to the planet surface
-            float3 randomTangent = rand.NextFloat3Direction();
-            float3 tangentDirection = randomTangent - math.dot(randomTangent, normal) * normal;
-            tangentDirection = math.normalize(tangentDirection);
+            if (!positionFound)
+                return;
 
+            // Instantiate the enemy from the prefab
             Entity entity = ECB.Instantiate(index, Prefab);
 
+            // Entity orientation
+            float3 randomTangent = rand.NextFloat3Direction();
+            float3 tangentDirection = math.normalize(randomTangent - math.dot(randomTangent, surfaceNormal) * surfaceNormal);
+
+            float3 finalPosition = spawnPosition + (surfaceNormal * 0.5f);
+
+            // Set Transform 
             ECB.SetComponent(index, entity, new LocalTransform
             {
-                Position = spawnPosition,
+                Position = finalPosition,
                 Scale = 1f,
-                Rotation = quaternion.LookRotationSafe(tangentDirection, normal)
+                Rotation = quaternion.LookRotationSafe(tangentDirection, surfaceNormal)
             });
 
+            // Set Movement Target
             ECB.SetComponent(index, entity, new FollowTargetMovement
             {
-                Target = PlayerEntity,
-                //StopDistance = 50f
+                Target = PlayerEntity
             });
 
-            // Stagger the activation of enemies to create a "streaming" spawn effect
-            ECB.AddComponent(index, entity, new SpawnDelay
-            {
-                Timer = globalIndex * DelayBetweenSpawns
-            });
-            
-            // Enemies start disabled and are enabled by the SpawnDelaySystem
-            ECB.AddComponent<Disabled>(index, entity);
-            
-            // Set the wave index on the enemy component
+            // Set Wave Index
             ECB.SetComponent(index, entity, new Enemy { WaveIndex = WaveIndex });
         }
     }

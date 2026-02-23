@@ -15,4 +15,6 @@ public enum ECharacterStat
     CollectRange,
     BounceCount,
     PierceCount,
+    CritChance,
+    CritMultiplier,
 }

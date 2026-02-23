@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
-  m_Name: SpellData_LightningStrike
+  m_Name: SpellData_ShockShard
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
   ID: 2
-  DisplayName: Lightning Strike
-  Description: 
-  SpellPrefab: {fileID: 5138817672301412260, guid: 160b4a46fb75b6846baf3147a23277b9, type: 3}
+  DisplayName: Shock Shard
+  Description: Cast a shock shard randomly around the caster.
+  SpellPrefab: {fileID: 5061370397616980820, guid: 244694547b50c934b881bacfcc675328, type: 3}
   Rarity: 0
   Tags: 8
-  BaseDamage: 0.5
-  BaseCooldown: 1
-  BaseSpeed: 35
+  BaseDamage: 30
+  BaseCooldown: 0.2
+  BaseSpeed: 60
   BaseSpawnOffset: {x: 0, y: 0, z: 0}
   BaseAreaOfEffect: 1
   BaseCastRange: 5
-  TargetingMode: 3
+  TargetingMode: 2
   Lifetime: 10
   Bounces: 0
   BouncesSearchRadius: 0

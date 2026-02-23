@@ -44,176 +44,127 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f95afcbbc4bb6e347b8fec784ae02fa9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpawnerAuthoring
+  MaxEnemies: 1000
   Waves:
-  - SpawnDatas:
+  - Name: 
+    Duration: 30
+    KillPercentageToAdvance: 1
+    Groups:
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 800
+      ZoneTransform: {fileID: 0}
+      Delay: 0.2
+      MinRange: 10
+      MaxRange: 150
     - Mode: 0
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 20
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 0
-      MaxSpawnRange: 0
-      KillPercentageToAdvance: 0.5
-  - SpawnDatas:
-    - Mode: 3
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 30
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 20
-      MaxSpawnRange: 30
-      KillPercentageToAdvance: 0.8
-    - Mode: 2
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 50
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 0
-      MaxSpawnRange: 0
-      KillPercentageToAdvance: 0.5
-    - Mode: 3
       Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
-      Amount: 20
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 85
-      MaxSpawnRange: 100
-      KillPercentageToAdvance: 0.7
-  - SpawnDatas:
+      Amount: 200
+      ZoneTransform: {fileID: 0}
+      Delay: 0.2
+      MinRange: 20
+      MaxRange: 80
+  - Name: 
+    Duration: 30
+    KillPercentageToAdvance: 1
+    Groups:
     - Mode: 3
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 85
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 30
-      MaxSpawnRange: 50
-      KillPercentageToAdvance: 0.7
-    - Mode: 2
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 100
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 0
-      MaxSpawnRange: 0
-      KillPercentageToAdvance: 0.5
-    - Mode: 3
-      Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
-      Amount: 100
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 30
-      MaxSpawnRange: 50
-      KillPercentageToAdvance: 0.5
-    - Mode: 2
       Prefab: {fileID: 4960229139857780973, guid: e365daea1873ad948a8ba513adf1bd9e, type: 3}
-      Amount: 1
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 30
-      MaxSpawnRange: 50
-      KillPercentageToAdvance: 0.5
-  - SpawnDatas:
+      Amount: 500
+      ZoneTransform: {fileID: 0}
+      Delay: 1
+      MinRange: 10
+      MaxRange: 363
+  - Name: 
+    Duration: 30
+    KillPercentageToAdvance: 0.8
+    Groups:
     - Mode: 3
       Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 100
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 20
-      MaxSpawnRange: 30
-      KillPercentageToAdvance: 0.9
-    - Mode: 2
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 200
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 0
-      MaxSpawnRange: 0
-      KillPercentageToAdvance: 0.9
-    - Mode: 3
+      Amount: 500
+      ZoneTransform: {fileID: 0}
+      Delay: 0.1
+      MinRange: 0
+      MaxRange: 30
+    - Mode: 0
       Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
-      Amount: 200
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 20
-      MaxSpawnRange: 30
-      KillPercentageToAdvance: 0.9
-  - SpawnDatas:
-    - Mode: 3
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
       Amount: 100
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 20
-      MaxSpawnRange: 30
-      KillPercentageToAdvance: 0.777
-    - Mode: 2
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 200
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 0
-      MaxSpawnRange: 0
-      KillPercentageToAdvance: 0.7
+      ZoneTransform: {fileID: 0}
+      Delay: 0.5
+      MinRange: 0
+      MaxRange: 30
+  - Name: 
+    Duration: 30
+    KillPercentageToAdvance: 0.8
+    Groups:
     - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 500
+      ZoneTransform: {fileID: 0}
+      Delay: 0.1
+      MinRange: 0
+      MaxRange: 30
+    - Mode: 0
       Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
-      Amount: 200
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 40
-      MaxSpawnRange: 50
-      KillPercentageToAdvance: 0.4
-  - SpawnDatas:
-    - Mode: 3
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
       Amount: 100
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 50
-      MaxSpawnRange: 60
-      KillPercentageToAdvance: 0.5
-    - Mode: 2
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 200
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 0
-      MaxSpawnRange: 0
-      KillPercentageToAdvance: 0.5
+      ZoneTransform: {fileID: 0}
+      Delay: 0.5
+      MinRange: 0
+      MaxRange: 30
+  - Name: 
+    Duration: 30
+    KillPercentageToAdvance: 0.8
+    Groups:
     - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 500
+      ZoneTransform: {fileID: 0}
+      Delay: 0.1
+      MinRange: 0
+      MaxRange: 30
+    - Mode: 0
       Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
-      Amount: 200
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 30
-      MaxSpawnRange: 60
-      KillPercentageToAdvance: 0.5
-  - SpawnDatas:
-    - Mode: 3
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
       Amount: 100
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 40
-      MaxSpawnRange: 80
-      KillPercentageToAdvance: 0
-    - Mode: 2
-      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
-      Amount: 200
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 0
-      MaxSpawnRange: 0
-      KillPercentageToAdvance: 0
+      ZoneTransform: {fileID: 0}
+      Delay: 0.5
+      MinRange: 0
+      MaxRange: 30
+  - Name: 
+    Duration: 30
+    KillPercentageToAdvance: 0.8
+    Groups:
     - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 500
+      ZoneTransform: {fileID: 0}
+      Delay: 0.1
+      MinRange: 0
+      MaxRange: 30
+    - Mode: 0
       Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
-      Amount: 200
-      SpawnerPrefab: {fileID: 0}
-      SpawnDelay: 0
-      MinSpawnRange: 20
-      MaxSpawnRange: 30
-      KillPercentageToAdvance: 0
-  TimeBetweenWaves: 50
-  MaxEnemies: 1500
+      Amount: 100
+      ZoneTransform: {fileID: 0}
+      Delay: 0.5
+      MinRange: 0
+      MaxRange: 30
+  - Name: 
+    Duration: 360
+    KillPercentageToAdvance: 0.8
+    Groups:
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+      Amount: 500
+      ZoneTransform: {fileID: 0}
+      Delay: 0.1
+      MinRange: 0
+      MaxRange: 30
+    - Mode: 0
+      Prefab: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+      Amount: 100
+      ZoneTransform: {fileID: 0}
+      Delay: 0.5
+      MinRange: 0
+      MaxRange: 30
   ShowDebugGizmos: 0
   DebugPlanetCenter: {fileID: 0}
   DebugPlanetRadius: 50

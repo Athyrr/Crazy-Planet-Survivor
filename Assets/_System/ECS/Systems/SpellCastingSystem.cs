@@ -1,25 +1,25 @@
-using Unity.Burst;
-using Unity.Collections;
-using Unity.Entities;
 using Unity.Mathematics;
-using Unity.Physics;
+using Unity.Collections;
 using Unity.Transforms;
+using Unity.Entities;
+using Unity.Physics;
+using Unity.Burst;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(PlayerSpawnerSystem))]
 [BurstCompile]
 public partial struct SpellCastingSystem : ISystem
 {
-    // --- LOOKUPS ---
-    // Caster info
+    // Player
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<Stats> _statsLookup;
 
-    // Spell "Recipe"
+    // Spells
     private BufferLookup<ActiveSpell> _activeSpellLookup;
 
-    // Spell Components (Read/Write to Prefab instance)
+    // Behaviors
     private ComponentLookup<Lifetime> _lifetimeLookup;
     private ComponentLookup<PhysicsCollider> _colliderLookup;
     private ComponentLookup<AttachToCaster> _attachLookup;
@@ -33,16 +33,17 @@ public partial struct SpellCastingSystem : ISystem
     private ComponentLookup<OrbitMovement> _orbitMovementLookup;
     private ComponentLookup<FollowTargetMovement> _followMovementLookup;
 
-    private ComponentLookup<ChildEntitiesSpawner> _childSpawnerLookup;
-    private ComponentLookup<ChildEntitiesLayout_Circle> _childCircleLayoutLookup;
+    private ComponentLookup<SubSpellsSpawner> _subSpellsSpawnerLookup;
+    private ComponentLookup<SubSpellsLayout_Circle> _subSpellsCircleLayoutLookup;
 
     // Enableable Components
     private ComponentLookup<Bounce> _ricochetLookup;
     private ComponentLookup<Pierce> _pierceLookup;
     //private ComponentLookup<ExplodeOnContact> _explodeLookup;
 
+    // Queries
+    //private EntityQuery _playerQuery;
 
-    //@todo Planet ref center
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -51,6 +52,7 @@ public partial struct SpellCastingSystem : ISystem
         state.RequireForUpdate<SpellPrefab>();
         state.RequireForUpdate<ActiveSpell>();
         state.RequireForUpdate<SpellsDatabase>();
+        //state.RequireForUpdate<StartRunRequest>();
         state.RequireForUpdate<CastSpellRequest>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
 
@@ -70,11 +72,13 @@ public partial struct SpellCastingSystem : ISystem
         _linearMovementLookup = SystemAPI.GetComponentLookup<LinearMovement>(true);
         _orbitMovementLookup = SystemAPI.GetComponentLookup<OrbitMovement>(true);
         _followMovementLookup = SystemAPI.GetComponentLookup<FollowTargetMovement>(true);
-        _childSpawnerLookup = SystemAPI.GetComponentLookup<ChildEntitiesSpawner>(true);
-        _childCircleLayoutLookup = SystemAPI.GetComponentLookup<ChildEntitiesLayout_Circle>(true);
+        _subSpellsSpawnerLookup = SystemAPI.GetComponentLookup<SubSpellsSpawner>(true);
+        _subSpellsCircleLayoutLookup = SystemAPI.GetComponentLookup<SubSpellsLayout_Circle>(true);
         _ricochetLookup = SystemAPI.GetComponentLookup<Bounce>(true);
         _pierceLookup = SystemAPI.GetComponentLookup<Pierce>(true);
         //_explodeLookup = SystemAPI.GetComponentLookup<ExplodeOnContact>(true);
+
+        //_playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
     }
 
     [BurstCompile]
@@ -82,6 +86,9 @@ public partial struct SpellCastingSystem : ISystem
     {
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
             return;
+
+        //if (_playerQuery.IsEmpty)
+        //    return;
 
         // Update all lookups
         _playerLookup.Update(ref state);
@@ -100,8 +107,8 @@ public partial struct SpellCastingSystem : ISystem
         _linearMovementLookup.Update(ref state);
         _orbitMovementLookup.Update(ref state);
         _followMovementLookup.Update(ref state);
-        _childSpawnerLookup.Update(ref state);
-        _childCircleLayoutLookup.Update(ref state);
+        _subSpellsSpawnerLookup.Update(ref state);
+        _subSpellsCircleLayoutLookup.Update(ref state);
         _ricochetLookup.Update(ref state);
         _pierceLookup.Update(ref state);
         //_explodeLookup.Update(ref state);
@@ -138,8 +145,8 @@ public partial struct SpellCastingSystem : ISystem
             LinearMovementLookup = _linearMovementLookup,
             OrbitMovementLookup = _orbitMovementLookup,
             FollowMovementLookup = _followMovementLookup,
-            ChildSpawnerLookup = _childSpawnerLookup,
-            ChildCircleLayoutLookup = _childCircleLayoutLookup,
+            SubSpellsSpawnerLookup = _subSpellsSpawnerLookup,
+            SubSpellsCircleLayoutLookup = _subSpellsCircleLayoutLookup,
             RicochetLookup = _ricochetLookup,
             PierceLookup = _pierceLookup,
             //ExplodeLookup = _explodeLookup
@@ -175,15 +182,14 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<LinearMovement> LinearMovementLookup;
         [ReadOnly] public ComponentLookup<OrbitMovement> OrbitMovementLookup;
         [ReadOnly] public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
-        [ReadOnly] public ComponentLookup<ChildEntitiesSpawner> ChildSpawnerLookup;
-        [ReadOnly] public ComponentLookup<ChildEntitiesLayout_Circle> ChildCircleLayoutLookup;
+        [ReadOnly] public ComponentLookup<SubSpellsSpawner> SubSpellsSpawnerLookup;
+        [ReadOnly] public ComponentLookup<SubSpellsLayout_Circle> SubSpellsCircleLayoutLookup;
         [ReadOnly] public ComponentLookup<Bounce> RicochetLookup;
         [ReadOnly] public ComponentLookup<Pierce> PierceLookup;
         //[ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeLookup;
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
-            // VALIDATION
             if (!SpellDatabaseRef.IsCreated || !TransformLookup.HasComponent(request.Caster))
             {
                 ECB.DestroyEntity(chunkIndex, requestEntity);
@@ -192,6 +198,12 @@ public partial struct SpellCastingSystem : ISystem
 
             ref readonly var baseSpellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
             var spellPrefab = MainSpellPrefabs[request.DatabaseIndex].Prefab;
+
+            //if (baseSpellData.BaseCooldown <= 0)
+            //{
+            //    ECB.DestroyEntity(chunkIndex, requestEntity);
+            //    return;
+            //}
 
             if (spellPrefab == Entity.Null && baseSpellData.ChildPrefabIndex == -1)
             {
@@ -205,6 +217,9 @@ public partial struct SpellCastingSystem : ISystem
             ESpellTag addedTags = ESpellTag.None;
 
             // Try to find the ActiveSpell config on the caster (Player only usually)
+            float bonusSpellCritChance = 0f;
+            float bonusSpellCritMultiplier = 0f;
+
             if (ActiveSpellLookup.TryGetBuffer(request.Caster, out var activeSpells))
             {
                 for (int i = 0; i < activeSpells.Length; i++)
@@ -220,6 +235,9 @@ public partial struct SpellCastingSystem : ISystem
                         addBounces = mod.BonusBounces;
                         addPierces = mod.BonusPierces;
                         addedTags = mod.AddedTags;
+
+                        bonusSpellCritChance = mod.BonusCritChance;
+                        bonusSpellCritMultiplier = mod.BonusCritMultiplier;
                         break;
                     }
                 }
@@ -231,13 +249,33 @@ public partial struct SpellCastingSystem : ISystem
             var stats = StatsLookup[request.Caster];
             var random = Random.CreateFromIndex(Seed);
 
-            float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * mulDmg;
+            // Crit Logic
+            float finalCritChance = stats.CritChance + bonusSpellCritChance;
+            float finalCritMultiplier = math.max(1f, stats.CritMultiplier + bonusSpellCritMultiplier);
+            bool isCrit = random.NextFloat(0f, 1f) < finalCritChance;
+
+            float critIntensity = 0f;
+            float actualMultiplier = 1f;
+
+            if (isCrit)
+            {
+                // Random variance +/- 25%
+                float variance = random.NextFloat(0.75f, 1.25f);
+                actualMultiplier = math.max(1.0f, finalCritMultiplier * variance);
+                critIntensity = actualMultiplier / finalCritMultiplier;
+            }
+
+            float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * mulDmg * actualMultiplier;
+
             float finalSpeed = baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) * mulSpeed;
             float finalArea = baseSpellData.BaseEffectArea * math.max(1f, stats.EffectAreaRadiusMult) * mulArea;
             float finalDuration = baseSpellData.Lifetime * mulDuration;
 
             // Multishot Logic
-            int finalProjectileCount = math.max(1, 1 + addAmount);
+            int finalProjectileCount = math.max(1, 1 + addAmount); 
+
+            if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
+                finalProjectileCount = 1;
 
             // TARGETING LOGIC (Determines Base Target Position/Rotation)
             float3 targetPosition = casterTransform.Position;
@@ -306,7 +344,7 @@ public partial struct SpellCastingSystem : ISystem
                         baseSpellData.BaseCastRange,
                         ref groundFilter,
                         out var p,
-                        out var n)) 
+                        out var n))
                     {
                         targetPosition = p;
                         //PlanetUtils.ProjectDirectionOnSurface(casterTransform.Forward(), n, out var r);
@@ -342,7 +380,7 @@ public partial struct SpellCastingSystem : ISystem
                 }
             }
 
-            // SPAWN LOOP (MULTISHOT)
+            // Spawn loop
             float spreadAngle = 15f;
             float startAngle = -((finalProjectileCount - 1) * spreadAngle) / 2f;
 
@@ -352,14 +390,20 @@ public partial struct SpellCastingSystem : ISystem
 
                 ECB.AddComponent(0, spellEntity, new RunScope());
 
-                // --- A. Transform & Spread ---
+                ECB.AddComponent(chunkIndex, spellEntity, new SpellLink
+                {
+                    CasterEntity = request.Caster,
+                    DatabaseIndex = request.DatabaseIndex
+                });
+
+                // Spread 
                 quaternion finalRotation = baseRotation;
                 float3 finalDirection = fireDirection;
 
                 if (finalProjectileCount > 1 && isProjectile)
                 {
                     float angle = startAngle + (i * spreadAngle);
-                    // Rotate around UP axis
+                    // Rotate around up axis
                     finalRotation = math.mul(baseRotation, quaternion.RotateY(math.radians(angle)));
                     finalDirection = math.forward(finalRotation);
                 }
@@ -430,7 +474,8 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         Damage = finalDamage,
                         Element = baseSpellData.Tag | addedTags,
-                        AreaRadius = finalArea
+                        AreaRadius = finalArea,
+                        CritIntensity = critIntensity
                     });
                 }
 
@@ -440,9 +485,10 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         Caster = request.Caster,
                         TickRate = baseSpellData.TickRate, // Could have TickRateMultiplier too
-                        DamagePerTick = (baseSpellData.BaseDamagePerTick + stats.Damage) * mulDmg,
+                        DamagePerTick = (baseSpellData.BaseDamagePerTick + stats.Damage) * mulDmg * actualMultiplier,
                         AreaRadius = finalArea,
-                        Element = baseSpellData.Tag | addedTags
+                        Element = baseSpellData.Tag | addedTags,
+                        CritIntensity = critIntensity
                     });
                 }
 
@@ -466,24 +512,26 @@ public partial struct SpellCastingSystem : ISystem
                 }
 
                 // Child Spawner
-                if (ChildSpawnerLookup.HasComponent(spellPrefab))
+                if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
                 {
                     if (baseSpellData.ChildPrefabIndex >= 0 && baseSpellData.ChildPrefabIndex < ChildSpellPrefabs.Length)
                     {
-                        var childPrefabEntity = ChildSpellPrefabs[baseSpellData.ChildPrefabIndex].Prefab;
+                        SubSpellsSpawner childSpawnerData = SubSpellsSpawnerLookup[spellPrefab];
 
-                        ECB.SetComponent(chunkIndex, spellEntity, new ChildEntitiesSpawner
-                        {
-                            ChildEntityPrefab = childPrefabEntity,
-                            DesiredChildrenCount = baseSpellData.ChildrenCount,
-                            CollisionFilter = filter,
-                            IsDirty = true // Trigger spawn in ChildEntitiesSpellSystem
-                        });
+                        int subPrefabIndex = baseSpellData.ChildPrefabIndex;
+                        Entity subPrefabEntity = ChildSpellPrefabs[subPrefabIndex].Prefab;
+
+                        childSpawnerData.ChildEntityPrefab = subPrefabEntity;
+                        childSpawnerData.DesiredSubSpellsCount = baseSpellData.SubSpellsCount + addAmount;
+                        childSpawnerData.IsDirty = true;
+                        childSpawnerData.CollisionFilter = filter;
+
+                        ECB.SetComponent(chunkIndex, spellEntity, childSpawnerData);
 
                         // Config Circle Layout if applicable
-                        if (ChildCircleLayoutLookup.HasComponent(spellPrefab))
+                        if (SubSpellsCircleLayoutLookup.HasComponent(spellPrefab))
                         {
-                            ECB.SetComponent(chunkIndex, spellEntity, new ChildEntitiesLayout_Circle
+                            ECB.SetComponent(chunkIndex, spellEntity, new SubSpellsLayout_Circle
                             {
                                 Radius = baseSpellData.ChildrenSpawnRadius,
                                 AngleInDegrees = 360

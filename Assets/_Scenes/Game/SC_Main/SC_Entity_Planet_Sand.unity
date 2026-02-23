@@ -798,39 +798,7 @@ PrefabInstance:
     - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
       propertyPath: DebugPlanetCenter
       value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[6].SpawnDatas.Array.size
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].Mode
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].Amount
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].Prefab
-      value: 
-      objectReference: {fileID: 4960229139857780973, guid: e365daea1873ad948a8ba513adf1bd9e, type: 3}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].MaxSpawnRange
-      value: 30
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].MinSpawnRange
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[4].SpawnDatas.Array.data[0].KillPercentageToAdvance
-      value: 0.7
-      objectReference: {fileID: 0}
-    - target: {fileID: 3178377198890801439, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
-      propertyPath: Waves.Array.data[6].SpawnDatas.Array.data[3].KillPercentageToAdvance
-      value: 0.7
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 8221108914173253814}
     - target: {fileID: 5966468792438554073, guid: df5ab98318b43644abdf6a243e02d338, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -941,14 +909,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 729490415981307824, guid: 9ab831b5a442474459f3c9a3d8c5c7b5, type: 3}
-      propertyPath: _manualCenterOffset.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 729490415981307824, guid: 9ab831b5a442474459f3c9a3d8c5c7b5, type: 3}
-      propertyPath: _manualCenterOffset.y
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 2669704714291595487, guid: 9ab831b5a442474459f3c9a3d8c5c7b5, type: 3}
       propertyPath: m_Name
       value: PF_Planet_Volcanus
@@ -998,6 +958,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9ab831b5a442474459f3c9a3d8c5c7b5, type: 3}
+--- !u!4 &8221108914173253814 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3334742790754603621, guid: 9ab831b5a442474459f3c9a3d8c5c7b5, type: 3}
+  m_PrefabInstance: {fileID: 8221108914173253813}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

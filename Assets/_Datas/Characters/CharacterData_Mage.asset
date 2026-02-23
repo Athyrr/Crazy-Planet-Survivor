@@ -13,21 +13,23 @@ MonoBehaviour:
   m_Name: CharacterData_Mage
   m_EditorClassIdentifier: Assembly-CSharp::CharacterDataSO
   DisplayName: Mage
-  Description: 
-  Icon: {fileID: 21300000, guid: bbb9ddecc3c2aa84bb142121441809c0, type: 3}
+  Description: La magie abracadabra
+  Icon: {fileID: 21300000, guid: efb67990eefe0a94799dceb811b346f3, type: 3}
   UIPrefab: {fileID: 19448560152866022, guid: a8137bc0b51337a4385f5119c3acea89, type: 3}
   GamePrefab: {fileID: 5342180323788850383, guid: 6ecfb52b658f42d409bc20abc8921769, type: 3}
   StatsUpgradesPool: {fileID: 11400000, guid: 65be180b5958ee040864032b0a195caf, type: 2}
-  SpellUpgradesPool: {fileID: 11400000, guid: ebf76380d81aae044a8b19bc2cfb9497, type: 2}
+  SpellUpgradesPool: {fileID: 11400000, guid: 58171efd1d1c66b428a33360e869d815, type: 2}
   InitialSpells:
-  - {fileID: 11400000, guid: ae5bbb8d89c2ebb46b2b957b87ec7ae1, type: 2}
-  - {fileID: 11400000, guid: de9b0eda8b3a72c40b8d8d2dc3e977ec, type: 2}
+  - {fileID: 11400000, guid: cd05c33d42552764aab5856b7fbbaaa6, type: 2}
+  - {fileID: 11400000, guid: a13ca1f0a33c36a46bac651b45432abc, type: 2}
   BaseStats:
     MaxHealth: 500
     Armor: 2
     MoveSpeed: 20
     Damage: 15
     CooldownReduction: 0
+    CritChance: 0.5
+    CritMultiplier: 2
     ProjectileSpeedMultiplier: 1.5
     EffectAreaRadiusMultiplier: 0
     BouncesAdded: 0

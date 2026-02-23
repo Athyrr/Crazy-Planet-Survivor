@@ -2326,7 +2326,7 @@ ParticleSystem:
     vectorLabel1_3: W
 --- !u!199 &2157104216143541436
 ParticleSystemRenderer:
-  serializedVersion: 6
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -2372,6 +2372,7 @@ ParticleSystemRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_RenderMode: 2
   m_MeshDistribution: 0
   m_SortMode: 0
@@ -2403,7 +2404,6 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
-  m_MaskInteraction: 0
 --- !u!1 &2157104216976520668
 GameObject:
   m_ObjectHideFlags: 0
@@ -4721,7 +4721,7 @@ ParticleSystem:
     vectorLabel1_3: W
 --- !u!199 &2157104216976520666
 ParticleSystemRenderer:
-  serializedVersion: 6
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -4767,6 +4767,7 @@ ParticleSystemRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_RenderMode: 2
   m_MeshDistribution: 0
   m_SortMode: 0
@@ -4798,7 +4799,6 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
-  m_MaskInteraction: 0
 --- !u!1 &2157104217404916347
 GameObject:
   m_ObjectHideFlags: 0
@@ -7188,7 +7188,7 @@ ParticleSystem:
     vectorLabel1_3: W
 --- !u!199 &2157104217404916345
 ParticleSystemRenderer:
-  serializedVersion: 6
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -7234,6 +7234,7 @@ ParticleSystemRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_RenderMode: 0
   m_MeshDistribution: 0
   m_SortMode: 0
@@ -7265,7 +7266,6 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
-  m_MaskInteraction: 0
 --- !u!1 &8608917285960180756
 GameObject:
   m_ObjectHideFlags: 0
@@ -12036,7 +12036,7 @@ ParticleSystem:
     vectorLabel1_3: W
 --- !u!199 &8608917285960180754
 ParticleSystemRenderer:
-  serializedVersion: 6
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -12082,6 +12082,7 @@ ParticleSystemRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_RenderMode: 1
   m_MeshDistribution: 0
   m_SortMode: 0
@@ -12113,7 +12114,6 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
-  m_MaskInteraction: 0
 --- !u!1 &8608917286184711326
 GameObject:
   m_ObjectHideFlags: 0
@@ -12128,9 +12128,10 @@ GameObject:
   - component: {fileID: 8608917286184711327}
   - component: {fileID: -19168749489657235}
   - component: {fileID: -8803310632859555518}
+  - component: {fileID: -2893274093638434207}
   - component: {fileID: 8608917286184711324}
   m_Layer: 0
-  m_Name: PF_Spell_ShockBeam
+  m_Name: PF_Spell_ShockStrike
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -12351,7 +12352,7 @@ MonoBehaviour:
     Tag07: 0
 --- !u!199 &8608917286184711327
 ParticleSystemRenderer:
-  serializedVersion: 6
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -12397,6 +12398,7 @@ ParticleSystemRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_RenderMode: 1
   m_MeshDistribution: 0
   m_SortMode: 0
@@ -12428,7 +12430,6 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
-  m_MaskInteraction: 0
 --- !u!114 &-19168749489657235
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12453,6 +12454,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2b84fa8e8cbd674c8acfb417a3276e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LifetimeAuthoring
+--- !u!114 &-2893274093638434207
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8608917286184711326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6fbacaf139918b4bbe3416bfcc81482, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitMemoryAuthoring
 --- !u!198 &8608917286184711324
 ParticleSystem:
   m_ObjectHideFlags: 0

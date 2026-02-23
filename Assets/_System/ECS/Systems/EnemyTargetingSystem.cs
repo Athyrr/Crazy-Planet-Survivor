@@ -8,12 +8,12 @@ using Unity.Burst;
 /// Evaluates enemies with ready spells and issues <see cref="CastSpellRequest"/> entities if the player is within range.
 /// This system calculates distances along the surface of a spherical planet using optimized chord-length math.
 /// </summary>
+[UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(PlayerSpawnerSystem))]
 [BurstCompile]
 public partial struct EnemyTargetingSystem : ISystem
 {
-    /// <summary> Lookup for transform data of entities outside the current job's scope. </summary>
     private ComponentLookup<LocalTransform> _transformLookup;
-    /// <summary> Lookup for planet-specific data (like radius). </summary>
     private ComponentLookup<PlanetData> _planetLookup;
 
     [BurstCompile]
@@ -30,13 +30,13 @@ public partial struct EnemyTargetingSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        // Refresh lookups to ensure the job has access to the latest frame data
         _transformLookup.Update(ref state);
         _planetLookup.Update(ref state);
 
-        // Only process targeting if the game is actively running
-        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState)) return;
-        if (gameState.State != EGameState.Running) return;
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+        if (gameState.State != EGameState.Running)
+            return;
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
         var planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
@@ -64,35 +64,28 @@ public partial struct EnemyTargetingSystem : ISystem
     [WithAll(typeof(Stats), typeof(Enemy))]
     private partial struct EnemyTargetingJob : IJobEntity
     {
-        /// <summary> Reference to the blob asset containing all spell configuration data. </summary>
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
         public Entity PlayerEntity;
         public Entity PlanetEntity;
 
-        /// <summary> Read-only lookup for transforms (Player/Planet). </summary>
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
-        /// <summary> Read-only lookup for planet data. </summary>
         [ReadOnly] public ComponentLookup<PlanetData> PlanetLookup;
 
-        /// <summary> Command buffer to create spell request entities. </summary>
         public EntityCommandBuffer.ParallelWriter ECB;
 
         void Execute([ChunkIndexInQuery] int chunkIndex, ref DynamicBuffer<EnemySpellReady> readySpells, in LocalTransform transform, in Entity entity)
         {
             if (readySpells.IsEmpty) return;
 
-            // Ensure required global entities still exist
-            if (!TransformLookup.HasComponent(PlayerEntity) || !PlanetLookup.HasComponent(PlanetEntity)) return;
+            if (!TransformLookup.HasComponent(PlayerEntity) || !PlanetLookup.HasComponent(PlanetEntity))
+                return;
 
             float3 playerPos = TransformLookup[PlayerEntity].Position;
             float planetRadius = PlanetLookup[PlanetEntity].Radius;
 
-            // Pre-calculate the maximum possible surface distance (half circumference)
             float maxSurfaceDist = math.PI * planetRadius;
 
-            // Calculate the squared straight-line (Euclidean) distance to the player.
-            // This is used for comparison against the calculated chord threshold.
             float distToPlayerSq = math.distancesq(transform.Position, playerPos);
 
             for (int i = 0; i < readySpells.Length; i++)
@@ -108,10 +101,6 @@ public partial struct EnemyTargetingSystem : ISystem
                 }
                 else
                 {
-                    // Optimized Range Check:
-                    // Instead of calculating the Arc distance (expensive), we convert the spell's 
-                    // Range (Arc) into a Straight-Line Distance (Chord).
-                    // Formula: Chord = 2 * R * sin(Arc / 2R)
                     float thresholdChord = 2.0f * planetRadius * math.sin(spellData.BaseCastRange / (2.0f * planetRadius));
 
                     if (distToPlayerSq <= thresholdChord * thresholdChord)

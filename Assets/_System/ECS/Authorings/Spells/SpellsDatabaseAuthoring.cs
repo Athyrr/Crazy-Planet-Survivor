@@ -53,7 +53,7 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlob.TickRate = spellSO.TickRate;
 
                 // Children based spells
-                spellBlob.ChildrenCount = spellSO.ChildrenCount;
+                spellBlob.SubSpellsCount = spellSO.ChildrenCount;
                 spellBlob.ChildrenSpawnRadius = spellSO.ChildrenSpawnRadius;
 
                 if (spellSO.SpellPrefab != null)

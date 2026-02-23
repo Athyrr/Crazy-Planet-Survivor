@@ -1,12 +1,15 @@
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Burst;
+using Unity.Jobs;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
 public partial struct ApplyUpgradeSystem : ISystem
 {
     private BufferLookup<ActiveSpell> _activeSpellsBufferLookup;
+
+    private EntityQuery _subSpellsSpawnerQuery;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -17,6 +20,16 @@ public partial struct ApplyUpgradeSystem : ISystem
         state.RequireForUpdate<ApplyUpgradeRequest>();
 
         _activeSpellsBufferLookup = SystemAPI.GetBufferLookup<ActiveSpell>(false);
+
+        //_subSpellsSpawnerQuery = state.GetEntityQuery(ComponentType.ReadWrite<SubSpellsSpawner>(), ComponentType.ReadOnly<SpellLink>());
+     
+        // var types = new NativeArray<ComponentType>(2, Allocator.Temp);
+        //types[0] = ComponentType.ReadWrite<SubSpellsSpawner>();
+        //types[1] = ComponentType.ReadOnly<SpellLink>();
+        //_subSpellsSpawnerQuery = state.GetEntityQuery(types);
+        //types.Dispose();
+
+        _subSpellsSpawnerQuery = new EntityQueryBuilder(Allocator.Temp).WithAllRW<SubSpellsSpawner>().WithAll<SpellLink>().Build(ref state);
     }
 
     [BurstCompile]
@@ -47,7 +60,57 @@ public partial struct ApplyUpgradeSystem : ISystem
 
             ActiveSpellLookup = _activeSpellsBufferLookup,
         };
-        state.Dependency = applyUpgradeJob.ScheduleParallel(state.Dependency);
+        JobHandle upgradeHandle = applyUpgradeJob.ScheduleParallel(state.Dependency);
+
+        var syncJob = new UpdateSubSpellsJob
+        {
+            ActiveSpellLookup = _activeSpellsBufferLookup,
+            SpellsDatabaseRef = spellsDatabase.Blobs
+        };
+
+        state.Dependency = syncJob.ScheduleParallel(_subSpellsSpawnerQuery, upgradeHandle);
+    }
+
+    /// <summary>
+    /// Updates sub entities spells (ex Fire orbs) afiter an upgrade.
+    /// </summary>
+    [BurstCompile]
+    private partial struct UpdateSubSpellsJob : IJobEntity
+    {
+        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
+
+        public void Execute(ref SubSpellsSpawner spawner, in SpellLink link)
+        {
+            if (!ActiveSpellLookup.TryGetBuffer(link.CasterEntity, out var activeSpells))
+                return;
+
+            ActiveSpell currentSpellData = default;
+            bool found = false;
+
+            for (int i = 0; i < activeSpells.Length; i++)
+            {
+                if (activeSpells[i].DatabaseIndex == link.DatabaseIndex)
+                {
+                    currentSpellData = activeSpells[i];
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+                return;
+
+            ref var baseSpellData = ref SpellsDatabaseRef.Value.Spells[link.DatabaseIndex];
+            int totalAmount = baseSpellData.SubSpellsCount + currentSpellData.BonusAmount;
+
+            //  Define the desired number of children to allow the relevant system to update the spell
+            if (spawner.DesiredSubSpellsCount != totalAmount)
+            {
+                spawner.DesiredSubSpellsCount = totalAmount;
+                spawner.IsDirty = true;
+            }
+        }
     }
 
     [BurstCompile]
@@ -154,11 +217,8 @@ public partial struct ApplyUpgradeSystem : ISystem
                     break;
 
                 case ESpellStat.Amount:
-                    spell.BonusAmount += (int)upgrade.Value;
-
                     //@todo check for ChildEntitiesSpawner and set dirty and set DesiredChildrenCount +Value
-
-
+                    spell.BonusAmount += (int)upgrade.Value;
                     break;
 
                 case ESpellStat.TickRate:
@@ -171,6 +231,14 @@ public partial struct ApplyUpgradeSystem : ISystem
 
                 case ESpellStat.PierceCount:
                     spell.BonusPierces += (int)upgrade.Value;
+                    break;
+
+                case ESpellStat.CritChance:
+                    spell.BonusCritChance += upgrade.Value;
+                    break;
+
+                case ESpellStat.CritMultiplier:
+                    spell.BonusCritMultiplier += upgrade.Value;
                     break;
 
                 default:

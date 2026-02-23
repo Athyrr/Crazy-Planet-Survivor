@@ -59,6 +59,7 @@ public partial struct UpgradeSelectionSystem : ISystem
         state.Dependency = selectUpgradeJob.Schedule(state.Dependency);
     }
 
+    //@todo Burst and remove log
     //[BurstCompile]
     private struct SelectUpgradeJob : IJob
     {
@@ -150,7 +151,6 @@ public partial struct UpgradeSelectionSystem : ISystem
             ref var upgradesBlobs = ref UpgradesDatabaseRef.Value.Upgrades;
             ref var spellBlobs = ref SpellsDatabaseRef.Value.Spells;
 
-
             for (int i = 0; i < spellsPool.Length; i++)
             {
                 int globalIndex = spellsPool[i].DatabaseIndex;
@@ -160,6 +160,7 @@ public partial struct UpgradeSelectionSystem : ISystem
                 // if upgrade is new spell to unlock
                 if (upgradeData.UpgradeType == EUpgradeType.UnlockSpell)
                 {
+                    // Valid only if player does not have the spell
                     if (!HasSpell(upgradeData.SpellID, activeSpells, ref spellBlobs))
                         isValid = true;
                 }
@@ -167,14 +168,16 @@ public partial struct UpgradeSelectionSystem : ISystem
                 // if upgrade is spell upgrade
                 else if (upgradeData.UpgradeType == EUpgradeType.UpgradeSpell)
                 {
-                    // if Spell ID is valid
+                    // Valid only if player has the spell
+
+                    // Target Spell ID
                     if (upgradeData.SpellID != ESpellID.None)
                     {
                         // if player has this spell unlocked
                         if (HasSpell(upgradeData.SpellID, activeSpells, ref spellBlobs))
                             isValid = true;
                     }
-                    // if spell tags are valid and not the upgrade doesnt focus a specific spell
+                    // Target tag 
                     else if (upgradeData.SpellTags != ESpellTag.None)
                     {
                         if (HasSpellWithTag(upgradeData.SpellTags, activeSpells, ref spellBlobs))
@@ -189,6 +192,9 @@ public partial struct UpgradeSelectionSystem : ISystem
 
         private bool HasSpell(ESpellID id, DynamicBuffer<ActiveSpell> activeSpells, ref BlobArray<SpellBlob> spellBlobs)
         {
+            if (activeSpells.IsEmpty) 
+                return false;
+
             for (int i = 0; i < activeSpells.Length; i++)
             {
                 SpellBlob spellBlob = spellBlobs[activeSpells[i].DatabaseIndex];

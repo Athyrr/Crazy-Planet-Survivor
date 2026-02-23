@@ -11,5 +11,6 @@ public struct EndRunRequest : IComponentData
 public enum EEndRunState
 {
     Death,
-    Timeout
+    Timeout,
+    Success
 }

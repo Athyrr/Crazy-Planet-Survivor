@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7bef2e6ca0a354f4ca2e4c967e2f9429, type: 3}
-  m_Name: Upgrade_Spell_FireOrb_3
+  m_Name: Upgrade_UnlockSpell_ShockShard
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeDataSO
-  DisplayName: 'Spell upgrade:  Fire Orb +2'
+  DisplayName: Shock Shard
   Description: 
   Icon: {fileID: 0}
-  UpgradeType: 1
+  UpgradeType: 2
   CharacterStat: 0
-  SpellID: 10
+  SpellID: 2
   RequiredTags: 0
-  SpellStat: 7
-  ModifierStrategy: 0
-  Value: 2
+  SpellStat: 0
+  ModifierStrategy: 1
+  Value: 0

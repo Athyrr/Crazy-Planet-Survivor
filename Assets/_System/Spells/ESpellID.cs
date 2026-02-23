@@ -2,25 +2,25 @@ using System;
 
 public enum ESpellID : byte
 {
-    None,
+    None = 0,
 
     // Player Spells
-    Fireball,
-    LightningStrike,
-    FrozenZone,
-    ShockChain,
-    TechHoles,
-    ShockBeam,
-    DraconicVomit,
-    LightningTornado,
-    PoisonFloor,
-    FireOrbs,
-    PoisonNeedle,
+    Fireball = 1,
+    ShockShard = 2,
+    FrozenZone = 3,
+    ShockChain = 4,
+    TechHoles = 5,
+    ShockStrike = 6,
+    DraconicVomit = 7,
+    LightningTornado = 8,
+    PoisonFloor= 9,
+    FireOrbs= 10,
+    PoisonNeedle= 11,
 
     // Enemy Spells
-    Enemy_Projectile,
+    Enemy_Projectile = 12,
 
-    VoidSlash
+    VoidSlash = 13
 }
 
 /// <summary>

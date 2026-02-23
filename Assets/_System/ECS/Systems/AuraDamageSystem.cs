@@ -16,10 +16,15 @@ public partial struct AuraDamageSystem : ISystem
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFLagLookup;
 
+    private EntityQuery _playerQuery;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<PhysicsWorldSingleton>();
+        state.RequireForUpdate<Player>();
+
+        _playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
 
         // Cache lookups
         _playerLookup = state.GetComponentLookup<Player>(true);
@@ -34,6 +39,9 @@ public partial struct AuraDamageSystem : ISystem
     {
         // Get game state
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+
+        if (_playerQuery.IsEmpty)
             return;
 
         // Only run when game is running
@@ -55,7 +63,7 @@ public partial struct AuraDamageSystem : ISystem
         _damageBufferLookup.Update(ref state);
         _destroyFLagLookup.Update(ref state);
 
-        var auraTickJob = new AuraTickJob
+        var auraTickJob = new TickDamageJob
         {
             ECB = ecb.AsParallelWriter(),
             DeltaTime = SystemAPI.Time.DeltaTime,
@@ -77,7 +85,7 @@ public partial struct AuraDamageSystem : ISystem
     /// @todo summary for all jobs in game
     /// </summary>
     [BurstCompile]
-    private partial struct AuraTickJob : IJobEntity
+    private partial struct TickDamageJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
         public float DeltaTime;
@@ -91,7 +99,7 @@ public partial struct AuraDamageSystem : ISystem
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFLagLookup;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity auraSpellEntity, ref DamageOnTick damageOnTick, in LocalToWorld worldPositionMatrix)
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity auraSpellEntity, ref DamageOnTick damageOnTick, in LocalToWorld worldPosition)
         {
             damageOnTick.ElapsedTime += DeltaTime;
 
@@ -102,6 +110,10 @@ public partial struct AuraDamageSystem : ISystem
             damageOnTick.ElapsedTime = 0f;
 
             var caster = damageOnTick.Caster;
+
+
+            if (!StatsLookup.HasComponent(caster))
+                return;
             var casterStats = StatsLookup[caster];
 
             var hits = new NativeList<DistanceHit>(Allocator.Temp);
@@ -118,7 +130,7 @@ public partial struct AuraDamageSystem : ISystem
             float damage = damageOnTick.DamagePerTick /** math.max(1, casterStats.DamageMult)*/;
 
             // Detection
-            CollisionWorld.OverlapSphere(worldPositionMatrix.Position, radius, ref hits, filter);
+            CollisionWorld.OverlapSphere(worldPosition.Position, radius, ref hits, filter);
 
             foreach (var hit in hits)
             {
