@@ -31,13 +31,17 @@ Shader "Custom/DamageNumbers"
             struct DamageData
             {
                 float3 position;
+                float3 color;
                 float value;
+            };
+            
+            struct TimeData
+            {
                 float startTime;
-                int digitCount;
-                float critIntensity;
             };
 
-            StructuredBuffer<DamageData> _DamageBuffer;
+            StructuredBuffer<DamageData>    _DamageBuffer;
+            StructuredBuffer<TimeData>      _TimeBuffer;
 
             sampler2D _MainTex;
             float _CurrentTime;
@@ -59,26 +63,22 @@ Shader "Custom/DamageNumbers"
             {
                 v2f o;
 
-                DamageData data = _DamageBuffer[inst];
-
-                float age = _CurrentTime - data.startTime;
+                DamageData damageData = _DamageBuffer[inst];
+                TimeData timeData = _TimeBuffer[inst];
+                
+                int digitCount = floor(log10(abs(damageData.value))) + 1.0;
+                
+                float age = _CurrentTime - timeData.startTime;
                 float life01 = saturate(1.0 - age / _LifeTime);
                 
-                // Crit Logic for Scale
-                // if critIntensity <= 0, scale mult is 1.0
-                // if critIntensity > 0, scale mult increases.
-                // e.g. 1.0 intensity -> 1.5 scale. 2.0 intensity -> 2.0 scale.
-                float critScaleMult = 1.0 + max(0, data.critIntensity * 0.5); 
-                
-                float currentScale = _Scale * critScaleMult;
-                float width = data.digitCount * currentScale;
+                float width = digitCount * _Scale;
 
                 float2 quad[4] =
                 {
-                    float2(-width, -currentScale),
-                    float2(-width,  currentScale),
-                    float2( width, -currentScale),
-                    float2( width,  currentScale)
+                    float2(-width, -_Scale),
+                    float2(-width,  _Scale),
+                    float2( width, -_Scale),
+                    float2( width,  _Scale)
                 };
 
                 float2 uvs[4] =
@@ -91,7 +91,7 @@ Shader "Custom/DamageNumbers"
 
                 int v = id & 3;
 
-                float3 worldPos = data.position;
+                float3 worldPos = damageData.position;
                 worldPos.y += age * _FloatSpeed;
 
                 float3 camRight = normalize(UNITY_MATRIX_V._m00_m01_m02);
@@ -113,14 +113,16 @@ Shader "Custom/DamageNumbers"
 
             fixed4 frag(v2f i) : SV_Target
             {
-                DamageData data = _DamageBuffer[i.inst];
+                DamageData damageData = _DamageBuffer[i.inst];
+                TimeData timeData = _TimeBuffer[i.inst];
+                int digitCount = floor(log10(abs(damageData.value))) + 1.0;
 
-                float number = data.value -1;
+                float number = damageData.value -1;
                 float2 uv = i.uv;
 
                 fixed4 col = fixed4(0,0,0,0);
 
-                if (data.digitCount == 1)
+                if (digitCount == 1)
                 {
                     int digit = (int)floor(number);
                     float2 tc = float2(uv.x / 10.0 + digit / 10.0, uv.y);
@@ -133,15 +135,15 @@ Shader "Custom/DamageNumbers"
                     [unroll]
                     for (int d = MAX_DIGITS - 1; d >= 0; d--)
                     {
-                        if (d >= data.digitCount) continue;
+                        if (d >= digitCount) continue;
 
                         int digit = (int)floor(fmod(number / pow(10.0, d), 10.0));
 
-                        float left  = step(at / (float)data.digitCount, uv.x);
-                        float right = step(uv.x, (at + 1) / (float)data.digitCount);
+                        float left  = step(at / (float)digitCount, uv.x);
+                        float right = step(uv.x, (at + 1) / (float)digitCount);
 
                         float2 tc;
-                        tc.x = uv.x * data.digitCount / 10.0 + digit / 10.0;
+                        tc.x = uv.x * digitCount / 10.0 + digit / 10.0;
                         tc.y = uv.y;
 
                         col += left * right * tex2D(_MainTex, tc);
@@ -149,46 +151,13 @@ Shader "Custom/DamageNumbers"
                     }
                 }
 
-                float age = _CurrentTime - data.startTime;
+                float age = _CurrentTime - timeData.startTime;
                 float emissive = saturate(1.0 - age / _EmissiveDuration);
-
-                // Color Logic
-                float4 finalColor = _Color;
-                if (data.critIntensity > 0)
-                {
-                    // Yellow (Weak) -> Orange (Base) -> Red (Strong)
-                    float4 colWeak   = float4(1.0, 1.0, 0.0, 1.0); // Yellow
-                    float4 colBase   = float4(1.0, 0.6, 0.0, 1.0); // Orange
-                    float4 colStrong = float4(1.0, 0.0, 0.0, 1.0); // Red
-
-                    float t = data.critIntensity;
-                    
-                    // Remap t so 1.0 is the "center"
-                    // 0.5 -> Weak
-                    // 1.0 -> Base
-                    // 1.5 -> Strong
-
-                    if (t <= 1.0)
-                    {
-                        // Lerp Yellow -> Orange
-                        // t goes 0.5 to 1.0
-                        // (t - 0.5) / 0.5 => 0..1
-                        // Clamp t to min 0.5 just in case
-                        float lerpVal = saturate((t - 0.5) * 2.0);
-                        finalColor = lerp(colWeak, colBase, lerpVal);
-                    }
-                    else
-                    {
-                        // Lerp Orange -> Red
-                        // t goes 1.0 to 1.5
-                        // (t - 1.0) / 0.5 => 0..1
-                        float lerpVal = saturate((t - 1.0) * 2.0);
-                        finalColor = lerp(colBase, colStrong, lerpVal);
-                    }
-                }
+                
+                if (age > _LifeTime || age < 0) discard;
 
                 col.a *= min(col.r, i.alpha);
-                col.rgb *= finalColor.rgb * emissive;
+                col.rgb *= damageData.color * emissive;
 
                 return col;
             }
