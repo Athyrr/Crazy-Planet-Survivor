@@ -80,12 +80,12 @@ public struct BaseStats : IComponentData
     public float Damage;
 
     [Tooltip("Percentage reduction of spell cooldowns (0.0 = 0%, 0.5 = 50%).")]
-    [UIStat("Cooldown Reduc.", "-{0:0\u0025}")]
+    [UIStat("Attack Spd.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
     [StepRange(0, 1, 0.01f)]
     public float CooldownReduction;
 
     [Tooltip("Probability of landing a critical hit (0.0 = 0%, 1.0 = 100%).")]
-    [UIStat("Crit Chance", "{0:0\u0025}")]
+    [UIStat("Crit Chance", "{0:-0.0\u0025;+0.0\u0025;0.0\u0025}")]
     [StepRange(0, 1, 0.01f)]
     public float CritChance;
 
@@ -99,11 +99,11 @@ public struct BaseStats : IComponentData
 
     [Header("Spell Modifiers")]
     [Tooltip("Multiplier applied to the base speed of projectiles (1.0 = normal speed).")]
-    [UIStat("Proj. Sp.", "{0:+0\u0025;-0\u0025;0\u0025}")]
+    [UIStat("Proj. Sp.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
     public float ProjectileSpeedMultiplier;
 
     [Tooltip("Multiplier applied to the radius of Area of Effect spells.")]
-    [UIStat("AoE Radius", "{0:+0\u0025;-0\u0025;0\u0025}")] // c'est {0:0%} mais % marche pas
+    [UIStat("AoE Radius", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")] // c'est {0:0%} mais % marche pas
     public float EffectAreaRadiusMultiplier;
 
     [Tooltip("Number of additional bounces for ricochet projectiles.")]
@@ -124,37 +124,37 @@ public struct BaseStats : IComponentData
 
     [Header("Resistances (%)")]
     [Tooltip("Percentage resistance to Fire damage.")]
-    [UIStat("Fire Res.", "{0:0\u0025}")]
+    [UIStat("Fire Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
     [StepRange(0, 0.8f, 0.01f)]
     public float FireResistance;
 
     [Tooltip("Percentage resistance to Ice damage.")]
-    [UIStat("Ice Res.", "{0:0\u0025}")]
+    [UIStat("Ice Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
     [StepRange(0, 0.8f, 0.01f)]
     public float IceResistance;
 
     [Tooltip("Percentage resistance to Lightning damage.")]
-    [UIStat("Lightning Res.", "{0:0\u0025}")]
+    [UIStat("Lightning Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
     [StepRange(0, 0.8f, 0.01f)]
     public float LightningResistance;
 
     [Tooltip("Percentage resistance to Poison damage.")]
-    [UIStat("Poison Res.", "{0:0\u0025}")]
+    [UIStat("Poison Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
     [StepRange(0, 0.8f, 0.01f)]
     public float PoisonResistance;
 
     [Tooltip("Percentage resistance to Light damage.")]
-    [UIStat("Light Res.", "{0:0\u0025}")]
+    [UIStat("Light Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
     [StepRange(0, 0.8f, 0.01f)]
     public float LightResistance;
 
     [Tooltip("Percentage resistance to Dark damage.")]
-    [UIStat("Dark Res.", "{0:0\u0025}")]
+    [UIStat("Dark Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
     [StepRange(0, 0.8f, 0.01f)]
     public float DarkResistance;
 
     [Tooltip("Percentage resistance to Nature damage.")]
-    [UIStat("Nature Res.", "{0:0\u0025}")]
+    [UIStat("Nature Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
     [StepRange(0, 0.8f, 0.01f)]
     public float NatureResistance;
 
