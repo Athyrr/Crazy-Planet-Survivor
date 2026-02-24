@@ -35,7 +35,7 @@ public class RunManager : MonoBehaviour
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
         _playerHealthQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Health));
-        _openUpgradesRequestQuery = _entityManager.CreateEntityQuery(typeof(GameState), typeof(OpenUpgradesSelectionMenuRequest));
+        _openUpgradesRequestQuery = _entityManager.CreateEntityQuery(typeof(GameState), typeof(OpenUpgradesSelectionViewRequest));
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _endRunQuery = _entityManager.CreateEntityQuery(typeof(EndRunRequest));
 
@@ -105,7 +105,7 @@ public class RunManager : MonoBehaviour
             GameManager.Instance.ChangeState(EGameState.UpgradeSelection);
             UpgradeSelectionController.DisplaySelection(buffer);
 
-            _entityManager.RemoveComponent<OpenUpgradesSelectionMenuRequest>(gameStateEntity);
+            _entityManager.RemoveComponent<OpenUpgradesSelectionViewRequest>(gameStateEntity);
         }
     }
 

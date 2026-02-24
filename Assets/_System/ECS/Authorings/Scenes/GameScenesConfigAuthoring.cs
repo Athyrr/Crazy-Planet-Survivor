@@ -1,18 +1,19 @@
 using Unity.Entities;
 using Unity.Entities.Serialization;
 using UnityEngine;
+using UnityEditor;
 
 public class GameScenesConfigAuthoring : MonoBehaviour
 {
-    [Header("Planets scenes")]
-    public PlanetScene[] PlanetScenes;
-
     [System.Serializable]
     public struct PlanetScene
     {
-        public EPlanetID ID;
-        public UnityEditor.SceneAsset Scene;
+        public EntitySceneReference SceneReference;
+        public EPlanetID PlanetID;
     }
+
+    [Header("Planets scenes")] 
+    public PlanetScene[] PlanetScenes;
 
     private class Baker : Baker<GameScenesConfigAuthoring>
     {
@@ -27,13 +28,13 @@ public class GameScenesConfigAuthoring : MonoBehaviour
 
             foreach (var scene in authoring.PlanetScenes)
             {
-                if (scene.Scene == null)
+                if (scene.SceneReference.Equals(default(EntitySceneReference)))
                     continue;
 
                 buffer.Add(new PlanetSceneRefBufferElement()
                 {
-                    PlanetID = scene.ID,
-                    SceneReference = new EntitySceneReference(scene.Scene)
+                    PlanetID = scene.PlanetID,
+                    SceneReference = scene.SceneReference
                 });
             }
         }

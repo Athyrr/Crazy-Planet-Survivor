@@ -78,8 +78,8 @@ public partial struct LobbyInteractionSystem : ISystem
             case EInteractionType.CharacterSelection:
                 ecb.AddComponent<OpenCharactersViewRequest>(eventEntity);
                 break;
-            case EInteractionType.TrinketSelection:
-                //ecb.AddComponent<UI_DisplaytrinketSelectionMenuRequest>(eventEntity);
+            case EInteractionType.AmuletShop:
+                ecb.AddComponent<OpenAmuletShopViewRequest>(eventEntity);
                 break;
         }
     }

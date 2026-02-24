@@ -17,5 +17,6 @@ public enum EGameState
     Paused,
     GameOver,
     UpgradeSelection,
-    Loading
+    Loading,
+    AmuletShop,
 }

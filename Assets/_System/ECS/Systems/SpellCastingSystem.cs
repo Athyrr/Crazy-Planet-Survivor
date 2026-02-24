@@ -376,7 +376,7 @@ public partial struct SpellCastingSystem : ISystem
             {
                 if (targetFound && isProjectile)
                 {
-                    float3 toTarget = targetPosition - baseSpawnPos;
+                    float3 toTarget = targetPosition - baseSpawnPos;    
                     if (math.lengthsq(toTarget) > math.EPSILON)
                     {
                         fireDirection = math.normalize(toTarget);
