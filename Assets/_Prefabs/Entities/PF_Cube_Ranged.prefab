@@ -103,6 +103,7 @@ GameObject:
   - component: {fileID: -795139794179562712}
   - component: {fileID: 7077652745905088192}
   - component: {fileID: 4190783909020484761}
+  - component: {fileID: 6713757152409590747}
   m_Layer: 0
   m_Name: PF_Cube_Ranged
   m_TagString: Untagged
@@ -282,7 +283,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   UseSnappedMovement: 1
-  StopDistance: 500
   BaseStats:
     MaxHealth: 80
     Armor: 0
@@ -332,3 +332,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
   _avoidanceDetectionRadius: 1
   _avoidanceWeight: 0.8
+--- !u!114 &6713757152409590747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4960229139857780973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82ab21110e112b844b45c4d10b6f4436, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StopDistanceAuthoring
+  Distance: 12

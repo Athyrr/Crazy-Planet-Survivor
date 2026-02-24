@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -52,7 +53,7 @@ public partial struct SubSpellsSystem : ISystem
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
         foreach (var (spawner, parentEntity) in
-                         SystemAPI.Query<RefRW<SubSpellsSpawner>>().WithEntityAccess())
+                 SystemAPI.Query<RefRW<SubSpellsSpawner>>().WithEntityAccess())
         {
             DamageOnContact parentDamage = default;
             bool hasDamage = _damageLookup.HasComponent(parentEntity);
@@ -102,6 +103,7 @@ public partial struct SubSpellsSystem : ISystem
                         ecb.SetComponent(childEntity, parentDamage);
                     }
                 }
+
                 spawner.ValueRW.IsDirty = false;
             }
 
@@ -130,17 +132,17 @@ public partial struct SubSpellsSystem : ISystem
         };
         state.Dependency = circleLayoutJob.ScheduleParallel(state.Dependency);
     }
-
+    
     [BurstCompile]
     [WithAll(typeof(SubSpellsLayout_Circle))]
     private partial struct SubSpellsCircleLayoutJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        [NativeDisableParallelForRestriction]
-        public ComponentLookup<LocalTransform> TransformLookup;
+        [NativeDisableParallelForRestriction] public ComponentLookup<LocalTransform> TransformLookup;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity parentEntity, in SubSpellsLayout_Circle circleLayout, DynamicBuffer<Child> children)
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity parentEntity,
+            in SubSpellsLayout_Circle circleLayout, DynamicBuffer<Child> children)
         {
             if (children.IsEmpty)
                 return;
@@ -165,26 +167,13 @@ public partial struct SubSpellsSystem : ISystem
                 float3 localOffset = new float3(
                     circleLayout.Radius * math.sin(angleRad), // X
                     0f,
-                    circleLayout.Radius * math.cos(angleRad)  // Z
+                    circleLayout.Radius * math.cos(angleRad) // Z
                 );
-
-                //float3 localOffset = new float3(
-                //    circleLayout.Radius * math.cos(currentAngle),
-                //    1f,
-                //    circleLayout.Radius * math.sin(currentAngle)
-                //);
-
-                //float3 localOffset = new float3(
-                //    circleLayout.Radius * math.cos(currentAngle),
-                //    0f,
-                //    circleLayout.Radius * math.sin(currentAngle)
-                //);
-
+                
                 var childTransform = TransformLookup[childEntity];
 
                 childTransform.Position = localOffset;
                 childTransform.Rotation = quaternion.LookRotationSafe(math.normalize(localOffset), math.up());
-                childTransform.Scale = 1f;
 
                 TransformLookup[childEntity] = childTransform;
 
