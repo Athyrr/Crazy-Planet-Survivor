@@ -16,7 +16,7 @@ public enum EInteractionType
     CharacterSelection,
 
     /// <summary>
-    /// Trinket selection building to have passives and modifiers during the run.
+    /// Amulet selection building to have passives and modifiers during the run.
     /// </summary>
-    TrinketSelection
+    AmuletShop
 }

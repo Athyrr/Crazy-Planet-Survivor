@@ -172,6 +172,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2693254250496633621, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
+      propertyPath: _planetID
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2693254250496633621, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
+      propertyPath: _planetRenderer
+      value: 
+      objectReference: {fileID: 262019893}
     - target: {fileID: 4804159904702695074, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -221,6 +229,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
+--- !u!23 &262019893 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4621067963375093220, guid: a0222a50d6e590d41902bbd792a78042, type: 3}
+  m_PrefabInstance: {fileID: 262019892}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &651692889 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7453026176528014799, guid: b3c067cac43d8d345bc2c41a9799d378, type: 3}
@@ -276,7 +289,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7577072061147115613, guid: 9862b71e85932f44a828e2c3e34db12e, type: 3}
       propertyPath: m_Name
-      value: PF_Interactable_Shop
+      value: PF_Interactable_AmuletShop
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -294,6 +307,10 @@ PrefabInstance:
     - target: {fileID: 2199196406912119507, guid: 26fdc8e161635784b9e138ff0c5557f2, type: 3}
       propertyPath: m_Name
       value: PF_Interactable_TrinketSelection
+      objectReference: {fileID: 0}
+    - target: {fileID: 2199196406912119507, guid: 26fdc8e161635784b9e138ff0c5557f2, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6125264536514319929, guid: 26fdc8e161635784b9e138ff0c5557f2, type: 3}
       propertyPath: m_LocalPosition.x

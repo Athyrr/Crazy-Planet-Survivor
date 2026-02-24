@@ -2,6 +2,8 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
+using Unity.Transforms;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -11,6 +13,14 @@ public partial struct ApplyUpgradeSystem : ISystem
 
     private EntityQuery _subSpellsSpawnerQuery;
 
+    private ComponentLookup<Stats> _statsLookup;
+    private ComponentLookup<DamageOnContact> _damageLookup;
+    private ComponentLookup<DamageOnTick> _damageOnTickLookup;
+    private ComponentLookup<LocalTransform> _transformLookup;
+    private ComponentLookup<OrbitMovement> _orbitLookup;
+    private BufferLookup<Child> _childLookup;
+
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -19,17 +29,25 @@ public partial struct ApplyUpgradeSystem : ISystem
         state.RequireForUpdate<UpgradesDatabase>();
         state.RequireForUpdate<ApplyUpgradeRequest>();
 
+        _subSpellsSpawnerQuery = new EntityQueryBuilder(Allocator.Temp).WithAllRW<SubSpellsSpawner>()
+            .WithAll<SubSpellRoot>().Build(ref state);
+
         _activeSpellsBufferLookup = SystemAPI.GetBufferLookup<ActiveSpell>(false);
 
+        _statsLookup = state.GetComponentLookup<Stats>(true);
+        _damageLookup = state.GetComponentLookup<DamageOnContact>(true);
+        _damageOnTickLookup = state.GetComponentLookup<DamageOnTick>(true);
+        _transformLookup = state.GetComponentLookup<LocalTransform>(true);
+        _orbitLookup = state.GetComponentLookup<OrbitMovement>(true);
+        _childLookup = state.GetBufferLookup<Child>(true);
+
         //_subSpellsSpawnerQuery = state.GetEntityQuery(ComponentType.ReadWrite<SubSpellsSpawner>(), ComponentType.ReadOnly<SpellLink>());
-     
+
         // var types = new NativeArray<ComponentType>(2, Allocator.Temp);
         //types[0] = ComponentType.ReadWrite<SubSpellsSpawner>();
         //types[1] = ComponentType.ReadOnly<SpellLink>();
         //_subSpellsSpawnerQuery = state.GetEntityQuery(types);
         //types.Dispose();
-
-        _subSpellsSpawnerQuery = new EntityQueryBuilder(Allocator.Temp).WithAllRW<SubSpellsSpawner>().WithAll<SpellLink>().Build(ref state);
     }
 
     [BurstCompile]
@@ -38,7 +56,8 @@ public partial struct ApplyUpgradeSystem : ISystem
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        var ecbForUpgrades = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        var ecbForSubSpells = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
@@ -48,10 +67,17 @@ public partial struct ApplyUpgradeSystem : ISystem
         var spellsDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
 
         _activeSpellsBufferLookup.Update(ref state);
+        _statsLookup.Update(ref state);
+        _damageLookup.Update(ref state);
+        _damageOnTickLookup.Update(ref state);
+        _transformLookup.Update(ref state);
+        _orbitLookup.Update(ref state);
+        _childLookup.Update(ref state);
+
 
         var applyUpgradeJob = new ApplyUpgradeJob()
         {
-            ECB = ecb.AsParallelWriter(),
+            ECB = ecbForUpgrades.AsParallelWriter(),
             GameStateEntity = gameStateEntity,
 
             PlayerEntity = playerEntity,
@@ -62,27 +88,51 @@ public partial struct ApplyUpgradeSystem : ISystem
         };
         JobHandle upgradeHandle = applyUpgradeJob.ScheduleParallel(state.Dependency);
 
-        var syncJob = new UpdateSubSpellsJob
+        var updateSubSpellsJob = new UpdateSubSpellsJob
         {
+            ECB = ecbForSubSpells.AsParallelWriter(),
             ActiveSpellLookup = _activeSpellsBufferLookup,
-            SpellsDatabaseRef = spellsDatabase.Blobs
+            SpellsDatabaseRef = spellsDatabase.Blobs,
+
+            StatsLookup = _statsLookup,
+            DamageLookup = _damageLookup,
+            DamageOnTickLookup = _damageOnTickLookup,
+            TransformLookup = _transformLookup,
+            OrbitLookup = _orbitLookup,
+            ChildLookup = _childLookup
         };
 
-        state.Dependency = syncJob.ScheduleParallel(_subSpellsSpawnerQuery, upgradeHandle);
+        state.Dependency = updateSubSpellsJob.ScheduleParallel(_subSpellsSpawnerQuery, upgradeHandle);
     }
 
     /// <summary>
-    /// Updates sub entities spells (ex Fire orbs) afiter an upgrade.
+    /// Updates sub entities spells (ex Fire orbs) after an upgrade.
     /// </summary>
     [BurstCompile]
     private partial struct UpdateSubSpellsJob : IJobEntity
     {
+        public EntityCommandBuffer.ParallelWriter ECB;
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
 
-        public void Execute(ref SubSpellsSpawner spawner, in SpellLink link)
+        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
+        [ReadOnly] public ComponentLookup<DamageOnContact> DamageLookup;
+        [ReadOnly] public ComponentLookup<DamageOnTick> DamageOnTickLookup;
+        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
+        [ReadOnly] public ComponentLookup<OrbitMovement> OrbitLookup;
+        [ReadOnly] public BufferLookup<Child> ChildLookup;
+
+
+        public void Execute(
+            [ChunkIndexInQuery] int index,
+            Entity parentEntity,
+            ref SubSpellsSpawner spawner,
+            in SubSpellRoot spellRoot)
         {
-            if (!ActiveSpellLookup.TryGetBuffer(link.CasterEntity, out var activeSpells))
+            if (!ActiveSpellLookup.TryGetBuffer(spellRoot.CasterEntity, out var activeSpells))
+                return;
+
+            if (!StatsLookup.TryGetComponent(spellRoot.CasterEntity, out var stats))
                 return;
 
             ActiveSpell currentSpellData = default;
@@ -90,7 +140,7 @@ public partial struct ApplyUpgradeSystem : ISystem
 
             for (int i = 0; i < activeSpells.Length; i++)
             {
-                if (activeSpells[i].DatabaseIndex == link.DatabaseIndex)
+                if (activeSpells[i].DatabaseIndex == spellRoot.DatabaseIndex)
                 {
                     currentSpellData = activeSpells[i];
                     found = true;
@@ -101,14 +151,89 @@ public partial struct ApplyUpgradeSystem : ISystem
             if (!found)
                 return;
 
-            ref var baseSpellData = ref SpellsDatabaseRef.Value.Spells[link.DatabaseIndex];
+            ref var baseSpellData = ref SpellsDatabaseRef.Value.Spells[spellRoot.DatabaseIndex];
             int totalAmount = baseSpellData.SubSpellsCount + currentSpellData.BonusAmount;
 
-            //  Define the desired number of children to allow the relevant system to update the spell
+            //  Define the desired number of children to allow the sub spells system to update the spell
             if (spawner.DesiredSubSpellsCount != totalAmount)
             {
                 spawner.DesiredSubSpellsCount = totalAmount;
                 spawner.IsDirty = true;
+            }
+
+            float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * currentSpellData.DamageMultiplier;
+            float finalTickDamage =
+                (baseSpellData.BaseDamagePerTick + stats.Damage) * currentSpellData.DamageMultiplier;
+            float finalArea = baseSpellData.BaseEffectArea * math.max(1f, stats.EffectAreaRadiusMult) *
+                              currentSpellData.AreaMultiplier;
+            float finalSpeed = baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) *
+                               currentSpellData.SpeedMultiplier;
+
+            if (DamageLookup.HasComponent(parentEntity))
+            {
+                var dmg = DamageLookup[parentEntity];
+                dmg.Damage = finalDamage; 
+                dmg.AreaRadius = finalArea; 
+                ECB.SetComponent(index, parentEntity, dmg);
+
+                if (ChildLookup.HasBuffer(parentEntity))
+                {
+                    var children = ChildLookup[parentEntity];
+                    for (int i = 0; i < children.Length; i++)
+                    {
+                        var child = children[i].Value;
+                        if (DamageLookup.HasComponent(child))
+                        {
+                            var childDmg = DamageLookup[child];
+                            childDmg.Damage = finalDamage;
+                            childDmg.AreaRadius = finalArea;
+                            ECB.SetComponent(index, child, childDmg);
+                        }
+                    }
+                }
+            }
+
+            if (DamageOnTickLookup.HasComponent(parentEntity))
+            {
+                var dmgTick = DamageOnTickLookup[parentEntity];
+                dmgTick.DamagePerTick = finalTickDamage;
+                dmgTick.AreaRadius = finalArea;
+                ECB.SetComponent(index, parentEntity, dmgTick);
+
+                if (ChildLookup.HasBuffer(parentEntity))
+                {
+                    var children = ChildLookup[parentEntity];
+                    for (int i = 0; i < children.Length; i++)
+                    {
+                        var child = children[i].Value;
+                        if (DamageOnTickLookup.HasComponent(child))
+                        {
+                            var childDmgTick = DamageOnTickLookup[child];
+                            childDmgTick.DamagePerTick = finalTickDamage;
+                            childDmgTick.AreaRadius = finalArea;
+                            ECB.SetComponent(index, child, childDmgTick);
+                        }
+                    }
+                }
+            }
+
+            // Scale parent = scale children
+            if (TransformLookup.HasComponent(parentEntity))
+            {
+                var parentTransform = TransformLookup[parentEntity];
+                parentTransform.Scale = finalArea;
+                ECB.SetComponent(index, parentEntity, parentTransform);
+            }
+
+            if (OrbitLookup.HasComponent(parentEntity))
+            {
+                var orbit = OrbitLookup[parentEntity];
+                orbit.AngularSpeed = finalSpeed;
+                float orbitRadius = math.length(baseSpellData.BaseSpawnOffset) * currentSpellData.AreaMultiplier;
+                orbit.Radius = orbitRadius;
+                orbit.RelativeOffset = new float3(0, 0, orbitRadius);
+
+                ECB.SetComponent(index, parentEntity, orbit);
             }
         }
     }
@@ -124,8 +249,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         [ReadOnly] public BlobAssetReference<UpgradeBlobs> UpgradesDatabaseRef;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
 
-        [NativeDisableParallelForRestriction]
-        public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        [NativeDisableParallelForRestriction] public BufferLookup<ActiveSpell> ActiveSpellLookup;
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in ApplyUpgradeRequest request)
         {
@@ -166,7 +290,8 @@ public partial struct ApplyUpgradeSystem : ISystem
                             bool matchID = upgradeData.SpellID != ESpellID.None && baseData.ID == upgradeData.SpellID;
 
                             // Target specific tag
-                            bool matchTag = upgradeData.SpellID == ESpellID.None && (baseData.Tag & upgradeData.SpellTags) > 0;
+                            bool matchTag = upgradeData.SpellID == ESpellID.None &&
+                                            (baseData.Tag & upgradeData.SpellTags) > 0;
 
                             if (matchID || matchTag)
                             {

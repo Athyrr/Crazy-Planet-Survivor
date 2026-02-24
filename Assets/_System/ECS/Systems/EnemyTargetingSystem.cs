@@ -96,7 +96,6 @@ public partial struct EnemyTargetingSystem : ISystem
 
                 if (spellData.BaseCastRange >= maxSurfaceDist)
                 {
-                    // If range covers half the planet, it's effectively global
                     isInRange = true;
                 }
                 else

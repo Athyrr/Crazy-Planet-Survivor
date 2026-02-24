@@ -335,6 +335,7 @@ MonoBehaviour:
   PlanetSelectionCamera: {fileID: 1355349919}
   CharacterSelectionUIController: {fileID: 1488603913}
   PlanetSelectionUIController: {fileID: 1154809228}
+  AmuletShopUIController: {fileID: 0}
 --- !u!224 &435826083 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8357712587415318656, guid: 5a9c5c88b78c280449b7ed841858b7ad, type: 3}
@@ -2157,6 +2158,23 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!1 &2038124402 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6613217684097594991, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
+  m_PrefabInstance: {fileID: 4659462329740414733}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2038124404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2038124402}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdb4864fa334838429629569ca2bbcec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AmuletShopUIController
 --- !u!1 &2087372309 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5354578257132953450, guid: b0268771ccdb4444a92276a4ca75cd42, type: 3}
@@ -3647,12 +3665,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6613217684097594991, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
       propertyPath: m_Name
-      value: PF_UI_Shop
+      value: PF_UI_AmuletShop
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6613217684097594991, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2038124404}
   m_SourcePrefab: {fileID: 100100000, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
 --- !u!1001 &6382892040000344441
 PrefabInstance:

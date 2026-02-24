@@ -28,6 +28,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         //state.RequireForUpdate<StartRunRequest>();
+     //   state.RequireForUpdate<EndSimulationEntityCommandBufferSystem>();
         state.RequireForUpdate<SpawnerSettings>();
         state.RequireForUpdate<SpawnerState>();
         state.RequireForUpdate<PlanetData>();
@@ -323,7 +324,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     float3 opositePoint = PlanetCenter - (dirToOrigin * PlanetRadius * 1f);
 
                     // Avoid stacking
-                    float oppositePositionRadius = math.max(15f, TotalAmount * 0.5f);
+                    float oppositePositionRadius = math.max( 15f, TotalAmount * 0.5f);
 
                     positionFound = PlanetUtils.GetRandomPointOnSurface(
                         ref CollisionWorld, ref rand, opositePoint, PlanetCenter, oppositePositionRadius, ref groundFilter,

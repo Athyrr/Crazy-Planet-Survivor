@@ -1,10 +1,10 @@
 using Unity.Burst;
-using Unity.Collections;
-using Unity.Entities;
-using Unity.Mathematics;
 using Unity.Physics;
-using Unity.Physics.Systems;
+using Unity.Entities;
 using Unity.Transforms;
+using Unity.Mathematics;
+using Unity.Collections;
+using Unity.Physics.Systems;
 using static HitFrameFreedbackSystem;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
@@ -84,6 +84,7 @@ public partial struct CollisionSystem : ISystem
         var triggerJob = new TriggerEventJob
         {
             ECB = ecb.AsParallelWriter(),
+            CurrentTime = SystemAPI.Time.ElapsedTime,
             CollisionWorld = collisionWorld,
 
             PlayerLookup = _playerLookup,
@@ -109,6 +110,7 @@ public partial struct CollisionSystem : ISystem
     private struct TriggerEventJob : ITriggerEventsJob
     {
         public EntityCommandBuffer.ParallelWriter ECB;
+        public double CurrentTime;   
         [ReadOnly] public CollisionWorld CollisionWorld;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
@@ -131,6 +133,8 @@ public partial struct CollisionSystem : ISystem
             Entity entityA = triggerEvent.EntityA;
             Entity entityB = triggerEvent.EntityB;
 
+            bool canDamage = true;
+
             // Case Projectile hits target (enemy or player)
             if (TryResolveDamagerVsTarget(entityA, entityB, out Entity damagerEntity, out Entity target))
             {
@@ -138,73 +142,118 @@ public partial struct CollisionSystem : ISystem
                 if (HitMemoryLookup.HasBuffer(damagerEntity))
                 {
                     var history = HitMemoryLookup[damagerEntity];
-                    foreach (var hit in history)
+                    bool asAlreadyHit = false;
+
+                    for (var i = 0; i < history.Length; i++)
                     {
                         // Skip if this target was already hit
+                        var hit = history[i];
                         if (hit.HitEntity == target)
-                            return;
-                    }
-                    // Add target to hit history
-                    history.Add(new HitEntityMemory { HitEntity = target });
-                }
-
-                // Apply on-hit damages
-                bool isInvincible = InvincibleLookup.HasComponent(target);
-                if (!isInvincible)
-                {
-                    var damageData = DamageOnContactLookup[damagerEntity];
-                    ECB.AppendToBuffer(0, target, new DamageBufferElement
-                    {
-                        Damage = damageData.Damage,
-                        Element = damageData.Element,
-                        CritIntensity = damageData.CritIntensity
-                    });
-
-                    //if (EnemyLookup.HasComponent(target) /*&& !PlayerLookup.HasComponent(target)*/)
-                    //{
-                    //    var transform = LocalTransformLookup[target];
-                    //    TriggerDamageVisual(0, ECB, (int)damageData.Damage, transform);
-                    //}
-
-                    ApplyFeedbacks(target);
-                }
-
-                // Handle cases Ricochet and Piercing before destroying the projectile
-
-                // By default do not destroy the projectile on hit
-                bool shouldDestroy = false;
-
-                if (DestroyOnContactLookup.HasComponent(damagerEntity))
-                {
-                    shouldDestroy = true;
-                }
-
-                // Handle Ricochet
-                if (RicochetLookup.HasComponent(damagerEntity))
-                {
-                    var ricochet = RicochetLookup[damagerEntity];
-                    if (ricochet.RemainingBounces > 0)
-                    {
-                        if (TryFindNextTarget(damagerEntity, target, ricochet.BounceRange, out Entity newTarget, out float3 newDirection))
                         {
-                            if (LinearMovementLookup.IsComponentEnabled(damagerEntity))
+                            asAlreadyHit = true;
+                            
+                            if (CurrentTime - history[i].LastHitTime < 0.3) 
                             {
-                                ECB.SetComponentEnabled<LinearMovement>(0, damagerEntity, false);
-                                ECB.SetComponentEnabled<FollowTargetMovement>(0, damagerEntity, true);
+                                canDamage = false; 
                             }
-                            else if (FollowMovementLookup.IsComponentEnabled(damagerEntity))
+                            else
                             {
-                                // Update projectile movement target
-                                var followMove = FollowMovementLookup[damagerEntity];
-                                followMove.Target = newTarget;
-                                followMove.Speed = math.max(1, ricochet.BounceSpeed);
-                                followMove.StopDistance = 0;
-                                FollowMovementLookup[damagerEntity] = followMove;
+                                var hitData = history[i];
+                                hitData.LastHitTime = CurrentTime;
+                                history[i] = hitData; 
                             }
+                            break;
+                        }
+                    }
 
-                            // Decrease remaining bounces
-                            ricochet.RemainingBounces--;
-                            RicochetLookup[damagerEntity] = ricochet;
+                    // Add target to hit history
+                    if (!asAlreadyHit)
+                        history.Add(new HitEntityMemory { HitEntity = target, LastHitTime = CurrentTime });                }
+
+                if (canDamage)
+                {
+                    // Apply on-hit damages
+                    bool isInvincible = InvincibleLookup.HasComponent(target);
+                    if (!isInvincible)
+                    {
+                        var damageData = DamageOnContactLookup[damagerEntity];
+                        ECB.AppendToBuffer(0, target, new DamageBufferElement
+                        {
+                            Damage = damageData.Damage,
+                            Element = damageData.Element,
+                            CritIntensity = damageData.CritIntensity
+                        });
+
+                        //if (EnemyLookup.HasComponent(target) /*&& !PlayerLookup.HasComponent(target)*/)
+                        //{
+                        //    var transform = LocalTransformLookup[target];
+                        //    TriggerDamageVisual(0, ECB, (int)damageData.Damage, transform);
+                        //}
+
+                        ApplyFeedbacks(target);
+                    }
+
+                    // Handle cases Ricochet and Piercing before destroying the projectile
+
+                    // By default, do not destroy the projectile on hit
+                    bool shouldDestroy = false;
+
+                    if (DestroyOnContactLookup.HasComponent(damagerEntity))
+                    {
+                        shouldDestroy = true;
+                    }
+
+                    // Handle Ricochet
+                    if (RicochetLookup.HasComponent(damagerEntity))
+                    {
+                        var ricochet = RicochetLookup[damagerEntity];
+                        if (ricochet.RemainingBounces > 0)
+                        {
+                            if (TryFindNextTarget(damagerEntity, target, ricochet.BounceRange, out Entity newTarget,
+                                    out float3 newDirection))
+                            {
+                                if (LinearMovementLookup.IsComponentEnabled(damagerEntity))
+                                {
+                                    ECB.SetComponentEnabled<LinearMovement>(0, damagerEntity, false);
+                                    ECB.SetComponentEnabled<FollowTargetMovement>(0, damagerEntity, true);
+                                }
+                                else if (FollowMovementLookup.IsComponentEnabled(damagerEntity))
+                                {
+                                    // Update projectile movement target
+                                    var followMove = FollowMovementLookup[damagerEntity];
+                                    followMove.Target = newTarget;
+                                    followMove.Speed = math.max(1, ricochet.BounceSpeed);
+                                    FollowMovementLookup[damagerEntity] = followMove;
+                                }
+
+                                // Decrease remaining bounces
+                                ricochet.RemainingBounces--;
+                                RicochetLookup[damagerEntity] = ricochet;
+
+                                // Do not destroy the projectile
+                                shouldDestroy = false;
+                            }
+                            else
+                            {
+                                shouldDestroy = true;
+                            }
+                        }
+                        else
+                        {
+                            shouldDestroy = true;
+                        }
+                    }
+
+                    // Handle Piercing
+                    // Apply Piercing logic only if not Ricochet
+                    else if (PierceLookup.HasComponent(damagerEntity))
+                    {
+                        var pierce = PierceLookup[damagerEntity];
+                        if (pierce.RemainingPierces > 0)
+                        {
+                            // Decrease remaining pierces
+                            pierce.RemainingPierces--;
+                            PierceLookup[damagerEntity] = pierce;
 
                             // Do not destroy the projectile
                             shouldDestroy = false;
@@ -214,38 +263,14 @@ public partial struct CollisionSystem : ISystem
                             shouldDestroy = true;
                         }
                     }
-                    else
+
+                    if (shouldDestroy)
                     {
-                        shouldDestroy = true;
+                        ECB.AddComponent(0, damagerEntity, new DestroyEntityFlag());
+
+                        // If needed, create AoE damage effect on projectile destroyed (ExplosionLookup etc)
+                        // If needed, create feedback request 
                     }
-                }
-
-                // Handle Piercing
-                // Apply Piercing logic only if not Ricochet
-                else if (PierceLookup.HasComponent(damagerEntity))
-                {
-                    var pierce = PierceLookup[damagerEntity];
-                    if (pierce.RemainingPierces > 0)
-                    {
-                        // Decrease remaining pierces
-                        pierce.RemainingPierces--;
-                        PierceLookup[damagerEntity] = pierce;
-
-                        // Do not destroy the projectile
-                        shouldDestroy = false;
-                    }
-                    else
-                    {
-                        shouldDestroy = true;
-                    }
-                }
-
-                if (shouldDestroy)
-                {
-                    ECB.AddComponent(0, damagerEntity, new DestroyEntityFlag());
-
-                    // If needed, create AoE damage effect on projectile destroyed (ExplosionLookup etc)
-                    // If needed, create feedback request 
                 }
             }
         }
@@ -279,12 +304,9 @@ public partial struct CollisionSystem : ISystem
         /// <param name="entityB"></param>
         /// <param name="damager"></param>
         /// <param name="target"></param>
-        /// <param name="targetIsPlayer"></param>
         /// <returns></returns>
         private bool TryResolveDamagerVsTarget(Entity entityA, Entity entityB, out Entity damager, out Entity target)
         {
-            // @todo use instead HealthLookup to determine valid targets
-
             // Case EntityA is Damager
             if (DamageOnContactLookup.HasComponent(entityA))
             {
@@ -320,12 +342,13 @@ public partial struct CollisionSystem : ISystem
         /// <param name="range"></param>
         /// <param name="direction"></param>
         /// <returns></returns>
-        private bool TryFindNextTarget(Entity ricochetEntity, Entity currentTarget, float range, out Entity newTarget, out float3 direction)
+        private bool TryFindNextTarget(Entity ricochetEntity, Entity currentTarget, float range, out Entity newTarget,
+            out float3 direction)
         {
             var currentPos = LocalTransformLookup[ricochetEntity].Position;
             var hits = new NativeList<DistanceHit>(Allocator.Temp);
 
-            // @todo set proper collision layers based on caster
+            // todo set proper collision layers based on caster
             // Set filter only for enemies
             var filter = new CollisionFilter
             {
@@ -404,19 +427,17 @@ public partial struct CollisionSystem : ISystem
         //        obstacle = entityB;
         //        return true;
         //    }
-
+        //
         //    if (ProjectileLookup.HasComponent(entityB) && ObstacleLookup.HasComponent(entityA))
         //    {
         //        projectile = entityB;
         //        obstacle = entityA;
         //        return true;
         //    }
-
+        //
         //    projectile = Entity.Null;
         //    obstacle = Entity.Null;
         //    return false;
         //}
     }
-
-
 }

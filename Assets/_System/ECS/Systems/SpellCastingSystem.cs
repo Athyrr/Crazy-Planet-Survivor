@@ -272,25 +272,27 @@ public partial struct SpellCastingSystem : ISystem
             float finalDuration = baseSpellData.Lifetime * mulDuration;
 
             // Multishot Logic
-            int finalProjectileCount = math.max(1, 1 + addAmount); 
+            int finalProjectileCount = math.max(1, 1 + addAmount);
 
             if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
                 finalProjectileCount = 1;
 
-            // TARGETING LOGIC (Determines Base Target Position/Rotation)
+            // Targeting
             float3 targetPosition = casterTransform.Position;
             bool targetFound = false;
             Entity targetEntity = Entity.Null;
             bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
 
-            float3 baseSpawnPos = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseSpawnOffset);
+            float3 baseSpawnPos =
+                casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseSpawnOffset);
             quaternion baseRotation = casterTransform.Rotation;
             float3 fireDirection = casterTransform.Forward();
 
             var filter = new CollisionFilter
             {
                 BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
-                CollidesWith = (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) | CollisionLayers.Obstacle,
+                CollidesWith = (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) |
+                               CollisionLayers.Obstacle,
             };
 
             switch (baseSpellData.TargetingMode)
@@ -301,7 +303,8 @@ public partial struct SpellCastingSystem : ISystem
                     targetFound = true;
                     break;
                 case ESpellTargetingMode.CastForward:
-                    targetPosition = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseCastRange);
+                    targetPosition = casterTransform.Position +
+                                     (casterTransform.Forward() * baseSpellData.BaseCastRange);
                     targetFound = true;
                     break;
                 case ESpellTargetingMode.NearestTarget:
@@ -319,14 +322,19 @@ public partial struct SpellCastingSystem : ISystem
                     if (CollisionWorld.CalculateDistance(input, out DistanceHit hit))
                     {
                         targetEntity = hit.Entity;
-                        targetPosition = TransformLookup.HasComponent(hit.Entity) ? TransformLookup[hit.Entity].Position : hit.Position;
+                        targetPosition = TransformLookup.HasComponent(hit.Entity)
+                            ? TransformLookup[hit.Entity].Position
+                            : hit.Position;
                         targetFound = true;
                     }
                     else
                     {
                         // Fallback Forward
-                        targetPosition = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseCastRange);
+                        //targetPosition = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseCastRange);
+                        ECB.DestroyEntity(0, requestEntity);
+                        return;
                     }
+
                     break;
                 case ESpellTargetingMode.RandomInRange:
                     float3 planetCenter = float3.zero;
@@ -337,14 +345,14 @@ public partial struct SpellCastingSystem : ISystem
                     };
 
                     if (PlanetUtils.GetRandomPointOnSurface(
-                        ref CollisionWorld,
-                        ref random,
-                        casterTransform.Position,
-                        planetCenter,
-                        baseSpellData.BaseCastRange,
-                        ref groundFilter,
-                        out var p,
-                        out var n))
+                            ref CollisionWorld,
+                            ref random,
+                            casterTransform.Position,
+                            planetCenter,
+                            baseSpellData.BaseCastRange,
+                            ref groundFilter,
+                            out var p,
+                            out var n))
                     {
                         targetPosition = p;
                         //PlanetUtils.ProjectDirectionOnSurface(casterTransform.Forward(), n, out var r);
@@ -355,6 +363,7 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         targetPosition = casterTransform.Position;
                     }
+
                     break;
             }
 
@@ -367,11 +376,12 @@ public partial struct SpellCastingSystem : ISystem
             {
                 if (targetFound && isProjectile)
                 {
-                    float3 toTarget = targetPosition - baseSpawnPos;
+                    float3 toTarget = targetPosition - baseSpawnPos;    
                     if (math.lengthsq(toTarget) > math.EPSILON)
                     {
                         fireDirection = math.normalize(toTarget);
-                        baseRotation = quaternion.LookRotationSafe(fireDirection, math.up()); // Should use Surface Normal
+                        baseRotation =
+                            quaternion.LookRotationSafe(fireDirection, math.up()); // Should use Surface Normal
                     }
                 }
                 else if (!isProjectile)
@@ -390,7 +400,7 @@ public partial struct SpellCastingSystem : ISystem
 
                 ECB.AddComponent(0, spellEntity, new RunScope());
 
-                ECB.AddComponent(chunkIndex, spellEntity, new SpellLink
+                ECB.AddComponent(chunkIndex, spellEntity, new SubSpellRoot
                 {
                     CasterEntity = request.Caster,
                     DatabaseIndex = request.DatabaseIndex
@@ -431,7 +441,7 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         Target = targetEntity,
                         Speed = finalSpeed,
-                        StopDistance = 0
+                        //StopDistance = 0
                     });
                 }
 
@@ -514,7 +524,8 @@ public partial struct SpellCastingSystem : ISystem
                 // Child Spawner
                 if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
                 {
-                    if (baseSpellData.ChildPrefabIndex >= 0 && baseSpellData.ChildPrefabIndex < ChildSpellPrefabs.Length)
+                    if (baseSpellData.ChildPrefabIndex >= 0 &&
+                        baseSpellData.ChildPrefabIndex < ChildSpellPrefabs.Length)
                     {
                         SubSpellsSpawner childSpawnerData = SubSpellsSpawnerLookup[spellPrefab];
 

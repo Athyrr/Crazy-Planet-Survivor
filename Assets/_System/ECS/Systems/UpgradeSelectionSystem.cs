@@ -124,7 +124,7 @@ public partial struct UpgradeSelectionSystem : ISystem
             UnityEngine.Debug.LogWarning("Candidates length: " + candiates.Length);
 
             // Add display upgrades flag 
-            ECB.AddComponent<OpenUpgradesSelectionMenuRequest>(GameStateEntity);
+            ECB.AddComponent<OpenUpgradesSelectionViewRequest>(GameStateEntity);
             // Remove player lvl up request
             ECB.RemoveComponent<PlayerLevelUpRequest>(PlayerEntity);
 

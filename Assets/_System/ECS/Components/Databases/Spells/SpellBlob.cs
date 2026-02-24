@@ -3,26 +3,25 @@ using Unity.Mathematics;
 
 public struct SpellBlob
 {
-    public FixedString512Bytes DisplayName;
-
+    // Identity
     public ESpellID ID;
+    public FixedString512Bytes DisplayName;
+    public ESpellTag Tag;
+
+    // Base Stats
     public float BaseDamage;
-    public float BaseSpeed;
-
     public float BaseCooldown;
-
+    public float BaseSpeed;
+    public float Lifetime;
     public float BaseCastRange;
     public float BaseEffectArea;
-
     public float3 BaseSpawnOffset;
-
-    public ESpellTag Tag;
-    public float Lifetime;
+    public float BaseSize;
 
     // Targeting
     public ESpellTargetingMode TargetingMode;
 
-    // Ricochet 
+    // Ricochet
     public int Bounces;
     public float BouncesSearchRadius;
 
@@ -34,7 +33,7 @@ public struct SpellBlob
     public float TickRate;
 
     // Children based spells
-    public int ChildPrefabIndex;
     public int SubSpellsCount;
     public float ChildrenSpawnRadius;
+    public int ChildPrefabIndex;
 }
