@@ -51,7 +51,7 @@ public partial struct HealthSystem : ISystem
             DestroyFlagLookup = SystemAPI.GetComponentLookup<DestroyEntityFlag>(true),
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
-            TransformLookup = _transformLookup
+            TransformLookup = _transformLookup,
         };
 
         state.Dependency = applyDamageJob.ScheduleParallel(state.Dependency);
@@ -81,7 +81,13 @@ public partial struct HealthSystem : ISystem
         [ReadOnly]
         public ComponentLookup<LocalTransform> TransformLookup;
 
-        public void Execute([ChunkIndexInQuery] int index, Entity entity, ref Health health, in Stats stats, ref DynamicBuffer<DamageBufferElement> damageBuffer)
+        public void Execute(
+            [ChunkIndexInQuery] int index,
+            Entity entity,
+            ref Health health,
+            in Stats stats,
+            ref DynamicBuffer<DamageBufferElement> damageBuffer
+        )
         {
             // Skip entities already marked for destruction
             if (DestroyFlagLookup.HasComponent(entity))
@@ -96,7 +102,7 @@ public partial struct HealthSystem : ISystem
             float totalDamage = 0;
             float maxCritIntensity = 0f;
             // Process every damage instance stored in the buffer this frame
-            for(int i = 0; i < damageBuffer.Length; i++)
+            for (int i = 0; i < damageBuffer.Length; i++)
             {
                 var dbe = damageBuffer[i];
                 float damage = dbe.Damage;
@@ -115,8 +121,17 @@ public partial struct HealthSystem : ISystem
                     case ESpellTag.Lightning:
                         damage *= 1 - stats.LightningResistance / 100;
                         break;
-                    case ESpellTag.Arcane:
-                        damage *= 1 - stats.ArcaneResistance / 100;
+                    case ESpellTag.Poison:
+                        damage *= 1 - stats.PoisonResistance / 100;
+                        break;
+                    case ESpellTag.Light:
+                        damage *= 1 - stats.LightResistance / 100;
+                        break;
+                    case ESpellTag.Dark:
+                        damage *= 1 - stats.DarkResistance / 100;
+                        break;
+                    case ESpellTag.Nature:
+                        damage *= 1 - stats.NatureResistance / 100;
                         break;
                     default:
                         damage *= 1;
@@ -169,15 +184,25 @@ public partial struct HealthSystem : ISystem
             }
         }
 
-        private void TriggerDamageVisual(int key, EntityCommandBuffer.ParallelWriter ecb, int amount, LocalTransform transform, float critIntensity)
+        private void TriggerDamageVisual(
+            int key,
+            EntityCommandBuffer.ParallelWriter ecb,
+            int amount,
+            LocalTransform transform,
+            float critIntensity
+        )
         {
             Entity req = ecb.CreateEntity(key);
-            ecb.AddComponent(key, req, new DamageFeedbackRequest
-            {
-                Amount = amount,
-                Transform = transform,
-                CritIntensity = critIntensity
-            });
+            ecb.AddComponent(
+                key,
+                req,
+                new DamageFeedbackRequest
+                {
+                    Amount = amount,
+                    Transform = transform,
+                    CritIntensity = critIntensity,
+                }
+            );
         }
     }
 }

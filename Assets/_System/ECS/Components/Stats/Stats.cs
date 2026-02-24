@@ -32,7 +32,10 @@ public struct Stats : IComponentData
     public float FireResistance;
     public float IceResistance;
     public float LightningResistance;
-    public float ArcaneResistance;
+    public float PoisonResistance;
+    public float LightResistance;
+    public float DarkResistance;
+    public float NatureResistance;
 
     [Header("Utility")]
     public float CollectRange;
@@ -87,7 +90,7 @@ public struct BaseStats : IComponentData
     public float CritChance;
 
     [Tooltip("Multiplier applied to damage on a critical hit (e.g. 2.0 = double damage).")]
-    [UIStat("Crit Mult.", "x{0:0.0}")]
+    [UIStat("Crit Damages", "x{0:0.0}")]
     public float CritMultiplier;
 
     #endregion
@@ -135,10 +138,25 @@ public struct BaseStats : IComponentData
     [StepRange(0, 0.8f, 0.01f)]
     public float LightningResistance;
 
-    [Tooltip("Percentage resistance to Arcane damage.")]
-    [UIStat("Arcane Res.", "{0:0\u0025}")]
+    [Tooltip("Percentage resistance to Poison damage.")]
+    [UIStat("Poison Res.", "{0:0\u0025}")]
     [StepRange(0, 0.8f, 0.01f)]
-    public float ArcaneResistance;
+    public float PoisonResistance;
+
+    [Tooltip("Percentage resistance to Light damage.")]
+    [UIStat("Light Res.", "{0:0\u0025}")]
+    [StepRange(0, 0.8f, 0.01f)]
+    public float LightResistance;
+
+    [Tooltip("Percentage resistance to Dark damage.")]
+    [UIStat("Dark Res.", "{0:0\u0025}")]
+    [StepRange(0, 0.8f, 0.01f)]
+    public float DarkResistance;
+
+    [Tooltip("Percentage resistance to Nature damage.")]
+    [UIStat("Nature Res.", "{0:0\u0025}")]
+    [StepRange(0, 0.8f, 0.01f)]
+    public float NatureResistance;
 
     #endregion
 
