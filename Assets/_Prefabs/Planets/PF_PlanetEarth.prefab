@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1809887356493509877}
   - component: {fileID: 5592177129048791162}
   - component: {fileID: 821044356759785851}
+  - component: {fileID: 6785398094819201090}
   m_Layer: 0
   m_Name: Water
   m_TagString: Untagged
@@ -28,7 +29,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 120.057594, y: 120.057594, z: 120.057594}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 8073100260919343806}
@@ -40,7 +41,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4676242776458079911}
-  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: -3151667722902669358, guid: a129bedfaa6d94341b5f2705af804229, type: 3}
 --- !u!23 &821044356759785851
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -66,7 +67,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -876546973899608171, guid: bf52845e8612a6e45b9869e6d21981ea, type: 3}
+  - {fileID: 2100000, guid: b931d9554b73567468fe5b9e57a5ce93, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -88,7 +89,30 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &6785398094819201090
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4676242776458079911}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -3151667722902669358, guid: a129bedfaa6d94341b5f2705af804229, type: 3}
 --- !u!1001 &8611956261409824085
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -123,23 +147,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0
+      value: -0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
+      value: -90
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
@@ -165,9 +189,13 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 5dc0e5ff1954b3a438e8edc9254cee14, type: 2}
+    - target: {fileID: -5754084199372789682, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 3469941466066980970, guid: a129bedfaa6d94341b5f2705af804229, type: 3}
     - target: {fileID: 919132149155446097, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       propertyPath: m_Name
-      value: PlanetFirstPass
+      value: PF_PlanetEarth
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       propertyPath: m_IsActive
@@ -189,7 +217,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2613562405231561207}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9081731954061471719}
   m_SourcePrefab: {fileID: 100100000, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
+--- !u!23 &6936182477088752081 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
+  m_PrefabInstance: {fileID: 8611956261409824085}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8073100260919343806 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
@@ -216,8 +252,8 @@ MonoBehaviour:
   mesh: {fileID: 2931178734877319190, guid: 4dfe686ae138ffb4fa7572b5ae68e04c, type: 3}
   material: {fileID: 2100000, guid: dc3c2090bc358644fb684229bc8ed6eb, type: 2}
   renderBounds:
-    m_Center: {x: -1.0413084, y: -1.0235296, z: -2.0212553}
-    m_Extent: {x: 70.55954, y: 70.55954, z: 70.55954}
+    m_Center: {x: 0.2661903, y: 1.4212979, z: 4.1116147}
+    m_Extent: {x: 115.6981, y: 115.6981, z: 115.6981}
 --- !u!114 &7883575868643578281
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -230,14 +266,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5075d250c6a932b44900fd1ab8740d9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlanetDataAuthoring
-  _heightMapTexture: {fileID: 2800000, guid: 80663d9e8f9ff044981688eaba6bf122, type: 3}
-  _atlasPixelWidth: 2048
-  _maxPlanetHeight: 1
-  _radius: 61.83464
-  _autoFindPlanetRadius: 0
-  _findWaterLevel: 0
-  _waterLevelObject: {fileID: 4676242776458079911}
-  _useHeightMap: 0
+  _planetID: 5
+  _autoCalculate: 1
+  _planetRenderer: {fileID: 6936182477088752081}
+  _manualRadius: 50
+  _manualCenterOffset: {x: 0, y: 0, z: 0}
+  _runDuration: 60
 --- !u!114 &2613562405231561207
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -381,3 +415,25 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
+--- !u!64 &9081731954061471719
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8881865127885119492}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 3469941466066980970, guid: a129bedfaa6d94341b5f2705af804229, type: 3}

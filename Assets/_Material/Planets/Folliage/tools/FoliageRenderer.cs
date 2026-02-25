@@ -1,5 +1,9 @@
-// FoliageRenderer.cs
+using EasyButtons;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 [ExecuteAlways]
 public class FoliageRenderer : MonoBehaviour
@@ -93,4 +97,33 @@ public class FoliageRenderer : MonoBehaviour
             renderBounds.size = Vector3.one * (maxDist * 2f + 10f);
         }
     }
+
+    #region Utils
+    float GetPlanetRadiusWorld(MeshFilter mf)
+    {
+        if (mf == null) return 1f;
+        var mesh = mf.sharedMesh;
+        float max = 0f;
+        foreach (var v in mesh.vertices) max = Mathf.Max(max, v.magnitude);
+        return max * transform.lossyScale.x;
+    }
+    #endregion
+
+    #region Editor
+#if UNITY_EDITOR
+    [Button]
+    private void RecalculateBounds()
+    {
+        if (!TryGetComponent<MeshFilter>(out var meshFilter))
+        {
+            Debug.LogError("any mesh filter found. please place this script on mesh filter of the planet.");
+            return;
+        }
+        
+        var minBounds = GetPlanetRadiusWorld(meshFilter);
+        meshFilter.mesh.bounds = new Bounds(transform.position, new Vector3(minBounds, minBounds, minBounds));
+        EditorUtility.SetDirty(meshFilter.mesh);
+    }
+#endif
+    #endregion
 }
