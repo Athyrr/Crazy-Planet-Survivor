@@ -86,7 +86,7 @@ public struct BaseStats : IComponentData
 
     [Tooltip("Probability of landing a critical hit (0.0 = 0%, 1.0 = 100%).")]
     [UIStat("Crit Chance", "{0:-0.0\u0025;+0.0\u0025;0.0\u0025}")]
-    [StepRange(0, 1, 0.01f)]
+    [StepRange(0.01f, 1, 0.01f)]
     public float CritChance;
 
     [Tooltip("Multiplier applied to damage on a critical hit (e.g. 2.0 = double damage).")]
