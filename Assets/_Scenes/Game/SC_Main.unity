@@ -335,7 +335,7 @@ MonoBehaviour:
   PlanetSelectionCamera: {fileID: 1355349919}
   CharacterSelectionUIController: {fileID: 1488603913}
   PlanetSelectionUIController: {fileID: 1154809228}
-  AmuletShopUIController: {fileID: 0}
+  AmuletShopUIController: {fileID: 2038124405}
 --- !u!224 &435826083 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8357712587415318656, guid: 5a9c5c88b78c280449b7ed841858b7ad, type: 3}
@@ -2175,6 +2175,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cdb4864fa334838429629569ca2bbcec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AmuletShopUIController
+--- !u!114 &2038124405 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8037101515032699205, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
+  m_PrefabInstance: {fileID: 4659462329740414733}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2038124402}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdb4864fa334838429629569ca2bbcec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AmuletShopUIController
 --- !u!1 &2087372309 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5354578257132953450, guid: b0268771ccdb4444a92276a4ca75cd42, type: 3}
@@ -3968,6 +3979,10 @@ PrefabInstance:
     - target: {fileID: 9208762819757663290, guid: 5a9c5c88b78c280449b7ed841858b7ad, type: 3}
       propertyPath: m_Name
       value: PF_UI_TrinketSelection
+      objectReference: {fileID: 0}
+    - target: {fileID: 9208762819757663290, guid: 5a9c5c88b78c280449b7ed841858b7ad, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

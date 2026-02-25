@@ -169,12 +169,48 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameScenesConfigAuthoring
   PlanetScenes:
-  - ID: 0
-    Scene: {fileID: 102900000, guid: b488227b35ee79341bcf455a58454ea2, type: 3}
-  - ID: 1
-    Scene: {fileID: 102900000, guid: 968b6c4a6a6a3da47aa7ce26e21ff9a7, type: 3}
-  - ID: 4
-    Scene: {fileID: 102900000, guid: f939e445a4e3b0b4db2d0014c032f7b8, type: 3}
+  - SceneReference:
+      Id:
+        GlobalId:
+          SceneObjectIdentifier0: 102900000
+          SceneObjectIdentifier1: 0
+          AssetGUID:
+            Value:
+              x: 3072493643
+              y: 1134030419
+              z: 2773810353
+              w: 719606917
+          IdentifierType: 1
+        GenerationType: 4
+    PlanetID: 0
+  - SceneReference:
+      Id:
+        GlobalId:
+          SceneObjectIdentifier0: 102900000
+          SceneObjectIdentifier1: 0
+          AssetGUID:
+            Value:
+              x: 1414435743
+              y: 1259028042
+              z: 1090572989
+              w: 2340365068
+          IdentifierType: 1
+        GenerationType: 4
+    PlanetID: 4
+  - SceneReference:
+      Id:
+        GlobalId:
+          SceneObjectIdentifier0: 102900000
+          SceneObjectIdentifier1: 0
+          AssetGUID:
+            Value:
+              x: 1414435743
+              y: 1259028042
+              z: 1090572989
+              w: 2340365068
+          IdentifierType: 1
+        GenerationType: 4
+    PlanetID: 1
 --- !u!1001 &1308923168
 PrefabInstance:
   m_ObjectHideFlags: 0

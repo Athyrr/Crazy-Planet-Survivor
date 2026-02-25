@@ -57,7 +57,15 @@ public partial struct StatsCalculationSystem : ISystem
             stats.MoveSpeed = baseStats.MoveSpeed;
             stats.Damage = baseStats.Damage;
             stats.Armor = baseStats.Armor;
+
             stats.FireResistance = baseStats.FireResistance;
+            stats.IceResistance = baseStats.IceResistance;
+            stats.LightningResistance = baseStats.LightningResistance;
+            stats.PoisonResistance = baseStats.PoisonResistance;
+            stats.LightResistance = baseStats.LightResistance;
+            stats.DarkResistance = baseStats.DarkResistance;
+            stats.NatureResistance = baseStats.NatureResistance;
+
             stats.CooldownReduction = baseStats.CooldownReduction;
             stats.CritChance = baseStats.CritChance;
             stats.CritMultiplier = baseStats.CritMultiplier;
@@ -94,6 +102,25 @@ public partial struct StatsCalculationSystem : ISystem
                     case ECharacterStat.FireResistance:
                         ApplyModifier(ref stats.FireResistance, modifiers[i]);
                         break;
+                    case ECharacterStat.IceResistance:
+                        ApplyModifier(ref stats.IceResistance, modifiers[i]);
+                        break;
+                    case ECharacterStat.LightningResistance:
+                        ApplyModifier(ref stats.LightningResistance, modifiers[i]);
+                        break;
+                    case ECharacterStat.PoisonResistance:
+                        ApplyModifier(ref stats.PoisonResistance, modifiers[i]);
+                        break;
+                    case ECharacterStat.LightResistance:
+                        ApplyModifier(ref stats.LightResistance, modifiers[i]);
+                        break;
+                    case ECharacterStat.DarkResistance:
+                        ApplyModifier(ref stats.DarkResistance, modifiers[i]);
+                        break;
+                    case ECharacterStat.NatureResistance:
+                        ApplyModifier(ref stats.NatureResistance, modifiers[i]);
+                        break;
+
 
                     case ECharacterStat.CooldownReduction:
                         ApplyModifier(ref stats.CooldownReduction, modifiers[i]);
