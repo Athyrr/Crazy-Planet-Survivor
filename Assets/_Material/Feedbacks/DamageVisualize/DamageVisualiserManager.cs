@@ -184,8 +184,11 @@ public class DamageFeedbackManager : MonoBehaviour
             .ChainDelay(5f)
             .ChainCallback(() =>
             {
-                _activeDamages.RemoveAt(index);
-                _activeTime.RemoveAt(index);
+                if (index < _activeDamages.Count)
+                {
+                    _activeDamages.RemoveAt(index);
+                    _activeTime.RemoveAt(index);
+                }
             });
     }
 

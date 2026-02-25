@@ -20,8 +20,8 @@ public struct ActiveSpell : IBufferElementData
     public float TickRateMultiplier;
     public float LifetimeMultiplier;
 
-    public float CritChanceAdded;
-    public float CritMultiplierMultiplier;
+    public float CritChanceAdded;               //TODO check if can be deleted
+    public float CritMultiplierMultiplier;      //TODO check if can be deleted
 
     public int BonusAmount;
     public int BonusBounces;
@@ -29,4 +29,5 @@ public struct ActiveSpell : IBufferElementData
 
     public float BonusCritChance;
     public float BonusCritMultiplier;
+    public float SizeMultiplier;
 }

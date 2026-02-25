@@ -117,7 +117,10 @@ public partial struct SpellActivationSystem : ISystem
                         Level = 1,
                         DamageMultiplier = 1f,
                         CooldownMultiplier = 1f,
+
                         AreaMultiplier = 1f,
+                        SizeMultiplier = 1f,
+
                         SpeedMultiplier = 1f,
                         DurationMultiplier = 1f,
                         RangeMultiplier = 1f,
