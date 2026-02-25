@@ -212,7 +212,7 @@ public partial struct SpellCastingSystem : ISystem
             }
 
             // Default values (No modifiers)
-            float mulDmg = 1f, mulSpeed = 1f, mulArea = 1f, mulDuration = 1f;
+            float mulDmg = 1f, mulSpeed = 1f, mulArea = 1f, mulDuration = 1f, mulSize = 1f;
             int addAmount = 0, addBounces = 0, addPierces = 0;
             ESpellTag addedTags = ESpellTag.None;
 
@@ -229,7 +229,10 @@ public partial struct SpellCastingSystem : ISystem
                         var mod = activeSpells[i];
                         mulDmg = mod.DamageMultiplier;
                         mulSpeed = mod.SpeedMultiplier;
+
                         mulArea = mod.AreaMultiplier;
+                        mulSize = mod.SizeMultiplier;
+
                         mulDuration = mod.DurationMultiplier;
                         addAmount = mod.BonusAmount;
                         addBounces = mod.BonusBounces;
@@ -268,7 +271,11 @@ public partial struct SpellCastingSystem : ISystem
             float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * mulDmg * actualMultiplier;
 
             float finalSpeed = baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) * mulSpeed;
-            float finalArea = baseSpellData.BaseEffectArea * math.max(1f, stats.EffectAreaRadiusMult) * mulArea;
+
+            //float finalArea = baseSpellData.BaseEffectArea * math.max(1f, stats.EffectAreaRadiusMult) * mulArea; //==> old Size scale based sur aoe radius
+
+            float finalArea = baseSpellData.BaseSize * math.max(1f, stats.SizeMult) * mulSize;
+
             float finalDuration = baseSpellData.Lifetime * mulDuration;
 
             // Multishot Logic
@@ -447,7 +454,7 @@ public partial struct SpellCastingSystem : ISystem
 
                 if (OrbitMovementLookup.HasComponent(spellPrefab))
                 {
-                    float orbitRadius = math.length(baseSpellData.BaseSpawnOffset) * mulArea;
+                    float orbitRadius = math.length(baseSpellData.BaseSpawnOffset) * mulSize;
                     ECB.SetComponent(chunkIndex, spellEntity, new OrbitMovement
                     {
                         OrbitCenterEntity = request.Caster,

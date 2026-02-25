@@ -366,6 +366,11 @@ public partial struct ApplyUpgradeSystem : ISystem
                     spell.BonusCritMultiplier += upgrade.Value;
                     break;
 
+                case ESpellStat.Size:
+                    spell.SizeMultiplier *= upgrade.Value;
+                    break;
+
+
                 default:
                     break;
             }
