@@ -112,9 +112,9 @@ public class FoliageRenderer : MonoBehaviour
     #region Editor
 #if UNITY_EDITOR
     [Button]
-    private void RecalculateBounds()
+    private void RecalculateBounds(MeshFilter meshFilter)
     {
-        if (!TryGetComponent<MeshFilter>(out var meshFilter))
+        if (meshFilter == null && !TryGetComponent<MeshFilter>(out meshFilter))
         {
             Debug.LogError("any mesh filter found. please place this script on mesh filter of the planet.");
             return;

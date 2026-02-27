@@ -72,6 +72,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
     
     [Header("Target")] 
     private GameObject _planet;
+    [Tooltip("pour quand le mesh filter n'est pas sur le pf parent")] private MeshFilter _overrideMainMeshFilter;
     // private Mesh _instanceMesh; // mesh rendered (ex: grass mesh)
     private Material _instanceMaterial; // global material
 
@@ -112,6 +113,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
         EditorGUILayout.LabelField("Painter (stores instances only)", EditorStyles.boldLabel);
         
         _planet = (GameObject)EditorGUILayout.ObjectField("Planet", _planet, typeof(GameObject), true);
+        _overrideMainMeshFilter = (MeshFilter)EditorGUILayout.ObjectField("Override Main Mesh Filter", _overrideMainMeshFilter, typeof(MeshFilter), true);
         
         // draw collection part
         var collections = so.FindProperty("Collections");
@@ -198,7 +200,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
 
         EditorGUILayout.Space();
         
-        _eraseMode = EditorGUILayout.Toggle("Show Raycast", _showRaycast);
+        _showRaycast = EditorGUILayout.Toggle("Show Raycast", _showRaycast);
 
         
         EditorGUILayout.Space();
@@ -454,8 +456,6 @@ public class PlanetFoliagePainterWindow : EditorWindow
             hits = hits.OrderBy(el => Vector3.Distance(rayStart, el.point)).ToList();
             bool hitFound = false;
 
-            Debug.Log($"{rayStart}, {rayDirection}");
-
             foreach (RaycastHit hit in hits)
             {
                 // Check if the hit object is part of the planet hierarchy
@@ -471,26 +471,32 @@ public class PlanetFoliagePainterWindow : EditorWindow
                             Debug.Log($"{hitMaterial.name} hit rejected by material filtering");
                             break;
                         }
+                    }
+                    
+                    if (foliageCollection.SpawnRegionGradientActive)
+                    {
+                        // color filter
+                        Renderer rend;
+                        if (_overrideMainMeshFilter != null) rend = _overrideMainMeshFilter.GetComponent<Renderer>();
+                        else rend = hit.transform.GetComponent<Renderer>();
                         
-                        // color filter     
-                        Renderer rend = hit.transform.GetComponent<Renderer>();
                         MeshCollider meshCollider = hit.collider as MeshCollider;
-
-                        if (rend == null || rend.sharedMaterial == null || rend.sharedMaterial.mainTexture == null || meshCollider == null)
-                            return;
-
-                        Texture2D tex = rend.material.mainTexture as Texture2D;
+                        
+                        if (rend == null || rend.sharedMaterial == null || meshCollider == null)
+                            continue;    
+                        
+                        Texture2D tex = rend.material.GetTexture("_InternalMainTex") as Texture2D;
                         Vector2 pixelUV = hit.textureCoord;
                         pixelUV.x *= tex.width;
                         pixelUV.y *= tex.height;
                         var fragColor =tex.GetPixel((int)pixelUV.x, (int)pixelUV.y);
+                        Debug.Log($"hyv; {fragColor}");
 
-                        if (foliageCollection.SpawnRegionGradientActive
-                            && !ColorInGradiant(foliageCollection.SpawnRegionGradient, fragColor))
+                        if (!ColorInGradiant(foliageCollection.SpawnRegionGradient, fragColor))
                         {
                             if (_showRaycast)
                                 Debug.DrawLine(rayStart, hit.point, Color.orange, 2f);
-                            return;
+                            continue;
                         }
                     }
 
@@ -528,9 +534,9 @@ public class PlanetFoliagePainterWindow : EditorWindow
             );
 
             if (
-                (target.r >= current.r && target.r <= previous.r) &&
-                (target.g >= current.g && target.g <= previous.g) &&
-                (target.b >= current.b && target.b <= previous.b)
+                (current.r >= target.r && target.r <= previous.r) &&
+                (current.g >= target.g && target.g <= previous.g) &&
+                (current.b >= target.b && target.b <= previous.b)
             )
             {
                 return true;
