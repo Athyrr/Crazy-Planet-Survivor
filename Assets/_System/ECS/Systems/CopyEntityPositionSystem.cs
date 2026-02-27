@@ -39,7 +39,6 @@ public partial struct CopyEntityPositionSystem : ISystem
         var copyPositionJob = new CopyPositionJob
         {
             DeltaTime = deltaTime,
-
             TransformLookup = _transformLookup,
         };
 

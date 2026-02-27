@@ -15,22 +15,23 @@ MonoBehaviour:
   ID: 3
   DisplayName: Frozen Zone
   Description: 
-  SpellPrefab: {fileID: 5560325983370933078, guid: 614d5136e4d27754fb9b0bd55550f75f, type: 3}
+  SpellPrefab: {fileID: 5630578436652499990, guid: 1dab0de3be27bb24098e1675ffb1c895, type: 3}
   Rarity: 0
   Tags: 4
-  BaseDamage: 100
+  BaseDamage: 1
   BaseCooldown: -1
-  BaseSpeed: 5
-  BaseSpawnOffset: {x: 0, y: 0, z: 0}
+  BaseSpeed: 0
+  BaseSpawnOffset: {x: 0, y: 5, z: 0}
   BaseAreaOfEffect: 1
-  BaseCastRange: 5
+  BaseCastRange: 1
+  BaseSize: 10
   TargetingMode: 1
   Lifetime: -1
   Bounces: 0
   BouncesSearchRadius: 0
   Pierces: 0
   BaseDamagePerTick: 10
-  TickRate: 0.3
+  TickRate: 0.5
   ChildPrefab: {fileID: 0}
   ChildrenCount: 0
   ChildrenSpawnRadius: 1

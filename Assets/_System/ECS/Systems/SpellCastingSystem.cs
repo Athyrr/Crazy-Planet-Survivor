@@ -295,6 +295,8 @@ public partial struct SpellCastingSystem : ISystem
             quaternion baseRotation = casterTransform.Rotation;
             float3 fireDirection = casterTransform.Forward();
 
+            float3 planetCenter = float3.zero;
+
             var filter = new CollisionFilter
             {
                 BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
@@ -344,7 +346,6 @@ public partial struct SpellCastingSystem : ISystem
 
                     break;
                 case ESpellTargetingMode.RandomInRange:
-                    float3 planetCenter = float3.zero;
                     var groundFilter = new CollisionFilter
                     {
                         BelongsTo = CollisionLayers.Raycast,
@@ -375,6 +376,7 @@ public partial struct SpellCastingSystem : ISystem
             }
 
             // SPAWN CALCULATION (Position & Rotation Basis)
+            float3 surfaceNormal = math.normalize(casterTransform.Position - planetCenter);
 
             bool isProjectile = LinearMovementLookup.HasComponent(spellPrefab);
             bool isAttached = AttachLookup.HasComponent(spellPrefab);
@@ -383,17 +385,19 @@ public partial struct SpellCastingSystem : ISystem
             {
                 if (targetFound && isProjectile)
                 {
-                    float3 toTarget = targetPosition - baseSpawnPos;    
+                    float3 toTarget = targetPosition - baseSpawnPos;
                     if (math.lengthsq(toTarget) > math.EPSILON)
                     {
                         fireDirection = math.normalize(toTarget);
-                        baseRotation =
-                            quaternion.LookRotationSafe(fireDirection, math.up()); // Should use Surface Normal
+                        // baseRotation =
+                        //     quaternion.LookRotationSafe(fireDirection, math.up()); // todo Should use Surface Normal
+                        baseRotation = quaternion.LookRotationSafe(fireDirection, surfaceNormal);
                     }
                 }
                 else if (!isProjectile)
                 {
                     baseSpawnPos = targetPosition; // Area spells spawn on target
+                    baseRotation = quaternion.LookRotationSafe(casterTransform.Forward(), surfaceNormal);
                 }
             }
 

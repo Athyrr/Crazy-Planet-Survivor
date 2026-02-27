@@ -59,14 +59,12 @@ public partial struct CollisionSystem : ISystem
         // Only run when game is running
         if (gameState.State != EGameState.Running)
             return;
-
-
+        
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
         var simulationSingleton = SystemAPI.GetSingleton<SimulationSingleton>();
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
-
 
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
