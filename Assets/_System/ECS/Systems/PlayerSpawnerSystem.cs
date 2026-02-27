@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
+using UnityEngine;
 
 [UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)]
 [BurstCompile]
@@ -13,6 +14,7 @@ public partial struct PlayerSpawnerSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<GameState>();
+        state.RequireForUpdate<AmuletsDatabase>();
         state.RequireForUpdate<CharactersDatabase>();
         state.RequireForUpdate<SelectedCharacterData>();
 
@@ -36,6 +38,13 @@ public partial struct PlayerSpawnerSystem : ISystem
 
         if (!SystemAPI.TryGetSingleton<PlanetData>(out PlanetData planetData))
             return;
+
+        var amuletDatabaseEntity = SystemAPI.GetSingletonEntity<AmuletsDatabase>();
+        if (amuletDatabaseEntity == Entity.Null)
+            return;
+
+        var amuletDatabaseRef = SystemAPI.GetComponent<AmuletsDatabase>(amuletDatabaseEntity);
+        ref var amuletDatabase = ref amuletDatabaseRef.Blobs.Value.Amulets;
 
         var databaseEntity = SystemAPI.GetSingletonEntity<CharactersDatabase>();
         var characterPrefabsBuffer = SystemAPI.GetBuffer<CharacterPrefabBufferElement>(databaseEntity);
@@ -79,5 +88,26 @@ public partial struct PlayerSpawnerSystem : ISystem
             Rotation = rot,
             Scale = 1
         });
+
+        if (SystemAPI.TryGetSingleton<EquippedAmulet>(out var equippedAmulet) && equippedAmulet.DbIndex > -1)
+        {
+            var statsModifiers = SystemAPI.GetBuffer<StatModifier>(playerEntity);
+            ref var modifiers = ref amuletDatabase[equippedAmulet.DbIndex].Modifiers;
+
+            for (int i = 0; i < modifiers.Length; i++)
+            {
+                var modifier = modifiers[i];
+                statsModifiers.Add(new StatModifier()
+                {
+                    StatID = modifier.CharacterStat,
+                    Value = modifier.Value,
+                    Strategy = modifier.ModifierStrategy
+                });
+            }
+
+            // Request to recalculate stats
+            if (!state.EntityManager.HasComponent<RecalculateStatsRequest>(playerEntity))
+                state.EntityManager.AddComponentData(playerEntity, new RecalculateStatsRequest());
+        }
     }
 }

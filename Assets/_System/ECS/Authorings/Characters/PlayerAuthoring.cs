@@ -9,7 +9,7 @@ public class PlayerAuthoring : MonoBehaviour
 
     [Header("Datas")]
     [Tooltip("The character's base stats and initial spells.")]
-    public CharacterDataSO CharacterData;
+    public CharacterSO characterData;
 
     [Header("Movement Settings")]
     [Tooltip(
@@ -63,7 +63,7 @@ public class PlayerAuthoring : MonoBehaviour
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            if (authoring.CharacterData == null)
+            if (authoring.characterData == null)
             {
                 Debug.LogError(
                     $"PlayerAuthoring on {authoring.name} is missing CharacterDataSO!",
@@ -83,8 +83,8 @@ public class PlayerAuthoring : MonoBehaviour
 
             List<UpgradeSO> gameUpgradesList = authoring._gameUpgradesConfig.GetFlattenedUpgrades();
 
-            var baseStats = authoring.CharacterData.BaseStats;
-            var initialSpells = authoring.CharacterData.InitialSpells;
+            var baseStats = authoring.characterData.BaseStats;
+            var initialSpells = authoring.characterData.InitialSpells;
 
             AddComponent(entity, new Player() { });
             AddComponent(entity, new InputData() { Value = new float2(0, 0) });
@@ -172,9 +172,9 @@ public class PlayerAuthoring : MonoBehaviour
             // Stats Upgrade Pool
             DynamicBuffer<StatsUpgradePoolBufferElement> statsUpgradebuffer =
                 AddBuffer<StatsUpgradePoolBufferElement>(entity);
-            if (authoring.CharacterData.StatsUpgradesPool != null)
+            if (authoring.characterData.StatsUpgradesPool != null)
             {
-                foreach (var localUpgrade in authoring.CharacterData.StatsUpgradesPool.Upgrades)
+                foreach (var localUpgrade in authoring.characterData.StatsUpgradesPool.Upgrades)
                 {
                     if (localUpgrade == null)
                         continue;
@@ -201,9 +201,9 @@ public class PlayerAuthoring : MonoBehaviour
             // Spells Upgrade Pool
             DynamicBuffer<SpellsUpgradePoolBufferElement> spellsUpgradebuffer =
                 AddBuffer<SpellsUpgradePoolBufferElement>(entity);
-            if (authoring.CharacterData.SpellUpgradesPool != null)
+            if (authoring.characterData.SpellUpgradesPool != null)
             {
-                foreach (var localUpgrade in authoring.CharacterData.SpellUpgradesPool.Upgrades)
+                foreach (var localUpgrade in authoring.characterData.SpellUpgradesPool.Upgrades)
                 {
                     if (localUpgrade == null)
                         continue;
@@ -239,6 +239,7 @@ public class PlayerAuthoring : MonoBehaviour
 
             if (authoring.IsInvincible)
                 AddComponent(entity, new Invincible());
+            
         }
     }
 }

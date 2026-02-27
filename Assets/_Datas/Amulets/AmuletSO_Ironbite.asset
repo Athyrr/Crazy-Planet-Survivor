@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4fcff3a9ae90e74698a93af110d8da8, type: 3}
+  m_Name: AmuletSO_Ironbite
+  m_EditorClassIdentifier: Assembly-CSharp::AmuletSO
+  DisplayName: Iron Bite
+  Description: Augment Health de 500 wtf
+  UIPrefab: {fileID: 2352876710774900367, guid: 51cfb735ee0e8ff4ca9ce0296d1b779c, type: 3}
+  Icon: {fileID: 1334800264, guid: 4e1d115e8afe1c74cb4527dc970b8362, type: 3}
+  Price: 10
+  Modifiers:
+  - Stat: 1
+    Strategy: 0
+    Value: 500

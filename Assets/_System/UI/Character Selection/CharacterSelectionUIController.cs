@@ -11,7 +11,6 @@ public class CharacterSelectionUIController : MonoBehaviour
     public CharactersDatabaseSO Database;
 
     [Header("UI Views")]
-
     public CharacterListView CharacterListView;
     public CharacterDetailViewComponent CharacterDetailView;
     public CharacterStatsViewComponent CharacterStatsView;
