@@ -1,21 +1,79 @@
 // PlanetFoliagePainterWindow.cs
 
+using System;
 using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
+using Random = UnityEngine.Random;
 
 public class PlanetFoliagePainterWindow : EditorWindow
 {
+    #region Struct
 
+    [Serializable]
+    public struct FoliageCollection
+    {
+        public Mesh InstanceMesh;
+        public Material MaterialRef;
+        public Vector3 LocalRotation;
+        public float LocalScale;
+        
+        [Tooltip("ProceduralCount / Collections.Count * self")]
+        public float LocalDensity;
+
+        [Tooltip("indirect called by GetAllFieldNamesAvailable")]
+        public bool SpawnRegionGradientActive;
+        public Gradient SpawnRegionGradient;
+        
+        public List<string> GetAllFieldNames()
+        {
+            return this.GetType()
+                .GetFields(System.Reflection.BindingFlags.Instance | 
+                           System.Reflection.BindingFlags.Public | 
+                           System.Reflection.BindingFlags.NonPublic)
+                .Select(f => f.Name)
+                .ToList();
+        }
+
+        public List<string> GetAllFieldNamesAvailable()
+        {
+            var input = GetAllFieldNames();
+            var that = this;
+
+            return input.Where(el =>
+            {
+                var targetName = el + "Active";
+                if (input.Contains(targetName))
+                {
+                    var field = that.GetType().GetField(targetName, 
+                        System.Reflection.BindingFlags.Instance | 
+                        System.Reflection.BindingFlags.Public | 
+                        System.Reflection.BindingFlags.NonPublic);
+
+                    if (field != null && field.FieldType == typeof(bool))
+                    {
+                        bool isActive = (bool)field.GetValue(that);
+                        return isActive;
+                    }
+                    else return true;
+                }
+                else return true;
+            }).ToList();
+        }
+    }
+
+    #endregion
+    
     #region Member
 
+    [HideInInspector] public List<FoliageCollection> Collections = new();
     
-
     [Header("Target")] 
     private GameObject _planet;
-    private Mesh _instanceMesh; // mesh rendered (ex: grass mesh)
-    private Material _instanceMaterial;
+    // private Mesh _instanceMesh; // mesh rendered (ex: grass mesh)
+    private Material _instanceMaterial; // global material
 
     [Header("Brush")] 
     private float _brushRadius = 2f;
@@ -26,7 +84,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
     [Header("Foliage")] 
     private float _globalScale = 1f;
     private float _randomScale = 0.2f;
-    private Vector3 _localRotation = Vector3.zero;
+    private Vector3 _globalLocalRotation = Vector3.zero;
     private int _proceduralCount = 1000;
 
     [Header("Material Filtering")] 
@@ -48,10 +106,52 @@ public class PlanetFoliagePainterWindow : EditorWindow
 
     void OnGUI()
     {
+        ScriptableObject target = this;
+        var so = new SerializedObject(target);
+        
         EditorGUILayout.LabelField("Painter (stores instances only)", EditorStyles.boldLabel);
-
+        
         _planet = (GameObject)EditorGUILayout.ObjectField("Planet", _planet, typeof(GameObject), true);
-        _instanceMesh = (Mesh)EditorGUILayout.ObjectField("Instance Mesh", _instanceMesh, typeof(Mesh), false);
+        
+        // draw collection part
+        var collections = so.FindProperty("Collections");
+        if (collections != null)
+        {
+            EditorGUILayout.PropertyField(collections, new GUIContent("Foliage Collections"), false);
+
+            if (collections.isExpanded)
+            {
+                EditorGUI.indentLevel++;
+                for (int i = 0; i < collections.arraySize; i++)
+                {
+                    SerializedProperty element = collections.GetArrayElementAtIndex(i);
+                    var allFields = Collections[i].GetAllFieldNamesAvailable();
+
+                    EditorGUILayout.LabelField($"Element {i}", EditorStyles.miniBoldLabel);
+                    for (int j = 0; j < allFields.Count; j++)
+                    {
+                        var field = allFields[j];
+                        EditorGUILayout.PropertyField(element.FindPropertyRelative(field));
+                    }
+                    
+                    if (GUILayout.Button("Delete Element"))
+                    {
+                        collections.DeleteArrayElementAtIndex(i);
+                    }
+                    
+                    EditorGUILayout.LabelField($"====================================", EditorStyles.miniBoldLabel);
+                }
+                
+                EditorGUI.indentLevel--;
+            }
+        }
+        
+        if (GUILayout.Button("Add Element"))
+        {
+            Collections.Add(new FoliageCollection());
+        }
+            
+        // _instanceMesh = (Mesh)EditorGUILayout.ObjectField("Instance Mesh", _instanceMesh, typeof(Mesh), false);
         _instanceMaterial =
             (Material)EditorGUILayout.ObjectField("Instance Material", _instanceMaterial, typeof(Material), false);
 
@@ -66,7 +166,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
         
         EditorGUILayout.Space();
         _globalScale = EditorGUILayout.Slider("Global Scale", _globalScale, 0f, 10f);
-        _localRotation = EditorGUILayout.Vector3Field("Local Rotation", _localRotation);
+        _globalLocalRotation = EditorGUILayout.Vector3Field("Local Rotation", _globalLocalRotation);
         _randomScale = EditorGUILayout.Slider("Random Scale", _randomScale, 0f, 2f);
         _proceduralCount = EditorGUILayout.IntField("Procedural Count", _proceduralCount);
 
@@ -77,8 +177,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
         if (_useMaterialFiltering)
         {
             EditorGUILayout.LabelField("Allowed Materials (contains):");
-            ScriptableObject target = this;
-            var so = new SerializedObject(target);
+
             var allowedMaterials = so.FindProperty("AllowedMaterialNames");
             if (allowedMaterials == null)
                 goto MaterialReferenceNull;
@@ -125,7 +224,11 @@ public class PlanetFoliagePainterWindow : EditorWindow
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("Place Procedural"))
         {
-            if (_planet != null) PlaceProcedural();
+            for (int i = 0; i < Collections.Count; i++)
+            {
+                var collection = Collections[i];
+                if (_planet != null) PlaceProceduralStep(collection);
+            }
         }
 
         if (GUILayout.Button("Clear Data"))
@@ -151,6 +254,8 @@ public class PlanetFoliagePainterWindow : EditorWindow
         EditorGUILayout.HelpBox(
             "Painter stores instance data only. Use a runtime FoliageRenderer to draw with DrawMeshInstancedIndirect.",
             MessageType.Info);
+        
+        so.ApplyModifiedProperties();
     }
 
     void CreateOrSelectData()
@@ -284,7 +389,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
             position = pos,
             normal = normal,
             scale = _globalScale + Random.Range(-_randomScale, _randomScale),
-            rotation = normal + _localRotation
+            rotation = normal + _globalLocalRotation
         };
 
         Debug.DrawLine(pos, pos + normal, Color.green, 1f);
@@ -311,7 +416,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
         return max * _planet.transform.lossyScale.x;
     }
 
-    void PlaceProcedural()
+    void PlaceProceduralStep(FoliageCollection foliageCollection)
     {
         if (_planet == null || _targetData == null) return;
 
@@ -366,10 +471,31 @@ public class PlanetFoliagePainterWindow : EditorWindow
                             Debug.Log($"{hitMaterial.name} hit rejected by material filtering");
                             break;
                         }
+                        
+                        // color filter     
+                        Renderer rend = hit.transform.GetComponent<Renderer>();
+                        MeshCollider meshCollider = hit.collider as MeshCollider;
+
+                        if (rend == null || rend.sharedMaterial == null || rend.sharedMaterial.mainTexture == null || meshCollider == null)
+                            return;
+
+                        Texture2D tex = rend.material.mainTexture as Texture2D;
+                        Vector2 pixelUV = hit.textureCoord;
+                        pixelUV.x *= tex.width;
+                        pixelUV.y *= tex.height;
+                        var fragColor =tex.GetPixel((int)pixelUV.x, (int)pixelUV.y);
+
+                        if (foliageCollection.SpawnRegionGradientActive
+                            && !ColorInGradiant(foliageCollection.SpawnRegionGradient, fragColor))
+                        {
+                            if (_showRaycast)
+                                Debug.DrawLine(rayStart, hit.point, Color.orange, 2f);
+                            return;
+                        }
                     }
 
                     if (_showRaycast)
-                        Debug.DrawLine(rayStart, hit.point, Color.red, 2f);
+                        Debug.DrawLine(rayStart, hit.point, Color.green, 2f);
 
                     Vector3 normal = hit.normal;
                     Vector3 pos = hit.point + Vector3.up * _offset;
@@ -387,6 +513,51 @@ public class PlanetFoliagePainterWindow : EditorWindow
 
         Debug.Log($"Placed {placedCount} procedural objects out of {_proceduralCount} attempted");
         EditorUtility.SetDirty(_targetData);
+    }
+
+    private bool ColorInGradiant(Gradient gradient, Color target)
+    {
+        for (int i = 0; i < gradient.colorKeys.Length - 1; i++)
+        {
+            var current = gradient.colorKeys[i].color;
+            var previous = gradient.colorKeys[i].color;
+
+            (current, previous) = (
+                Min(ref current, ref previous), 
+                Max(ref current, ref previous)
+            );
+
+            if (
+                (target.r >= current.r && target.r <= previous.r) &&
+                (target.g >= current.g && target.g <= previous.g) &&
+                (target.b >= current.b && target.b <= previous.b)
+            )
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // car unity n'est pas capable de le faire :p
+    private Color Min(ref Color a, ref Color b)
+    {
+        return new Color()
+        {
+            r = Mathf.Min(a.r, b.r),
+            g = Mathf.Min(a.g, b.g),
+            b = Mathf.Min(a.b, b.b)
+        };
+    }
+    
+    private Color Max(ref Color a, ref Color b)
+    {
+        return new Color()
+        {
+            r = Mathf.Max(a.r, b.r),
+            g = Mathf.Max(a.g, b.g),
+            b = Mathf.Max(a.b, b.b)
+        };
     }
 
     // Helper method to get material at a specific hit point
