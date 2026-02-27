@@ -13,7 +13,7 @@ public class CharacterListItem : MonoBehaviour
 
 
     private CharacterSelectionUIController _controller;
-    private CharacterDataSO _data;
+    private CharacterSO _data;
     private int _index;
 
     private void OnEnable()
@@ -26,7 +26,7 @@ public class CharacterListItem : MonoBehaviour
         Button.onClick.RemoveAllListeners();
     }
 
-    public void Init(CharacterSelectionUIController selectionController, int index, CharacterDataSO data)
+    public void Init(CharacterSelectionUIController selectionController, int index, CharacterSO data)
     {
         _controller = selectionController;
         _data = data;

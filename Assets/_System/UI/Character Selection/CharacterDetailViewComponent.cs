@@ -7,12 +7,11 @@ using UnityEngine;
 public class CharacterDetailViewComponent : MonoBehaviour
 {
     [Header("UI Elements")]
-
     public Transform CharacterPreviewContainer;
     public TMP_Text CharacterNameText;
     public TMP_Text CharacterDescriptionText;
 
-    public void Refresh(CharacterDataSO data)
+    public void Refresh(CharacterSO data)
     {
         if (data == null)
             return;
@@ -22,7 +21,7 @@ public class CharacterDetailViewComponent : MonoBehaviour
             foreach (Transform child in CharacterPreviewContainer.transform)
                 GameObject.Destroy(child.gameObject);
 
-          var characterObject = GameObject.Instantiate(data.UIPrefab, CharacterPreviewContainer.transform);
+            var characterObject = GameObject.Instantiate(data.UIPrefab, CharacterPreviewContainer.transform);
         }
 
         if (CharacterNameText != null)

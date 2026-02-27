@@ -5,18 +5,15 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: Assets/_Scenes/SC_BenchMarkDeLaComptable.unity
-    guid: 52e8382489c3d5d4a8d482800c51729a
-  - enabled: 0
+  - enabled: 1
     path: Assets/_Scenes/Game/SC_Main.unity
     guid: 4ba747079f1425749a0ac0718d104014
   - enabled: 1
-    path: Assets/_Scenes/SC_Earth.unity
-    guid: 9d2c116b4b2be584492346091b5bd4bd
+    path: Assets/_Scenes/Game/SC_Main/SC_Lobby.unity
+    guid: b488227b35ee79341bcf455a58454ea2
   - enabled: 1
-    path: Assets/_Scenes/SC_Earth/SC_SB_Earth_AllInOne.unity
-    guid: 1ae26be49f6a50b43b7ec79361a3e558
+    path: Assets/_Scenes/Game/SC_Main/SC_Entity_Planet_Sand.unity
+    guid: f939e445a4e3b0b4db2d0014c032f7b8
   m_configObjects:
     com.unity.adaptivePerformance.basic.provider_settings: {fileID: 11400000, guid: d38c2fb143e2ddf49b6819cd41c2d975, type: 2}
     com.unity.adaptiveperformance.google.android.provider_settings: {fileID: 11400000, guid: c12a8bce42461f645becc7a2f84fe513, type: 2}

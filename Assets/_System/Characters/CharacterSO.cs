@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewCharacterData", menuName = "Survivor/Characters/Character Data")]
-public class CharacterDataSO : ScriptableObject
+public class CharacterSO : ScriptableObject
 {
     [Header("General")]
 

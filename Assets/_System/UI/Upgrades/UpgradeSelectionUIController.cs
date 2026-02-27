@@ -1,26 +1,23 @@
 using System.Collections;
 using System.Collections.Generic;
+using PrimeTween;
 using Unity.Entities;
 using UnityEngine;
-using UnityEngine.InputSystem; 
+using UnityEngine.InputSystem;
 
 public class UpgradeSelectionUIController : MonoBehaviour
 {
-    [Header("Interaction")]
-    public Camera UICamera;
+    [Header("Interaction")] public Camera UICamera;
     public LayerMask UI3DLayer;
 
-    [Header("References")]
-    public Transform UpgradesContainer;
+    [Header("References")] public Transform UpgradesContainer;
     public GameObject UpgradePrefab;
 
-    [Header("Layout Settings")]
-    public float Spacing = 3.5f;
+    [Header("Layout Settings")] public float Spacing = 3.5f;
     public float ArcHeight = 0.5f;
     public float RotationAmount = 10f;
 
-    [Header("Animation Settings")]
-    public float DelayBetweenCards = 0.15f;
+    [Header("Animation Settings")] public float DelayBetweenCards = 0.15f;
     public float PopDuration = 0.4f;
     public AnimationCurve PopCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
@@ -85,17 +82,20 @@ public class UpgradeSelectionUIController : MonoBehaviour
 
         if (hitCard != _currentHoveredCard)
         {
-            if (_currentHoveredCard != null) 
+            if (_currentHoveredCard != null)
                 _currentHoveredCard.SetHovered(false);
 
-            if (hitCard != null) 
+            if (hitCard != null)
                 hitCard.SetHovered(true);
 
             _currentHoveredCard = hitCard;
         }
 
         if (isClicked && _currentHoveredCard != null)
-            OnUpgradeSelected(_currentHoveredCard.DbIndex);
+        {
+            var d = Tween.Scale(_currentHoveredCard.transform, endValue: 1.5f, duration: 0.3f)
+                .OnComplete(() => OnUpgradeSelected(_currentHoveredCard.DbIndex));
+        }
     }
 
     public void DisplaySelection(DynamicBuffer<UpgradeSelectionBufferElement> selection)
@@ -104,7 +104,8 @@ public class UpgradeSelectionUIController : MonoBehaviour
         ClearSelection();
         _canInteract = false;
 
-        if (_upgradeDatabaseQuery.IsEmptyIgnoreFilter) return;
+        if (_upgradeDatabaseQuery.IsEmptyIgnoreFilter)
+            return;
 
         var dbEntity = _upgradeDatabaseQuery.GetSingletonEntity();
         var blobs = _entityManager.GetComponentData<UpgradesDatabase>(dbEntity).Blobs;
@@ -127,7 +128,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
 
             // Setup Data
             var uiComp = cardObj.GetComponent<UpgradeUIComponent>();
-            if (uiComp != null) 
+            if (uiComp != null)
                 uiComp.SetData(ref upgradeData, dbIndex);
 
             cardObj.transform.localScale = Vector3.zero;
@@ -157,7 +158,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
             float normalizedPos = count > 1 ? (float)i / (count - 1) : 0.5f;
 
             // Calcul Arc
-            float xSym = (normalizedPos - 0.5f) * 2f; // -1 à 1
+            float xSym = (normalizedPos - 0.5f) * 2f; // -1 ï¿½ 1
             float yPos = -Mathf.Abs(xSym) * ArcHeight;
 
             // Calcul Rotation
@@ -175,6 +176,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
             StartCoroutine(AnimateSingleCardPop(card.transform));
             yield return new WaitForSecondsRealtime(DelayBetweenCards);
         }
+
         _canInteract = true;
     }
 
@@ -192,6 +194,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
             if (target != null) target.localScale = finalScale * scaleValue;
             yield return null;
         }
+
         if (target != null) target.localScale = finalScale;
     }
 
@@ -218,5 +221,8 @@ public class UpgradeSelectionUIController : MonoBehaviour
         _currentHoveredCard = null;
     }
 
-    public void Init(RunManager runManager) { RunManager = runManager; }
+    public void Init(RunManager runManager)
+    {
+        RunManager = runManager;
+    }
 }
