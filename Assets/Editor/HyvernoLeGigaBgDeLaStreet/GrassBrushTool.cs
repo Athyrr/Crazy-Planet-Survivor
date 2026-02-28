@@ -99,6 +99,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
     private bool _showRaycast;
     private FoliageData _targetData;
     private bool _active;
+    private Vector2 globalScrollPose;
     
     #endregion
 
@@ -107,6 +108,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
 
     void OnGUI()
     {
+        globalScrollPose = EditorGUILayout.BeginScrollView(globalScrollPose);
         ScriptableObject target = this;
         var so = new SerializedObject(target);
         
@@ -257,6 +259,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
             "Painter stores instance data only. Use a runtime FoliageRenderer to draw with DrawMeshInstancedIndirect.",
             MessageType.Info);
         
+        EditorGUILayout.EndScrollView();
         so.ApplyModifiedProperties();
     }
 
