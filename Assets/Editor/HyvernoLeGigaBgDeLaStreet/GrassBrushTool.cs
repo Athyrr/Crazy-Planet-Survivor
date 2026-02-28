@@ -99,7 +99,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
     private bool _showRaycast;
     private FoliageData _targetData;
     private bool _active;
-    private Vector2 globalScrollPose;
+    private Vector2 _globalScrollPose;
     
     #endregion
 
@@ -108,7 +108,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
 
     void OnGUI()
     {
-        globalScrollPose = EditorGUILayout.BeginScrollView(globalScrollPose);
+        _globalScrollPose = EditorGUILayout.BeginScrollView(_globalScrollPose);
         ScriptableObject target = this;
         var so = new SerializedObject(target);
         
