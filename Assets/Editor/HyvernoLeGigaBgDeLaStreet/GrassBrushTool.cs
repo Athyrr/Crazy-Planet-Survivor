@@ -100,6 +100,7 @@ public class PlanetFoliagePainterWindow : EditorWindow
     private FoliageData _targetData;
     private bool _active;
     private Vector2 _globalScrollPose;
+    private bool _collectionCollapsed;
     
     #endregion
 
@@ -121,9 +122,27 @@ public class PlanetFoliagePainterWindow : EditorWindow
         var collections = so.FindProperty("Collections");
         if (collections != null)
         {
+            GUILayout.BeginHorizontal();
             EditorGUILayout.PropertyField(collections, new GUIContent("Foliage Collections"), false);
 
-            if (collections.isExpanded)
+            Color defaultColor = GUI.backgroundColor;
+            GUI.backgroundColor = Collections.Count > 0 ? Color.green : Color.red;
+            string toggleLabel = _collectionCollapsed ? "►" : "▼";
+            if (GUILayout.Button(toggleLabel, GUILayout.Width(25)))
+            {
+                _collectionCollapsed = !_collectionCollapsed;
+            }
+
+            GUI.backgroundColor = defaultColor;
+
+            EditorGUILayout.EndHorizontal();
+            if (!_collectionCollapsed)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUI.indentLevel--;
+            }
+            
+            if (collections.isExpanded && _collectionCollapsed)
             {
                 EditorGUI.indentLevel++;
                 for (int i = 0; i < collections.arraySize; i++)
