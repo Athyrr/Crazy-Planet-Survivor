@@ -3,18 +3,30 @@ using Unity.Entities;
 
 public class ExplodeOnContactAuthoring : MonoBehaviour
 {
-    public GameObject EffectPrefab;
+    public float Radius = 3.0f;
+    public int Damage = 10;
+    public GameObject VfxPrefab;
+
+    public bool StartEnabled = false;
 
     private class Baker : Baker<ExplodeOnContactAuthoring>
     {
         public override void Bake(ExplodeOnContactAuthoring authoring)
         {
-            var entity = GetEntity(TransformUsageFlags.Dynamic);
+            var entity = GetEntity(TransformUsageFlags.None);
 
-            AddComponent(entity, new ExplodeOnContact()
+            var explodeOnContact = new ExplodeOnContact
             {
-                //  EffectPrefab = authoring.EffectPrefab,
-            });
+                Radius = authoring.Radius,
+                Damage = authoring.Damage,
+                VfxPrefab = GetEntity(authoring.VfxPrefab, TransformUsageFlags.None),
+                TargetLayers = 0
+            };
+
+            AddComponent<ExplodeOnContact>(entity, explodeOnContact);
+            
+            if (!authoring.StartEnabled)
+                SetComponentEnabled<ExplodeOnContact>(entity, false);
         }
     }
 }
@@ -22,9 +34,9 @@ public class ExplodeOnContactAuthoring : MonoBehaviour
 public struct ExplodeOnContact : IComponentData, IEnableableComponent
 {
     public int Damage;
-
     public float Radius;
+    public Entity VfxPrefab;
 
-//    public float KnockbackForce;
-    public Entity EffectPrefab;
+    public uint TargetLayers;
+    //public float KnockbackForce;
 }

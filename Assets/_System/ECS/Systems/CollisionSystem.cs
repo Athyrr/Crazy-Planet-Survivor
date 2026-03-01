@@ -26,6 +26,7 @@ public partial struct CollisionSystem : ISystem
     private BufferLookup<HitEntityMemory> _hitMemoryLookup;
 
     private ComponentLookup<Invincible> _invincibleLookup;
+    private ComponentLookup<ExplodeOnContact> _explodeLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -47,6 +48,7 @@ public partial struct CollisionSystem : ISystem
         _followMovementLookup = state.GetComponentLookup<FollowTargetMovement>(false);
         _hitMemoryLookup = state.GetBufferLookup<HitEntityMemory>(false);
         _invincibleLookup = state.GetComponentLookup<Invincible>(true);
+        _explodeLookup = state.GetComponentLookup<ExplodeOnContact>(true);
     }
 
     [BurstCompile]
@@ -77,7 +79,7 @@ public partial struct CollisionSystem : ISystem
         _followMovementLookup.Update(ref state);
         _hitMemoryLookup.Update(ref state);
         _invincibleLookup.Update(ref state);
-
+        _explodeLookup.Update(ref state);
 
         var triggerJob = new TriggerEventJob
         {
@@ -98,7 +100,8 @@ public partial struct CollisionSystem : ISystem
             RicochetLookup = _ricochetLookup,
             PierceLookup = _pierceLookup,
             HitMemoryLookup = _hitMemoryLookup,
-            InvincibleLookup = _invincibleLookup
+            InvincibleLookup = _invincibleLookup,
+            ExplodeOnContactLookup = _explodeLookup
         };
 
         state.Dependency = triggerJob.Schedule(simulationSingleton, state.Dependency);
@@ -125,6 +128,7 @@ public partial struct CollisionSystem : ISystem
         public ComponentLookup<Pierce> PierceLookup;
         public BufferLookup<HitEntityMemory> HitMemoryLookup;
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
+        [ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeOnContactLookup;
 
         private const double DurationBetweenCollisionHit = 0.3f;
 
@@ -194,6 +198,36 @@ public partial struct CollisionSystem : ISystem
 
                     // Handle cases Ricochet and Piercing before destroying the projectile
 
+                    if (ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
+                        ExplodeOnContactLookup.IsComponentEnabled(damagerEntity))
+                    {
+                        var explosionRequestEntity = ECB.CreateEntity(0);
+                        float3 explosionPos = LocalTransformLookup[damagerEntity].Position;
+
+                        // Retrieve stats from the projectile to pass to the explosion
+                        float crit = 0;
+                        ESpellTag element = ESpellTag.None;
+
+                        if (DamageOnContactLookup.HasComponent(damagerEntity))
+                        {
+                            var d = DamageOnContactLookup[damagerEntity];
+                            crit = d.CritIntensity;
+                            element = d.Element & ESpellTag.Explosive; // Element is Explosive and Spell element 
+                        }
+
+                        ECB.AddComponent(0, explosionRequestEntity, new ExplosionRequest()
+                        {
+                            Position = explosionPos,
+                            Radius = explosion.Radius,
+                            Damage = explosion.Damage,
+                            VfxPrefab = explosion.VfxPrefab,
+                            CritIntensity = crit,
+                            Element = element,
+                            // Target layer hits enemies and Obstacles
+                            TargetLayers = CollisionLayers.Enemy //& CollisionLayers.Obstacle
+                        });
+                    }
+
                     bool shouldDestroy = DestroyOnContactLookup.HasComponent(damagerEntity);
 
                     // Handle Ricochet
@@ -250,9 +284,9 @@ public partial struct CollisionSystem : ISystem
                         {
                             // Decrease remaining pierces
                             pierce.RemainingPierces--;
-                            ECB.SetComponent(0, damagerEntity, pierce); 
+                            ECB.SetComponent(0, damagerEntity, pierce);
                             shouldDestroy = false;
-                            
+
                             // Do not destroy the projectile
                             shouldDestroy = pierce.RemainingPierces <= 0;
                         }

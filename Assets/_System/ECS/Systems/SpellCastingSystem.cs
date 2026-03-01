@@ -39,7 +39,7 @@ public partial struct SpellCastingSystem : ISystem
     // Enableable Components
     private ComponentLookup<Bounce> _ricochetLookup;
     private ComponentLookup<Pierce> _pierceLookup;
-    //private ComponentLookup<ExplodeOnContact> _explodeLookup;
+    private ComponentLookup<ExplodeOnContact> _explodeOnContactLookup;
 
     // Queries
     //private EntityQuery _playerQuery;
@@ -76,7 +76,7 @@ public partial struct SpellCastingSystem : ISystem
         _subSpellsCircleLayoutLookup = SystemAPI.GetComponentLookup<SubSpellsLayout_Circle>(true);
         _ricochetLookup = SystemAPI.GetComponentLookup<Bounce>(true);
         _pierceLookup = SystemAPI.GetComponentLookup<Pierce>(true);
-        //_explodeLookup = SystemAPI.GetComponentLookup<ExplodeOnContact>(true);
+        _explodeOnContactLookup = SystemAPI.GetComponentLookup<ExplodeOnContact>(true);
 
         //_playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
     }
@@ -111,7 +111,7 @@ public partial struct SpellCastingSystem : ISystem
         _subSpellsCircleLayoutLookup.Update(ref state);
         _ricochetLookup.Update(ref state);
         _pierceLookup.Update(ref state);
-        //_explodeLookup.Update(ref state);
+        _explodeOnContactLookup.Update(ref state);
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
@@ -147,9 +147,9 @@ public partial struct SpellCastingSystem : ISystem
             FollowMovementLookup = _followMovementLookup,
             SubSpellsSpawnerLookup = _subSpellsSpawnerLookup,
             SubSpellsCircleLayoutLookup = _subSpellsCircleLayoutLookup,
-            RicochetLookup = _ricochetLookup,
+            BounceLookup = _ricochetLookup,
             PierceLookup = _pierceLookup,
-            //ExplodeLookup = _explodeLookup
+            ExplodeOnContactLookup = _explodeOnContactLookup
         };
 
         state.Dependency = castJob.ScheduleParallel(state.Dependency);
@@ -184,9 +184,9 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
         [ReadOnly] public ComponentLookup<SubSpellsSpawner> SubSpellsSpawnerLookup;
         [ReadOnly] public ComponentLookup<SubSpellsLayout_Circle> SubSpellsCircleLayoutLookup;
-        [ReadOnly] public ComponentLookup<Bounce> RicochetLookup;
+        [ReadOnly] public ComponentLookup<Bounce> BounceLookup;
         [ReadOnly] public ComponentLookup<Pierce> PierceLookup;
-        //[ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeLookup;
+        [ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeOnContactLookup;
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
@@ -212,8 +212,14 @@ public partial struct SpellCastingSystem : ISystem
             }
 
             // Default values (No modifiers)
-            float mulDmg = 1f, mulSpeed = 1f, mulArea = 1f, mulDuration = 1f, mulSize = 1f;
-            int addAmount = 0, addBounces = 0, addPierces = 0;
+            float mulDmg = 1f;
+            float mulSpeed = 1f;
+            float mulArea = 1f;
+            float mulDuration = 1f;
+            float mulSize = 1f;
+            int addAmount = 0;
+            int addBounces = 0;
+            int addPierces = 0;
             ESpellTag addedTags = ESpellTag.None;
 
             // Try to find the ActiveSpell config on the caster (Player only usually)
@@ -268,7 +274,7 @@ public partial struct SpellCastingSystem : ISystem
                 critIntensity = actualMultiplier / finalCritMultiplier;
             }
 
-            float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * mulDmg * actualMultiplier;
+            int finalDamage = (int)((baseSpellData.BaseDamage + stats.Damage) * mulDmg * actualMultiplier);
 
             float finalSpeed = baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) * mulSpeed;
 
@@ -371,6 +377,7 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         targetPosition = casterTransform.Position;
                     }
+
                     break;
             }
 
@@ -388,8 +395,6 @@ public partial struct SpellCastingSystem : ISystem
                     if (math.lengthsq(toTarget) > math.EPSILON)
                     {
                         fireDirection = math.normalize(toTarget);
-                        // baseRotation =
-                        //     quaternion.LookRotationSafe(fireDirection, math.up()); // todo Should use Surface Normal
                         baseRotation = quaternion.LookRotationSafe(fireDirection, surfaceNormal);
                     }
                 }
@@ -569,12 +574,12 @@ public partial struct SpellCastingSystem : ISystem
                     ECB.SetComponent(chunkIndex, spellEntity, col);
                 }
 
-                // ENABLEABLE MECHANICS (Upgrades)
+                // Enableable components (Upgrades)
 
-                // Ricochet
+                // Bounce
                 int totalBounces = baseSpellData.Bounces + stats.BouncesAdded + addBounces;
                 bool forceBounce = (addedTags & ESpellTag.Bouncing) != 0;
-                if ((totalBounces > 0 || forceBounce) && RicochetLookup.HasComponent(spellPrefab))
+                if ((totalBounces > 0 || forceBounce) && BounceLookup.HasComponent(spellPrefab))
                 {
                     ECB.SetComponentEnabled<Bounce>(chunkIndex, spellEntity, true);
                     ECB.SetComponent(chunkIndex, spellEntity, new Bounce
@@ -595,15 +600,19 @@ public partial struct SpellCastingSystem : ISystem
                 }
 
                 // Explosion
-                //bool forceExplode = (addedTags & ESpellTag.Explosive) != 0;
-                //if (forceExplode && ExplodeLookup.HasComponent(spellPrefab))
-                //{
-                //    ECB.SetComponentEnabled<ExplodeOnContact>(chunkIndex, spellEntity, true);
-                //    var exData = ExplodeLookup[spellPrefab];
-                //    exData.Radius *= mulArea; // Scale explosion with area mod
-                //    // @todo add Damage multiplier for explosion 
-                //    ECB.SetComponent(chunkIndex, spellEntity, exData);
-                //}
+                bool forceExplode = ((baseSpellData.Tag | addedTags) & ESpellTag.Explosive) != 0;
+
+                // Explose on contact
+                if (forceExplode && ExplodeOnContactLookup.HasComponent(spellPrefab))
+                {
+                    ECB.SetComponentEnabled<ExplodeOnContact>(chunkIndex, spellEntity, true);
+                    var explosion = ExplodeOnContactLookup[spellPrefab];
+                    explosion.Damage += finalDamage * 2; // Explosion deals 2x damage
+                    explosion.Radius *= mulArea;
+                    ECB.SetComponent(chunkIndex, spellEntity, explosion);
+                }
+
+                //todo Explose on death (later)
             }
 
             ECB.DestroyEntity(chunkIndex, requestEntity);
