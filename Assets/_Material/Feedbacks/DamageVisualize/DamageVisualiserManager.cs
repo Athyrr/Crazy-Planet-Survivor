@@ -106,6 +106,7 @@ public class DamageFeedbackManager : MonoBehaviour
                         (Vector3)requests[i].Transform.Up() * 1.5f * Random.Range(1, 3f),
                         requests[i].IsCritical ? Color.wheat : Color.firebrick
                     );
+                    Debug.Log($"hyv; {requests[i].IsCritical}");
                     entityManager.DestroyEntity(entities[i]);
                 }
                 

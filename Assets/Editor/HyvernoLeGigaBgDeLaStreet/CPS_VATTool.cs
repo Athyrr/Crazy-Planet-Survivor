@@ -4,19 +4,18 @@ using System.IO;
 
 public class FixedVATTool : EditorWindow
 {
-    private const int MAX_TEXTURE_SIZE = 4096;
+    [SerializeField] private AnimationClip _clip;
+    [SerializeField] private GameObject _targetObject;
+    [SerializeField] private SkinnedMeshRenderer _skinnedMeshRenderer;
+    [SerializeField] private float _samplingRate = 60.0f;
+    [SerializeField] private bool _enforcePowerOfTwo = true;
+    [SerializeField] private int _maxTextureSize = 4096;
     
-    [SerializeField] private AnimationClip clip;
-    [SerializeField] private GameObject targetObject;
-    [SerializeField] private SkinnedMeshRenderer skinnedMeshRenderer;
-    [SerializeField] private float samplingRate = 60.0f;
-    [SerializeField] private bool enforcePowerOfTwo = true;
-    
-    private bool hasResults = false;
-    private Texture2D lastGeneratedTexture;
-    private float lastDuration;
-    private Vector3 lastMinBounds;
-    private Vector3 lastMaxBounds;
+    private bool _hasResults = false;
+    private Texture2D _lastGeneratedTexture;
+    private float _lastDuration;
+    private Vector3 _lastMinBounds;
+    private Vector3 _lastMaxBounds;
     
     [MenuItem("Tools/CPS VAT Tool (by brrbrrpatapims)")]
     static void Init()
@@ -48,30 +47,32 @@ public class FixedVATTool : EditorWindow
         EditorGUI.BeginChangeCheck();
         
         // Input fields with validation
-        clip = (AnimationClip)EditorGUILayout.ObjectField("Animation Clip", clip, typeof(AnimationClip), false);
-        targetObject = (GameObject)EditorGUILayout.ObjectField("Animated Object", targetObject, typeof(GameObject), true);
+        _clip = (AnimationClip)EditorGUILayout.ObjectField("Animation Clip", _clip, typeof(AnimationClip), false);
+        _targetObject = (GameObject)EditorGUILayout.ObjectField("Animated Object", _targetObject, typeof(GameObject), true);
         
         // Auto-fill skinned mesh renderer if target object is provided
-        if (targetObject != null && skinnedMeshRenderer == null)
+        if (_targetObject != null && _skinnedMeshRenderer == null)
         {
-            skinnedMeshRenderer = targetObject.GetComponentInChildren<SkinnedMeshRenderer>();
+            _skinnedMeshRenderer = _targetObject.GetComponentInChildren<SkinnedMeshRenderer>();
         }
         
-        skinnedMeshRenderer = (SkinnedMeshRenderer)EditorGUILayout.ObjectField(
-            "Skinned Mesh Renderer", skinnedMeshRenderer, typeof(SkinnedMeshRenderer), true);
+        _skinnedMeshRenderer = (SkinnedMeshRenderer)EditorGUILayout.ObjectField(
+            "Skinned Mesh Renderer", _skinnedMeshRenderer, typeof(SkinnedMeshRenderer), true);
         
         // Validate the skinned mesh renderer belongs to the target object
-        if (skinnedMeshRenderer != null && targetObject != null)
+        if (_skinnedMeshRenderer != null && _targetObject != null)
         {
-            if (!skinnedMeshRenderer.transform.IsChildOf(targetObject.transform) && skinnedMeshRenderer.gameObject != targetObject)
+            if (!_skinnedMeshRenderer.transform.IsChildOf(_targetObject.transform) && _skinnedMeshRenderer.gameObject != _targetObject)
             {
                 EditorGUILayout.HelpBox("Skinned Mesh Renderer does not belong to the target GameObject!", MessageType.Warning);
             }
         }
         
         EditorGUILayout.Space();
-        samplingRate = Mathf.Max(1.0f, EditorGUILayout.FloatField("Sampling Rate (FPS)", samplingRate));
-        enforcePowerOfTwo = EditorGUILayout.Toggle("Enforce Power of Two", enforcePowerOfTwo);
+        _samplingRate = Mathf.Max(1.0f, EditorGUILayout.FloatField("Sampling Rate (FPS)", _samplingRate));
+        _enforcePowerOfTwo = EditorGUILayout.Toggle("Enforce Power of Two", _enforcePowerOfTwo);
+
+        _maxTextureSize = EditorGUILayout.IntField("Max Texture Size (4096 by default)", _maxTextureSize);
         
         EditorGUILayout.Space();
         
@@ -99,7 +100,7 @@ public class FixedVATTool : EditorWindow
         EditorGUILayout.Space(20);
         
         // Results section
-        if (hasResults)
+        if (_hasResults)
         {
             DrawResults();
         }
@@ -107,15 +108,15 @@ public class FixedVATTool : EditorWindow
     
     private bool ValidateInputs()
     {
-        if (clip == null) return false;
-        if (targetObject == null) return false;
-        if (skinnedMeshRenderer == null) return false;
-        if (skinnedMeshRenderer.sharedMesh == null) return false;
-        if (samplingRate <= 0) return false;
+        if (_clip == null) return false;
+        if (_targetObject == null) return false;
+        if (_skinnedMeshRenderer == null) return false;
+        if (_skinnedMeshRenderer.sharedMesh == null) return false;
+        if (_samplingRate <= 0) return false;
         
         // Check if object has necessary components
-        var animator = targetObject.GetComponent<Animator>();
-        var animation = targetObject.GetComponent<Animation>();
+        var animator = _targetObject.GetComponent<Animator>();
+        var animation = _targetObject.GetComponent<Animation>();
         if (animator == null && animation == null)
         {
             return false;
@@ -126,14 +127,14 @@ public class FixedVATTool : EditorWindow
     
     private string GetValidationMessage()
     {
-        if (clip == null) return "Assign an Animation Clip";
-        if (targetObject == null) return "Assign a GameObject";
-        if (skinnedMeshRenderer == null) return "Assign a Skinned Mesh Renderer";
-        if (skinnedMeshRenderer.sharedMesh == null) return "Skinned Mesh has no mesh data";
-        if (samplingRate <= 0) return "Sampling rate must be positive";
+        if (_clip == null) return "Assign an Animation Clip";
+        if (_targetObject == null) return "Assign a GameObject";
+        if (_skinnedMeshRenderer == null) return "Assign a Skinned Mesh Renderer";
+        if (_skinnedMeshRenderer.sharedMesh == null) return "Skinned Mesh has no mesh data";
+        if (_samplingRate <= 0) return "Sampling rate must be positive";
         
-        var animator = targetObject.GetComponent<Animator>();
-        var animation = targetObject.GetComponent<Animation>();
+        var animator = _targetObject.GetComponent<Animator>();
+        var animation = _targetObject.GetComponent<Animation>();
         if (animator == null && animation == null) return "GameObject needs Animator or Animation component";
         
         return "All inputs are valid";
@@ -144,23 +145,23 @@ public class FixedVATTool : EditorWindow
         try
         {
             // Calculate texture dimensions
-            int vertexCount = skinnedMeshRenderer.sharedMesh.vertexCount;
-            int frameCount = Mathf.CeilToInt(clip.length * samplingRate);
+            int vertexCount = _skinnedMeshRenderer.sharedMesh.vertexCount;
+            int frameCount = Mathf.CeilToInt(_clip.length * _samplingRate);
             
             int textureHeight = vertexCount;
             int textureWidth = frameCount;
             
-            if (enforcePowerOfTwo)
+            if (_enforcePowerOfTwo)
             {
                 textureHeight = NextPowerOfTwo(textureHeight);
                 textureWidth = NextPowerOfTwo(textureWidth);
             }
             
             // Validate texture size
-            if (textureWidth > MAX_TEXTURE_SIZE || textureHeight > MAX_TEXTURE_SIZE)
+            if (textureWidth > _maxTextureSize || textureHeight > _maxTextureSize)
             {
                 EditorUtility.DisplayDialog("Error", 
-                    $"Texture size would be {textureWidth}x{textureHeight}, exceeding maximum of {MAX_TEXTURE_SIZE}x{MAX_TEXTURE_SIZE}.\n" +
+                    $"Texture size would be {textureWidth}x{textureHeight}, exceeding maximum of {_maxTextureSize}x{_maxTextureSize}.\n" +
                     "Reduce sampling rate, animation length, or vertex count.", "OK");
                 return;
             }
@@ -207,20 +208,20 @@ public class FixedVATTool : EditorWindow
     private Vector3[] GetRestPoseVertices()
     {
         // Store original transform
-        Vector3 originalPosition = targetObject.transform.position;
-        Quaternion originalRotation = targetObject.transform.rotation;
-        Vector3 originalScale = targetObject.transform.localScale;
+        Vector3 originalPosition = _targetObject.transform.position;
+        Quaternion originalRotation = _targetObject.transform.rotation;
+        Vector3 originalScale = _targetObject.transform.localScale;
         
         try
         {
             // Reset to rest pose
-            targetObject.transform.position = Vector3.zero;
-            targetObject.transform.rotation = Quaternion.identity;
-            targetObject.transform.localScale = Vector3.one;
+            _targetObject.transform.position = Vector3.zero;
+            _targetObject.transform.rotation = Quaternion.identity;
+            _targetObject.transform.localScale = Vector3.one;
             
             // Get vertices in rest pose (world space)
             Mesh bakedMesh = new Mesh();
-            skinnedMeshRenderer.BakeMesh(bakedMesh);
+            _skinnedMeshRenderer.BakeMesh(bakedMesh);
             Vector3[] vertices = bakedMesh.vertices;
             DestroyImmediate(bakedMesh);
             
@@ -229,9 +230,9 @@ public class FixedVATTool : EditorWindow
         finally
         {
             // Restore original transform
-            targetObject.transform.position = originalPosition;
-            targetObject.transform.rotation = originalRotation;
-            targetObject.transform.localScale = originalScale;
+            _targetObject.transform.position = originalPosition;
+            _targetObject.transform.rotation = originalRotation;
+            _targetObject.transform.localScale = originalScale;
         }
     }
     
@@ -240,7 +241,7 @@ public class FixedVATTool : EditorWindow
         minBounds = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
         maxBounds = new Vector3(float.MinValue, float.MinValue, float.MinValue);
         
-        int frameCount = Mathf.CeilToInt(clip.length * samplingRate);
+        int frameCount = Mathf.CeilToInt(_clip.length * _samplingRate);
         Mesh bakedMesh = new Mesh();
         
         // Enable animation mode for safe sampling
@@ -254,13 +255,13 @@ public class FixedVATTool : EditorWindow
                 EditorUtility.DisplayProgressBar("Calculating Bounds", 
                     $"Frame {frame + 1}/{frameCount}", progress * 0.8f + 0.1f);
                 
-                float time = (frame / (float)frameCount) * clip.length;
+                float time = (frame / (float)frameCount) * _clip.length;
                 
                 // Sample animation safely
-                AnimationMode.SampleAnimationClip(targetObject, clip, time);
+                AnimationMode.SampleAnimationClip(_targetObject, _clip, time);
                 
                 // Bake current pose
-                skinnedMeshRenderer.BakeMesh(bakedMesh);
+                _skinnedMeshRenderer.BakeMesh(bakedMesh);
                 Vector3[] currentVertices = bakedMesh.vertices;
                 
                 // Calculate offsets and update bounds
@@ -288,7 +289,7 @@ public class FixedVATTool : EditorWindow
     private void SampleAnimationToTexture(Texture2D texture, Vector3[] restPoseVertices, Vector3 minBounds, Vector3 maxBounds)
     {
         int vertexCount = restPoseVertices.Length;
-        int frameCount = Mathf.CeilToInt(clip.length * samplingRate);
+        int frameCount = Mathf.CeilToInt(_clip.length * _samplingRate);
         Mesh bakedMesh = new Mesh();
         
         AnimationMode.StartAnimationMode();
@@ -301,13 +302,13 @@ public class FixedVATTool : EditorWindow
                 EditorUtility.DisplayProgressBar("Generating Texture", 
                     $"Frame {frame + 1}/{frameCount}", progress * 0.8f + 0.1f);
                 
-                float time = (frame / (float)frameCount) * clip.length;
+                float time = (frame / (float)frameCount) * _clip.length;
                 
                 // Sample animation
-                AnimationMode.SampleAnimationClip(targetObject, clip, time);
+                AnimationMode.SampleAnimationClip(_targetObject, _clip, time);
                 
                 // Bake current pose
-                skinnedMeshRenderer.BakeMesh(bakedMesh);
+                _skinnedMeshRenderer.BakeMesh(bakedMesh);
                 Vector3[] currentVertices = bakedMesh.vertices;
                 
                 // Write vertex offsets to texture
@@ -339,7 +340,7 @@ public class FixedVATTool : EditorWindow
     private void SaveTexture(Texture2D texture, Vector3 minBounds, Vector3 maxBounds)
     {
         // ugly hack prefere regex command (la meme j'ai la flemme, mais tibo va le faire bientot <3)
-        string defaultName = $"VAT_{clip.name.Replace(" ", "_")}_{skinnedMeshRenderer.sharedMesh.name.Replace(" ", "_")}";
+        string defaultName = $"VAT_{_clip.name.Replace(" ", "_")}_{_skinnedMeshRenderer.sharedMesh.name.Replace(" ", "_")}";
         string path = EditorUtility.SaveFilePanelInProject(
             "Save Vertex Animation Texture",
             defaultName,
@@ -376,7 +377,7 @@ public class FixedVATTool : EditorWindow
             importer.filterMode = FilterMode.Bilinear;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             
-            if (enforcePowerOfTwo)
+            if (_enforcePowerOfTwo)
             {
                 importer.npotScale = TextureImporterNPOTScale.ToNearest;
             }
@@ -390,11 +391,11 @@ public class FixedVATTool : EditorWindow
         // Wait for import to complete
         EditorApplication.delayCall += () =>
         {
-            lastGeneratedTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-            lastDuration = clip.length;
-            lastMinBounds = minBounds;
-            lastMaxBounds = maxBounds;
-            hasResults = true;
+            _lastGeneratedTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            _lastDuration = _clip.length;
+            _lastMinBounds = minBounds;
+            _lastMaxBounds = maxBounds;
+            _hasResults = true;
             
             // Create a simple shader helper file with the bounds
             CreateShaderHelperFile(path, defaultName, minBounds, maxBounds);
@@ -402,8 +403,8 @@ public class FixedVATTool : EditorWindow
             EditorUtility.DisplayDialog("Success", 
                 $"Vertex Animation Texture generated successfully!\n\n" +
                 $"Texture: {texture.width}x{texture.height}\n" +
-                $"Frames: {Mathf.CeilToInt(clip.length * samplingRate)}\n" +
-                $"Vertices: {skinnedMeshRenderer.sharedMesh.vertexCount}\n" +
+                $"Frames: {Mathf.CeilToInt(_clip.length * _samplingRate)}\n" +
+                $"Vertices: {_skinnedMeshRenderer.sharedMesh.vertexCount}\n" +
                 $"Bounds: {minBounds} to {maxBounds}", 
                 "OK");
         };
@@ -413,10 +414,10 @@ public class FixedVATTool : EditorWindow
     {
         string shaderPath = texturePath.Replace(".png", "_Data.cs");
         string shaderCode = $@"// Vertex Animation Texture Data
-        // Generated from: {clip.name}
+        // Generated from: {_clip.name}
         // Texture: {Path.GetFileName(texturePath)}
-        // Frame Count: {Mathf.CeilToInt(clip.length * samplingRate)}
-        // Vertex Count: {skinnedMeshRenderer.sharedMesh.vertexCount}
+        // Frame Count: {Mathf.CeilToInt(_clip.length * _samplingRate)}
+        // Vertex Count: {_skinnedMeshRenderer.sharedMesh.vertexCount}
 
         using UnityEngine;
 
@@ -428,9 +429,9 @@ public class FixedVATTool : EditorWindow
             public static readonly Vector3 BoundsSize = MaxBounds - MinBounds;
             
             // Animation data
-            public static readonly float Duration = {clip.length}f;
-            public static readonly float FrameRate = {samplingRate}f;
-            public static readonly int TotalFrames = {Mathf.CeilToInt(clip.length * samplingRate)};
+            public static readonly float Duration = {_clip.length}f;
+            public static readonly float FrameRate = {_samplingRate}f;
+            public static readonly int TotalFrames = {Mathf.CeilToInt(_clip.length * _samplingRate)};
             
             // Shader property IDs (for optimization)
             public static readonly int VATTextureID = Shader.PropertyToID(""_VATTexture"");
@@ -453,23 +454,23 @@ public class FixedVATTool : EditorWindow
         EditorGUILayout.BeginVertical(EditorStyles.helpBox);
         
         EditorGUILayout.LabelField("Generated Texture:", EditorStyles.boldLabel);
-        EditorGUILayout.ObjectField(lastGeneratedTexture, typeof(Texture2D), false);
+        EditorGUILayout.ObjectField(_lastGeneratedTexture, typeof(Texture2D), false);
         
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Animation Data:", EditorStyles.boldLabel);
-        EditorGUILayout.LabelField($"Duration: {lastDuration:F2} seconds");
-        EditorGUILayout.LabelField($"Sampling Rate: {samplingRate} FPS");
-        EditorGUILayout.LabelField($"Total Frames: {Mathf.CeilToInt(lastDuration * samplingRate)}");
+        EditorGUILayout.LabelField($"Duration: {_lastDuration:F2} seconds");
+        EditorGUILayout.LabelField($"Sampling Rate: {_samplingRate} FPS");
+        EditorGUILayout.LabelField($"Total Frames: {Mathf.CeilToInt(_lastDuration * _samplingRate)}");
         
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Vertex Offset Bounds:", EditorStyles.boldLabel);
-        EditorGUILayout.Vector3Field("Minimum", lastMinBounds);
-        EditorGUILayout.Vector3Field("Maximum", lastMaxBounds);
+        EditorGUILayout.Vector3Field("Minimum", _lastMinBounds);
+        EditorGUILayout.Vector3Field("Maximum", _lastMaxBounds);
         
         EditorGUILayout.Space();
         if (GUILayout.Button("Copy Bounds to Clipboard"))
         {
-            string boundsData = $"Min: {lastMinBounds}\nMax: {lastMaxBounds}";
+            string boundsData = $"Min: {_lastMinBounds}\nMax: {_lastMaxBounds}";
             EditorGUIUtility.systemCopyBuffer = boundsData;
             Debug.Log("Bounds copied to clipboard");
         }
