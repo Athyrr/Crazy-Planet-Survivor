@@ -211,7 +211,6 @@ public partial struct CollisionSystem : ISystem
                         if (DamageOnContactLookup.HasComponent(damagerEntity))
                         {
                             var d = DamageOnContactLookup[damagerEntity];
-                            crit = d.CritIntensity;
                             element = d.Element & ESpellTag.Explosive; // Element is Explosive and Spell element 
                         }
 

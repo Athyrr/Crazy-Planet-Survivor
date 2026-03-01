@@ -88,7 +88,7 @@ public partial struct ExplosionSystem : ISystem
                     {
                         Damage = explosion.Damage,
                         Element = explosion.Element,
-                        CritIntensity = explosion.CritIntensity
+                        IsCritical = false //todo add crit for explosions 
                     });
 
                     // todo apply Knockback if needed

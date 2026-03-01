@@ -199,12 +199,6 @@ public partial struct SpellCastingSystem : ISystem
             ref readonly var baseSpellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
             var spellPrefab = MainSpellPrefabs[request.DatabaseIndex].Prefab;
 
-            //if (baseSpellData.BaseCooldown <= 0)
-            //{
-            //    ECB.DestroyEntity(chunkIndex, requestEntity);
-            //    return;
-            //}
-
             if (spellPrefab == Entity.Null && baseSpellData.ChildPrefabIndex == -1)
             {
                 ECB.DestroyEntity(chunkIndex, requestEntity);
@@ -252,17 +246,15 @@ public partial struct SpellCastingSystem : ISystem
             var stats = StatsLookup[request.Caster];
             var random = Random.CreateFromIndex(Seed);
 
-            // Crit Logic
+            // todo create crit logic on CollisionSystem not here
+            // Crit Logic 
             float finalCritChance = stats.CritChance + bonusSpellCritChance;
             float finalCritMultiplier = math.max(1f, stats.CritMultiplier + bonusSpellCritMultiplier);
-            bool isCrit = random.NextFloat(0f, 1f) < finalCritChance;
-
+            bool isCrit = random.NextFloat(0f, 1f) <= finalCritChance;
             float criticalDamages = 1f;
-
             if (isCrit)
-            {
                 criticalDamages = math.max(1.0f, finalCritMultiplier);
-            }
+
 
             int finalDamage = (int)((baseSpellData.BaseDamage + stats.Damage) * mulDmg * criticalDamages);
 
@@ -490,7 +482,7 @@ public partial struct SpellCastingSystem : ISystem
                         Damage = finalDamage,
                         Element = baseSpellData.Tag | addedTags,
                         AreaRadius = finalArea,
-                      });
+                    });
                 }
 
                 if (DamageOnTickLookup.HasComponent(spellPrefab))
