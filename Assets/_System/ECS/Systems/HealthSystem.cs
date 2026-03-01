@@ -3,6 +3,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine;
 
 /// <summary>
 /// Processes incoming damage from the <see cref="DamageBufferElement"/>, applying elemental
@@ -100,14 +101,12 @@ public partial struct HealthSystem : ISystem
             var isPlayer = PlayerLookup.HasComponent(entity);
 
             float totalDamage = 0;
-            float maxCritIntensity = 0f;
             // Process every damage instance stored in the buffer this frame
             for (int i = 0; i < damageBuffer.Length; i++)
             {
                 var dbe = damageBuffer[i];
                 float damage = dbe.Damage;
                 ESpellTag element = dbe.Element;
-                maxCritIntensity = math.max(maxCritIntensity, dbe.CritIntensity);
 
                 // Apply Elemental resistance reduction
                 switch (element)
@@ -189,7 +188,7 @@ public partial struct HealthSystem : ISystem
             EntityCommandBuffer.ParallelWriter ecb,
             int amount,
             LocalTransform transform,
-            float critIntensity
+            bool critIntensity
         )
         {
             Entity req = ecb.CreateEntity(key);
@@ -200,7 +199,7 @@ public partial struct HealthSystem : ISystem
                 {
                     Amount = amount,
                     Transform = transform,
-                    CritIntensity = critIntensity,
+                    IsCritical = critIntensity,
                 }
             );
         }

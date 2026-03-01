@@ -186,7 +186,7 @@ public partial struct CollisionSystem : ISystem
                         {
                             Damage = damageData.Damage,
                             Element = damageData.Element,
-                            CritIntensity = damageData.CritIntensity
+                            IsCritical = damageData.IsCritical
                         });
 
                         ApplyFeedbacks(target);
