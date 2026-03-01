@@ -3,6 +3,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine;
 
 /// <summary>
 /// Processes incoming damage from the <see cref="DamageBufferElement"/>, applying elemental
@@ -100,14 +101,13 @@ public partial struct HealthSystem : ISystem
             var isPlayer = PlayerLookup.HasComponent(entity);
 
             float totalDamage = 0;
-            float maxCritIntensity = 0f;
+            bool isCritical = false;
             // Process every damage instance stored in the buffer this frame
             for (int i = 0; i < damageBuffer.Length; i++)
             {
                 var dbe = damageBuffer[i];
                 float damage = dbe.Damage;
                 ESpellTag element = dbe.Element;
-                maxCritIntensity = math.max(maxCritIntensity, dbe.CritIntensity);
 
                 // Apply Elemental resistance reduction
                 switch (element)
@@ -143,6 +143,7 @@ public partial struct HealthSystem : ISystem
                 damage = math.max(0, damage);
 
                 totalDamage += damage;
+                isCritical = dbe.IsCritical;
             }
 
             // Apply the accumulated damage to the health component
@@ -154,7 +155,7 @@ public partial struct HealthSystem : ISystem
             if (!isPlayer)
             {
                 var transform = TransformLookup[entity];
-                TriggerDamageVisual(index, ECB, (int)totalDamage, transform, maxCritIntensity);
+                TriggerDamageVisual(index, ECB, (int)totalDamage, transform, isCritical);
             }
 
             // Check for death condition
@@ -189,7 +190,7 @@ public partial struct HealthSystem : ISystem
             EntityCommandBuffer.ParallelWriter ecb,
             int amount,
             LocalTransform transform,
-            float critIntensity
+            bool critIntensity
         )
         {
             Entity req = ecb.CreateEntity(key);
@@ -200,7 +201,7 @@ public partial struct HealthSystem : ISystem
                 {
                     Amount = amount,
                     Transform = transform,
-                    CritIntensity = critIntensity,
+                    IsCritical = critIntensity,
                 }
             );
         }

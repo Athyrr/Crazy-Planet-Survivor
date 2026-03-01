@@ -100,12 +100,11 @@ public class DamageFeedbackManager : MonoBehaviour
 
                 for (int i = 0; i < entities.Length; i++)
                 {
-                    // todo change color lerp give me max value;
                     AddDamage(
                         requests[i].Amount,
                         (Vector3)requests[i].Transform.Position +
                         (Vector3)requests[i].Transform.Up() * 1.5f * Random.Range(1, 3f),
-                        Color.Lerp(Color.wheat, Color.firebrick, math.clamp(requests[i].CritIntensity, 0f, 1f))
+                        requests[i].IsCritical ? Color.wheat : Color.firebrick
                     );
                     entityManager.DestroyEntity(entities[i]);
                 }

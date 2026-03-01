@@ -212,14 +212,8 @@ public partial struct SpellCastingSystem : ISystem
             }
 
             // Default values (No modifiers)
-            float mulDmg = 1f;
-            float mulSpeed = 1f;
-            float mulArea = 1f;
-            float mulDuration = 1f;
-            float mulSize = 1f;
-            int addAmount = 0;
-            int addBounces = 0;
-            int addPierces = 0;
+            float mulDmg = 1f, mulSpeed = 1f, mulArea = 1f, mulDuration = 1f, mulSize = 1f;
+            int addAmount = 0, addBounces = 0, addPierces = 0;
             ESpellTag addedTags = ESpellTag.None;
 
             // Try to find the ActiveSpell config on the caster (Player only usually)
@@ -263,18 +257,14 @@ public partial struct SpellCastingSystem : ISystem
             float finalCritMultiplier = math.max(1f, stats.CritMultiplier + bonusSpellCritMultiplier);
             bool isCrit = random.NextFloat(0f, 1f) < finalCritChance;
 
-            float critIntensity = 0f;
-            float actualMultiplier = 1f;
+            float criticalDamages = 1f;
 
             if (isCrit)
             {
-                // Random variance +/- 25%
-                float variance = random.NextFloat(0.75f, 1.25f);
-                actualMultiplier = math.max(1.0f, finalCritMultiplier * variance);
-                critIntensity = actualMultiplier / finalCritMultiplier;
+                criticalDamages = math.max(1.0f, finalCritMultiplier);
             }
 
-            int finalDamage = (int)((baseSpellData.BaseDamage + stats.Damage) * mulDmg * actualMultiplier);
+            int finalDamage = (int)((baseSpellData.BaseDamage + stats.Damage) * mulDmg * criticalDamages);
 
             float finalSpeed = baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) * mulSpeed;
 
@@ -500,8 +490,7 @@ public partial struct SpellCastingSystem : ISystem
                         Damage = finalDamage,
                         Element = baseSpellData.Tag | addedTags,
                         AreaRadius = finalArea,
-                        CritIntensity = critIntensity
-                    });
+                      });
                 }
 
                 if (DamageOnTickLookup.HasComponent(spellPrefab))
@@ -510,10 +499,9 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         Caster = request.Caster,
                         TickRate = baseSpellData.TickRate, // Could have TickRateMultiplier too
-                        DamagePerTick = (baseSpellData.BaseDamagePerTick + stats.Damage) * mulDmg * actualMultiplier,
+                        DamagePerTick = (baseSpellData.BaseDamagePerTick + stats.Damage) * mulDmg * criticalDamages,
                         AreaRadius = finalArea,
                         Element = baseSpellData.Tag | addedTags,
-                        CritIntensity = critIntensity
                     });
                 }
 
