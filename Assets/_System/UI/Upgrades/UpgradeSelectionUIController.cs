@@ -114,7 +114,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
         List<Transform> cardsTransforms = new List<Transform>();
 
         // Spawn
-        for (int i = 0; i < selection.Length; i++)
+        for (int i = 0; i < selection.Length; i++) // 3 cards
         {
             int dbIndex = selection[i].DatabaseIndex;
             if (dbIndex < 0 || dbIndex >= upgradesDatabase.Length)
@@ -158,7 +158,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
             float normalizedPos = count > 1 ? (float)i / (count - 1) : 0.5f;
 
             // Calcul Arc
-            float xSym = (normalizedPos - 0.5f) * 2f; // -1 � 1
+            float xSym = (normalizedPos - 0.5f) * 2f; // -1 : 1
             float yPos = -Mathf.Abs(xSym) * ArcHeight;
 
             // Calcul Rotation
@@ -191,11 +191,14 @@ public class UpgradeSelectionUIController : MonoBehaviour
             float t = elapsed / PopDuration;
             float scaleValue = PopCurve.Evaluate(t);
 
-            if (target != null) target.localScale = finalScale * scaleValue;
+            if (target != null)
+                target.localScale = finalScale * scaleValue;
+
             yield return null;
         }
 
-        if (target != null) target.localScale = finalScale;
+        if (target != null)
+            target.localScale = finalScale;
     }
 
     public void OnUpgradeSelected(int databaseIndex)

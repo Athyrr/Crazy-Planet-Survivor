@@ -29,7 +29,7 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Player.Move.performed += HandleMoveInput;
         _gameInputs.Player.Move.canceled += HandleMoveInput;
         _gameInputs.Player.Pause.started += HandlePauseInput;
-        _gameInputs.Player.Interact.started += HandleInteractInput;
+        _gameInputs.Player.Interact.canceled += HandleInteractInput;
 
         _gameInputs.Enable();
     }
@@ -39,7 +39,7 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Player.Move.performed -= HandleMoveInput;
         _gameInputs.Player.Move.canceled -= HandleMoveInput;
         _gameInputs.Player.Pause.started -= HandlePauseInput;
-        _gameInputs.Player.Interact.started -= HandleInteractInput;
+        _gameInputs.Player.Interact.canceled -= HandleInteractInput;
        
         _gameInputs.Disable();
     }
@@ -82,7 +82,7 @@ public class PlayerController : MonoBehaviour
 
     private void HandleInteractInput(CallbackContext ctx)
     {
-        if (ctx.started)
+        if (ctx.canceled)
             _isInteractPressed = true;
     }
 

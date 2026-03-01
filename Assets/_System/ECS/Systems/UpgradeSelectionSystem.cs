@@ -121,6 +121,7 @@ public partial struct UpgradeSelectionSystem : ISystem
                 candiates.RemoveAtSwapBack(indexInList);
             }
 
+            // todo remove debug in burst
             UnityEngine.Debug.LogWarning("Candidates length: " + candiates.Length);
 
             // Add display upgrades flag 

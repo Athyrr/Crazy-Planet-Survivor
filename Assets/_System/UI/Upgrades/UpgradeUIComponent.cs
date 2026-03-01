@@ -1,36 +1,45 @@
 using UnityEngine;
 using TMPro;
 using System;
+using System.Numerics;
+using Vector3 = UnityEngine.Vector3;
 
 public class UpgradeUIComponent : MonoBehaviour
 {
-    [Header("Data")]
-    public int DbIndex { get; private set; }
-
-    [Header("3D Visuals")]
-    public Transform VisualRoot;
-    public SpriteRenderer Icon;
+    [Header("3D Visuals")] public SpriteRenderer Icon;
     public TextMeshPro TitleText;
     public TextMeshPro DescriptionText;
     public TextMeshPro StatLabelText;
     public TextMeshPro StatValueText;
     public TextMeshPro UpgradeTypeText;
 
-    [Header("Hover Feedback")]
-    public float HoverScale = 1.15f;
+    [Header("Hover")] public float HoverScale = 1.15f;
     public float SmoothSpeed = 15f;
 
-    private bool _isHovered;
+    [Header("Floating")] public float FloatingSpeed;
+    public float FloatingAmplitude;
 
-    private void Awake()
+    private bool _isHovered;
+    private int _dbIndex;
+
+    private Vector3 _intialPosition;
+    private Vector3 _intialScale;
+
+    public int DbIndex => _dbIndex;
+    private Transform _visualRoot;
+
+    private void Start()
     {
-        if (VisualRoot == null)
-            VisualRoot = transform;
+        if (_visualRoot == null)
+            _visualRoot = transform;
+
+        _intialPosition = transform.localPosition;
+        _intialScale = transform.localScale;
     }
 
     public void SetData(ref UpgradeBlob upgradeData, int dbIndex)
     {
-        DbIndex = dbIndex;
+        _dbIndex = dbIndex;
 
         if (TitleText)
             TitleText.text = GetTitle(ref upgradeData);
@@ -38,10 +47,8 @@ public class UpgradeUIComponent : MonoBehaviour
         if (DescriptionText)
             DescriptionText.text = upgradeData.Description.ToString();
 
-
         RefreshUpgradeType(ref upgradeData);
         RefreshStatsDetails(ref upgradeData);
-
         RefreshColors(ref upgradeData);
     }
 
@@ -62,7 +69,6 @@ public class UpgradeUIComponent : MonoBehaviour
             case EUpgradeType.UpgradeSpell:
                 text = "Spell Upgrade";
                 break;
-
         }
 
         UpgradeTypeText.text = text;
@@ -74,7 +80,7 @@ public class UpgradeUIComponent : MonoBehaviour
         switch (data.UpgradeType)
         {
             case EUpgradeType.Stat:
-                if (StatLabelText) 
+                if (StatLabelText)
                     StatLabelText.text = data.CharacterStat.ToString();
 
                 if (StatValueText)
@@ -84,10 +90,11 @@ public class UpgradeUIComponent : MonoBehaviour
                         : $"+{(data.Value * 100 - 100):F0}%";
                     StatValueText.text = $"<color=green>{val}</color>";
                 }
+
                 break;
 
             case EUpgradeType.UnlockSpell:
-                if (StatLabelText) 
+                if (StatLabelText)
                     StatLabelText.text = string.Empty;
 
                 if (StatValueText)
@@ -97,7 +104,7 @@ public class UpgradeUIComponent : MonoBehaviour
             case EUpgradeType.UpgradeSpell:
                 string targetName = data.SpellID != ESpellID.None ? data.SpellID.ToString() : data.SpellTags.ToString();
 
-                if (StatLabelText) 
+                if (StatLabelText)
                     StatLabelText.text = $"{targetName} {data.SpellStat}";
 
                 if (StatValueText)
@@ -105,6 +112,7 @@ public class UpgradeUIComponent : MonoBehaviour
                     bool isPercentage = IsSpellStatPercentage(data.SpellStat);
                     StatValueText.text = $"<color=green>{FormatSpellValue(data.Value, isPercentage)}</color>";
                 }
+
                 break;
         }
     }
@@ -161,9 +169,23 @@ public class UpgradeUIComponent : MonoBehaviour
             case ESpellStat.Amount:
             case ESpellStat.BounceCount:
             case ESpellStat.PierceCount:
-                return false; 
+                return false;
             default:
-                return true;  
+                return true;
         }
+    }
+
+    private void Update()
+    {
+        Vector3 targetPosition = _intialPosition;
+        Vector3 targetScale = _intialScale;
+
+        if (_isHovered)
+        {
+            float yOffset = Mathf.Sin(Time.time * FloatingSpeed) * FloatingAmplitude;
+            targetPosition.y += yOffset;
+        }
+
+        transform.localPosition = Vector3.Lerp(transform.localPosition, targetPosition, Time.deltaTime * FloatingSpeed);
     }
 }
