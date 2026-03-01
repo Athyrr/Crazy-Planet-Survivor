@@ -1,0 +1,532 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!181963792 &2655988077585873504
+Preset:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ExampleSpwaner
+  m_TargetType:
+    m_NativeTypeID: 114
+    m_ManagedTypePPtr: {fileID: 11500000, guid: f95afcbbc4bb6e347b8fec784ae02fa9, type: 3}
+    m_ManagedTypeFallback: 
+  m_Properties:
+  - target: {fileID: 0}
+    propertyPath: m_Enabled
+    value: 1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: m_EditorHideFlags
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: m_EditorClassIdentifier
+    value: Assembly-CSharp::SpawnerAuthoring
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: MaxEnemies
+    value: 1000
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.size
+    value: 7
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Name
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Duration
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].KillPercentageToAdvance
+    value: 1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.size
+    value: 2
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[0].Mode
+    value: 3
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[0].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[0].Amount
+    value: 800
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[0].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[0].Delay
+    value: 0.2
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[0].MinRange
+    value: 10
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[0].MaxRange
+    value: 150
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[1].Mode
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[1].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[1].Amount
+    value: 200
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[1].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[1].Delay
+    value: 0.2
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[1].MinRange
+    value: 20
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[0].Groups.Array.data[1].MaxRange
+    value: 80
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[1].Name
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[1].Duration
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[1].KillPercentageToAdvance
+    value: 1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[1].Groups.Array.size
+    value: 1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[1].Groups.Array.data[0].Mode
+    value: 3
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[1].Groups.Array.data[0].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: e365daea1873ad948a8ba513adf1bd9e, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[1].Groups.Array.data[0].Amount
+    value: 500
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[1].Groups.Array.data[0].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[1].Groups.Array.data[0].Delay
+    value: 1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[1].Groups.Array.data[0].MinRange
+    value: 10
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[1].Groups.Array.data[0].MaxRange
+    value: 363
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Name
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Duration
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].KillPercentageToAdvance
+    value: 0.8
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.size
+    value: 2
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[0].Mode
+    value: 3
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[0].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[0].Amount
+    value: 500
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[0].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[0].Delay
+    value: 0.1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[0].MinRange
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[0].MaxRange
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[1].Mode
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[1].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[1].Amount
+    value: 100
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[1].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[1].Delay
+    value: 0.5
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[1].MinRange
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[2].Groups.Array.data[1].MaxRange
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Name
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Duration
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].KillPercentageToAdvance
+    value: 0.8
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.size
+    value: 2
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[0].Mode
+    value: 3
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[0].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[0].Amount
+    value: 500
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[0].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[0].Delay
+    value: 0.1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[0].MinRange
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[0].MaxRange
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[1].Mode
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[1].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[1].Amount
+    value: 100
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[1].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[1].Delay
+    value: 0.5
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[1].MinRange
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[3].Groups.Array.data[1].MaxRange
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Name
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Duration
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].KillPercentageToAdvance
+    value: 0.8
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.size
+    value: 2
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[0].Mode
+    value: 3
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[0].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[0].Amount
+    value: 500
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[0].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[0].Delay
+    value: 0.1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[0].MinRange
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[0].MaxRange
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[1].Mode
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[1].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[1].Amount
+    value: 100
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[1].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[1].Delay
+    value: 0.5
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[1].MinRange
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[4].Groups.Array.data[1].MaxRange
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Name
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Duration
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].KillPercentageToAdvance
+    value: 0.8
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.size
+    value: 2
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[0].Mode
+    value: 3
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[0].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[0].Amount
+    value: 500
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[0].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[0].Delay
+    value: 0.1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[0].MinRange
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[0].MaxRange
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[1].Mode
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[1].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[1].Amount
+    value: 100
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[1].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[1].Delay
+    value: 0.5
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[1].MinRange
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[5].Groups.Array.data[1].MaxRange
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Name
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Duration
+    value: 360
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].KillPercentageToAdvance
+    value: 0.9
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.size
+    value: 2
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[0].Mode
+    value: 3
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[0].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: fff0d156dd609d743b899c15bb4e6043, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[0].Amount
+    value: 500
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[0].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[0].Delay
+    value: 0.1
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[0].MinRange
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[0].MaxRange
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[1].Mode
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[1].Prefab
+    value: 
+    objectReference: {fileID: 4960229139857780973, guid: 8ecf4b12c36e9bc49a10b3c57c23c1c0, type: 3}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[1].Amount
+    value: 100
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[1].ZoneTransform
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[1].Delay
+    value: 0.5
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[1].MinRange
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: Waves.Array.data[6].Groups.Array.data[1].MaxRange
+    value: 30
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: ShowDebugGizmos
+    value: 0
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: DebugPlanetCenter
+    value: 
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: DebugPlanetRadius
+    value: 50
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: DebugPlayer
+    value: 
+    objectReference: {fileID: 0}
+  m_ExcludedProperties: []
+  m_CoupledType:
+    m_NativeTypeID: 0
+    m_ManagedTypePPtr: {fileID: 0}
+    m_ManagedTypeFallback: 
+  m_CoupledProperties: []
