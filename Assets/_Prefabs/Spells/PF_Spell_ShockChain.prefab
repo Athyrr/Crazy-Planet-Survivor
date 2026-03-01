@@ -24323,9 +24323,9 @@ GameObject:
   - component: {fileID: -351018580379759644}
   - component: {fileID: 5082841427911279282}
   - component: {fileID: -6768202641293891050}
-  - component: {fileID: -4098937225601032502}
   - component: {fileID: -3046622321105270786}
   - component: {fileID: 2248150641823454588}
+  - component: {fileID: 3265751959081834841}
   m_Layer: 0
   m_Name: PF_Spell_ShockChain
   m_TagString: Untagged
@@ -26912,19 +26912,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LinearMovementAuthoring
   _enabledOnInit: 1
   _hardSnapOnSurface: 1
---- !u!114 &-4098937225601032502
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8913368109206024948}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0f7224bfb810394aa9bf9bce3a86808, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FollowMovementAuthoring
-  EnabledOnInit: 0
 --- !u!114 &-3046622321105270786
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26937,7 +26924,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2268193949dea0248bc200c261edadd0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RicochetAuthoring
-  StartEnabled: 0
 --- !u!114 &2248150641823454588
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26950,3 +26936,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5640ef44bda7e8e458075717de2dfbe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageOnContactAuthoring
+--- !u!114 &3265751959081834841
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8913368109206024948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 622f06a16c0617b4699cdaf3f81b31ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ExplodeOnContactAuthoring
+  Radius: 3
+  Damage: 10
+  VfxPrefab: {fileID: 6340610747241723204, guid: dd6564044a4c8cb4d87badf40a9d1942, type: 3}
+  StartEnabled: 0

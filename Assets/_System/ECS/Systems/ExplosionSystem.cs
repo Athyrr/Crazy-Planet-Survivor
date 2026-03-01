@@ -24,7 +24,7 @@ public partial struct ExplosionSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        if (!SystemAPI.TryGetSingleton<GameState>(out GameState gameState))
+        if (!SystemAPI.TryGetSingleton(out GameState gameState))
             return;
 
         if (gameState.State != EGameState.Running)

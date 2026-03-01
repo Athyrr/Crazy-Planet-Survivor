@@ -337,7 +337,10 @@ public partial struct EntitiesMovementSystem : ISystem
         public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
         {
             if (movement.Target == Entity.Null || !TransformLookup.HasComponent(movement.Target))
+            {
+                // ecb.DestroyEntity(entity);
                 return;
+            }
 
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
             float3 targetPosition = TransformLookup[movement.Target].Position;

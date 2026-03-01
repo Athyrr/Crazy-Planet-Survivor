@@ -239,10 +239,9 @@ public partial struct CollisionSystem : ISystem
                                     out float3 newDirection))
                             {
                                 if (LinearMovementLookup.IsComponentEnabled(damagerEntity))
-                                {
                                     ECB.SetComponentEnabled<LinearMovement>(0, damagerEntity, false);
-                                    ECB.SetComponentEnabled<FollowTargetMovement>(0, damagerEntity, true);
-                                }
+
+                                ECB.SetComponentEnabled<FollowTargetMovement>(0, damagerEntity, true);
 
                                 // Update projectile movement target
                                 ECB.SetComponent(0, damagerEntity, new FollowTargetMovement

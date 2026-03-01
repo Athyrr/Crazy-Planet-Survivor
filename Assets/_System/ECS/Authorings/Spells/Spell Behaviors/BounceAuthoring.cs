@@ -3,8 +3,6 @@ using UnityEngine;
 
 public class BounceAuthoring : MonoBehaviour
 {
-    public bool StartEnabled = false;
-    
     class Baker : Baker<BounceAuthoring>
     {
         public override void Bake(BounceAuthoring authoring)
@@ -12,8 +10,14 @@ public class BounceAuthoring : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
             AddComponent<Bounce>(entity);
-            
-            // todo add bounce if not added
+
+            AddComponent(entity, new FollowTargetMovement
+            {
+                Target = Entity.Null,
+                Speed = 0
+            });
+
+            SetComponentEnabled<FollowTargetMovement>(entity, false);
         }
     }
 }
