@@ -371,7 +371,6 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         targetPosition = casterTransform.Position;
                     }
-
                     break;
             }
 

@@ -4948,14 +4948,14 @@ ParticleSystem:
   m_GameObject: {fileID: 3969636829653424066}
   serializedVersion: 8
   lengthInSec: 5
-  simulationSpeed: 2
+  simulationSpeed: 2.5
   stopAction: 0
   cullingMode: 0
   ringBufferMode: 0
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 0
   looping: 1
-  prewarm: 1
+  prewarm: 0
   playOnAwake: 1
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -5193,7 +5193,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.3
+      scalar: 0.15
       minScalar: 0.1
       maxCurve:
         serializedVersion: 2
@@ -9803,7 +9803,7 @@ ParticleSystemRenderer:
   m_MeshDistribution: 0
   m_SortMode: 0
   m_MinParticleSize: 0
-  m_MaxParticleSize: 1000
+  m_MaxParticleSize: 500
   m_CameraVelocityScale: 0
   m_VelocityScale: 0
   m_LengthScale: 2
@@ -30101,8 +30101,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.7
-      minScalar: 0.2
+      scalar: 0.1
+      minScalar: 0.05
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -30418,7 +30418,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 1000
+    maxNumParticles: 150
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -39870,7 +39870,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &6590269614296392517
 Transform:
   m_ObjectHideFlags: 0
@@ -40848,8 +40848,8 @@ ParticleSystem:
           inWeight: 0
           outWeight: 0
         - serializedVersion: 3
-          time: 0.36932373
-          value: 0.6029968
+          time: 0.34863403
+          value: 0.2814136
           inSlope: 0.19059317
           outSlope: 0.19059317
           tangentMode: 0
@@ -40858,7 +40858,7 @@ ParticleSystem:
           outWeight: 0.21810319
         - serializedVersion: 3
           time: 1
-          value: 1
+          value: 0.82683986
           inSlope: 1.9699141
           outSlope: 1.9699141
           tangentMode: 0
@@ -40872,8 +40872,8 @@ ParticleSystem:
         serializedVersion: 2
         m_Curve:
         - serializedVersion: 3
-          time: 0
-          value: 0.11235894
+          time: 0.003829956
+          value: 0
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -40881,8 +40881,8 @@ ParticleSystem:
           inWeight: 0.33333334
           outWeight: 0.33333334
         - serializedVersion: 3
-          time: 0.06286837
-          value: 0.3146061
+          time: 0.06669833
+          value: 0.13031045
           inSlope: 1.5972348
           outSlope: 1.5972348
           tangentMode: 0
@@ -40890,8 +40890,8 @@ ParticleSystem:
           inWeight: 0.33333334
           outWeight: 0.19072162
         - serializedVersion: 3
-          time: 0.44400787
-          value: 0.7265911
+          time: 0.42331818
+          value: 0.4050079
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -40900,7 +40900,7 @@ ParticleSystem:
           outWeight: 0.33333334
         - serializedVersion: 3
           time: 1
-          value: 1
+          value: 0.82561344
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -44704,7 +44704,7 @@ ParticleSystemRenderer:
   m_MaxParticleSize: 10000
   m_CameraVelocityScale: 0
   m_VelocityScale: 0
-  m_LengthScale: 2
+  m_LengthScale: 0.5
   m_SortingFudge: 1
   m_NormalDirection: 1
   m_ShadowBias: 0
@@ -45014,8 +45014,8 @@ ParticleSystem:
         m_NumAlphaKeys: 2
     startSize:
       serializedVersion: 2
-      minMaxState: 3
-      scalar: 0.2
+      minMaxState: 0
+      scalar: 0.02
       minScalar: 0.05
       maxCurve:
         serializedVersion: 2
@@ -45067,7 +45067,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeY:
       serializedVersion: 2
-      minMaxState: 3
+      minMaxState: 0
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -45120,7 +45120,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeZ:
       serializedVersion: 2
-      minMaxState: 3
+      minMaxState: 0
       scalar: 1
       minScalar: 1
       maxCurve:

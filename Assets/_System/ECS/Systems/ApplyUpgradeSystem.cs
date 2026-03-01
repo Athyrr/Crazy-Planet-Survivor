@@ -172,8 +172,8 @@ public partial struct ApplyUpgradeSystem : ISystem
             if (DamageLookup.HasComponent(parentEntity))
             {
                 var dmg = DamageLookup[parentEntity];
-                dmg.Damage = finalDamage; 
-                dmg.AreaRadius = finalArea; 
+                dmg.Damage = finalDamage;
+                dmg.AreaRadius = finalArea;
                 ECB.SetComponent(index, parentEntity, dmg);
 
                 if (ChildLookup.HasBuffer(parentEntity))
@@ -293,13 +293,20 @@ public partial struct ApplyUpgradeSystem : ISystem
                             bool matchTag = upgradeData.SpellID == ESpellID.None &&
                                             (baseData.Tag & upgradeData.SpellTags) > 0;
 
+                            // todo if spell id not null -> Required tags in field are added to the spell tags
+
+                            ESpellTag newTags = ESpellTag.None;
+                            if (matchID && upgradeData.SpellTags > 0)
+                                newTags = upgradeData.SpellTags;
+
                             if (matchID || matchTag)
                             {
-                                ApplyModification(ref activeSpell, ref upgradeData);
+                                ApplyModification(ref activeSpell, ref upgradeData, newTags);
                                 activeSpellsBuffer[i] = activeSpell;
                             }
                         }
                     }
+
                     break;
 
                 default:
@@ -313,7 +320,8 @@ public partial struct ApplyUpgradeSystem : ISystem
             ECB.DestroyEntity(chunkIndex, requestEntity);
         }
 
-        private void ApplyModification(ref ActiveSpell spell, ref UpgradeBlob upgrade)
+        private void ApplyModification(ref ActiveSpell spell, ref UpgradeBlob upgrade,
+            ESpellTag newTags = ESpellTag.None)
         {
             switch (upgrade.SpellStat)
             {
@@ -342,7 +350,6 @@ public partial struct ApplyUpgradeSystem : ISystem
                     break;
 
                 case ESpellStat.Amount:
-                    //@todo check for ChildEntitiesSpawner and set dirty and set DesiredChildrenCount +Value
                     spell.BonusAmount += (int)upgrade.Value;
                     break;
 
@@ -370,9 +377,15 @@ public partial struct ApplyUpgradeSystem : ISystem
                     spell.SizeMultiplier *= upgrade.Value;
                     break;
 
-
                 default:
                     break;
+            }
+
+            // Handle new tags
+            if (newTags != ESpellTag.None)
+            {
+                var tags = spell.AddedTags;
+                spell.AddedTags = newTags & tags;
             }
 
             spell.Level++;
