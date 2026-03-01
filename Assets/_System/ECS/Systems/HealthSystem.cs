@@ -101,6 +101,7 @@ public partial struct HealthSystem : ISystem
             var isPlayer = PlayerLookup.HasComponent(entity);
 
             float totalDamage = 0;
+            bool isCritical = false;
             // Process every damage instance stored in the buffer this frame
             for (int i = 0; i < damageBuffer.Length; i++)
             {
@@ -142,6 +143,7 @@ public partial struct HealthSystem : ISystem
                 damage = math.max(0, damage);
 
                 totalDamage += damage;
+                isCritical = dbe.IsCritical;
             }
 
             // Apply the accumulated damage to the health component
@@ -153,7 +155,7 @@ public partial struct HealthSystem : ISystem
             if (!isPlayer)
             {
                 var transform = TransformLookup[entity];
-                TriggerDamageVisual(index, ECB, (int)totalDamage, transform, maxCritIntensity);
+                TriggerDamageVisual(index, ECB, (int)totalDamage, transform, isCritical);
             }
 
             // Check for death condition
