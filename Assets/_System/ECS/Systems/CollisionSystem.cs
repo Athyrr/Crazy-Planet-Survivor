@@ -97,7 +97,7 @@ public partial struct CollisionSystem : ISystem
             LinearMovementLookup = _linearMovementLookup,
             FollowMovementLookup = _followMovementLookup,
 
-            RicochetLookup = _ricochetLookup,
+            BounceLookup = _ricochetLookup,
             PierceLookup = _pierceLookup,
             HitMemoryLookup = _hitMemoryLookup,
             InvincibleLookup = _invincibleLookup,
@@ -124,7 +124,7 @@ public partial struct CollisionSystem : ISystem
         public ComponentLookup<LinearMovement> LinearMovementLookup;
         public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
 
-        public ComponentLookup<Bounce> RicochetLookup;
+        public ComponentLookup<Bounce> BounceLookup;
         public ComponentLookup<Pierce> PierceLookup;
         public BufferLookup<HitEntityMemory> HitMemoryLookup;
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
@@ -229,13 +229,13 @@ public partial struct CollisionSystem : ISystem
 
                     bool shouldDestroy = DestroyOnContactLookup.HasComponent(damagerEntity);
 
-                    // Handle Ricochet
-                    if (RicochetLookup.HasComponent(damagerEntity))
+                    // Handle Bounce
+                    if (BounceLookup.HasComponent(damagerEntity))
                     {
-                        var ricochet = RicochetLookup[damagerEntity];
-                        if (ricochet.RemainingBounces > 0)
+                        var bounce = BounceLookup[damagerEntity];
+                        if (bounce.RemainingBounces > 0)
                         {
-                            if (TryFindNextTarget(damagerEntity, target, ricochet.BounceRange, out Entity newTarget,
+                            if (TryFindNextTarget(damagerEntity, target, bounce.BounceRange, out Entity newTarget,
                                     out float3 newDirection))
                             {
                                 if (LinearMovementLookup.IsComponentEnabled(damagerEntity))
@@ -248,20 +248,15 @@ public partial struct CollisionSystem : ISystem
                                 ECB.SetComponent(0, damagerEntity, new FollowTargetMovement
                                 {
                                     Target = newTarget,
-                                    Speed = math.max(1, ricochet.BounceSpeed)
+                                    Speed = math.max(1, bounce.BounceSpeed)
                                 });
 
-                                // var followMove = FollowMovementLookup[damagerEntity];
-                                // followMove.Target = newTarget;
-                                // followMove.Speed = math.max(1, ricochet.BounceSpeed);
-                                // FollowMovementLookup[damagerEntity] = followMove;
-
                                 // Decrease remaining bounces
-                                ricochet.RemainingBounces--;
-                                RicochetLookup[damagerEntity] = ricochet;
+                                bounce.RemainingBounces--;
+                                BounceLookup[damagerEntity] = bounce;
 
                                 // Do not destroy the projectile if it still has bounces left, otherwise destroy it
-                                shouldDestroy = ricochet.RemainingBounces <= 0;
+                                shouldDestroy = bounce.RemainingBounces <= 0;
                             }
                             else
                             {

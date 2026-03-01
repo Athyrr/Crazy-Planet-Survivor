@@ -437,8 +437,7 @@ public partial struct SpellCastingSystem : ISystem
                     ECB.SetComponent(chunkIndex, spellEntity, new FollowTargetMovement
                     {
                         Target = targetEntity,
-                        Speed = finalSpeed,
-                        //StopDistance = 0
+                        Speed = finalSpeed
                     });
                 }
 

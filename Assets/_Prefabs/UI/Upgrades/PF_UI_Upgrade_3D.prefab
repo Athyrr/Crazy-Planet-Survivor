@@ -1744,7 +1744,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69a62ed875fb7de408ed6ca06e9ad9e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UI_UpgradeComponent
-  VisualRoot: {fileID: 0}
   Icon: {fileID: 769845863331814894}
   TitleText: {fileID: 2731447198319332971}
   DescriptionText: {fileID: 4977843344417441967}
@@ -1753,6 +1752,8 @@ MonoBehaviour:
   UpgradeTypeText: {fileID: 5385462385494793425}
   HoverScale: 1.15
   SmoothSpeed: 15
+  FloatingSpeed: 3
+  FloatingAmplitude: 0.05
 --- !u!4 &7840360578478835299 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: cd4aad37923b5ad4a9acd4a0d42d1e85, type: 3}

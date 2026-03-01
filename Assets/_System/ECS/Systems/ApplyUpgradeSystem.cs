@@ -296,7 +296,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                             // todo if spell id not null -> Required tags in field are added to the spell tags
 
                             ESpellTag newTags = ESpellTag.None;
-                            if (matchID && upgradeData.SpellTags > 0)
+                            if (upgradeData.SpellTags != ESpellTag.None)
                                 newTags = upgradeData.SpellTags;
 
                             if (matchID || matchTag)
@@ -385,7 +385,7 @@ public partial struct ApplyUpgradeSystem : ISystem
             if (newTags != ESpellTag.None)
             {
                 var tags = spell.AddedTags;
-                spell.AddedTags = newTags & tags;
+                spell.AddedTags = newTags | tags;
             }
 
             spell.Level++;
