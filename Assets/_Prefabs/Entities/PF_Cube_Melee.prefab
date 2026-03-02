@@ -250,21 +250,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   UseSnappedMovement: 1
-  StopDistance: 0
   BaseStats:
     MaxHealth: 80
     Armor: 0
     MoveSpeed: 5
     Damage: 5
     CooldownReduction: 0
+    CritChance: 0
+    CritMultiplier: 0
     ProjectileSpeedMultiplier: 0
     EffectAreaRadiusMultiplier: 0
     BouncesAdded: 0
     PierceAdded: 0
+    SizeMultiplier: 0
     FireResistance: 50
     IceResistance: 0
     LightningResistance: 0
-    ArcaneResistance: 0
+    PoisonResistance: 0
+    LightResistance: 0
+    DarkResistance: 0
+    NatureResistance: 0
     CollectRange: 1
     MaxCollectRange: 1
   InitialSpells: []
