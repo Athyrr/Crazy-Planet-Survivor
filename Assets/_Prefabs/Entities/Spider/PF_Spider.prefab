@@ -221,14 +221,20 @@ MonoBehaviour:
     MoveSpeed: 1
     Damage: 5
     CooldownReduction: 0
+    CritChance: 0
+    CritMultiplier: 0
     ProjectileSpeedMultiplier: 0
     EffectAreaRadiusMultiplier: 0
     BouncesAdded: 0
     PierceAdded: 0
+    SizeMultiplier: 0
     FireResistance: 50
     IceResistance: 0
     LightningResistance: 0
-    ArcaneResistance: 0
+    PoisonResistance: 0
+    LightResistance: 0
+    DarkResistance: 0
+    NatureResistance: 0
     CollectRange: 1
     MaxCollectRange: 1
   InitialSpells: []
@@ -290,13 +296,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7892183719345375266}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.74074006, y: 0, z: 0, w: 0.67179173}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0.10449, y: 0.001, z: 1.0111036}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 834412683046234062}
-  m_LocalEulerAnglesHint: {x: -95.589, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!33 &6083556057176871543
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -330,7 +336,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 82d90d58b9181164284dead9a85744e5, type: 2}
+  - {fileID: 2100000, guid: 9e5c929043122054891641a56bc27e01, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -352,4 +358,5 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}

@@ -37,6 +37,10 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _BaseColor:
+        m_Texture: {fileID: 2800000, guid: 89d87194a501ab5499f46e4c05a6bd63, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _Texture2D:
         m_Texture: {fileID: 2800000, guid: 9072217d465d46642bed039ba6365d97, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -59,14 +63,15 @@ Material:
     - _QueueControl: 0
     - _QueueOffset: 0
     - _Smoothness: 0
+    - _UseTexture: 1
     - _addPositionMode: 1
-    - _frames: 27
+    - _frames: 14
     - _normalIsBaked: 1
-    - _speed: 30
+    - _speed: 20
     - _totalVertices: 1357
     m_Colors:
     - _Color: {r: 0.5, g: 0.5, b: 0.5, a: 1}
     - _bounds: {r: 0, g: 0, b: 0, a: 0}
-    - _objectOffsetMaxDistance: {r: 1.6566575, g: 1.1371931, b: 1.4822521, a: 0}
+    - _objectOffsetMaxDistance: {r: 0.09538008, g: 1.1939564, b: 1.45976, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
