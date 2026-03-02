@@ -33,7 +33,6 @@ public partial struct ExplosionSystem : ISystem
         _enemyLookup.Update(ref state);
 
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
-
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
@@ -84,20 +83,22 @@ public partial struct ExplosionSystem : ISystem
                     if (hitEntity == Entity.Null)
                         continue;
 
-                    ECB.AppendToBuffer(chunkIndex, hitEntity, new DamageBufferElement
+                    if (EnemyLookup.HasComponent(hitEntity)) // todo handle collision with obstacles too
                     {
-                        Damage = explosion.Damage,
-                        Element = explosion.Element,
-                        IsCritical = false //todo add crit for explosions 
-                    });
+                        ECB.AppendToBuffer(chunkIndex, hitEntity, new DamageBufferElement
+                        {
+                            Damage = explosion.Damage,
+                            Element = explosion.Element,
+                            IsCritical = false //todo add crit for explosions 
+                        });
 
-                    // todo apply Knockback if needed
-                    // Explosion Request must store if knockback or not
+                        // todo apply Knockback if needed
+                        // Explosion Request must store if knockback or not
+                    }
                 }
             }
 
             hits.Dispose();
-
             ECB.DestroyEntity(chunkIndex, entity);
         }
     }

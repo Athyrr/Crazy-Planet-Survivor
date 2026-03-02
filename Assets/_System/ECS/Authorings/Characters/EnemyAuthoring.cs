@@ -78,9 +78,9 @@ public class EnemyAuthoring : MonoBehaviour
             }
 
             // HitFrame feedback component
-            var hitColor = new HitFrameFreedbackSystem.HitFrameColor { Value = 0 };
+            var hitColor = new HitFrameFeedbackSystem.HitFrameColor { Value = 0 };
             AddComponent(entity, hitColor);
-            SetComponentEnabled<HitFrameFreedbackSystem.HitFrameColor>(entity, false);
+            SetComponentEnabled<HitFrameFeedbackSystem.HitFrameColor>(entity, false);
         }
     }
 }

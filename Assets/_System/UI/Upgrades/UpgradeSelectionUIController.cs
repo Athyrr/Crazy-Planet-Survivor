@@ -25,7 +25,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
     private UpgradeUIComponent _currentHoveredCard;
     private bool _canInteract = false;
 
-    private RunManager RunManager;
+    private RunManager _runManager;
     private EntityManager _entityManager;
     private EntityQuery _upgradeDatabaseQuery;
     private bool _isInitialized = false;
@@ -93,8 +93,13 @@ public class UpgradeSelectionUIController : MonoBehaviour
 
         if (isClicked && _currentHoveredCard != null)
         {
-            var d = Tween.Scale(_currentHoveredCard.transform, endValue: 1.5f, duration: 0.3f)
-                .OnComplete(() => OnUpgradeSelected(_currentHoveredCard.DbIndex));
+            int selectedDbIndex = _currentHoveredCard.DbIndex;
+            Transform cardTransform = _currentHoveredCard.transform;
+
+            _canInteract = false;
+            
+            var d = Tween.Scale(_currentHoveredCard.transform, endValue: 1.2f, duration: 0.2f)
+                .OnComplete(() => OnUpgradeSelected(selectedDbIndex));
         }
     }
 
@@ -209,7 +214,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
         var requestEntity = _entityManager.CreateEntity();
         _entityManager.AddComponentData(requestEntity, new ApplyUpgradeRequest { DatabaseIndex = databaseIndex });
 
-        RunManager.TogglePause();
+        _runManager.TogglePause();
     }
 
     private void ClearSelection()
@@ -226,6 +231,6 @@ public class UpgradeSelectionUIController : MonoBehaviour
 
     public void Init(RunManager runManager)
     {
-        RunManager = runManager;
+        _runManager = runManager;
     }
 }

@@ -16,6 +16,7 @@ public partial struct HealthSystem : ISystem
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
+    private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -25,6 +26,7 @@ public partial struct HealthSystem : ISystem
         _playerLookup = state.GetComponentLookup<Player>(true);
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
+        _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
     }
 
     [BurstCompile]
@@ -45,11 +47,12 @@ public partial struct HealthSystem : ISystem
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
         _transformLookup.Update(ref state);
+        _destroyFlagLookup.Update(ref state);
 
         var applyDamageJob = new ApplyDamageJob
         {
             ECB = ecb.AsParallelWriter(),
-            DestroyFlagLookup = SystemAPI.GetComponentLookup<DestroyEntityFlag>(true),
+            DestroyFlagLookup = _destroyFlagLookup,
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
             TransformLookup = _transformLookup,
@@ -67,22 +70,12 @@ public partial struct HealthSystem : ISystem
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        /// <summary> Used to check if an entity is already flagged for destruction. </summary>
-        [ReadOnly]
-        public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
+        [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
+        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
+        [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
+        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
 
-        /// <summary> Provided for potential future filtering or logic (currently unused). </summary>
-        [ReadOnly]
-        public ComponentLookup<Player> PlayerLookup;
-
-        /// <summary> Provided for potential future filtering or logic (currently unused). </summary>
-        [ReadOnly]
-        public ComponentLookup<Enemy> EnemyLookup;
-
-        [ReadOnly]
-        public ComponentLookup<LocalTransform> TransformLookup;
-
-        public void Execute(
+        private void Execute(
             [ChunkIndexInQuery] int index,
             Entity entity,
             ref Health health,

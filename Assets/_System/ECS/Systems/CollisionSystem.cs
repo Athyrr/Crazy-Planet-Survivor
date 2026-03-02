@@ -5,7 +5,7 @@ using Unity.Transforms;
 using Unity.Mathematics;
 using Unity.Collections;
 using Unity.Physics.Systems;
-using static HitFrameFreedbackSystem;
+using static HitFrameFeedbackSystem;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [UpdateAfter(typeof(PhysicsSystemGroup))]
@@ -137,13 +137,10 @@ public partial struct CollisionSystem : ISystem
             Entity entityA = triggerEvent.EntityA;
             Entity entityB = triggerEvent.EntityB;
 
-            bool canCollide = false;
-
             // Case Projectile hits target (enemy or player)
             if (TryResolveDamagerVsTarget(entityA, entityB, out Entity damagerEntity, out Entity target))
             {
                 bool canDealDamage = true;
-                canCollide = true;
 
                 // Update Hit Memory Buffer
                 if (HitMemoryLookup.HasBuffer(damagerEntity))
@@ -223,7 +220,7 @@ public partial struct CollisionSystem : ISystem
                             CritIntensity = crit,
                             Element = element,
                             // Target layer hits enemies and Obstacles
-                            TargetLayers = CollisionLayers.Enemy //& CollisionLayers.Obstacle
+                            TargetLayers = CollisionLayers.Enemy //| CollisionLayers.Obstacle
                         });
                     }
 
