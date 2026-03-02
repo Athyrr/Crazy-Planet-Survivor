@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 [CreateAssetMenu(fileName = "NewSpellData", menuName = "Survivor/Spells/Spell Data")]
 public class SpellDataSO : ScriptableObject
@@ -9,6 +10,9 @@ public class SpellDataSO : ScriptableObject
     [Tooltip("Unique identifier used by the code to recognize this spell logic.")]
     public ESpellID ID;
 
+    [Tooltip("Icon displayed in the UI (Level Up screen, etc.).")]
+    public Sprite Icon;
+    
     [Tooltip("Name displayed in the UI (Level Up screen, etc.).")]
     public string DisplayName = string.Empty;
 

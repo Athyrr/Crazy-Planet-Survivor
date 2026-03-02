@@ -326,7 +326,7 @@ public partial struct SpellCastingSystem : ISystem
                     }
                     else
                     {
-                        // Fallback Forward
+                        // Fallback 
                         //targetPosition = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseCastRange);
                         ECB.DestroyEntity(0, requestEntity);
                         return;

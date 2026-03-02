@@ -9,7 +9,7 @@ public partial struct HitFrameFeedbackSystem : ISystem
 {
     private const string MaterialPropName = "_PowerHit";
     private const float MaterialPropMin = 0;
-    private const float MaterialPropMax = 1f;
+    private const float MaterialPropMax = 5f;
     private const float FlashDuration = 0.15f;
 
     [MaterialProperty(MaterialPropName)]

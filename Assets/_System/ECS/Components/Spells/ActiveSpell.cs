@@ -19,10 +19,7 @@ public struct ActiveSpell : IBufferElementData
     public float RangeMultiplier;
     public float TickRateMultiplier;
     public float LifetimeMultiplier;
-
-    public float CritChanceAdded;               //TODO check if can be deleted
-    public float CritMultiplierMultiplier;      //TODO check if can be deleted
-
+    
     public int BonusAmount;
     public int BonusBounces;
     public int BonusPierces;

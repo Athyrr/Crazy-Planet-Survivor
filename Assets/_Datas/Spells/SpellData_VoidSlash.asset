@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: SpellData_VoidSlash
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
   ID: 13
+  Icon: {fileID: 21300000, guid: 74ed7bf73e1e447438851d4bd949ba83, type: 3}
   DisplayName: Void Slash
   Description: 
   SpellPrefab: {fileID: 8462075292813735881, guid: 5e6b96901990f0342b1b7265a4a68b2f, type: 3}
@@ -23,9 +24,9 @@ MonoBehaviour:
   BaseSpeed: 80
   BaseSpawnOffset: {x: 0, y: 0, z: 0}
   BaseAreaOfEffect: 3
-  BaseCastRange: 0
+  BaseCastRange: 5
   BaseSize: 3
-  TargetingMode: 3
+  TargetingMode: 0
   Lifetime: 0.6
   Bounces: 0
   BouncesSearchRadius: 0
