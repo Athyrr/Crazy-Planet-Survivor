@@ -76,7 +76,7 @@ public class LobbyManager : MonoBehaviour
 
     private void HandleStateChange(EGameState newState)
     {
-        PlanetSelectionUIController.gameObject.SetActive(false);
+        // PlanetSelectionUIController.gameObject.SetActive(false);
         CharacterSelectionUIController.gameObject.SetActive(false);
         AmuletShopUIController.gameObject.SetActive(false);
 
