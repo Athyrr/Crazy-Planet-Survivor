@@ -5,18 +5,17 @@ using TMPro;
 
 public class SummaryView : MonoBehaviour
 {
-    [Header("Spells")]
-    public Transform SpellsContainer;
+    [Header("Databases")] public SpellDatabaseSO SpellsDatabase;
+
+    [Header("Spells")] public Transform SpellsContainer;
     public SummarySpell SummarySpellPrefab;
 
-    [Header("Progression")]
-    public Transform ProgressionContainer;
+    [Header("Progression")] public Transform ProgressionContainer;
     public TMP_Text LevelText;
     public TMP_Text TimeSurvivedText;
     public TMP_Text EnemiesKilledText;
 
-    [Header("Stats")]
-    public Transform StatsContainer;
+    [Header("Stats")] public Transform StatsContainer;
     public SummaryStat SummaryStatPrefab;
 
     private EntityManager _entityManager;
@@ -34,7 +33,7 @@ public class SummaryView : MonoBehaviour
 
         if (_playerSpellsQuery == default)
             _playerSpellsQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(ActiveSpell));
-       
+
         if (_spellsDatabaseQuery == default)
             _spellsDatabaseQuery = _entityManager.CreateEntityQuery(typeof(SpellsDatabase));
 
@@ -99,8 +98,9 @@ public class SummaryView : MonoBehaviour
 
     private void CreateSpellUI(ref SpellBlob spellData, ActiveSpell activeSpell)
     {
+        var icon = SpellsDatabase.Spells[activeSpell.DatabaseIndex].Icon;
         var uiInstance = Instantiate(SummarySpellPrefab, SpellsContainer);
-        uiInstance.Refresh(spellData, activeSpell);
+        uiInstance.Refresh(spellData, activeSpell, icon);
     }
 
     private void CreateStatUI()
