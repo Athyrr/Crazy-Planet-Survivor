@@ -202,7 +202,6 @@ MonoBehaviour:
   _computeShader: {fileID: 7200000, guid: 6667581f9b2f49089280b804d1f82dea, type: 3}
   _displayMaterial: {fileID: 2100000, guid: 55105a2f1d0fbf1439ec3323460eadfb, type: 2}
   _quadMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
-  _damageLifetime: 5
 --- !u!1 &238592963
 GameObject:
   m_ObjectHideFlags: 0
@@ -2446,6 +2445,18 @@ PrefabInstance:
     - target: {fileID: 366621661023058013, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
       propertyPath: m_Name
       value: PF_UI_PlanetSelection
+      objectReference: {fileID: 0}
+    - target: {fileID: 366621661023058013, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 556228590767339907, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: PlanetID
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1560494703993710692, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: PlanetID
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 4731708443538085709, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
       propertyPath: m_Pivot.x
