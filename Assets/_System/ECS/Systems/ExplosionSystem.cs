@@ -87,7 +87,7 @@ public partial struct ExplosionSystem : ISystem
                     {
                         ECB.AppendToBuffer(chunkIndex, hitEntity, new DamageBufferElement
                         {
-                            Damage = explosion.Damage,
+                            Damage = (int)explosion.Damage,
                             Element = explosion.Element,
                             IsCritical = false //todo add crit for explosions 
                         });

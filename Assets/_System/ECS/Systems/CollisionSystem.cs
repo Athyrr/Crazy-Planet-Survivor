@@ -4,6 +4,7 @@ using Unity.Entities;
 using Unity.Transforms;
 using Unity.Mathematics;
 using Unity.Collections;
+using Unity.Jobs;
 using Unity.Physics.Systems;
 using static HitFrameFeedbackSystem;
 
@@ -14,19 +15,26 @@ public partial struct CollisionSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
+    private ComponentLookup<LocalTransform> _transformLookup;
+
 
     private ComponentLookup<DamageOnContact> _damageOnContactLookup;
     private ComponentLookup<DestroyOnContact> _destroyOnContactLookup;
+    private ComponentLookup<Invincible> _invincibleLookup;
+    private BufferLookup<HitEntityMemory> _hitMemoryLookup;
 
-    private ComponentLookup<LocalTransform> _transformLookup;
+
     private ComponentLookup<Bounce> _ricochetLookup;
     private ComponentLookup<Pierce> _pierceLookup;
     private ComponentLookup<LinearMovement> _linearMovementLookup;
     private ComponentLookup<FollowTargetMovement> _followMovementLookup;
-    private BufferLookup<HitEntityMemory> _hitMemoryLookup;
 
-    private ComponentLookup<Invincible> _invincibleLookup;
+
     private ComponentLookup<ExplodeOnContact> _explodeLookup;
+    private ComponentLookup<SubSpellRoot> _subSpellRootLookup;
+    private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
+
+    private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -36,79 +44,98 @@ public partial struct CollisionSystem : ISystem
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
 
-        // Cache lookups
         _playerLookup = state.GetComponentLookup<Player>(true);
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
+        _transformLookup = state.GetComponentLookup<LocalTransform>(true);
+
         _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
         _destroyOnContactLookup = state.GetComponentLookup<DestroyOnContact>(true);
-        _transformLookup = state.GetComponentLookup<LocalTransform>(true);
+        _invincibleLookup = state.GetComponentLookup<Invincible>(true);
+        _hitMemoryLookup = state.GetBufferLookup<HitEntityMemory>(false);
+
         _ricochetLookup = state.GetComponentLookup<Bounce>(false);
         _pierceLookup = state.GetComponentLookup<Pierce>(false);
         _linearMovementLookup = state.GetComponentLookup<LinearMovement>(false);
         _followMovementLookup = state.GetComponentLookup<FollowTargetMovement>(false);
-        _hitMemoryLookup = state.GetBufferLookup<HitEntityMemory>(false);
-        _invincibleLookup = state.GetComponentLookup<Invincible>(true);
+
         _explodeLookup = state.GetComponentLookup<ExplodeOnContact>(true);
+        _subSpellRootLookup = state.GetComponentLookup<SubSpellRoot>(true);
+        _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
+
+
+        _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
+    }
+
+    public void OnDestroy(ref SystemState state)
+    {
+        if (_damageEventsQueue.IsCreated)
+            _damageEventsQueue.Dispose();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        // Get game state
-        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
-            return;
-
-        // Only run when game is running
-        if (gameState.State != EGameState.Running)
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
             return;
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-
-        var simulationSingleton = SystemAPI.GetSingleton<SimulationSingleton>();
-        var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
-
+        var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
+        
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
+        _transformLookup.Update(ref state);
         _damageOnContactLookup.Update(ref state);
         _destroyOnContactLookup.Update(ref state);
-        _transformLookup.Update(ref state);
+        _invincibleLookup.Update(ref state);
+        _hitMemoryLookup.Update(ref state);
         _ricochetLookup.Update(ref state);
         _pierceLookup.Update(ref state);
         _linearMovementLookup.Update(ref state);
         _followMovementLookup.Update(ref state);
-        _hitMemoryLookup.Update(ref state);
-        _invincibleLookup.Update(ref state);
         _explodeLookup.Update(ref state);
+        _subSpellRootLookup.Update(ref state);
+        _activeSpellBufferLookup.Update(ref state);
 
-        var triggerJob = new TriggerEventJob
+        var triggerCollisionJob = new TriggerCollisionJob
         {
             ECB = ecb.AsParallelWriter(),
             CurrentTime = SystemAPI.Time.ElapsedTime,
-            CollisionWorld = collisionWorld,
+            CollisionWorld = physicsWorld.CollisionWorld,
 
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
-
             DamageOnContactLookup = _damageOnContactLookup,
             DestroyOnContactLookup = _destroyOnContactLookup,
-
             LocalTransformLookup = _transformLookup,
-            LinearMovementLookup = _linearMovementLookup,
-            FollowMovementLookup = _followMovementLookup,
 
             BounceLookup = _ricochetLookup,
             PierceLookup = _pierceLookup,
+            LinearMovementLookup = _linearMovementLookup,
+            FollowMovementLookup = _followMovementLookup,
+
             HitMemoryLookup = _hitMemoryLookup,
             InvincibleLookup = _invincibleLookup,
-            ExplodeOnContactLookup = _explodeLookup
+            ExplodeOnContactLookup = _explodeLookup,
+            
+            SubSpellRootLookup = _subSpellRootLookup,
+            DamageEventsWriter = _damageEventsQueue.AsParallelWriter()
         };
 
-        state.Dependency = triggerJob.Schedule(simulationSingleton, state.Dependency);
+        JobHandle triggerHandle = triggerCollisionJob.Schedule(SystemAPI.GetSingleton<SimulationSingleton>(), state.Dependency);
+        
+        var trackDamageJob = new TrackDamageJob
+        {
+            DamageEventsQueue = _damageEventsQueue,
+            ActiveSpellLookup = _activeSpellBufferLookup,
+            PlayerEntity = SystemAPI.GetSingletonEntity<Player>()
+        };
+
+        state.Dependency = trackDamageJob.Schedule(triggerHandle);
     }
 
     [BurstCompile]
-    private struct TriggerEventJob : ITriggerEventsJob
+    private struct TriggerCollisionJob : ITriggerEventsJob
     {
         public EntityCommandBuffer.ParallelWriter ECB;
         public double CurrentTime;
@@ -119,16 +146,18 @@ public partial struct CollisionSystem : ISystem
 
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
         [ReadOnly] public ComponentLookup<DestroyOnContact> DestroyOnContactLookup;
+        [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
+        public BufferLookup<HitEntityMemory> HitMemoryLookup;
 
         [ReadOnly] public ComponentLookup<LocalTransform> LocalTransformLookup;
         public ComponentLookup<LinearMovement> LinearMovementLookup;
         public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
-
         public ComponentLookup<Bounce> BounceLookup;
         public ComponentLookup<Pierce> PierceLookup;
-        public BufferLookup<HitEntityMemory> HitMemoryLookup;
-        [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
         [ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeOnContactLookup;
+
+        public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
+        [ReadOnly] public ComponentLookup<SubSpellRoot> SubSpellRootLookup;
 
         private const double DurationBetweenCollisionHit = 0.3f;
 
@@ -137,12 +166,10 @@ public partial struct CollisionSystem : ISystem
             Entity entityA = triggerEvent.EntityA;
             Entity entityB = triggerEvent.EntityB;
 
-            // Case Projectile hits target (enemy or player)
             if (TryResolveDamagerVsTarget(entityA, entityB, out Entity damagerEntity, out Entity target))
             {
                 bool canDealDamage = true;
 
-                // Update Hit Memory Buffer
                 if (HitMemoryLookup.HasBuffer(damagerEntity))
                 {
                     var history = HitMemoryLookup[damagerEntity];
@@ -150,12 +177,9 @@ public partial struct CollisionSystem : ISystem
 
                     for (var i = 0; i < history.Length; i++)
                     {
-                        // Skip if this target was already hit
-                        var hit = history[i];
-                        if (hit.HitEntity == target)
+                        if (history[i].HitEntity == target)
                         {
                             asAlreadyHit = true;
-
                             if (CurrentTime - history[i].LastHitTime < DurationBetweenCollisionHit)
                             {
                                 canDealDamage = false;
@@ -171,62 +195,44 @@ public partial struct CollisionSystem : ISystem
                         }
                     }
 
-                    // Add target to hit history
                     if (!asAlreadyHit)
                         history.Add(new HitEntityMemory { HitEntity = target, LastHitTime = CurrentTime });
                 }
 
                 if (canDealDamage)
                 {
-                    // Apply on-hit damages
-                    bool isInvincible = InvincibleLookup.HasComponent(target);
-                    if (!isInvincible)
+                    if (!InvincibleLookup.HasComponent(target))
                     {
                         var damageData = DamageOnContactLookup[damagerEntity];
+                        var damageDealt = damageData.Damage;
+
                         ECB.AppendToBuffer(0, target, new DamageBufferElement
                         {
-                            Damage = damageData.Damage,
+                            Damage = (int)damageData.Damage,
                             Element = damageData.Element,
                             IsCritical = damageData.IsCritical
                         });
 
+                        if (SubSpellRootLookup.TryGetComponent(damagerEntity, out var spellRoot))
+                        {
+                            DamageEventsWriter.Enqueue(new SpellDamageEvent
+                            {
+                                DatabaseIndex = spellRoot.DatabaseIndex,
+                                DamageAmount = (int)damageDealt
+                            });
+                        }
+                        
                         ApplyFeedbacks(target);
                     }
-
-                    // Handle cases Ricochet and Piercing before destroying the projectile
 
                     if (ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
                         ExplodeOnContactLookup.IsComponentEnabled(damagerEntity))
                     {
-                        var explosionRequestEntity = ECB.CreateEntity(0);
-                        float3 explosionPos = LocalTransformLookup[damagerEntity].Position;
-
-                        // Retrieve stats from the projectile to pass to the explosion
-                        float crit = 0;
-                        ESpellTag element = ESpellTag.None;
-
-                        if (DamageOnContactLookup.HasComponent(damagerEntity))
-                        {
-                            var d = DamageOnContactLookup[damagerEntity];
-                            element = d.Element & ESpellTag.Explosive; // Element is Explosive and Spell element 
-                        }
-
-                        ECB.AddComponent(0, explosionRequestEntity, new ExplosionRequest()
-                        {
-                            Position = explosionPos,
-                            Radius = explosion.Radius,
-                            Damage = explosion.Damage,
-                            VfxPrefab = explosion.VfxPrefab,
-                            CritIntensity = crit,
-                            Element = element,
-                            // Target layer hits enemies and Obstacles
-                            TargetLayers = CollisionLayers.Enemy //| CollisionLayers.Obstacle
-                        });
+                        CreateExplosion(damagerEntity, explosion);
                     }
 
                     bool shouldDestroy = DestroyOnContactLookup.HasComponent(damagerEntity);
 
-                    // Handle Bounce
                     if (BounceLookup.HasComponent(damagerEntity))
                     {
                         var bounce = BounceLookup[damagerEntity];
@@ -240,19 +246,15 @@ public partial struct CollisionSystem : ISystem
 
                                 ECB.SetComponentEnabled<FollowTargetMovement>(0, damagerEntity, true);
 
-                                // Update projectile movement target
                                 ECB.SetComponent(0, damagerEntity, new FollowTargetMovement
                                 {
                                     Target = newTarget,
                                     Speed = math.max(1, bounce.BounceSpeed)
                                 });
 
-                                // Decrease remaining bounces
                                 bounce.RemainingBounces--;
                                 BounceLookup[damagerEntity] = bounce;
-
-                                // Do not destroy the projectile if it still has bounces left, otherwise destroy it
-                                shouldDestroy = bounce.RemainingBounces <= 0;
+                                shouldDestroy = false;
                             }
                             else
                             {
@@ -265,20 +267,14 @@ public partial struct CollisionSystem : ISystem
                         }
                     }
 
-                    // Handle Piercing
-                    // Apply Piercing logic only if not Ricochet
                     else if (PierceLookup.HasComponent(damagerEntity))
                     {
                         var pierce = PierceLookup[damagerEntity];
                         if (pierce.RemainingPierces > 0)
                         {
-                            // Decrease remaining pierces
                             pierce.RemainingPierces--;
                             ECB.SetComponent(0, damagerEntity, pierce);
                             shouldDestroy = false;
-
-                            // Do not destroy the projectile
-                            shouldDestroy = pierce.RemainingPierces <= 0;
                         }
                         else
                         {
@@ -289,66 +285,61 @@ public partial struct CollisionSystem : ISystem
                     if (shouldDestroy)
                     {
                         ECB.AddComponent(0, damagerEntity, new DestroyEntityFlag());
-
-                        // If needed, create AoE damage effect on projectile destroyed (ExplosionLookup etc)
-                        // If needed, create feedback request 
                     }
                 }
             }
         }
 
-        private void ApplyFeedbacks(Entity hitEntity)
+        private void CreateExplosion(Entity damager, ExplodeOnContact explosionData)
         {
-            // If not enemy
-            if (!EnemyLookup.HasComponent(hitEntity))
-                return;
+            var requestEntity = ECB.CreateEntity(0);
+            float3 pos = LocalTransformLookup[damager].Position;
 
-            // If Player
-            if (PlayerLookup.HasComponent(hitEntity))
-                return;
-
-            // Create camera shake feedback request
-            var shakeFeedbackReqEntity = ECB.CreateEntity(0);
-            ECB.AddComponent<ShakeFeedbackRequest>(0, shakeFeedbackReqEntity);
-
-            // Create camera shake feedback request
-            var hitFrameFeedbackReqEntity = ECB.CreateEntity(0);
-            ECB.AddComponent<HitFrameColorRequest>(0, hitFrameFeedbackReqEntity, new HitFrameColorRequest
+            ESpellTag element = ESpellTag.None;
+            if (DamageOnContactLookup.HasComponent(damager))
             {
-                TargetEntity = hitEntity
+                element = DamageOnContactLookup[damager].Element | ESpellTag.Explosive;
+            }
+
+            ECB.AddComponent(0, requestEntity, new ExplosionRequest()
+            {
+                Position = pos,
+                Radius = explosionData.Radius,
+                Damage = explosionData.Damage,
+                VfxPrefab = explosionData.VfxPrefab,
+                CritIntensity = 0, // todo pass crit info
+                Element = element,
+                TargetLayers = CollisionLayers.Enemy
             });
         }
 
-        /// <summary>
-        /// Try to resolve which entity is the damager and which is the target (enemy or player).
-        /// </summary>
-        /// <param name="entityA"></param>
-        /// <param name="entityB"></param>
-        /// <param name="damager"></param>
-        /// <param name="target"></param>
-        /// <returns></returns>
+        private void ApplyFeedbacks(Entity hitEntity)
+        {
+            if (!EnemyLookup.HasComponent(hitEntity)) return;
+
+            var shakeReq = ECB.CreateEntity(0);
+            ECB.AddComponent<ShakeFeedbackRequest>(0, shakeReq);
+
+            var flashReq = ECB.CreateEntity(0);
+            ECB.AddComponent(0, flashReq, new HitFrameColorRequest { TargetEntity = hitEntity });
+        }
+
         private bool TryResolveDamagerVsTarget(Entity entityA, Entity entityB, out Entity damager, out Entity target)
         {
-            // Case EntityA is Damager
-            if (DamageOnContactLookup.HasComponent(entityA))
+            if (DamageOnContactLookup.HasComponent(entityA) &&
+                (EnemyLookup.HasComponent(entityB) || PlayerLookup.HasComponent(entityB)))
             {
-                if (EnemyLookup.HasComponent(entityB) || PlayerLookup.HasComponent(entityB))
-                {
-                    damager = entityA;
-                    target = entityB;
-                    return true;
-                }
+                damager = entityA;
+                target = entityB;
+                return true;
             }
 
-            // Case EntityB is Damager
-            if (DamageOnContactLookup.HasComponent(entityB))
+            if (DamageOnContactLookup.HasComponent(entityB) &&
+                (EnemyLookup.HasComponent(entityA) || PlayerLookup.HasComponent(entityA)))
             {
-                if (EnemyLookup.HasComponent(entityB) || PlayerLookup.HasComponent(entityB))
-                {
-                    damager = entityB;
-                    target = entityA;
-                    return true;
-                }
+                damager = entityB;
+                target = entityA;
+                return true;
             }
 
             damager = Entity.Null;
@@ -356,110 +347,80 @@ public partial struct CollisionSystem : ISystem
             return false;
         }
 
-        /// <summary>
-        /// Try to find the next target for a ricochet spell.
-        /// </summary>
-        /// <param name="ricochetEntity"></param>
-        /// <param name="currentTarget"></param>
-        /// <param name="range"></param>
-        /// <param name="direction"></param>
-        /// <returns></returns>
-        private bool TryFindNextTarget(Entity ricochetEntity, Entity currentTarget, float range, out Entity newTarget,
+        private bool TryFindNextTarget(Entity projectile, Entity currentTarget, float range, out Entity newTarget,
             out float3 direction)
         {
-            var currentPos = LocalTransformLookup[ricochetEntity].Position;
+            float3 currentPos = LocalTransformLookup[projectile].Position;
             var hits = new NativeList<DistanceHit>(Allocator.Temp);
-
-            // todo set proper collision layers based on caster
-            // Set filter only for enemies
             var filter = new CollisionFilter
-            {
-                BelongsTo = CollisionLayers.Raycast,
-                CollidesWith = CollisionLayers.Enemy
-            };
+                { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Enemy };
 
             CollisionWorld.OverlapSphere(currentPos, range, ref hits, filter);
 
             float closestDist = float.MaxValue;
-            float3 bestTargetPos = float3.zero;
+            float3 bestPos = float3.zero;
             bool found = false;
             newTarget = Entity.Null;
 
             foreach (var hit in hits)
             {
-                // Skip current target and self
-                if (hit.Entity == currentTarget || hit.Entity == ricochetEntity)
-                    continue;
-
-                // Ensure it's an enemy
-                if (!EnemyLookup.HasComponent(hit.Entity))
-                    continue;
+                if (hit.Entity == currentTarget || hit.Entity == projectile) continue;
+                if (!EnemyLookup.HasComponent(hit.Entity)) continue;
 
                 if (hit.Distance < closestDist)
                 {
                     closestDist = hit.Distance;
-                    bestTargetPos = hit.Position;
-                    found = true;
+                    bestPos = hit.Position;
                     newTarget = hit.Entity;
+                    found = true;
                 }
             }
 
-            if (found)
-            {
-                direction = math.normalize(bestTargetPos - currentPos);
-                direction = math.normalize(direction);
-            }
-            else
-            {
-                direction = float3.zero;
-            }
-
+            direction = found ? math.normalize(bestPos - currentPos) : float3.zero;
             hits.Dispose();
-
             return found;
         }
-
-        private bool TryResolveEnemyVsPlayer(Entity entityA, Entity entityB, out Entity enemy, out Entity player)
-        {
-            if (EnemyLookup.HasComponent(entityA) && PlayerLookup.HasComponent(entityB))
-            {
-                enemy = entityA;
-                player = entityB;
-                return true;
-            }
-
-            if (EnemyLookup.HasComponent(entityB) && PlayerLookup.HasComponent(entityA))
-            {
-                enemy = entityB;
-                player = entityA;
-                return true;
-            }
-
-            enemy = Entity.Null;
-            player = Entity.Null;
-            return false;
-        }
-
-
-        //private bool TryResolveProjectileVsObstacle(Entity entityA, Entity entityB, out Entity projectile, out Entity obstacle)
-        //{
-        //    if (ProjectileLookup.HasComponent(entityA) && ObstacleLookup.HasComponent(entityB))
-        //    {
-        //        projectile = entityA;
-        //        obstacle = entityB;
-        //        return true;
-        //    }
-        //
-        //    if (ProjectileLookup.HasComponent(entityB) && ObstacleLookup.HasComponent(entityA))
-        //    {
-        //        projectile = entityB;
-        //        obstacle = entityA;
-        //        return true;
-        //    }
-        //
-        //    projectile = Entity.Null;
-        //    obstacle = Entity.Null;
-        //    return false;
-        //}
     }
+
+    [BurstCompile]
+    private struct TrackDamageJob : IJob
+    {
+        public NativeQueue<SpellDamageEvent> DamageEventsQueue;
+        public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        public Entity PlayerEntity;
+
+        public void Execute()
+        {
+            var sums = new NativeHashMap<int, int>(16, Allocator.Temp);
+
+            while (DamageEventsQueue.TryDequeue(out var evt))
+            {
+                if (sums.ContainsKey(evt.DatabaseIndex))
+                    sums[evt.DatabaseIndex] += evt.DamageAmount;
+                else
+                    sums.Add(evt.DatabaseIndex, evt.DamageAmount);
+            }
+
+            if (ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var buffer))
+            {
+                for (int i = 0; i < buffer.Length; i++)
+                {
+                    var spell = buffer[i];
+                    if (sums.TryGetValue(spell.DatabaseIndex, out int totalAdded))
+                    {
+                        spell.DamageDealt += totalAdded;
+                        buffer[i] = spell;
+                    }
+                }
+            }
+
+            sums.Dispose();
+        }
+    }
+}
+
+public struct SpellDamageEvent
+{
+    public int DatabaseIndex;
+    public int DamageAmount;
 }

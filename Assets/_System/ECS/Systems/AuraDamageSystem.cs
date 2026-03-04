@@ -54,7 +54,6 @@ public partial struct AuraDamageSystem : ISystem
 
         // Get collision world
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
-        //var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().PhysicsWorld;
 
         // Update lookups
         _playerLookup.Update(ref state);
@@ -99,7 +98,8 @@ public partial struct AuraDamageSystem : ISystem
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFLagLookup;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity auraSpellEntity, ref DamageOnTick damageOnTick, in LocalToWorld worldPosition)
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity auraSpellEntity, ref DamageOnTick damageOnTick,
+            in LocalToWorld worldPosition)
         {
             damageOnTick.ElapsedTime += DeltaTime;
 
@@ -110,7 +110,6 @@ public partial struct AuraDamageSystem : ISystem
             damageOnTick.ElapsedTime = 0f;
 
             var caster = damageOnTick.Caster;
-
 
             if (!StatsLookup.HasComponent(caster))
                 return;
@@ -123,11 +122,12 @@ public partial struct AuraDamageSystem : ISystem
             CollisionFilter filter = new CollisionFilter
             {
                 BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
-                CollidesWith = (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) /*| CollisionLayers.Obstacle*/,
+                CollidesWith =
+                    (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) /*| CollisionLayers.Obstacle*/,
             };
 
             float radius = damageOnTick.AreaRadius * math.max(1, casterStats.EffectAreaRadiusMult);
-            float damage = damageOnTick.DamagePerTick /** math.max(1, casterStats.DamageMult)*/;
+            float damage = damageOnTick.DamagePerTick /** math.max(1, casterStats.Damage)*/;
 
             // Detection
             CollisionWorld.OverlapSphere(worldPosition.Position, radius, ref hits, filter);
@@ -150,9 +150,11 @@ public partial struct AuraDamageSystem : ISystem
 
                 ECB.AppendToBuffer(chunkIndex, hit.Entity, new DamageBufferElement
                 {
-                    Damage = damage,
+                    Damage = (int)damage,
                     Element = damageOnTick.Element,
                 });
+
+                // todo feedbacks damage and hitframe
 
                 // Shake feedback
                 var feedbackReqEntity = ECB.CreateEntity(chunkIndex);

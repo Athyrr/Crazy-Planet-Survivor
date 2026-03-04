@@ -6,7 +6,7 @@ using Unity.Entities;
 /// </summary>
 public struct DamageBufferElement : IBufferElementData
 {
-    public float Damage;
+    public int Damage;
     public ESpellTag Element;
     public bool IsCritical;
 }

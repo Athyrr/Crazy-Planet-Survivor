@@ -27,4 +27,6 @@ public struct ActiveSpell : IBufferElementData
     public float BonusCritChance;
     public float BonusCritMultiplier;
     public float SizeMultiplier;
+
+    public int DamageDealt;
 }

@@ -1,13 +1,12 @@
+using System;
 using Random = UnityEngine.Random;
 using System.Collections.Generic;
 using Unity.Entities;
 using UnityEngine;
 using EasyButtons;
-using PrimeTween;
-using Unity.Mathematics;
 
 [ExecuteAlways]
-public class DamageFeedbackManager : MonoBehaviour
+public class DamageFeedbackManager : MonoBehaviour, IDisposable
 {
     #region Instance
 
@@ -35,81 +34,84 @@ public class DamageFeedbackManager : MonoBehaviour
     {
         if (_instance == null)
             _instance = this;
+
         else if (_instance != this)
-        {
             Destroy(gameObject);
-            return;
-        }
     }
 
     #endregion
 
     #region Struct
+
     struct DamageData
     {
         public Vector3 Position;
         public Vector3 Color;
         public float Value;
     }
-    
+
     struct TimeData
     {
         public float Time;
     }
+
     #endregion
 
     #region Members
+
     [SerializeField] private ComputeShader _computeShader;
     [SerializeField] private Material _displayMaterial;
     [SerializeField] private Mesh _quadMesh;
-    
+    [SerializeField] private float _damageLifetime = 5f;
+
     private ComputeBuffer _damageBuffer;
     private ComputeBuffer _timeBuffer;
-    
-    // sync List (tim cook me again like a shader)
-    private List<DamageData> _activeDamages = new List<DamageData>();
-    private List<TimeData> _activeTime = new List<TimeData>();
-    
+
+    private readonly List<DamageData> _activeDamages = new List<DamageData>();
+    private readonly List<TimeData> _activeTime = new List<TimeData>();
+    private bool _buffersDirty = false;
+
     private const int BUFFER_COUNT = 1024;
 
     private EntityManager _entityManager;
     private EntityQuery _damageFeedbackQuery;
+
     #endregion
 
     #region Core
+
     private void Start()
     {
-        _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-        _damageFeedbackQuery = _entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
+        if (Application.isPlaying)
+        {
+            _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            _damageFeedbackQuery = _entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
+        }
 
         InitBuffer();
     }
-    
+
     void Update()
     {
-        if (World.DefaultGameObjectInjectionWorld != null)
+        if (Application.isPlaying && World.DefaultGameObjectInjectionWorld != null && _damageFeedbackQuery != null)
         {
-            var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-            var requestQuery = entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
-
-            if (!requestQuery.IsEmpty)
+            if (!_damageFeedbackQuery.IsEmptyIgnoreFilter)
             {
                 var requests =
-                    requestQuery.ToComponentDataArray<DamageFeedbackRequest>(Unity.Collections.Allocator.Temp);
-                var entities = requestQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
+                    _damageFeedbackQuery.ToComponentDataArray<DamageFeedbackRequest>(Unity.Collections.Allocator.Temp);
+                var entities = _damageFeedbackQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
 
                 for (int i = 0; i < entities.Length; i++)
                 {
                     AddDamage(
                         requests[i].Amount,
                         (Vector3)requests[i].Transform.Position +
-                        (Vector3)requests[i].Transform.Up() * 1.5f * Random.Range(1, 3f),
+                        (Vector3)requests[i].Transform.Up() * (1.5f * Random.Range(1, 3f)),
                         requests[i].IsCritical ? Color.wheat : Color.firebrick
                     );
-                    Debug.Log($"hyv; {requests[i].IsCritical}");
-                    entityManager.DestroyEntity(entities[i]);
+                    _entityManager.DestroyEntity(entities[i]);
                 }
-                
+
                 requests.Dispose();
                 entities.Dispose();
             }
@@ -118,10 +120,34 @@ public class DamageFeedbackManager : MonoBehaviour
         if (_damageBuffer == null || _computeShader == null || _displayMaterial == null)
             return;
 
+        float currentTime = GetCurrentTime();
+
+        // Cleanup old damages
+        int removedCount = 0;
+        for (int i = _activeTime.Count - 1; i >= 0; i--)
+        {
+            if (currentTime - _activeTime[i].Time > _damageLifetime)
+            {
+                _activeDamages.RemoveAt(i);
+                _activeTime.RemoveAt(i);
+                removedCount++;
+            }
+        }
+
+        if (removedCount > 0)
+        {
+            _buffersDirty = true;
+        }
+
+        if (_buffersDirty)
+        {
+            _damageBuffer.SetData(_activeDamages.ToArray());
+            _timeBuffer.SetData(_activeTime.ToArray());
+            _buffersDirty = false;
+        }
+
         if (_activeDamages.Count == 0)
             return;
-
-        float currentTime = GetCurrentTime();
 
         int kernel = _computeShader.FindKernel("UpdateNumbers");
         _computeShader.SetBuffer(kernel, "_DamageBuffer", _damageBuffer);
@@ -139,25 +165,35 @@ public class DamageFeedbackManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        Dispose();
+    }
+
+    public void Dispose()
+    {
         ReleaseBuffer();
     }
+
     #endregion
 
     #region Methods
+
     private void InitBuffer()
     {
-        // DamageData = Vector3(3) + Vector3(3) + float(1) = 7 floats (28 bytes)
+        ReleaseBuffer();
+
         _damageBuffer = new ComputeBuffer(BUFFER_COUNT, sizeof(float) * 7);
         _damageBuffer.SetData(new DamageData[BUFFER_COUNT]);
-        
-        // TimeData = float(1) = 1 float (4 bytes)
+
         _timeBuffer = new ComputeBuffer(BUFFER_COUNT, sizeof(float) * 1);
         _timeBuffer.SetData(new TimeData[BUFFER_COUNT]);
     }
 
     public void AddDamage(int val, Vector3 pos, Color color)
     {
-        InitBuffer();
+        if (_damageBuffer == null)
+        {
+            InitBuffer();
+        }
 
         if (_activeDamages.Count >= BUFFER_COUNT)
         {
@@ -165,33 +201,19 @@ public class DamageFeedbackManager : MonoBehaviour
             _activeTime.RemoveAt(0);
         }
 
-        var index = _activeDamages.Count;
-
         _activeDamages.Add(new DamageData
         {
             Position = pos,
             Color = new Vector3(color.r, color.g, color.b),
             Value = (float)val
         });
-        
+
         _activeTime.Add(new TimeData
         {
             Time = GetCurrentTime()
         });
 
-        _damageBuffer.SetData(_activeDamages.ToArray());
-        _timeBuffer.SetData(_activeTime.ToArray());
-
-        Sequence.Create()
-            .ChainDelay(5f)
-            .ChainCallback(() =>
-            {
-                if (index < _activeDamages.Count)
-                {
-                    _activeDamages.RemoveAt(index);
-                    _activeTime.RemoveAt(index);
-                }
-            });
+        _buffersDirty = true;
     }
 
     private float GetCurrentTime()
@@ -225,12 +247,10 @@ public class DamageFeedbackManager : MonoBehaviour
     [Button]
     void TestDamage()
     {
-        Sequence.Create(cycles: 10, Sequence.SequenceCycleMode.Yoyo)
-            .ChainCallback(() => AddDamage(Random.Range(10, 999999), transform.position, Color.Lerp(Color.firebrick, Color.wheat, .5f)))
-            .ChainDelay(0.1f)
-            .ChainCallback(() => AddDamage(Random.Range(10, 9999), transform.position, Color.firebrick))
-            .ChainDelay(0.1f)
-            .ChainCallback(() => AddDamage(Random.Range(10, 99), transform.position, Color.wheat));
+        AddDamage(Random.Range(10, 999999), transform.position,
+            Color.Lerp(Color.firebrick, Color.wheat, .5f));
+        AddDamage(Random.Range(10, 9999), transform.position, Color.firebrick);
+        AddDamage(Random.Range(10, 99), transform.position, Color.wheat);
     }
 
     [Button]
@@ -238,6 +258,6 @@ public class DamageFeedbackManager : MonoBehaviour
     {
         AddDamage(Random.Range(10, 999999), transform.position, Color.wheat);
     }
-    
+
     #endregion
 }
