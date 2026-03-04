@@ -224,7 +224,7 @@ public partial struct SpellCastingSystem : ISystem
                         mulDmg = mod.DamageMultiplier;
                         mulSpeed = mod.SpeedMultiplier;
 
-                        mulArea = mod.AreaMultiplier;
+                        mulArea = mod.AreaOfEffectMultiplier;
                         mulSize = mod.SizeMultiplier;
 
                         mulDuration = mod.DurationMultiplier;
@@ -269,6 +269,7 @@ public partial struct SpellCastingSystem : ISystem
             // Multishot Logic
             int finalProjectileCount = math.max(1, 1 + addAmount);
 
+            // if spell is sub spell spawner, cast once 
             if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
                 finalProjectileCount = 1;
 
@@ -395,9 +396,8 @@ public partial struct SpellCastingSystem : ISystem
             {
                 var spellEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-                ECB.AddComponent(0, spellEntity, new RunScope());
-
-                ECB.AddComponent(chunkIndex, spellEntity, new SubSpellRoot
+                ECB.AddComponent(0, spellEntity, new RunScope()); // todo authoring
+                ECB.AddComponent(chunkIndex, spellEntity, new SpellSource // todo authoring
                 {
                     CasterEntity = request.Caster,
                     DatabaseIndex = request.DatabaseIndex

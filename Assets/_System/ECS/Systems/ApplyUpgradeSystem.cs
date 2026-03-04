@@ -10,8 +10,8 @@ using Unity.Transforms;
 public partial struct ApplyUpgradeSystem : ISystem
 {
     private BufferLookup<ActiveSpell> _activeSpellsBufferLookup;
-
     private EntityQuery _subSpellsSpawnerQuery;
+    private EntityQuery _activeAurasQuery;
 
     private ComponentLookup<Stats> _statsLookup;
     private ComponentLookup<DamageOnContact> _damageLookup;
@@ -19,7 +19,6 @@ public partial struct ApplyUpgradeSystem : ISystem
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<OrbitMovement> _orbitLookup;
     private BufferLookup<Child> _childLookup;
-
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -29,8 +28,16 @@ public partial struct ApplyUpgradeSystem : ISystem
         state.RequireForUpdate<UpgradesDatabase>();
         state.RequireForUpdate<ApplyUpgradeRequest>();
 
-        _subSpellsSpawnerQuery = new EntityQueryBuilder(Allocator.Temp).WithAllRW<SubSpellsSpawner>()
-            .WithAll<SubSpellRoot>().Build(ref state);
+        _subSpellsSpawnerQuery = new EntityQueryBuilder(Allocator.Temp)
+            .WithAllRW<SubSpellsSpawner>()
+            .WithAll<SpellSource>()
+            .Build(ref state);
+
+        _activeAurasQuery = new EntityQueryBuilder(Allocator.Temp)
+            .WithAllRW<DamageOnTick>()
+            .WithAllRW<LocalTransform>()
+            .WithAll<SpellSource>()
+            .Build(ref state);
 
         _activeSpellsBufferLookup = SystemAPI.GetBufferLookup<ActiveSpell>(false);
 
@@ -40,14 +47,6 @@ public partial struct ApplyUpgradeSystem : ISystem
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _orbitLookup = state.GetComponentLookup<OrbitMovement>(true);
         _childLookup = state.GetBufferLookup<Child>(true);
-
-        //_subSpellsSpawnerQuery = state.GetEntityQuery(ComponentType.ReadWrite<SubSpellsSpawner>(), ComponentType.ReadOnly<SpellLink>());
-
-        // var types = new NativeArray<ComponentType>(2, Allocator.Temp);
-        //types[0] = ComponentType.ReadWrite<SubSpellsSpawner>();
-        //types[1] = ComponentType.ReadOnly<SpellLink>();
-        //_subSpellsSpawnerQuery = state.GetEntityQuery(types);
-        //types.Dispose();
     }
 
     [BurstCompile]
@@ -74,13 +73,12 @@ public partial struct ApplyUpgradeSystem : ISystem
         _orbitLookup.Update(ref state);
         _childLookup.Update(ref state);
 
-
         var applyUpgradeJob = new ApplyUpgradeJob()
         {
             ECB = ecbForUpgrades.AsParallelWriter(),
             GameStateEntity = gameStateEntity,
-
             PlayerEntity = playerEntity,
+
             UpgradesDatabaseRef = upgradesDatabase.Blobs,
             SpellsDatabaseRef = spellsDatabase.Blobs,
 
@@ -101,9 +99,64 @@ public partial struct ApplyUpgradeSystem : ISystem
             OrbitLookup = _orbitLookup,
             ChildLookup = _childLookup
         };
+        JobHandle subSpellHandle = updateSubSpellsJob.ScheduleParallel(_subSpellsSpawnerQuery, upgradeHandle);
 
-        state.Dependency = updateSubSpellsJob.ScheduleParallel(_subSpellsSpawnerQuery, upgradeHandle);
+        var updateAurasJob = new UpdateAuraSpellsJob
+        {
+            ActiveSpellLookup = _activeSpellsBufferLookup,
+            SpellsDatabaseRef = spellsDatabase.Blobs,
+            StatsLookup = _statsLookup
+        };
+        state.Dependency = updateAurasJob.ScheduleParallel(_activeAurasQuery, subSpellHandle);
     }
+
+    /// <summary>
+    /// Updates aura spells (Frozen zone) after an upgrade.
+    /// </summary>
+    [BurstCompile]
+    private partial struct UpdateAuraSpellsJob : IJobEntity
+    {
+        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
+        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
+
+        public void Execute(ref DamageOnTick damageOnTick, ref LocalTransform transform, in SpellSource spellSource)
+        {
+            if (!ActiveSpellLookup.TryGetBuffer(spellSource.CasterEntity, out var activeSpells) ||
+                !StatsLookup.TryGetComponent(spellSource.CasterEntity, out var stats))
+                return;
+
+            ActiveSpell currentSpellData = default;
+            bool found = false;
+
+            for (int i = 0; i < activeSpells.Length; i++)
+            {
+                if (activeSpells[i].DatabaseIndex == spellSource.DatabaseIndex)
+                {
+                    currentSpellData = activeSpells[i];
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+                return;
+
+            ref var baseSpellData = ref SpellsDatabaseRef.Value.Spells[spellSource.DatabaseIndex];
+
+            float finalTickDamage =
+                (baseSpellData.BaseDamagePerTick + stats.Damage) * currentSpellData.DamageMultiplier;
+
+            float finalArea = baseSpellData.BaseAreaOfEffect * math.max(1f, stats.AreaOfEffectMult) *
+                              currentSpellData.AreaOfEffectMultiplier;
+
+            damageOnTick.DamagePerTick = finalTickDamage;
+            damageOnTick.AreaRadius = finalArea;
+
+            transform.Scale = finalArea;
+        }
+    }
+
 
     /// <summary>
     /// Updates sub entities spells (ex Fire orbs) after an upgrade.
@@ -127,12 +180,12 @@ public partial struct ApplyUpgradeSystem : ISystem
             [ChunkIndexInQuery] int index,
             Entity parentEntity,
             ref SubSpellsSpawner spawner,
-            in SubSpellRoot spellRoot)
+            in SpellSource spellSource)
         {
-            if (!ActiveSpellLookup.TryGetBuffer(spellRoot.CasterEntity, out var activeSpells))
+            if (!ActiveSpellLookup.TryGetBuffer(spellSource.CasterEntity, out var activeSpells))
                 return;
 
-            if (!StatsLookup.TryGetComponent(spellRoot.CasterEntity, out var stats))
+            if (!StatsLookup.TryGetComponent(spellSource.CasterEntity, out var stats))
                 return;
 
             ActiveSpell currentSpellData = default;
@@ -140,7 +193,7 @@ public partial struct ApplyUpgradeSystem : ISystem
 
             for (int i = 0; i < activeSpells.Length; i++)
             {
-                if (activeSpells[i].DatabaseIndex == spellRoot.DatabaseIndex)
+                if (activeSpells[i].DatabaseIndex == spellSource.DatabaseIndex)
                 {
                     currentSpellData = activeSpells[i];
                     found = true;
@@ -151,7 +204,7 @@ public partial struct ApplyUpgradeSystem : ISystem
             if (!found)
                 return;
 
-            ref var baseSpellData = ref SpellsDatabaseRef.Value.Spells[spellRoot.DatabaseIndex];
+            ref var baseSpellData = ref SpellsDatabaseRef.Value.Spells[spellSource.DatabaseIndex];
             int totalAmount = baseSpellData.SubSpellsCount + currentSpellData.BonusAmount;
 
             //  Define the desired number of children to allow the sub spells system to update the spell
@@ -164,8 +217,8 @@ public partial struct ApplyUpgradeSystem : ISystem
             float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * currentSpellData.DamageMultiplier;
             float finalTickDamage =
                 (baseSpellData.BaseDamagePerTick + stats.Damage) * currentSpellData.DamageMultiplier;
-            float finalArea = baseSpellData.BaseEffectArea * math.max(1f, stats.EffectAreaRadiusMult) *
-                              currentSpellData.AreaMultiplier;
+            float finalArea = baseSpellData.BaseAreaOfEffect * math.max(1f, stats.AreaOfEffectMult) *
+                              currentSpellData.AreaOfEffectMultiplier;
             float finalSpeed = baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) *
                                currentSpellData.SpeedMultiplier;
 
@@ -229,7 +282,8 @@ public partial struct ApplyUpgradeSystem : ISystem
             {
                 var orbit = OrbitLookup[parentEntity];
                 orbit.AngularSpeed = finalSpeed;
-                float orbitRadius = math.length(baseSpellData.BaseSpawnOffset) * currentSpellData.AreaMultiplier;
+                float orbitRadius = math.length(baseSpellData.BaseSpawnOffset) *
+                                    currentSpellData.AreaOfEffectMultiplier;
                 orbit.Radius = orbitRadius;
                 orbit.RelativeOffset = new float3(0, 0, orbitRadius);
 
@@ -338,7 +392,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                     break;
 
                 case ESpellStat.AreaOfEffectSize:
-                    spell.AreaMultiplier *= upgrade.Value;
+                    spell.AreaOfEffectMultiplier *= upgrade.Value;
                     break;
 
                 case ESpellStat.Range:

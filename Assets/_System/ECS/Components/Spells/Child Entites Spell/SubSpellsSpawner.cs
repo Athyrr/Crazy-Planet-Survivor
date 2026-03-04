@@ -13,10 +13,9 @@ public struct SubSpellsSpawner : IComponentData
 }
 
 /// <summary>
-/// Component added to the root entity of a spell (ex the center of fire orbs).
-/// Allows this entity to be linked to the player's data (ActiveSpell) for upgrades.
+/// Component that identifies a spell and its caster.
 /// </summary>
-public struct SubSpellRoot : IComponentData
+public struct SpellSource : IComponentData
 {
     public Entity CasterEntity;
     public int DatabaseIndex;

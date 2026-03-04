@@ -118,7 +118,7 @@ public class PlayerAuthoring : MonoBehaviour
                     CritMultiplier = baseStats.CritMultiplier,
 
                     ProjectileSpeedMultiplier = baseStats.ProjectileSpeedMultiplier,
-                    EffectAreaRadiusMult = baseStats.EffectAreaRadiusMultiplier,
+                    AreaOfEffectMult = baseStats.EffectAreaRadiusMultiplier,
                     BouncesAdded = baseStats.BouncesAdded,
                     PierceAdded = baseStats.PierceAdded,
 

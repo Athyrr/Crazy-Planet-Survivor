@@ -23,7 +23,7 @@ public struct Stats : IComponentData
 
     [Header("Spell Modifiers")]
     public float ProjectileSpeedMultiplier;
-    public float EffectAreaRadiusMult;
+    public float AreaOfEffectMult;
     public float SizeMult;
     public int BouncesAdded;
     public int PierceAdded;

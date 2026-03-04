@@ -13,7 +13,7 @@ public struct ActiveSpell : IBufferElementData
 
     public float DamageMultiplier;  // ex: 1.5 (+50%)
     public float CooldownMultiplier;// ex: 0.9 (-10%)
-    public float AreaMultiplier;
+    public float AreaOfEffectMultiplier;
     public float SpeedMultiplier;
     public float DurationMultiplier;
     public float RangeMultiplier;

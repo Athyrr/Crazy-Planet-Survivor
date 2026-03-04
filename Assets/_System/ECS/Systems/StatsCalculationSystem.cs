@@ -69,7 +69,7 @@ public partial struct StatsCalculationSystem : ISystem
             stats.CooldownReduction = baseStats.CooldownReduction;
             stats.CritChance = baseStats.CritChance;
             stats.CritMultiplier = baseStats.CritMultiplier;
-            stats.EffectAreaRadiusMult = baseStats.EffectAreaRadiusMultiplier;
+            stats.AreaOfEffectMult = baseStats.EffectAreaRadiusMultiplier;
             stats.CollectRange = baseStats.CollectRange;
             stats.BouncesAdded = baseStats.BouncesAdded;
             stats.PierceAdded = baseStats.PierceAdded;
@@ -135,7 +135,7 @@ public partial struct StatsCalculationSystem : ISystem
                         break;
 
                     case ECharacterStat.AreaSize:
-                        ApplyModifier(ref stats.EffectAreaRadiusMult, modifiers[i]);
+                        ApplyModifier(ref stats.AreaOfEffectMult, modifiers[i]);
                         break;
 
                     case ECharacterStat.CollectRange:

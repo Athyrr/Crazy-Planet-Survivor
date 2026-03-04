@@ -18,6 +18,7 @@ public partial struct SubSpellsSystem : ISystem
     private BufferLookup<Child> _childBufferLookup;
     private ComponentLookup<PhysicsCollider> _colliderLookup;
     private ComponentLookup<DamageOnContact> _damageLookup;
+    private ComponentLookup<SpellSource> _subSpellRootLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -29,6 +30,7 @@ public partial struct SubSpellsSystem : ISystem
         _childBufferLookup = state.GetBufferLookup<Child>(false);
         _colliderLookup = state.GetComponentLookup<PhysicsCollider>(false);
         _damageLookup = state.GetComponentLookup<DamageOnContact>(true);
+        _subSpellRootLookup = state.GetComponentLookup<SpellSource>(true);
     }
 
     [BurstCompile]
@@ -47,20 +49,22 @@ public partial struct SubSpellsSystem : ISystem
         _childBufferLookup.Update(ref state);
         _colliderLookup.Update(ref state);
         _damageLookup.Update(ref state);
+        _subSpellRootLookup.Update(ref state);
 
         // Setup ECB    
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-        foreach (var (spawner, parentEntity) in
-                 SystemAPI.Query<RefRW<SubSpellsSpawner>>().WithEntityAccess())
+        foreach (var (spawner, spellRoot, parentEntity) in
+                 SystemAPI.Query<RefRW<SubSpellsSpawner>, RefRO<SpellSource>>().WithEntityAccess())
         {
             DamageOnContact parentDamage = default;
             bool hasDamage = _damageLookup.HasComponent(parentEntity);
+
             if (hasDamage)
-            {
                 parentDamage = _damageLookup[parentEntity];
-            }
+
+            SpellSource sourceData = spellRoot.ValueRO;
 
             int desiredCount = spawner.ValueRO.DesiredSubSpellsCount;
             int currentCount = 0;
@@ -85,9 +89,11 @@ public partial struct SubSpellsSystem : ISystem
                 {
                     var childEntity = ecb.Instantiate(spawner.ValueRO.ChildEntityPrefab);
 
+                    // todo add subspell tag ?
                     ecb.AddComponent(childEntity, new Parent { Value = parentEntity });
-
                     ecb.AddComponent(childEntity, new LocalTransform { Scale = 1, Rotation = quaternion.identity });
+
+                    ecb.AddComponent(childEntity, sourceData);
 
                     // Collisions
                     if (_colliderLookup.HasComponent(spawner.ValueRO.ChildEntityPrefab))
@@ -99,9 +105,7 @@ public partial struct SubSpellsSystem : ISystem
 
                     // Damages
                     if (hasDamage)
-                    {
                         ecb.SetComponent(childEntity, parentDamage);
-                    }
                 }
 
                 spawner.ValueRW.IsDirty = false;
@@ -112,9 +116,7 @@ public partial struct SubSpellsSystem : ISystem
             {
                 var children = _childBufferLookup[parentEntity];
                 for (int i = currentCount - 1; i >= desiredCount; i--)
-                {
                     ecb.DestroyEntity(children[i].Value);
-                }
 
                 // Create buffer via ecb
                 var childrenBuffer = ecb.SetBuffer<Child>(parentEntity);
@@ -132,7 +134,7 @@ public partial struct SubSpellsSystem : ISystem
         };
         state.Dependency = circleLayoutJob.ScheduleParallel(state.Dependency);
     }
-    
+
     [BurstCompile]
     [WithAll(typeof(SubSpellsLayout_Circle))]
     private partial struct SubSpellsCircleLayoutJob : IJobEntity
@@ -169,7 +171,7 @@ public partial struct SubSpellsSystem : ISystem
                     0f,
                     circleLayout.Radius * math.cos(angleRad) // Z
                 );
-                
+
                 var childTransform = TransformLookup[childEntity];
 
                 childTransform.Position = localOffset;

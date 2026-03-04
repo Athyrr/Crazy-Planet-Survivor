@@ -118,7 +118,7 @@ public partial struct SpellActivationSystem : ISystem
                         DamageMultiplier = 1f,
                         CooldownMultiplier = 1f,
 
-                        AreaMultiplier = 1f,
+                        AreaOfEffectMultiplier = 1f,
                         SizeMultiplier = 1f,
 
                         SpeedMultiplier = 1f,

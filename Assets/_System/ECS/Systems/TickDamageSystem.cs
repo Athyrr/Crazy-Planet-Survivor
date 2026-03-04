@@ -4,19 +4,24 @@ using Unity.Transforms;
 using Unity.Entities;
 using Unity.Physics;
 using Unity.Burst;
+using Unity.Jobs;
 
-
+/// <summary>
+/// System that handle damages on tick and not on collisions.
+/// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
-public partial struct AuraDamageSystem : ISystem
+public partial struct TickDamageSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
     private ComponentLookup<Stats> _statsLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFLagLookup;
+    private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
 
     private EntityQuery _playerQuery;
+    private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -32,6 +37,15 @@ public partial struct AuraDamageSystem : ISystem
         _statsLookup = state.GetComponentLookup<Stats>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
         _destroyFLagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
+        _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
+        
+        _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
+    }
+
+    public void OnDestroy(ref SystemState state)
+    {
+        if (_damageEventsQueue.IsCreated)
+            _damageEventsQueue.Dispose();
     }
 
     [BurstCompile]
@@ -61,6 +75,7 @@ public partial struct AuraDamageSystem : ISystem
         _statsLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
         _destroyFLagLookup.Update(ref state);
+        _activeSpellBufferLookup.Update(ref state);
 
         var auraTickJob = new TickDamageJob
         {
@@ -74,10 +89,20 @@ public partial struct AuraDamageSystem : ISystem
 
             StatsLookup = _statsLookup,
             DamageBufferLookup = _damageBufferLookup,
-            DestroyFLagLookup = _destroyFLagLookup
+            DestroyFLagLookup = _destroyFLagLookup,
+            
+            DamageEventsWriter = _damageEventsQueue.AsParallelWriter()
+        };
+        JobHandle tickHandle = auraTickJob.ScheduleParallel(state.Dependency);
+
+        var trackJob = new TrackTickDamageJob
+        {
+            DamageEventsQueue = _damageEventsQueue,
+            ActiveSpellLookup = _activeSpellBufferLookup,
+            PlayerEntity = SystemAPI.GetSingletonEntity<Player>()
         };
 
-        state.Dependency = auraTickJob.ScheduleParallel(state.Dependency);
+        state.Dependency = trackJob.Schedule(tickHandle);
     }
 
     /// <summary>
@@ -98,8 +123,10 @@ public partial struct AuraDamageSystem : ISystem
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFLagLookup;
 
+        public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
+
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity auraSpellEntity, ref DamageOnTick damageOnTick,
-            in LocalToWorld worldPosition)
+            in LocalToWorld worldPosition, in SpellSource spellSource)
         {
             damageOnTick.ElapsedTime += DeltaTime;
 
@@ -108,7 +135,6 @@ public partial struct AuraDamageSystem : ISystem
                 return;
 
             damageOnTick.ElapsedTime = 0f;
-
             var caster = damageOnTick.Caster;
 
             if (!StatsLookup.HasComponent(caster))
@@ -126,8 +152,8 @@ public partial struct AuraDamageSystem : ISystem
                     (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) /*| CollisionLayers.Obstacle*/,
             };
 
-            float radius = damageOnTick.AreaRadius * math.max(1, casterStats.EffectAreaRadiusMult);
-            float damage = damageOnTick.DamagePerTick /** math.max(1, casterStats.Damage)*/;
+            float radius = damageOnTick.AreaRadius * math.max(1, casterStats.AreaOfEffectMult);
+            float damage = damageOnTick.DamagePerTick; // todo scale tick damage based on stats
 
             // Detection
             CollisionWorld.OverlapSphere(worldPosition.Position, radius, ref hits, filter);
@@ -154,14 +180,54 @@ public partial struct AuraDamageSystem : ISystem
                     Element = damageOnTick.Element,
                 });
 
-                // todo feedbacks damage and hitframe
+                DamageEventsWriter.Enqueue(new SpellDamageEvent
+                {
+                    DatabaseIndex = spellSource.DatabaseIndex,
+                    DamageAmount = (int)damage
+                });
 
+                // todo feedbacks damage and hitframe
                 // Shake feedback
                 var feedbackReqEntity = ECB.CreateEntity(chunkIndex);
                 ECB.AddComponent<ShakeFeedbackRequest>(chunkIndex, feedbackReqEntity);
             }
 
             hits.Dispose();
+        }
+    }
+
+    [BurstCompile]
+    private struct TrackTickDamageJob : IJob
+    {
+        public NativeQueue<SpellDamageEvent> DamageEventsQueue;
+        public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        public Entity PlayerEntity;
+
+        public void Execute()
+        {
+            var sums = new NativeHashMap<int, int>(16, Allocator.Temp);
+            while (DamageEventsQueue.TryDequeue(out var evt))
+            {
+                if (sums.ContainsKey(evt.DatabaseIndex)) 
+                    sums[evt.DatabaseIndex] += evt.DamageAmount;
+                else
+                    sums.Add(evt.DatabaseIndex, evt.DamageAmount);
+            }
+
+            if (ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var buffer))
+            {
+                for (int i = 0; i < buffer.Length; i++)
+                {
+                    var spell = buffer[i];
+                    if (sums.TryGetValue(spell.DatabaseIndex, out int totalAdded))
+                    {
+                        spell.DamageDealt += totalAdded;
+                        buffer[i] = spell;
+                    }
+                }
+            }
+
+            sums.Dispose();
         }
     }
 }

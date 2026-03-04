@@ -31,7 +31,7 @@ public partial struct CollisionSystem : ISystem
 
 
     private ComponentLookup<ExplodeOnContact> _explodeLookup;
-    private ComponentLookup<SubSpellRoot> _subSpellRootLookup;
+    private ComponentLookup<SpellSource> _subSpellRootLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
@@ -59,7 +59,7 @@ public partial struct CollisionSystem : ISystem
         _followMovementLookup = state.GetComponentLookup<FollowTargetMovement>(false);
 
         _explodeLookup = state.GetComponentLookup<ExplodeOnContact>(true);
-        _subSpellRootLookup = state.GetComponentLookup<SubSpellRoot>(true);
+        _subSpellRootLookup = state.GetComponentLookup<SpellSource>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
 
 
@@ -81,7 +81,7 @@ public partial struct CollisionSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
-        
+
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
         _transformLookup.Update(ref state);
@@ -117,13 +117,14 @@ public partial struct CollisionSystem : ISystem
             HitMemoryLookup = _hitMemoryLookup,
             InvincibleLookup = _invincibleLookup,
             ExplodeOnContactLookup = _explodeLookup,
-            
-            SubSpellRootLookup = _subSpellRootLookup,
+
+            SpellSourceLookup = _subSpellRootLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter()
         };
 
-        JobHandle triggerHandle = triggerCollisionJob.Schedule(SystemAPI.GetSingleton<SimulationSingleton>(), state.Dependency);
-        
+        JobHandle triggerHandle =
+            triggerCollisionJob.Schedule(SystemAPI.GetSingleton<SimulationSingleton>(), state.Dependency);
+
         var trackDamageJob = new TrackDamageJob
         {
             DamageEventsQueue = _damageEventsQueue,
@@ -157,7 +158,7 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeOnContactLookup;
 
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
-        [ReadOnly] public ComponentLookup<SubSpellRoot> SubSpellRootLookup;
+        [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
 
         private const double DurationBetweenCollisionHit = 0.3f;
 
@@ -213,15 +214,16 @@ public partial struct CollisionSystem : ISystem
                             IsCritical = damageData.IsCritical
                         });
 
-                        if (SubSpellRootLookup.TryGetComponent(damagerEntity, out var spellRoot))
+                        if (SpellSourceLookup.TryGetComponent(damagerEntity, out var spellSource))
                         {
+                            // todo tracks only player spells
                             DamageEventsWriter.Enqueue(new SpellDamageEvent
                             {
-                                DatabaseIndex = spellRoot.DatabaseIndex,
+                                DatabaseIndex = spellSource.DatabaseIndex,
                                 DamageAmount = (int)damageDealt
                             });
                         }
-                        
+
                         ApplyFeedbacks(target);
                     }
 
@@ -315,7 +317,8 @@ public partial struct CollisionSystem : ISystem
 
         private void ApplyFeedbacks(Entity hitEntity)
         {
-            if (!EnemyLookup.HasComponent(hitEntity)) return;
+            if (!EnemyLookup.HasComponent(hitEntity))
+                return;
 
             var shakeReq = ECB.CreateEntity(0);
             ECB.AddComponent<ShakeFeedbackRequest>(0, shakeReq);
@@ -351,25 +354,32 @@ public partial struct CollisionSystem : ISystem
             out float3 direction)
         {
             float3 currentPos = LocalTransformLookup[projectile].Position;
-            var hits = new NativeList<DistanceHit>(Allocator.Temp);
+            var hits = new NativeList<DistanceHit>(16, Allocator.Temp);
             var filter = new CollisionFilter
-                { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Enemy };
+            {
+                BelongsTo = CollisionLayers.Raycast,
+                CollidesWith = CollisionLayers.Enemy
+            };
 
             CollisionWorld.OverlapSphere(currentPos, range, ref hits, filter);
 
-            float closestDist = float.MaxValue;
+            float closestDistSq = float.MaxValue;
             float3 bestPos = float3.zero;
             bool found = false;
             newTarget = Entity.Null;
 
-            foreach (var hit in hits)
+            for (int i = 0; i < hits.Length; i++)
             {
-                if (hit.Entity == currentTarget || hit.Entity == projectile) continue;
-                if (!EnemyLookup.HasComponent(hit.Entity)) continue;
+                var hit = hits[i];
+                if (hit.Entity == currentTarget || hit.Entity == projectile)
+                    continue;
 
-                if (hit.Distance < closestDist)
+                if (!EnemyLookup.HasComponent(hit.Entity))
+                    continue;
+
+                if (hit.Distance < closestDistSq)
                 {
-                    closestDist = hit.Distance;
+                    closestDistSq = hit.Distance;
                     bestPos = hit.Position;
                     newTarget = hit.Entity;
                     found = true;
@@ -377,6 +387,7 @@ public partial struct CollisionSystem : ISystem
             }
 
             direction = found ? math.normalize(bestPos - currentPos) : float3.zero;
+
             hits.Dispose();
             return found;
         }
@@ -391,6 +402,7 @@ public partial struct CollisionSystem : ISystem
 
         public void Execute()
         {
+            // Sums damage per spell map
             var sums = new NativeHashMap<int, int>(16, Allocator.Temp);
 
             while (DamageEventsQueue.TryDequeue(out var evt))
