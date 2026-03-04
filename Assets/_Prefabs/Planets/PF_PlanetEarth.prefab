@@ -188,11 +188,11 @@ PrefabInstance:
     - target: {fileID: -7511558181221131132, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: 5dc0e5ff1954b3a438e8edc9254cee14, type: 2}
+      objectReference: {fileID: 2100000, guid: 0bf5d8eea97f0e549af977c71832f1a2, type: 2}
     - target: {fileID: -5754084199372789682, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       propertyPath: m_Mesh
       value: 
-      objectReference: {fileID: 3469941466066980970, guid: a129bedfaa6d94341b5f2705af804229, type: 3}
+      objectReference: {fileID: -5495902117074765545, guid: 86150e4e08443e44d9a0053d60af2fe6, type: 3}
     - target: {fileID: 919132149155446097, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       propertyPath: m_Name
       value: PF_PlanetEarth
@@ -266,8 +266,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5075d250c6a932b44900fd1ab8740d9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlanetDataAuthoring
-  _planetID: 5
-  _autoCalculate: 1
+  _planetID: 3
+  _autoCalculate: 0
   _planetRenderer: {fileID: 6936182477088752081}
   _manualRadius: 50
   _manualCenterOffset: {x: 0, y: 0, z: 0}
