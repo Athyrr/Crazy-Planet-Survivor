@@ -1,3 +1,4 @@
+using System;
 using Unity.Entities.Serialization;
 using System.Collections;
 using Unity.Entities;
@@ -9,6 +10,8 @@ public class GameManager : MonoBehaviour
 {
     public delegate void GameStateChanged(EGameState newState);
     public event GameStateChanged OnGameStateChanged;
+
+    public Action<EPlanetID> OnPlanetSelected;
 
     public GameObject LoadingPanel;
     [SerializeField] private float _minLoadingTime = 1.0f;
@@ -150,6 +153,9 @@ public class GameManager : MonoBehaviour
 
         // Update state
         ChangeState(targetState);
+        
+        var planetData = _entityManager.CreateEntityQuery(typeof(PlanetData)).GetSingleton<PlanetData>();
+        OnPlanetSelected?.Invoke(planetData.PlanetID);
 
         // Send Request if needed
         if (sendStartRequest)

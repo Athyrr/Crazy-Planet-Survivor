@@ -1,4 +1,5 @@
 using EasyButtons;
+using Unity.Entities;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -9,12 +10,16 @@ using UnityEditor;
 public class FoliageRenderer : MonoBehaviour
 {
     public FoliageData data;
+    public EnumValues<EPlanetID, FoliageData> datas;
     public Mesh mesh;
     public Material material;
     public Bounds renderBounds = new Bounds(Vector3.zero, Vector3.one * 1000f);
     ComputeBuffer instanceBuffer;
     ComputeBuffer argsBuffer;
-
+    
+    private EntityManager _entityManager;
+    private EntityQuery _planetScenesBufferQuery;
+    
     // Struct = float3 pos + float3 normal + float scale + float3 rotation (float4 mtn flemme de refaire les maths)
     // GPU stride = 48 bytes (float3 aligned on 16 bytes)
     const int STRIDE = 40;
@@ -22,11 +27,17 @@ public class FoliageRenderer : MonoBehaviour
     void OnEnable()
     {
         CreateBuffers();
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnPlanetSelected += OnGameStateChanged;
     }
 
     void OnDisable()
     {
         ReleaseBuffers();
+        
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnPlanetSelected -= OnGameStateChanged;
     }
 
     void Update()
@@ -54,6 +65,15 @@ public class FoliageRenderer : MonoBehaviour
 
             Graphics.DrawMeshInstancedIndirect(mesh, 0, material, renderBounds, argsBuffer);
         }
+    }
+
+    private void OnGameStateChanged(EPlanetID planetID)
+    {
+        ReleaseBuffers();
+        
+        data = datas[planetID];
+        
+        CreateBuffers();
     }
 
     void CreateBuffers()
