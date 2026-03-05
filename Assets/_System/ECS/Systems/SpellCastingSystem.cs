@@ -481,6 +481,8 @@ public partial struct SpellCastingSystem : ISystem
                         Damage = finalDamage,
                         Element = baseSpellData.Tag | addedTags,
                         AreaRadius = finalArea,
+                        TotalCritChance = finalCritChance,
+                        TotalCritMultiplier = finalCritMultiplier,
                     });
                 }
 
@@ -493,6 +495,8 @@ public partial struct SpellCastingSystem : ISystem
                         DamagePerTick = (baseSpellData.BaseDamagePerTick + stats.Damage) * mulDmg * criticalDamages,
                         AreaRadius = finalArea,
                         Element = baseSpellData.Tag | addedTags,
+                        TotalCritChance = finalCritChance,
+                        TotalCritMultiplier = finalCritMultiplier,
                     });
                 }
 

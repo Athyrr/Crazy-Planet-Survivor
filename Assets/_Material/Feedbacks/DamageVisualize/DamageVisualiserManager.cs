@@ -107,7 +107,7 @@ public class DamageFeedbackManager : MonoBehaviour, IDisposable
                         requests[i].Amount,
                         (Vector3)requests[i].Transform.Position +
                         (Vector3)requests[i].Transform.Up() * (1.5f * Random.Range(1, 3f)),
-                        requests[i].IsCritical ? Color.wheat : Color.firebrick
+                        requests[i].IsCritical ? Color.firebrick : Color.wheat
                     );
                     _entityManager.DestroyEntity(entities[i]);
                 }
