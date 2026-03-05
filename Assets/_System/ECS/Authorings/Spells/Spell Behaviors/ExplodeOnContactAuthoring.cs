@@ -37,6 +37,8 @@ public struct ExplodeOnContact : IComponentData, IEnableableComponent
     public float Radius;
     public Entity VfxPrefab;
 
+    public bool IsCrit;
+
     public uint TargetLayers;
     //public float KnockbackForce;
 }
