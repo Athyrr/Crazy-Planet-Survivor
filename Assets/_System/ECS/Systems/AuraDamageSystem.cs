@@ -157,6 +157,8 @@ public partial struct AuraDamageSystem : ISystem
                 critsMultiplierList.Add(criticalDamagesMultiplier);
             }
 
+            int index = 0;
+
             foreach (var hit in hits)
             {
                 var isEnemyHit = EnemyLookup.HasComponent(hit.Entity);
@@ -175,8 +177,9 @@ public partial struct AuraDamageSystem : ISystem
 
                 ECB.AppendToBuffer(chunkIndex, hit.Entity, new DamageBufferElement
                 {
-                    Damage = (int)damage,
+                    Damage = (int)(damage * critsMultiplierList[index]),
                     Element = damageOnTick.Element,
+                    IsCritical = critsList[index]
                 });
 
                 // todo feedbacks damage and hitframe
@@ -184,6 +187,8 @@ public partial struct AuraDamageSystem : ISystem
                 // Shake feedback
                 var feedbackReqEntity = ECB.CreateEntity(chunkIndex);
                 ECB.AddComponent<ShakeFeedbackRequest>(chunkIndex, feedbackReqEntity);
+
+                index++;
             }
 
             hits.Dispose();
