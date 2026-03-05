@@ -202,6 +202,7 @@ MonoBehaviour:
   _computeShader: {fileID: 7200000, guid: 6667581f9b2f49089280b804d1f82dea, type: 3}
   _displayMaterial: {fileID: 2100000, guid: 55105a2f1d0fbf1439ec3323460eadfb, type: 2}
   _quadMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+  _damageLifetime: 5
 --- !u!1 &238592963
 GameObject:
   m_ObjectHideFlags: 0
@@ -286,6 +287,64 @@ MonoBehaviour:
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
   m_PresetInfoIsWorld: 0
+--- !u!1 &360449800
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 360449801}
+  - component: {fileID: 360449802}
+  m_Layer: 0
+  m_Name: Foliage Renderer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &360449801
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 360449800}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1919278032}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &360449802
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 360449800}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8684a6a8f36b4f29978520710e23860f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FoliageRenderer
+  data: {fileID: 0}
+  datas:
+    m_enumValues:
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 11400000, guid: 662f1c14fedb5a44f810c24c9e56eada, type: 2}
+    - {fileID: 0}
+    - {fileID: 0}
+  mesh: {fileID: 2931178734877319190, guid: 4dfe686ae138ffb4fa7572b5ae68e04c, type: 3}
+  material: {fileID: 2100000, guid: dc3c2090bc358644fb684229bc8ed6eb, type: 2}
+  renderBounds:
+    m_Center: {x: -4.7428365, y: 1.9827214, z: -2.670105}
+    m_Extent: {x: 118.79024, y: 118.79024, z: 118.79024}
 --- !u!1 &411879182
 GameObject:
   m_ObjectHideFlags: 0
@@ -2044,6 +2103,7 @@ Transform:
   - {fileID: 1684467034}
   - {fileID: 1478066651}
   - {fileID: 233423650}
+  - {fileID: 360449801}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1937813472
