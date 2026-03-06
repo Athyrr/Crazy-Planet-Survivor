@@ -9,13 +9,16 @@ using UnityEditor;
 [ExecuteAlways]
 public class FoliageRenderer : MonoBehaviour
 {
-    public FoliageData data;
-    public EnumValues<EPlanetID, FoliageData> datas;
-    public Mesh mesh;
-    public Material material;
-    public Bounds renderBounds = new Bounds(Vector3.zero, Vector3.one * 1000f);
-    ComputeBuffer instanceBuffer;
-    ComputeBuffer argsBuffer;
+    #region Members
+    [SerializeField] private EnumValues<EPlanetID, FoliageData> datas;
+    [SerializeField] private Mesh _mesh;
+    [SerializeField] private Material _material;
+    [SerializeField] private Bounds _renderBounds = new Bounds(Vector3.zero, Vector3.one * 1000f);
+
+    private FoliageData _data;
+    
+    private ComputeBuffer instanceBuffer;
+    private ComputeBuffer argsBuffer;
     
     private EntityManager _entityManager;
     private EntityQuery _planetScenesBufferQuery;
@@ -23,7 +26,9 @@ public class FoliageRenderer : MonoBehaviour
     // Struct = float3 pos + float3 normal + float scale + float3 rotation (float4 mtn flemme de refaire les maths)
     // GPU stride = 48 bytes (float3 aligned on 16 bytes)
     const int STRIDE = 40;
+    #endregion
 
+    #region Core
     void OnEnable()
     {
         CreateBuffers();
@@ -42,28 +47,28 @@ public class FoliageRenderer : MonoBehaviour
 
     void Update()
     {
-        if (data == null || mesh == null || material == null) return;
+        if (_data == null || _mesh == null || _material == null) return;
 
         // if count changed, recreate
-        if (instanceBuffer == null || instanceBuffer.count != data.instances.Count)
+        if (instanceBuffer == null || instanceBuffer.count != _data.instances.Count)
         {
             CreateBuffers();
         }
 
-        if (instanceBuffer != null && data.instances.Count > 0)
+        if (instanceBuffer != null && _data.instances.Count > 0)
         {
-            instanceBuffer.SetData(data.instances);
-            material.SetBuffer("_Instances", instanceBuffer);
+            instanceBuffer.SetData(_data.instances);
+            _material.SetBuffer("_Instances", instanceBuffer);
 
             uint[] args = new uint[5];
-            args[0] = (uint)mesh.GetIndexCount(0);
-            args[1] = (uint)data.instances.Count;
-            args[2] = (uint)mesh.GetIndexStart(0);
-            args[3] = (uint)mesh.GetBaseVertex(0);
+            args[0] = (uint)_mesh.GetIndexCount(0);
+            args[1] = (uint)_data.instances.Count;
+            args[2] = (uint)_mesh.GetIndexStart(0);
+            args[3] = (uint)_mesh.GetBaseVertex(0);
             args[4] = 0;
             argsBuffer.SetData(args);
 
-            Graphics.DrawMeshInstancedIndirect(mesh, 0, material, renderBounds, argsBuffer);
+            Graphics.DrawMeshInstancedIndirect(_mesh, 0, _material, _renderBounds, argsBuffer);
         }
     }
 
@@ -71,30 +76,32 @@ public class FoliageRenderer : MonoBehaviour
     {
         ReleaseBuffers();
         
-        data = datas[planetID];
+        _data = datas[planetID];
         
         CreateBuffers();
     }
+    #endregion
 
+    #region Methods
     void CreateBuffers()
     {
         ReleaseBuffers();
-        if (data == null || data.instances.Count == 0) return;
+        if (_data == null || _data.instances.Count == 0) return;
 
-        instanceBuffer = new ComputeBuffer(data.instances.Count, STRIDE, ComputeBufferType.Default);
-        instanceBuffer.SetData(data.instances);
+        instanceBuffer = new ComputeBuffer(_data.instances.Count, STRIDE, ComputeBufferType.Default);
+        instanceBuffer.SetData(_data.instances);
 
         argsBuffer = new ComputeBuffer(1, 5 * sizeof(uint), ComputeBufferType.IndirectArguments);
         uint[] args = new uint[5];
-        args[0] = (uint)mesh.GetIndexCount(0);
-        args[1] = (uint)data.instances.Count;
-        args[2] = (uint)mesh.GetIndexStart(0);
-        args[3] = (uint)mesh.GetBaseVertex(0);
+        args[0] = (uint)_mesh.GetIndexCount(0);
+        args[1] = (uint)_data.instances.Count;
+        args[2] = (uint)_mesh.GetIndexStart(0);
+        args[3] = (uint)_mesh.GetBaseVertex(0);
         args[4] = 0;
         argsBuffer.SetData(args);
 
-        if (material != null)
-            material.SetBuffer("_Instances", instanceBuffer);
+        if (_material != null)
+            _material.SetBuffer("_Instances", instanceBuffer);
     }
 
     void ReleaseBuffers()
@@ -102,21 +109,7 @@ public class FoliageRenderer : MonoBehaviour
         if (instanceBuffer != null) { instanceBuffer.Release(); instanceBuffer = null; }
         if (argsBuffer != null) { argsBuffer.Release(); argsBuffer = null; }
     }
-
-    void OnValidate()
-    {
-        // optional: auto size bounds around data
-        if (data != null && data.instances.Count > 0)
-        {
-            Vector3 center = Vector3.zero;
-            foreach (var i in data.instances) center += i.position;
-            center /= data.instances.Count;
-            renderBounds.center = center;
-            float maxDist = 0f;
-            foreach (var i in data.instances) maxDist = Mathf.Max(maxDist, (i.position - center).magnitude);
-            renderBounds.size = Vector3.one * (maxDist * 2f + 10f);
-        }
-    }
+    #endregion
 
     #region Utils
     float GetPlanetRadiusWorld(MeshFilter mf)
@@ -129,8 +122,23 @@ public class FoliageRenderer : MonoBehaviour
     }
     #endregion
 
-    #region Editor
 #if UNITY_EDITOR
+    #region Editor
+    void OnValidate()
+    {
+        // optional: auto size bounds around data
+        if (_data != null && _data.instances.Count > 0)
+        {
+            Vector3 center = Vector3.zero;
+            foreach (var i in _data.instances) center += i.position;
+            center /= _data.instances.Count;
+            _renderBounds.center = center;
+            float maxDist = 0f;
+            foreach (var i in _data.instances) maxDist = Mathf.Max(maxDist, (i.position - center).magnitude);
+            _renderBounds.size = Vector3.one * (maxDist * 2f + 10f);
+        }
+    }
+    
     [Button]
     private void RecalculateBounds(MeshFilter meshFilter)
     {
@@ -144,6 +152,6 @@ public class FoliageRenderer : MonoBehaviour
         meshFilter.mesh.bounds = new Bounds(transform.position, new Vector3(minBounds, minBounds, minBounds));
         EditorUtility.SetDirty(meshFilter.mesh);
     }
-#endif
     #endregion
+#endif
 }

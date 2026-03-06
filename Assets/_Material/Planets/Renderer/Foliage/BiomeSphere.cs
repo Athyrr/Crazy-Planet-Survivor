@@ -52,18 +52,11 @@ public class BiomeSphere : MonoBehaviour
         }
     }
 
-    public void Update()
-    {
-        throw new NotImplementedException();
-    }
-
-    // Visualisation dans l'éditeur
     void OnDrawGizmos()
     {
         Gizmos.color = zoneColor;
         Gizmos.DrawWireSphere(transform.position, radius);
 
-        // Sphere semi-transparente pour mieux visualiser
         Gizmos.color = new Color(zoneColor.r, zoneColor.g, zoneColor.b, 0.1f);
         Gizmos.DrawSphere(transform.position, radius);
     }
