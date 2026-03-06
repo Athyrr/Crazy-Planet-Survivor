@@ -10,5 +10,8 @@ public struct DamageOnTick : IComponentData
 
     public Entity Caster;
     public float AreaRadius;
-    public bool IsCritical;
+
+    //public bool IsCritical;
+    public float TotalCritChance;
+    public float TotalCritMultiplier;
 }

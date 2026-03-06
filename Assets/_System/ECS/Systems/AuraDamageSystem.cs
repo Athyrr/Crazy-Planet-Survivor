@@ -1,9 +1,11 @@
+using System;
 using Unity.Collections;
 using Unity.Mathematics;
 using Unity.Transforms;
 using Unity.Entities;
 using Unity.Physics;
 using Unity.Burst;
+using Random = Unity.Mathematics.Random;
 
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -64,6 +66,8 @@ public partial struct AuraDamageSystem : ISystem
 
         var auraTickJob = new TickDamageJob
         {
+            Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
+
             ECB = ecb.AsParallelWriter(),
             DeltaTime = SystemAPI.Time.DeltaTime,
 
@@ -86,6 +90,8 @@ public partial struct AuraDamageSystem : ISystem
     [BurstCompile]
     private partial struct TickDamageJob : IJobEntity
     {
+        public uint Seed;
+
         public EntityCommandBuffer.ParallelWriter ECB;
         public float DeltaTime;
 
@@ -132,6 +138,27 @@ public partial struct AuraDamageSystem : ISystem
             // Detection
             CollisionWorld.OverlapSphere(worldPosition.Position, radius, ref hits, filter);
 
+            var hitCount = hits.Length;
+            NativeList<bool> critsList = new NativeList<bool>(Allocator.Temp);
+            NativeList<float> critsMultiplierList = new NativeList<float>(Allocator.Temp);
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                var random = Random.CreateFromIndex(Seed);
+
+                bool isCrit = random.NextFloat(0f, 1f) <= damageOnTick.TotalCritChance;
+
+                critsList.Add(isCrit);
+
+                float criticalDamagesMultiplier = 1f;
+                if (isCrit)
+                    criticalDamagesMultiplier = math.max(1.0f, damageOnTick.TotalCritMultiplier);
+
+                critsMultiplierList.Add(criticalDamagesMultiplier);
+            }
+
+            int index = 0;
+
             foreach (var hit in hits)
             {
                 var isEnemyHit = EnemyLookup.HasComponent(hit.Entity);
@@ -150,8 +177,9 @@ public partial struct AuraDamageSystem : ISystem
 
                 ECB.AppendToBuffer(chunkIndex, hit.Entity, new DamageBufferElement
                 {
-                    Damage = (int)damage,
+                    Damage = (int)(damage * critsMultiplierList[index]),
                     Element = damageOnTick.Element,
+                    IsCritical = critsList[index]
                 });
 
                 // todo feedbacks damage and hitframe
@@ -159,6 +187,8 @@ public partial struct AuraDamageSystem : ISystem
                 // Shake feedback
                 var feedbackReqEntity = ECB.CreateEntity(chunkIndex);
                 ECB.AddComponent<ShakeFeedbackRequest>(chunkIndex, feedbackReqEntity);
+
+                index++;
             }
 
             hits.Dispose();

@@ -89,7 +89,7 @@ public partial struct ExplosionSystem : ISystem
                         {
                             Damage = (int)explosion.Damage,
                             Element = explosion.Element,
-                            IsCritical = false //todo add crit for explosions 
+                            IsCritical = explosion.IsCritical
                         });
 
                         // todo apply Knockback if needed
@@ -113,7 +113,7 @@ public struct ExplosionRequest : IComponentData
     public float Radius;
     public float Damage;
     public ESpellTag Element;
-    public float CritIntensity;
+    public bool IsCritical;
     public Entity VfxPrefab;
 
     public uint TargetLayers;
