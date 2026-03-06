@@ -1,11 +1,11 @@
 using Unity.Burst;
-using Unity.Physics;
-using Unity.Entities;
-using Unity.Transforms;
-using Unity.Mathematics;
 using Unity.Collections;
+using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
+using Unity.Physics;
 using Unity.Physics.Systems;
+using Unity.Transforms;
 using static HitFrameFeedbackSystem;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
@@ -99,6 +99,8 @@ public partial struct CollisionSystem : ISystem
 
         var triggerCollisionJob = new TriggerCollisionJob
         {
+            Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
+
             ECB = ecb.AsParallelWriter(),
             CurrentTime = SystemAPI.Time.ElapsedTime,
             CollisionWorld = physicsWorld.CollisionWorld,
@@ -138,6 +140,8 @@ public partial struct CollisionSystem : ISystem
     [BurstCompile]
     private struct TriggerCollisionJob : ITriggerEventsJob
     {
+        public uint Seed;
+
         public EntityCommandBuffer.ParallelWriter ECB;
         public double CurrentTime;
         [ReadOnly] public CollisionWorld CollisionWorld;
@@ -205,14 +209,26 @@ public partial struct CollisionSystem : ISystem
                     if (!InvincibleLookup.HasComponent(target))
                     {
                         var damageData = DamageOnContactLookup[damagerEntity];
-                        var damageDealt = damageData.Damage;
 
-                        ECB.AppendToBuffer(0, target, new DamageBufferElement
-                        {
-                            Damage = (int)damageData.Damage,
-                            Element = damageData.Element,
-                            IsCritical = damageData.IsCritical
-                        });
+                        var random = Random.CreateFromIndex(Seed);
+
+                        bool isCrit = random.NextFloat(0f, 1f) <= damageData.TotalCritChance;
+                        float criticalDamagesMultiplier = 1f;
+                        if (isCrit)
+                            criticalDamagesMultiplier = math.max(1.0f, damageData.TotalCritMultiplier);
+
+                        int damageDealt = (int)(damageData.Damage * criticalDamagesMultiplier);
+
+                        ECB.AppendToBuffer(
+                            0,
+                            target,
+                            new DamageBufferElement
+                            {
+                                Damage = damageDealt,
+                                Element = damageData.Element,
+                                IsCritical = isCrit,
+                            }
+                        );
 
                         if (SpellSourceLookup.TryGetComponent(damagerEntity, out var spellSource))
                         {
@@ -230,7 +246,17 @@ public partial struct CollisionSystem : ISystem
                     if (ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
                         ExplodeOnContactLookup.IsComponentEnabled(damagerEntity))
                     {
-                        CreateExplosion(damagerEntity, explosion);
+
+                        var damageData = DamageOnContactLookup[damagerEntity];
+
+                        var random = Random.CreateFromIndex(Seed);
+
+                        bool isCrit = random.NextFloat(0f, 1f) <= damageData.TotalCritChance;
+                        float criticalDamagesMultiplier = 1f;
+                        if (isCrit)
+                            criticalDamagesMultiplier = math.max(1.0f, damageData.TotalCritMultiplier);
+
+                        CreateExplosion(damagerEntity, explosion, criticalDamagesMultiplier, isCrit);
                     }
 
                     bool shouldDestroy = DestroyOnContactLookup.HasComponent(damagerEntity);
@@ -303,16 +329,20 @@ public partial struct CollisionSystem : ISystem
                 element = DamageOnContactLookup[damager].Element | ESpellTag.Explosive;
             }
 
-            ECB.AddComponent(0, requestEntity, new ExplosionRequest()
-            {
-                Position = pos,
-                Radius = explosionData.Radius,
-                Damage = explosionData.Damage,
-                VfxPrefab = explosionData.VfxPrefab,
-                CritIntensity = 0, // todo pass crit info
-                Element = element,
-                TargetLayers = CollisionLayers.Enemy
-            });
+            ECB.AddComponent(
+                0,
+                requestEntity,
+                new ExplosionRequest()
+                {
+                    Position = pos,
+                    Radius = explosionData.Radius,
+                    Damage = explosionData.Damage * criticalDamagesMultiplier,
+                    VfxPrefab = explosionData.VfxPrefab,
+                    IsCritical = isCrit,
+                    Element = element,
+                    TargetLayers = CollisionLayers.Enemy,
+                }
+            );
         }
 
         private void ApplyFeedbacks(Entity hitEntity)
@@ -329,16 +359,20 @@ public partial struct CollisionSystem : ISystem
 
         private bool TryResolveDamagerVsTarget(Entity entityA, Entity entityB, out Entity damager, out Entity target)
         {
-            if (DamageOnContactLookup.HasComponent(entityA) &&
-                (EnemyLookup.HasComponent(entityB) || PlayerLookup.HasComponent(entityB)))
+            if (
+                DamageOnContactLookup.HasComponent(entityA)
+                && (EnemyLookup.HasComponent(entityB) || PlayerLookup.HasComponent(entityB))
+            )
             {
                 damager = entityA;
                 target = entityB;
                 return true;
             }
 
-            if (DamageOnContactLookup.HasComponent(entityB) &&
-                (EnemyLookup.HasComponent(entityA) || PlayerLookup.HasComponent(entityA)))
+            if (
+                DamageOnContactLookup.HasComponent(entityB)
+                && (EnemyLookup.HasComponent(entityA) || PlayerLookup.HasComponent(entityA))
+            )
             {
                 damager = entityB;
                 target = entityA;

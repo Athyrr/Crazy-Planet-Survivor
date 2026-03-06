@@ -31,17 +31,12 @@ Shader "Custom/DamageNumbers"
             struct DamageData
             {
                 float3 position;
-                float3 color;
                 float value;
-            };
-            
-            struct TimeData
-            {
                 float startTime;
+                int digitCount;
             };
 
-            StructuredBuffer<DamageData>    _DamageBuffer;
-            StructuredBuffer<TimeData>      _TimeBuffer;
+            StructuredBuffer<DamageData> _DamageBuffer;
 
             sampler2D _MainTex;
             float _CurrentTime;
@@ -63,15 +58,12 @@ Shader "Custom/DamageNumbers"
             {
                 v2f o;
 
-                DamageData damageData = _DamageBuffer[inst];
-                TimeData timeData = _TimeBuffer[inst];
-                
-                int digitCount = floor(log10(abs(damageData.value))) + 1.0;
-                
-                float age = _CurrentTime - timeData.startTime;
+                DamageData data = _DamageBuffer[inst];
+
+                float age = _CurrentTime - data.startTime;
                 float life01 = saturate(1.0 - age / _LifeTime);
                 
-                float width = digitCount * _Scale;
+                float width = data.digitCount * _Scale;
 
                 float2 quad[4] =
                 {
@@ -91,7 +83,7 @@ Shader "Custom/DamageNumbers"
 
                 int v = id & 3;
 
-                float3 worldPos = damageData.position;
+                float3 worldPos = data.position;
                 worldPos.y += age * _FloatSpeed;
 
                 float3 camRight = normalize(UNITY_MATRIX_V._m00_m01_m02);
@@ -113,16 +105,14 @@ Shader "Custom/DamageNumbers"
 
             fixed4 frag(v2f i) : SV_Target
             {
-                DamageData damageData = _DamageBuffer[i.inst];
-                TimeData timeData = _TimeBuffer[i.inst];
-                int digitCount = floor(log10(abs(damageData.value))) + 1.0;
+                DamageData data = _DamageBuffer[i.inst];
 
-                float number = damageData.value -1;
+                float number = data.value -1;
                 float2 uv = i.uv;
 
                 fixed4 col = fixed4(0,0,0,0);
 
-                if (digitCount == 1)
+                if (data.digitCount == 1)
                 {
                     int digit = (int)floor(number);
                     float2 tc = float2(uv.x / 10.0 + digit / 10.0, uv.y);
@@ -135,15 +125,15 @@ Shader "Custom/DamageNumbers"
                     [unroll]
                     for (int d = MAX_DIGITS - 1; d >= 0; d--)
                     {
-                        if (d >= digitCount) continue;
+                        if (d >= data.digitCount) continue;
 
                         int digit = (int)floor(fmod(number / pow(10.0, d), 10.0));
 
-                        float left  = step(at / (float)digitCount, uv.x);
-                        float right = step(uv.x, (at + 1) / (float)digitCount);
+                        float left  = step(at / (float)data.digitCount, uv.x);
+                        float right = step(uv.x, (at + 1) / (float)data.digitCount);
 
                         float2 tc;
-                        tc.x = uv.x * digitCount / 10.0 + digit / 10.0;
+                        tc.x = uv.x * data.digitCount / 10.0 + digit / 10.0;
                         tc.y = uv.y;
 
                         col += left * right * tex2D(_MainTex, tc);
@@ -151,13 +141,11 @@ Shader "Custom/DamageNumbers"
                     }
                 }
 
-                float age = _CurrentTime - timeData.startTime;
+                float age = _CurrentTime - data.startTime;
                 float emissive = saturate(1.0 - age / _EmissiveDuration);
-                
-                if (age > _LifeTime || age < 0) discard;
 
                 col.a *= min(col.r, i.alpha);
-                col.rgb *= damageData.color * emissive;
+                col.rgb *= _Color.rgb * emissive;
 
                 return col;
             }
