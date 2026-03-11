@@ -15,7 +15,16 @@ public struct AmuletBlob
 
 public struct AmuletModifierBlob
 {
+    public EUpgradeType UpgradeType;
     public ECharacterStat CharacterStat;
-    public EStatModiferStrategy ModifierStrategy;
+    public ESpellStat SpellStat;
+    public ESpellTag SpellTags;
+    public ESpellID SpellID;
+    public EModiferStrategy Strategy;
     public float Value;
+}
+
+public struct ApplyAmuletRequest : IComponentData 
+{ 
+    public int DatabaseIndex; 
 }

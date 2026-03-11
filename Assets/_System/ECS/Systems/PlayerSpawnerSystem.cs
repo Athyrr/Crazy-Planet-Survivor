@@ -91,23 +91,12 @@ public partial struct PlayerSpawnerSystem : ISystem
 
         if (SystemAPI.TryGetSingleton<EquippedAmulet>(out var equippedAmulet) && equippedAmulet.DbIndex > -1)
         {
-            var statsModifiers = SystemAPI.GetBuffer<StatModifier>(playerEntity);
-            ref var modifiers = ref amuletDatabase[equippedAmulet.DbIndex].Modifiers;
+            // Request to Apply amulet modifiers
+            state.EntityManager.AddComponentData(playerEntity, new ApplyAmuletRequest 
+            { 
+                DatabaseIndex = equippedAmulet.DbIndex 
+            });
 
-            for (int i = 0; i < modifiers.Length; i++)
-            {
-                var modifier = modifiers[i];
-                statsModifiers.Add(new StatModifier()
-                {
-                    StatID = modifier.CharacterStat,
-                    Value = modifier.Value,
-                    Strategy = modifier.ModifierStrategy
-                });
-            }
-
-            // Request to recalculate stats
-            if (!state.EntityManager.HasComponent<RecalculateStatsRequest>(playerEntity))
-                state.EntityManager.AddComponentData(playerEntity, new RecalculateStatsRequest());
         }
     }
 }

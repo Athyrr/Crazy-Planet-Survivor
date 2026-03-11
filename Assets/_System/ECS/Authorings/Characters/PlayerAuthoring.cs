@@ -7,30 +7,18 @@ public class PlayerAuthoring : MonoBehaviour
 {
     private GameUpgradesConfigSO _gameUpgradesConfig;
 
-    [Header("Datas")]
-    [Tooltip("The character's base stats and initial spells.")]
-    public CharacterSO characterData;
+    [Header("Datas")] [Tooltip("The character's base stats and initial spells.")]
+    public CharacterSo characterData;
 
     [Header("Movement Settings")]
-    [Tooltip(
-        "If true, the player will be snapped perfectly on the ground following the terrain height."
-    )]
+    [Tooltip("If true, the player will be snapped perfectly on the ground following the terrain height.")]
     public bool UseSnappedMovement = true;
 
-    [Header("Debug")]
-    [Tooltip("If true, the player will be invincible.")]
+    [Header("Debug")] [Tooltip("If true, the player will be invincible.")]
     public bool IsInvincible = false;
-
-    [Tooltip("Modifiers to apply on spawn (e.g. for testing specific builds).")]
-    public StatModifier[] InitialModifiers;
-
-    [Tooltip("Upgrades to apply on spawn (e.g. for testing specific builds).")]
-    public UpgradeSO[] InitialUpgrades;
 
     private void OnValidate()
     {
-        // Load GameUpgradesConfigSO from project
-
         if (_gameUpgradesConfig == null)
         {
 #if UNITY_EDITOR
@@ -39,8 +27,7 @@ public class PlayerAuthoring : MonoBehaviour
             if (guids.Length > 0)
             {
                 string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
-                _gameUpgradesConfig =
-                    UnityEditor.AssetDatabase.LoadAssetAtPath<GameUpgradesConfigSO>(path);
+                _gameUpgradesConfig = UnityEditor.AssetDatabase.LoadAssetAtPath<GameUpgradesConfigSO>(path);
 
                 if (!Application.isPlaying)
                 {
@@ -49,9 +36,7 @@ public class PlayerAuthoring : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning(
-                    "[PlayerAuthoring] 'GlobalUpgradesConfigSO' not found in project!"
-                );
+                Debug.LogWarning("[PlayerAuthoring] 'GlobalUpgradesConfigSO' not found in project!");
             }
 #endif
         }
@@ -65,96 +50,69 @@ public class PlayerAuthoring : MonoBehaviour
 
             if (authoring.characterData == null)
             {
-                Debug.LogError(
-                    $"PlayerAuthoring on {authoring.name} is missing CharacterDataSO!",
-                    authoring
-                );
+                Debug.LogError($"PlayerAuthoring on {authoring.name} is missing CharacterDataSO!", authoring);
                 return;
             }
 
             if (authoring._gameUpgradesConfig == null)
             {
-                Debug.LogError(
-                    $"[PlayerAuthoring] '{authoring.name}' needs a reference to GameUpgradesConfigSO.",
-                    authoring
-                );
+                Debug.LogError($"[PlayerAuthoring] '{authoring.name}' needs a reference to GameUpgradesConfigSO.",
+                    authoring);
                 return;
             }
 
             List<UpgradeSO> gameUpgradesList = authoring._gameUpgradesConfig.GetFlattenedUpgrades();
+            var data = authoring.characterData;
+            var baseStats = data.BaseStats;
+            var initialSpells = data.InitialSpells;
 
-            var baseStats = authoring.characterData.BaseStats;
-            var initialSpells = authoring.characterData.InitialSpells;
+            AddComponent(entity, new Player());
+            AddComponent(entity, new InputData { Value = new float2(0, 0) });
+            AddComponent(entity, new Health { Value = (int)baseStats.BaseMaxHealth });
 
-            AddComponent(entity, new Player() { });
-            AddComponent(entity, new InputData() { Value = new float2(0, 0) });
-            AddComponent(entity, new Health { Value = baseStats.MaxHealth });
-            AddComponent(
-                entity,
-                new LinearMovement { Direction = float3.zero, Speed = baseStats.MoveSpeed }
-            );
-
+            AddComponent(entity, new LinearMovement { Direction = float3.zero, Speed = baseStats.BaseMoveSpeed });
             if (authoring.UseSnappedMovement)
                 AddComponent<HardSnappedMovement>(entity);
 
             AddBuffer<DamageBufferElement>(entity);
 
-            // Base Stats
-            AddComponent<BaseStats>(entity, baseStats);
-
-            // Initialize dynamic Stats with base values
-            AddComponent(
-                entity,
-                new Stats
-                {
-                    MaxHealth = baseStats.MaxHealth,
-                    Armor = baseStats.Armor,
-
-                    MoveSpeed = baseStats.MoveSpeed,
-
-                    Damage = baseStats.Damage,
-                    CooldownReduction = baseStats.CooldownReduction,
-                    CritChance = baseStats.CritChance,
-                    CritMultiplier = baseStats.CritMultiplier,
-
-                    ProjectileSpeedMultiplier = baseStats.ProjectileSpeedMultiplier,
-                    AreaOfEffectMult = baseStats.EffectAreaRadiusMultiplier,
-                    BouncesAdded = baseStats.BouncesAdded,
-                    PierceAdded = baseStats.PierceAdded,
-
-                    FireResistance = baseStats.FireResistance,
-                    IceResistance = baseStats.IceResistance,
-                    LightningResistance = baseStats.LightningResistance,
-                    PoisonResistance = baseStats.PoisonResistance,
-                    LightResistance = baseStats.LightResistance,
-                    DarkResistance = baseStats.DarkResistance,
-                    NatureResistance = baseStats.NatureResistance,
-
-                    SizeMult = baseStats.SizeMultiplier,
-
-                    CollectRange = baseStats.CollectRange,
-                    MaxCollectRange = baseStats.MaxCollectRange,
-                }
-            );
-
-            // Stat Modifiers
-            DynamicBuffer<StatModifier> statModifierBuffer = AddBuffer<StatModifier>(entity);
-            if (authoring.InitialModifiers != null && authoring.InitialModifiers.Length > 0)
+            AddComponent(entity, new Stats
             {
-                foreach (var modifier in authoring.InitialModifiers)
-                    statModifierBuffer.Add(modifier);
-            }
+                // Bases
+                BaseMaxHealth = baseStats.BaseMaxHealth,
+                BaseArmor = baseStats.BaseArmor,
+                BaseMoveSpeed = baseStats.BaseMoveSpeed,
+                BasePickupRange = baseStats.BasePickupRange,
 
-            // Request to reacalultate stats using stat modfiers values.
-            AddComponent<RecalculateStatsRequest>(entity);
+                MaxHealthMultiplier = 1.0f,
+                HealthRecovery = baseStats.HealthRecovery,
+                DamageReductionMultiplier = 1.0f,
+                MoveSpeedMultiplier = 1.0f,
+                PickupRangeMultiplier = 1.0f,
 
-            // Base spells
-            var baseSpells = AddBuffer<BaseSpell>(entity);
+                GlobalDamageMultiplier = 1.0f,
+                GlobalCooldownMultiplier = 1.0f,
+                GlobalSpellAreaMultiplier = 1.0f,
+                GlobalSpellSizeMultiplier = 1.0f,
+                GlobalSpellSpeedMultiplier = 1.0f,
+                GlobalDurationMultiplier = 1.0f,
 
-            // Active Spells
+                GlobalAmountBonus = 0,
+                GlobalPierceBonus = 0,
+                GlobalBounceBonus = 0,
+
+                CritChance = baseStats.CritChance,
+                CritDamageMultiplier = baseStats.CritDamageMultiplier,
+            });
+
+            // Spells buffer
+            AddBuffer<SpellModifier>(entity);
+
+            // Spells
             AddBuffer<ActiveSpell>(entity);
-            DynamicBuffer<SpellActivationRequest> spellActivationBuffer =
-                AddBuffer<SpellActivationRequest>(entity);
+            DynamicBuffer<SpellActivationRequest> spellActivationBuffer = AddBuffer<SpellActivationRequest>(entity);
+
+            var baseSpellsBuffer = AddBuffer<BaseSpell>(entity);
 
             if (initialSpells != null)
             {
@@ -165,81 +123,60 @@ public class PlayerAuthoring : MonoBehaviour
 
                     spellActivationBuffer.Add(new SpellActivationRequest { ID = spellSO.ID });
 
-                    baseSpells.Add(new BaseSpell { ID = spellSO.ID });
+                    // todo remove if not used and destroy script
+                    baseSpellsBuffer.Add(new BaseSpell { ID = spellSO.ID });
                 }
             }
 
-            // Stats Upgrade Pool
+            // Upgrades Pool
             DynamicBuffer<StatsUpgradePoolBufferElement> statsUpgradebuffer =
                 AddBuffer<StatsUpgradePoolBufferElement>(entity);
-            if (authoring.characterData.StatsUpgradesPool != null)
+            if (data.StatsUpgradesPool != null)
             {
-                foreach (var localUpgrade in authoring.characterData.StatsUpgradesPool.Upgrades)
+                foreach (var localUpgrade in data.StatsUpgradesPool.Upgrades)
                 {
                     if (localUpgrade == null)
                         continue;
-
-                    // Get the index of this upgrade in the global list
                     int globalIndex = gameUpgradesList.IndexOf(localUpgrade);
-
                     if (globalIndex != -1)
-                    {
-                        statsUpgradebuffer.Add(
-                            new StatsUpgradePoolBufferElement { DatabaseIndex = globalIndex }
-                        );
-                    }
+                        statsUpgradebuffer.Add(new StatsUpgradePoolBufferElement { DatabaseIndex = globalIndex });
                     else
-                    {
-                        Debug.LogWarning(
-                            $"Upgrade '{localUpgrade.name}' is in CharacterData but NOT in the Global Database Authoring. Add it to the Global Database scene object.",
-                            authoring
-                        );
-                    }
-                }
-            }
-
-            // Spells Upgrade Pool
-            DynamicBuffer<SpellsUpgradePoolBufferElement> spellsUpgradebuffer =
-                AddBuffer<SpellsUpgradePoolBufferElement>(entity);
-            if (authoring.characterData.SpellUpgradesPool != null)
-            {
-                foreach (var localUpgrade in authoring.characterData.SpellUpgradesPool.Upgrades)
-                {
-                    if (localUpgrade == null)
-                        continue;
-
-                    int globalIndex = gameUpgradesList.IndexOf(localUpgrade);
-
-                    if (globalIndex != -1)
-                    {
-                        spellsUpgradebuffer.Add(
-                            new SpellsUpgradePoolBufferElement { DatabaseIndex = globalIndex }
-                        );
-                    }
-                    else
-                    {
                         Debug.LogWarning(
                             $"Upgrade '{localUpgrade.name}' is in CharacterData but NOT in the Global Database Authoring.",
-                            authoring
-                        );
-                    }
+                            authoring);
                 }
             }
 
-            var expBuffer = AddBuffer<CollectedExperienceBufferElement>(entity);
-            AddComponent(
-                entity,
-                new PlayerExperience()
+            DynamicBuffer<SpellsUpgradePoolBufferElement> spellsUpgradebuffer =
+                AddBuffer<SpellsUpgradePoolBufferElement>(entity);
+            if (data.SpellUpgradesPool != null)
+            {
+                foreach (var localUpgrade in data.SpellUpgradesPool.Upgrades)
                 {
-                    Experience = 0,
-                    Level = 1,
-                    NextLevelExperienceRequired = 500,
+                    if (localUpgrade == null)
+                        continue;
+                    int globalIndex = gameUpgradesList.IndexOf(localUpgrade);
+                    if (globalIndex != -1)
+                        spellsUpgradebuffer.Add(new SpellsUpgradePoolBufferElement { DatabaseIndex = globalIndex });
+                    else
+                        Debug.LogWarning(
+                            $"Upgrade '{localUpgrade.name}' is in CharacterData but NOT in the Global Database.",
+                            authoring);
                 }
-            );
+            }
 
+            // Experience 
+            AddBuffer<CollectedExperienceBufferElement>(entity);
+            AddComponent(entity, new PlayerExperience
+            {
+                Experience = 0,
+                Level = 1,
+                NextLevelExperienceRequired = 500,
+            });
+
+            // Invincibility 
             if (authoring.IsInvincible)
                 AddComponent(entity, new Invincible());
-            
         }
     }
 }

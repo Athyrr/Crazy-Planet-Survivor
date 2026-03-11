@@ -102,37 +102,8 @@ public partial struct HealthSystem : ISystem
                 float damage = dbe.Damage;
                 ESpellTag element = dbe.Element;
 
-                // Apply Elemental resistance reduction
-                switch (element)
-                {
-                    case ESpellTag.Fire:
-                        damage *= 1 - stats.FireResistance / 100;
-                        break;
-                    case ESpellTag.Ice:
-                        damage *= 1 - stats.IceResistance / 100;
-                        break;
-                    case ESpellTag.Lightning:
-                        damage *= 1 - stats.LightningResistance / 100;
-                        break;
-                    case ESpellTag.Poison:
-                        damage *= 1 - stats.PoisonResistance / 100;
-                        break;
-                    case ESpellTag.Light:
-                        damage *= 1 - stats.LightResistance / 100;
-                        break;
-                    case ESpellTag.Dark:
-                        damage *= 1 - stats.DarkResistance / 100;
-                        break;
-                    case ESpellTag.Nature:
-                        damage *= 1 - stats.NatureResistance / 100;
-                        break;
-                    default:
-                        damage *= 1;
-                        break;
-                }
-
                 // Apply flat Armor reduction after elemental resistances
-                damage -= stats.Armor;
+                // damage -= stats.Armor;
                 damage = math.max(0, damage);
 
                 totalDamage += damage;
@@ -140,7 +111,7 @@ public partial struct HealthSystem : ISystem
             }
 
             // Apply the accumulated damage to the health component
-            health.Value -= math.max(0, totalDamage);
+            health.Value -= (int)math.max(0, totalDamage);
 
             damageBuffer.Clear();
 

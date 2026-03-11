@@ -13,6 +13,6 @@ public struct UpgradeBlob
     public ESpellTag SpellTags;
     public ESpellStat SpellStat;
 
-    public EStatModiferStrategy ModifierStrategy;
+    public EModiferStrategy ModifierStrategy;
     public float Value;
 }

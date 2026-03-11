@@ -22,6 +22,6 @@ public class UpgradeSO : ScriptableObject
     [Header("Upgrade")] [Tooltip("Property of the spell to modify (Damage, Cooldown, Amount...).")]
     public ESpellStat SpellStat;
 
-    public EStatModiferStrategy ModifierStrategy;
+    public EModiferStrategy ModifierStrategy;
     public float Value;
 }

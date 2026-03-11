@@ -5,7 +5,7 @@ public struct SpellBlob
 {
     // Identity
     public ESpellID ID;
-    public FixedString512Bytes DisplayName;
+    // public FixedString512Bytes DisplayName; // 
     public ESpellTag Tag;
 
     // Base Stats
@@ -23,17 +23,18 @@ public struct SpellBlob
 
     // Ricochet
     public int Bounces;
-    public float BouncesSearchRadius;
+    public float BounceRange;
 
     // Pierce
     public int Pierces;
 
-    // Tick Effects (for auras)
-    public float BaseDamagePerTick;
+    // Tick Effects
     public float TickRate;
 
     // Children based spells
-    public int SubSpellsCount;
     public float ChildrenSpawnRadius;
     public int ChildPrefabIndex;
+    
+    // Amount
+    public int BaseAmount; 
 }

@@ -17,7 +17,6 @@ using Unity.Jobs;
 [BurstCompile]
 public partial struct SpellCooldownSystem : ISystem
 {
-
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -37,43 +36,46 @@ public partial struct SpellCooldownSystem : ISystem
             return;
 
         var deltaTime = SystemAPI.Time.DeltaTime;
-
         var spellDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
 
-        EndSimulationEntityCommandBufferSystem.Singleton ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        EntityCommandBuffer ecbPlayer = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-
+        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var ecbPlayer = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        var ecbEnemy = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        
+        // Player spell casting job
         var spellCasterJob = new CastPlayerSpellJob
         {
+            ECB = ecbPlayer.AsParallelWriter(),
             DeltaTime = deltaTime,
             SpellDatabaseRef = spellDatabase.Blobs,
-            ECB = ecbPlayer.AsParallelWriter(),
         };
         JobHandle spellCasterHandle = spellCasterJob.ScheduleParallel(state.Dependency);
 
-        EntityCommandBuffer ecbEnemy = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        // Enemy spell ready notification job
         var spellReadyJob = new NotifyEnemySpellReadyJob
         {
+            ECB = ecbEnemy.AsParallelWriter(),
             DeltaTime = deltaTime,
             SpellDatabaseRef = spellDatabase.Blobs,
-            ECB = ecbEnemy.AsParallelWriter(),
         };
         JobHandle spellReadyHandle = spellReadyJob.ScheduleParallel(spellCasterHandle);
 
         state.Dependency = spellReadyHandle;
     }
 
-
-
     [BurstCompile]
-    [WithAll(typeof(Stats), typeof(Enemy))]
+    [WithAll(typeof(Enemy))]
     private partial struct NotifyEnemySpellReadyJob : IJobEntity
     {
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
         public float DeltaTime;
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref DynamicBuffer<ActiveSpell> spells, ref DynamicBuffer<EnemySpellReady> readyBuffer, in Stats stats, in Enemy enemy)
+        void Execute(
+            [ChunkIndexInQuery] int chunkIndex,
+            Entity entity,
+            ref DynamicBuffer<ActiveSpell> spells,
+            ref DynamicBuffer<EnemySpellReady> readyBuffer)
         {
             if (!spells.IsCreated || spells.IsEmpty)
                 return;
@@ -100,18 +102,16 @@ public partial struct SpellCooldownSystem : ISystem
                         Spell = activeSpell
                     });
 
-                    float cdMult = activeSpell.CooldownMultiplier <= 0 ? 1f : activeSpell.CooldownMultiplier;
-                    float cooldown = spellData.BaseCooldown * cdMult * (1f - stats.CooldownReduction);
-
-                    activeSpell.CurrentCooldown = cooldown;
+                    // activeSpell.CurrentCooldown = activeSpell.FinalCooldown;
                 }
+
                 spells[i] = activeSpell;
             }
         }
     }
 
     [BurstCompile]
-    [WithAll(typeof(Stats), typeof(Player))]
+    [WithAll(typeof(Player))]
     private partial struct CastPlayerSpellJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;
@@ -119,7 +119,7 @@ public partial struct SpellCooldownSystem : ISystem
 
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
-        void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref DynamicBuffer<ActiveSpell> spells, in Stats stats, in Player player)
+        void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref DynamicBuffer<ActiveSpell> spells)
         {
             if (!spells.IsCreated || spells.IsEmpty)
                 return;
@@ -139,6 +139,7 @@ public partial struct SpellCooldownSystem : ISystem
 
                 if (activeSpell.CurrentCooldown <= 0)
                 {
+                    // todo Send reuqest on caster entity not create a request entity
                     var request = ECB.CreateEntity(chunkIndex);
                     ECB.AddComponent(chunkIndex, request, new CastSpellRequest
                     {
@@ -147,10 +148,7 @@ public partial struct SpellCooldownSystem : ISystem
                         DatabaseIndex = activeSpell.DatabaseIndex
                     });
 
-                    float cooldownMult = activeSpell.CooldownMultiplier <= 0 ? 1f : activeSpell.CooldownMultiplier;
-                    float cooldown = spellData.BaseCooldown * cooldownMult * (1f - stats.CooldownReduction);
-
-                    activeSpell.CurrentCooldown = cooldown;
+                    activeSpell.CurrentCooldown = activeSpell.FinalCooldown;
                 }
 
                 spells[i] = activeSpell;

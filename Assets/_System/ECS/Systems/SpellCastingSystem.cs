@@ -7,16 +7,14 @@ using Unity.Burst;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(PlayerSpawnerSystem))]
+[UpdateAfter(typeof(SpellStatsCalculationSystem))]
 [BurstCompile]
 public partial struct SpellCastingSystem : ISystem
 {
-    // Player
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
-    private ComponentLookup<Stats> _statsLookup;
 
-    // Spells
     private BufferLookup<ActiveSpell> _activeSpellLookup;
 
     // Behaviors
@@ -37,31 +35,23 @@ public partial struct SpellCastingSystem : ISystem
     private ComponentLookup<SubSpellsLayout_Circle> _subSpellsCircleLayoutLookup;
 
     // Enableable Components
-    private ComponentLookup<Bounce> _ricochetLookup;
+    private ComponentLookup<Bounce> _bounceLookup;
     private ComponentLookup<Pierce> _pierceLookup;
     private ComponentLookup<ExplodeOnContact> _explodeOnContactLookup;
-
-    // Queries
-    //private EntityQuery _playerQuery;
-
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<Stats>();
         state.RequireForUpdate<SpellPrefab>();
         state.RequireForUpdate<ActiveSpell>();
         state.RequireForUpdate<SpellsDatabase>();
-        //state.RequireForUpdate<StartRunRequest>();
         state.RequireForUpdate<CastSpellRequest>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
 
         _playerLookup = SystemAPI.GetComponentLookup<Player>(true);
         _enemyLookup = SystemAPI.GetComponentLookup<Enemy>(true);
         _transformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true);
-        _statsLookup = SystemAPI.GetComponentLookup<Stats>(true);
         _activeSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(true);
-
         _lifetimeLookup = SystemAPI.GetComponentLookup<Lifetime>(true);
         _colliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true);
         _attachLookup = SystemAPI.GetComponentLookup<AttachToCaster>(true);
@@ -74,11 +64,9 @@ public partial struct SpellCastingSystem : ISystem
         _followMovementLookup = SystemAPI.GetComponentLookup<FollowTargetMovement>(true);
         _subSpellsSpawnerLookup = SystemAPI.GetComponentLookup<SubSpellsSpawner>(true);
         _subSpellsCircleLayoutLookup = SystemAPI.GetComponentLookup<SubSpellsLayout_Circle>(true);
-        _ricochetLookup = SystemAPI.GetComponentLookup<Bounce>(true);
+        _bounceLookup = SystemAPI.GetComponentLookup<Bounce>(true);
         _pierceLookup = SystemAPI.GetComponentLookup<Pierce>(true);
         _explodeOnContactLookup = SystemAPI.GetComponentLookup<ExplodeOnContact>(true);
-
-        //_playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
     }
 
     [BurstCompile]
@@ -87,14 +75,10 @@ public partial struct SpellCastingSystem : ISystem
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
             return;
 
-        //if (_playerQuery.IsEmpty)
-        //    return;
-
-        // Update all lookups
+        // Update lookups
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
         _transformLookup.Update(ref state);
-        _statsLookup.Update(ref state);
         _activeSpellLookup.Update(ref state);
 
         _lifetimeLookup.Update(ref state);
@@ -109,13 +93,14 @@ public partial struct SpellCastingSystem : ISystem
         _followMovementLookup.Update(ref state);
         _subSpellsSpawnerLookup.Update(ref state);
         _subSpellsCircleLayoutLookup.Update(ref state);
-        _ricochetLookup.Update(ref state);
+        _bounceLookup.Update(ref state);
         _pierceLookup.Update(ref state);
         _explodeOnContactLookup.Update(ref state);
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var physicsWorldSingleton = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
+
         var spellDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
         var mainSpellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
         var childSpellPrefabs = SystemAPI.GetSingletonBuffer<ChildSpellPrefab>(true);
@@ -132,7 +117,6 @@ public partial struct SpellCastingSystem : ISystem
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
             TransformLookup = _transformLookup,
-            StatsLookup = _statsLookup,
             ActiveSpellLookup = _activeSpellLookup,
 
             LifetimeLookup = _lifetimeLookup,
@@ -147,7 +131,7 @@ public partial struct SpellCastingSystem : ISystem
             FollowMovementLookup = _followMovementLookup,
             SubSpellsSpawnerLookup = _subSpellsSpawnerLookup,
             SubSpellsCircleLayoutLookup = _subSpellsCircleLayoutLookup,
-            BounceLookup = _ricochetLookup,
+            BounceLookup = _bounceLookup,
             PierceLookup = _pierceLookup,
             ExplodeOnContactLookup = _explodeOnContactLookup
         };
@@ -169,7 +153,6 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
 
         [ReadOnly] public ComponentLookup<Lifetime> LifetimeLookup;
@@ -205,71 +188,54 @@ public partial struct SpellCastingSystem : ISystem
                 return;
             }
 
-            // Default values (No modifiers)
-            float mulDmg = 1f, mulSpeed = 1f, mulArea = 1f, mulDuration = 1f, mulSize = 1f;
-            int addAmount = 0, addBounces = 0, addPierces = 0;
-            ESpellTag addedTags = ESpellTag.None;
+            ActiveSpell activeSpell = default;
+            bool found = false;
 
-            // Try to find the ActiveSpell config on the caster (Player only usually)
-            float bonusSpellCritChance = 0f;
-            float bonusSpellCritMultiplier = 0f;
-
+            // Try to find the ActiveSpell instance to get final calculated values
             if (ActiveSpellLookup.TryGetBuffer(request.Caster, out var activeSpells))
             {
                 for (int i = 0; i < activeSpells.Length; i++)
                 {
                     if (activeSpells[i].DatabaseIndex == request.DatabaseIndex)
                     {
-                        var mod = activeSpells[i];
-                        mulDmg = mod.DamageMultiplier;
-                        mulSpeed = mod.SpeedMultiplier;
-
-                        mulArea = mod.AreaOfEffectMultiplier;
-                        mulSize = mod.SizeMultiplier;
-
-                        mulDuration = mod.DurationMultiplier;
-                        addAmount = mod.BonusAmount;
-                        addBounces = mod.BonusBounces;
-                        addPierces = mod.BonusPierces;
-                        addedTags = mod.AddedTags;
-
-                        bonusSpellCritChance = mod.BonusCritChance;
-                        bonusSpellCritMultiplier = mod.BonusCritMultiplier;
+                        activeSpell = activeSpells[i];
+                        found = true;
                         break;
                     }
                 }
             }
 
-            // CALCULATE FINAL STATS (Base + Stats + Upgrade)
+            // If active spell not found -> return
+            if (!found)
+            {
+                ECB.DestroyEntity(chunkIndex, requestEntity);
+                return;
+            }
+
+            // Extract values directly
+            float finalDamage = activeSpell.FinalDamage;
+            float finalArea = activeSpell.FinalArea;
+            float finalSpeed = activeSpell.FinalSpeed;
+            float finalRange = activeSpell.FinalRange;
+            float finalDuration = activeSpell.FinalDuration;
+            int finalAmount = activeSpell.FinalAmount;
+            float finalSize = activeSpell.FinalSize;
+            float finalCritChance = activeSpell.FinalCritChance;
+            float finalCritDamageMultiplier = activeSpell.FinalCritDamageMultiplier;
+            float finalTickRate = activeSpell.FinalTickRate;
+            int finalBounces = activeSpell.FinalBounces;
+            int finalPierce = activeSpell.FinalPierces;
+            float finalBounceRange = activeSpell.FinalBounceRange;
+
+            ESpellTag totalTags = baseSpellData.Tag | activeSpell.AddedTags;
+
             var casterTransform = TransformLookup[request.Caster];
             var spellPrefabTransform = TransformLookup[spellPrefab];
-            var stats = StatsLookup[request.Caster];
             var random = Random.CreateFromIndex(Seed);
 
-            // todo create crit logic on CollisionSystem not here
-            // Crit Logic 
-            float finalCritChance = stats.CritChance + bonusSpellCritChance;
-            float finalCritMultiplier = math.max(1f, stats.CritMultiplier + bonusSpellCritMultiplier);
-            bool isCrit = random.NextFloat(0f, 1f) <= finalCritChance;
-            float criticalDamages = 1f;
-            if (isCrit)
-                criticalDamages = math.max(1.0f, finalCritMultiplier);
 
-
-            int finalDamage = (int)((baseSpellData.BaseDamage + stats.Damage) * mulDmg * criticalDamages);
-
-            float finalSpeed = baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) * mulSpeed;
-
-            //float finalArea = baseSpellData.BaseEffectArea * math.max(1f, stats.EffectAreaRadiusMult) * mulArea; //==> old Size scale based sur aoe radius
-
-            float finalArea = baseSpellData.BaseSize * math.max(1f, stats.SizeMult) * mulSize;
-
-            float finalDuration = baseSpellData.Lifetime * mulDuration;
-
-            // Multishot Logic
-            int finalProjectileCount = math.max(1, 1 + addAmount);
-
-            // if spell is sub spell spawner, cast once 
+            // Multishot Logic (Spawners cast exactly 1 entity)
+            int finalProjectileCount = math.max(1, finalAmount);
             if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
                 finalProjectileCount = 1;
 
@@ -284,7 +250,7 @@ public partial struct SpellCastingSystem : ISystem
             quaternion baseRotation = casterTransform.Rotation;
             float3 fireDirection = casterTransform.Forward();
 
-            float3 planetCenter = float3.zero;
+            float3 planetCenter = float3.zero; // todo use reel planet center from singleton
 
             var filter = new CollisionFilter
             {
@@ -300,17 +266,18 @@ public partial struct SpellCastingSystem : ISystem
                     targetEntity = request.Caster;
                     targetFound = true;
                     break;
+
                 case ESpellTargetingMode.CastForward:
                     targetPosition = casterTransform.Position +
                                      (casterTransform.Forward() * baseSpellData.BaseCastRange);
                     targetFound = true;
                     break;
+
                 case ESpellTargetingMode.NearestTarget:
                     PointDistanceInput input = new PointDistanceInput
                     {
                         Position = casterTransform.Position,
                         MaxDistance = baseSpellData.BaseCastRange,
-                        //Filter = filter
                         Filter = new CollisionFilter
                         {
                             BelongsTo = CollisionLayers.Raycast,
@@ -328,12 +295,12 @@ public partial struct SpellCastingSystem : ISystem
                     else
                     {
                         // Fallback 
-                        //targetPosition = casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseCastRange);
-                        ECB.DestroyEntity(0, requestEntity);
+                        ECB.DestroyEntity(chunkIndex, requestEntity);
                         return;
                     }
 
                     break;
+
                 case ESpellTargetingMode.RandomInRange:
                     var groundFilter = new CollisionFilter
                     {
@@ -352,13 +319,8 @@ public partial struct SpellCastingSystem : ISystem
                             out var n))
                     {
                         targetPosition = p;
-                        //PlanetUtils.ProjectDirectionOnSurface(casterTransform.Forward(), n, out var r);
                         baseRotation = quaternion.LookRotationSafe(casterTransform.Forward(), n);
                         targetFound = true;
-                    }
-                    else
-                    {
-                        targetPosition = casterTransform.Position;
                     }
 
                     break;
@@ -410,7 +372,6 @@ public partial struct SpellCastingSystem : ISystem
                 if (finalProjectileCount > 1 && isProjectile)
                 {
                     float angle = startAngle + (i * spreadAngle);
-                    // Rotate around up axis
                     finalRotation = math.mul(baseRotation, quaternion.RotateY(math.radians(angle)));
                     finalDirection = math.forward(finalRotation);
                 }
@@ -419,7 +380,7 @@ public partial struct SpellCastingSystem : ISystem
                 {
                     Position = baseSpawnPos,
                     Rotation = finalRotation,
-                    Scale = spellPrefabTransform.Scale * finalArea // Area acts as Scale
+                    Scale = spellPrefabTransform.Scale * finalSize // todo fix it
                 });
 
                 // Movement
@@ -443,7 +404,9 @@ public partial struct SpellCastingSystem : ISystem
 
                 if (OrbitMovementLookup.HasComponent(spellPrefab))
                 {
-                    float orbitRadius = math.length(baseSpellData.BaseSpawnOffset) * mulSize;
+                    float orbitRadius =
+                        math.length(baseSpellData.BaseSpawnOffset) *
+                        finalArea; // todo Orbit radius scales with projectile size
                     ECB.SetComponent(chunkIndex, spellEntity, new OrbitMovement
                     {
                         OrbitCenterEntity = request.Caster,
@@ -479,10 +442,10 @@ public partial struct SpellCastingSystem : ISystem
                     ECB.SetComponent(chunkIndex, spellEntity, new DamageOnContact
                     {
                         Damage = finalDamage,
-                        Element = baseSpellData.Tag | addedTags,
+                        Element = totalTags,
                         AreaRadius = finalArea,
-                        TotalCritChance = finalCritChance,
-                        TotalCritMultiplier = finalCritMultiplier,
+                        TotalCritChance = activeSpell.FinalCritChance,
+                        TotalCritMultiplier = activeSpell.FinalCritDamageMultiplier
                     });
                 }
 
@@ -491,12 +454,12 @@ public partial struct SpellCastingSystem : ISystem
                     ECB.SetComponent(chunkIndex, spellEntity, new DamageOnTick
                     {
                         Caster = request.Caster,
-                        TickRate = baseSpellData.TickRate, // Could have TickRateMultiplier too
-                        DamagePerTick = (baseSpellData.BaseDamagePerTick + stats.Damage) * mulDmg * criticalDamages,
+                        TickRate = finalTickRate,
+                        DamagePerTick = finalDamage,
                         AreaRadius = finalArea,
-                        Element = baseSpellData.Tag | addedTags,
+                        Element = totalTags,
                         TotalCritChance = finalCritChance,
-                        TotalCritMultiplier = finalCritMultiplier,
+                        TotalCritMultiplier = finalCritDamageMultiplier
                     });
                 }
 
@@ -519,25 +482,20 @@ public partial struct SpellCastingSystem : ISystem
                     });
                 }
 
-                // Child Spawner
+                // Sub Spell Spawner
                 if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
                 {
                     if (baseSpellData.ChildPrefabIndex >= 0 &&
                         baseSpellData.ChildPrefabIndex < ChildSpellPrefabs.Length)
                     {
                         SubSpellsSpawner childSpawnerData = SubSpellsSpawnerLookup[spellPrefab];
-
-                        int subPrefabIndex = baseSpellData.ChildPrefabIndex;
-                        Entity subPrefabEntity = ChildSpellPrefabs[subPrefabIndex].Prefab;
-
-                        childSpawnerData.ChildEntityPrefab = subPrefabEntity;
-                        childSpawnerData.DesiredSubSpellsCount = baseSpellData.SubSpellsCount + addAmount;
+                        childSpawnerData.ChildEntityPrefab = ChildSpellPrefabs[baseSpellData.ChildPrefabIndex].Prefab;
+                        childSpawnerData.DesiredSubSpellsCount = finalAmount; // Injecting Final Amount here 
                         childSpawnerData.IsDirty = true;
                         childSpawnerData.CollisionFilter = filter;
 
                         ECB.SetComponent(chunkIndex, spellEntity, childSpawnerData);
 
-                        // Config Circle Layout if applicable
                         if (SubSpellsCircleLayoutLookup.HasComponent(spellPrefab))
                         {
                             ECB.SetComponent(chunkIndex, spellEntity, new SubSpellsLayout_Circle
@@ -560,42 +518,40 @@ public partial struct SpellCastingSystem : ISystem
                 // Enableable components (Upgrades)
 
                 // Bounce
-                int totalBounces = baseSpellData.Bounces + stats.BouncesAdded + addBounces;
-                bool forceBounce = (addedTags & ESpellTag.Bouncing) != 0;
-                if ((totalBounces > 0 || forceBounce) && BounceLookup.HasComponent(spellPrefab))
+                bool forceBounce = (totalTags & ESpellTag.Bouncing) != 0;
+                if ((activeSpell.FinalBounces > 0 || forceBounce) && BounceLookup.HasComponent(spellPrefab))
                 {
                     ECB.SetComponentEnabled<Bounce>(chunkIndex, spellEntity, true);
                     ECB.SetComponent(chunkIndex, spellEntity, new Bounce
                     {
-                        RemainingBounces = totalBounces,
-                        BounceRange = baseSpellData.BouncesSearchRadius * mulArea,
+                        RemainingBounces = finalBounces,
+                        BounceRange = finalBounceRange,
                         BounceSpeed = finalSpeed
                     });
                 }
 
                 // Pierce
-                int totalPierce = baseSpellData.Pierces + stats.PierceAdded + addPierces;
-                bool forcePierce = (addedTags & ESpellTag.Piercing) != 0;
-                if ((totalPierce > 0 || forcePierce) && PierceLookup.HasComponent(spellPrefab))
+                bool forcePierce = (totalTags & ESpellTag.Piercing) != 0;
+                if ((finalPierce > 0 || forcePierce) && PierceLookup.HasComponent(spellPrefab))
                 {
                     ECB.SetComponentEnabled<Pierce>(chunkIndex, spellEntity, true);
-                    ECB.SetComponent(chunkIndex, spellEntity, new Pierce { RemainingPierces = totalPierce });
+                    ECB.SetComponent(chunkIndex, spellEntity, new Pierce { RemainingPierces = finalPierce });
                 }
 
                 // Explosion
-                bool forceExplode = ((baseSpellData.Tag | addedTags) & ESpellTag.Explosive) != 0;
+                bool forceExplode = (totalTags & ESpellTag.Explosive) != 0;
 
                 // Explose on contact
                 if (forceExplode && ExplodeOnContactLookup.HasComponent(spellPrefab))
                 {
                     ECB.SetComponentEnabled<ExplodeOnContact>(chunkIndex, spellEntity, true);
                     var explosion = ExplodeOnContactLookup[spellPrefab];
-                    explosion.Damage += finalDamage * 2; // Explosion deals 2x damage
-                    explosion.Radius *= mulArea;
+                    explosion.Damage += finalDamage * 0.5f; // todo explosion damage multiplier on stats
+                    explosion.Radius *= finalArea;
                     ECB.SetComponent(chunkIndex, spellEntity, explosion);
                 }
 
-                //todo Explose on death (later)
+                //todo Explose on death
             }
 
             ECB.DestroyEntity(chunkIndex, requestEntity);

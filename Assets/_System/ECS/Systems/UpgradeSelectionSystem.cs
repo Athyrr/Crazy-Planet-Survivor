@@ -60,7 +60,7 @@ public partial struct UpgradeSelectionSystem : ISystem
     }
 
     //@todo Burst and remove log
-    //[BurstCompile]
+    [BurstCompile]
     private struct SelectUpgradeJob : IJob
     {
         public EntityCommandBuffer ECB;
@@ -120,9 +120,6 @@ public partial struct UpgradeSelectionSystem : ISystem
                 // Avoid picking same upgrade again
                 candiates.RemoveAtSwapBack(indexInList);
             }
-
-            // todo remove debug in burst
-            UnityEngine.Debug.LogWarning("Candidates length: " + candiates.Length);
 
             // Add display upgrades flag 
             ECB.AddComponent<OpenUpgradesSelectionViewRequest>(GameStateEntity);
@@ -193,7 +190,7 @@ public partial struct UpgradeSelectionSystem : ISystem
 
         private bool HasSpell(ESpellID id, DynamicBuffer<ActiveSpell> activeSpells, ref BlobArray<SpellBlob> spellBlobs)
         {
-            if (activeSpells.IsEmpty) 
+            if (activeSpells.IsEmpty)
                 return false;
 
             for (int i = 0; i < activeSpells.Length; i++)
@@ -206,7 +203,8 @@ public partial struct UpgradeSelectionSystem : ISystem
             return false;
         }
 
-        private bool HasSpellWithTag(ESpellTag tag, DynamicBuffer<ActiveSpell> activeSpells, ref BlobArray<SpellBlob> spellBlobs)
+        private bool HasSpellWithTag(ESpellTag tag, DynamicBuffer<ActiveSpell> activeSpells,
+            ref BlobArray<SpellBlob> spellBlobs)
         {
             for (int i = 0; i < activeSpells.Length; i++)
             {

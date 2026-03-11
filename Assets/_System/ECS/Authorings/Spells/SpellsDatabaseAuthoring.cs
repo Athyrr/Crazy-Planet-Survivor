@@ -33,7 +33,7 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
 
                 // Identity
                 spellBlob.ID = spellSO.ID;
-                spellBlob.DisplayName = spellSO.DisplayName;
+                // spellBlob.DisplayName = spellSO.DisplayName;
                 spellBlob.Tag = spellSO.Tags;
 
                 // Base Stats
@@ -46,22 +46,23 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlob.BaseSpawnOffset = spellSO.BaseSpawnOffset;
                 spellBlob.BaseSize = spellSO.BaseSize;
 
+                spellBlob.BaseAmount = spellSO.BaseAmount;
+                
                 // Targeting
                 spellBlob.TargetingMode = spellSO.TargetingMode;
 
                 // Mechanics
                 spellBlob.Bounces = spellSO.Bounces;
-                spellBlob.BouncesSearchRadius = spellSO.BouncesSearchRadius;
+                spellBlob.BounceRange = spellSO.BounceRange;
                 spellBlob.Pierces = spellSO.Pierces;
 
-                // Tick effects (for auras)
-                spellBlob.BaseDamagePerTick = spellSO.BaseDamagePerTick;
+                // Tick effects
                 spellBlob.TickRate = spellSO.TickRate;
-
+                
                 // Children based spells
-                spellBlob.SubSpellsCount = spellSO.ChildrenCount;
                 spellBlob.ChildrenSpawnRadius = spellSO.ChildrenSpawnRadius;
-
+                
+                
                 if (spellSO.SpellPrefab != null)
                 {
                     var mainEntity = GetEntity(spellSO.SpellPrefab, TransformUsageFlags.Dynamic);

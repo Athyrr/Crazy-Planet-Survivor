@@ -3,175 +3,98 @@ using UnityEngine;
 using UnityEngine.Scripting;
 
 /// <summary>
-/// Represents all stats an entity has during a run.
-/// Make sure that <see cref="Stats"/> elements correspond to <see cref="ECharacterStat"/> + <see cref="BaseStats"/> elements.
+/// Contains all entity stats (Base + Accumulated Multipliers).
 /// </summary>
+[System.Serializable]
+[Preserve]
 public struct Stats : IComponentData
 {
     [Header("Survival")]
-    public float MaxHealth;
-    public float Armor;
+    [Tooltip("Base Health points (before multipliers).")]
+    [UIStat("Base Health", "{0:0}")]
+    public float BaseMaxHealth;
+
+    [Tooltip("Health multiplier (1.0 = 100%). Increases with 'Max Health %' upgrades.")]
+    [UIStat("Health Mult.", "{0:0%}")] // Displays x100%
+    public float MaxHealthMultiplier; 
+
+    [Tooltip("Health points recovered per second.")]
+    [UIStat("Regen", "{0:0.0}/s")]
+    public float HealthRecovery;
+
+    [Tooltip("Base armor (native to the character).")]
+    public float BaseArmor;
+
+    [Tooltip("Damage reduction in % (0.9 = takes 90% damage).")]
+    [UIStat("Dmg Reduc.", "{0:0%}")]
+    public float DamageReductionMultiplier;
+
 
     [Header("Movement")]
-    public float MoveSpeed;
+    [Tooltip("Base movement speed in units/second.")]
+    [UIStat("Base Speed", "{0:0}")]
+    public float BaseMoveSpeed;
 
-    [Header("Offensive")]
-    public float Damage;
-    public float CooldownReduction;
-    public float CritChance;
-    public float CritMultiplier;
+    [Tooltip("Speed multiplier (1.0 = 100%).")]
+    [UIStat("Speed Mult.", "{0:0%}")]
+    public float MoveSpeedMultiplier;
 
-    [Header("Spell Modifiers")]
-    public float ProjectileSpeedMultiplier;
-    public float AreaOfEffectMult;
-    public float SizeMult;
-    public int BouncesAdded;
-    public int PierceAdded;
+    [Tooltip("Base pickup range.")]
+    public float BasePickupRange;
 
-    [Header("Resistances (%)")]
-    public float FireResistance;
-    public float IceResistance;
-    public float LightningResistance;
-    public float PoisonResistance;
-    public float LightResistance;
-    public float DarkResistance;
-    public float NatureResistance;
+    [Tooltip("Pickup range multiplier.")]
+    [UIStat("Pickup Range", "{0:0%}")]
+    public float PickupRangeMultiplier;
 
-    [Header("Utility")]
-    public float CollectRange;
-    public float MaxCollectRange;
-}
 
-/// <summary>
-/// Represents base stats of an entity (Initial values).
-/// Make sure that <see cref="BaseStats"/> elements correspond to <see cref="ECharacterStat"/> + <see cref="Stats"/> elements.
-/// </summary>
-[System.Serializable]
-[Preserve] // preserve string format reflexion on build
-public struct BaseStats : IComponentData
-{
-    #region Survival
+    [Header("Offensive Global Multipliers")]
+    
+    [Tooltip("Global damage multiplier (1.0 = normal).")]
+    [UIStat("Global Dmg", "{0:0%}")]
+    public float GlobalDamageMultiplier;
 
-    [Header("Survival")]
-    [Tooltip("Maximum health points of the entity.")]
-    [UIStat("Max Health", "{0:0}")]
-    public float MaxHealth;
+    [Tooltip("Global cooldown multiplier (1.0 = normal, 0.9 = -10%).")]
+    [UIStat("Cooldown", "{0:0%}")]
+    public float GlobalCooldownMultiplier;
 
-    [Tooltip("Flat damage reduction applied to incoming attacks.")]
-    [UIStat("Armor", "{0:0}")]
-    public float Armor;
+    [Tooltip("Area of effect multiplier (Explosions, Zones).")]
+    [UIStat("Area Size", "{0:0%}")]
+    public float GlobalSpellAreaMultiplier;
 
-    #endregion
+    [Tooltip("Physical size multiplier (Projectiles).")]
+    [UIStat("Proj. Size", "{0:0%}")]
+    public float GlobalSpellSizeMultiplier;
 
-    #region Movement
+    [Tooltip("Projectile speed multiplier.")]
+    [UIStat("Proj. Speed", "{0:0%}")]
+    public float GlobalSpellSpeedMultiplier;
 
-    [Header("Movement")]
-    [Tooltip("Movement Sp. in units per second.")]
-    [UIStat("Move Sp.", "{0:0}")]
-    public float MoveSpeed;
+    [Tooltip("Spell duration multiplier.")]
+    [UIStat("Duration", "{0:0%}")]
+    public float GlobalDurationMultiplier;
+    
 
-    #endregion
+    [Header("Offensive Global Bonuses")]
+    
+    [Tooltip("Number of projectiles added to all spells.")]
+    [UIStat("Amount +", "+{0}")]
+    public int GlobalAmountBonus;
 
-    #region Offensive
+    [Tooltip("Number of pierces added to all projectiles.")]
+    [UIStat("Pierce +", "+{0}")]
+    public int GlobalPierceBonus;
 
-    [Header("Offensive")]
-    [Tooltip("Base damage bonus added to spells/attacks.")]
-    [UIStat("Damage", "{0:0}")]
-    public float Damage;
+    [Tooltip("Number of bounces added to all projectiles.")]
+    [UIStat("Bounce +", "+{0}")]
+    public int GlobalBounceBonus;
 
-    [Tooltip("Percentage reduction of spell cooldowns (0.0 = 0%, 0.5 = 50%).")]
-    [UIStat("Attack Spd.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
-    [StepRange(0, 1, 0.01f)]
-    public float CooldownReduction;
 
-    [Tooltip("Probability of landing a critical hit (0.0 = 0%, 1.0 = 100%).")]
-    [UIStat("Crit Chance", "{0:-0.0\u0025;+0.0\u0025;0.0\u0025}")]
-    [StepRange(0.01f, 1, 0.01f)]
+    [Header("Critical")]
+    [Tooltip("Critical chance probability (0.0 to 1.0).")]
+    [UIStat("Crit Chance", "{0:0%}")]
     public float CritChance;
 
-    [Tooltip("Multiplier applied to damage on a critical hit (e.g. 2.0 = double damage).")]
-    [UIStat("Crit Damages", "x{0:0.0}")]
-    public float CritMultiplier;
-
-    #endregion
-
-    #region Spell Modifier
-
-    [Header("Spell Modifiers")]
-    [Tooltip("Multiplier applied to the base speed of projectiles (1.0 = normal speed).")]
-    [UIStat("Proj. Sp.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
-    public float ProjectileSpeedMultiplier;
-
-    [Tooltip("Multiplier applied to the radius of Area of Effect spells.")]
-    [UIStat("AoE Radius", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")] // c'est {0:0%} mais % marche pas
-    public float EffectAreaRadiusMultiplier;
-
-    [Tooltip("Number of additional bounces for ricochet projectiles.")]
-    [UIStat("Add. Bounces")]
-    public int BouncesAdded;
-
-    [Tooltip("Number of additional enemies a projectile can pass through.")]
-    [UIStat("Add. Pierces")]
-    public int PierceAdded;
-
-    [Tooltip("Multiplier applied to the size ")]
-    [UIStat("Size", "{0:0}")]
-    public float SizeMultiplier;
-
-    #endregion
-
-    #region Resistances
-
-    [Header("Resistances (%)")]
-    [Tooltip("Percentage resistance to Fire damage.")]
-    [UIStat("Fire Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
-    [StepRange(0, 0.8f, 0.01f)]
-    public float FireResistance;
-
-    [Tooltip("Percentage resistance to Ice damage.")]
-    [UIStat("Ice Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
-    [StepRange(0, 0.8f, 0.01f)]
-    public float IceResistance;
-
-    [Tooltip("Percentage resistance to Lightning damage.")]
-    [UIStat("Lightning Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
-    [StepRange(0, 0.8f, 0.01f)]
-    public float LightningResistance;
-
-    [Tooltip("Percentage resistance to Poison damage.")]
-    [UIStat("Poison Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
-    [StepRange(0, 0.8f, 0.01f)]
-    public float PoisonResistance;
-
-    [Tooltip("Percentage resistance to Light damage.")]
-    [UIStat("Light Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
-    [StepRange(0, 0.8f, 0.01f)]
-    public float LightResistance;
-
-    [Tooltip("Percentage resistance to Dark damage.")]
-    [UIStat("Dark Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
-    [StepRange(0, 0.8f, 0.01f)]
-    public float DarkResistance;
-
-    [Tooltip("Percentage resistance to Nature damage.")]
-    [UIStat("Nature Res.", "{0:+0.0\u0025;-0.0\u0025;0.0\u0025}")]
-    [StepRange(0, 0.8f, 0.01f)]
-    public float NatureResistance;
-
-    #endregion
-
-    #region Utility
-
-    [Header("Utility")]
-    [Tooltip("Current radius for picking up items and XP orbs.")]
-    [UIStat("Collect Range", "{0:0.0}")]
-    [Range(1, 50)]
-    public float CollectRange;
-
-    [Tooltip("The hard cap limit for the collect range.")]
-    [UIStat("Max Collect", "{0:0.0}")]
-    [Range(1, 50)]
-    public float MaxCollectRange;
-
-    #endregion
+    [Tooltip("Critical damage multiplier (1.5 = 150%).")]
+    [UIStat("Crit Dmg", "x{0:0.0}")]
+    public float CritDamageMultiplier;
 }

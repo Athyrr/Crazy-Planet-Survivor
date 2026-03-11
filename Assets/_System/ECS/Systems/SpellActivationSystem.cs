@@ -4,14 +4,13 @@ using Unity.Entities;
 using Unity.Jobs;
 
 /// <summary>
-/// System that handles activation of spells when requested. Activate Initial spells for entities then when a new spell is unlocked..
+/// System that handles activation of spells when requested.
 /// </summary>
 [UpdateInGroup(typeof(InitializationSystemGroup))]
 [BurstCompile]
 public partial struct SpellActivationSystem : ISystem
 {
     private NativeHashMap<SpellKey, int> _spellIndexMap;
-    // Last stored spells database blob ref
     private BlobAssetReference<SpellBlobs> _lastBlobRef;
 
     [BurstCompile]
@@ -40,13 +39,11 @@ public partial struct SpellActivationSystem : ISystem
         {
             // Update cached db ref
             _lastBlobRef = database.Blobs;
-
             var buildMapJob = new BuildSpellMapJob
             {
                 SpellMap = _spellIndexMap,
                 SpellsDatabaseRef = database.Blobs
             };
-
             dependency = buildMapJob.Schedule(dependency);
         }
 
@@ -92,55 +89,79 @@ public partial struct SpellActivationSystem : ISystem
         [ReadOnly] public NativeHashMap<SpellKey, int> SpellIndexMap;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref DynamicBuffer<SpellActivationRequest> activationRequestBuffer, DynamicBuffer<ActiveSpell> activeSpellsBuffer)
+        private void Execute(
+            [ChunkIndexInQuery] int chunkIndex,
+            Entity entity,
+            ref DynamicBuffer<SpellActivationRequest> activationRequestBuffer,
+            ref DynamicBuffer<ActiveSpell> activeSpellsBuffer)
         {
             if (activationRequestBuffer.IsEmpty)
                 return;
 
             ref var spellsDatabase = ref SpellsDatabaseRef.Value.Spells;
+            bool addedNewSpell = false;
 
             foreach (var activationRequest in activationRequestBuffer)
             {
                 if (SpellIndexMap.TryGetValue(new SpellKey { Value = activationRequest.ID }, out var spellIndex))
                 {
                     // if spell is already active, skip
-                    bool isAlreadyActive = HasSpell(ref activeSpellsBuffer, spellIndex);
-
-                    if (isAlreadyActive)
+                    if (HasSpell(ref activeSpellsBuffer, spellIndex))
                         continue;
 
-                    ref var spellData = ref SpellsDatabaseRef.Value.Spells[spellIndex];
+                    ref var spellData = ref spellsDatabase[spellIndex];
 
                     activeSpellsBuffer.Add(new ActiveSpell
                     {
                         DatabaseIndex = spellIndex,
                         Level = 1,
-                        DamageMultiplier = 1f,
-                        CooldownMultiplier = 1f,
+                        CurrentCooldown = 0f,
 
-                        AreaOfEffectMultiplier = 1f,
-                        SizeMultiplier = 1f,
+                        // INPUTS
+                        LocalDamageBonusMultiplier = 0f,
+                        LocalAreaBonusMultiplier = 0f,
+                        LocalSizeBonusMultiplier = 0f,
+                        LocalSpeedBonusPercent = 0f,
+                        LocalDurationBonusPercent = 0f,
+                        LocalCooldownBonusPercent = 0f,
+                        LocalRangeBonusMultiplier = 0f,
+                        LocalTickRateBonusMultiplier = 0f,
+                        LocalBounceRangeBonusMultiplier = 0f,
 
-                        SpeedMultiplier = 1f,
-                        DurationMultiplier = 1f,
-                        RangeMultiplier = 1f,
-                        TickRateMultiplier = 1f,
-                        LifetimeMultiplier = 1f,
+                        LocalAmountBonus = 0,
+                        LocalBounceBonus = 0,
+                        LocalPierceBonus = 0,
 
-                        BonusAmount = 0,
-                        BonusBounces = 0,
-                        BonusPierces = 0,
+                        LocalCritChanceBonusPercent = 0f,
+                        LocalCritDamageBonus = 0f,
 
-                        BonusCritChance = 0f,
-                        BonusCritMultiplier = 0f,
+                        AddedTags = ESpellTag.None,
 
-                        CurrentCooldown = 0f
+                        // OUTPUTS
+                        FinalDamage = 0f,
+                        FinalArea = 0f,
+                        FinalSize = 0f,
+                        FinalSpeed = 0f,
+                        FinalDuration = 0f,
+                        FinalCooldown = 0f,
+                        FinalRange = 0f,
+                        FinalTickRate = 0f,
+                        FinalAmount = 0,
+                        FinalBounces = 0,
+                        FinalPierces = 0,
+                        FinalCritChance = 0f,
+                        FinalCritDamageMultiplier = 0f,
+
+                        TotalDamageDealt = 0f
                     });
 
+                    addedNewSpell = true;
 
+                    //  Cast immediately if passive or one shot spell (cooldown <= 0)
                     bool isPassiveOrPermanent = spellData.BaseCooldown <= 0;
                     if (isPassiveOrPermanent)
                     {
+                        // todo add request on the caster entity
                         var castRequestEntity = ECB.CreateEntity(chunkIndex);
                         ECB.AddComponent(chunkIndex, castRequestEntity, new CastSpellRequest
                         {
@@ -151,24 +172,23 @@ public partial struct SpellActivationSystem : ISystem
                     }
                 }
             }
+            
+            // Recalculate stats if new spell added
+            if (addedNewSpell)
+                ECB.AddComponent<SpellStatsCalculationRequest>(chunkIndex, entity);
 
             // Clear request buffer
             activationRequestBuffer.Clear();
         }
-
+        
         private static bool HasSpell(ref DynamicBuffer<ActiveSpell> activeSpellsBuffer, int spellIndex)
         {
-            bool isAlreadyActive = false;
             for (int i = 0; i < activeSpellsBuffer.Length; i++)
             {
                 if (activeSpellsBuffer[i].DatabaseIndex == spellIndex)
-                {
-                    isAlreadyActive = true;
-                    break;
-                }
+                    return true;
             }
-
-            return isAlreadyActive;
+            return false;
         }
     }
 }

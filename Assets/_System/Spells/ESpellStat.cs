@@ -8,7 +8,7 @@ public enum ESpellStat
 
     // Spatial
     Speed,           
-    AreaOfEffectSize,     
+    AreaOfEffect,     
     Range,
     Size,
 
@@ -23,5 +23,5 @@ public enum ESpellStat
     BounceCount,        
     PierceCount,        
     CritChance,
-    CritMultiplier
+    CritDamage
 }

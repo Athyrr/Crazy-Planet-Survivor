@@ -17,7 +17,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4731708443538085709
 RectTransform:
   m_ObjectHideFlags: 0
@@ -452,7 +452,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2760141483666535738, guid: 9b8c067994b741a4eb7f16f7087148b7, type: 3}
       propertyPath: PlanetID
-      value: 4
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2777127787412716249, guid: 9b8c067994b741a4eb7f16f7087148b7, type: 3}
       propertyPath: m_Layer
@@ -493,6 +493,10 @@ PrefabInstance:
     - target: {fileID: 3665885354417815754, guid: 9b8c067994b741a4eb7f16f7087148b7, type: 3}
       propertyPath: m_SortingLayer
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3770108070184969437, guid: 9b8c067994b741a4eb7f16f7087148b7, type: 3}
+      propertyPath: PlanetID
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 4285386478682858061, guid: 9b8c067994b741a4eb7f16f7087148b7, type: 3}
       propertyPath: PlanetID
@@ -574,6 +578,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8563823425856155829, guid: 9b8c067994b741a4eb7f16f7087148b7, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8768226211288750207, guid: 9b8c067994b741a4eb7f16f7087148b7, type: 3}
       propertyPath: m_Layer
       value: 0
@@ -590,7 +598,8 @@ PrefabInstance:
       propertyPath: PlanetID
       value: 4
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 5600992248169667542, guid: 9b8c067994b741a4eb7f16f7087148b7, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

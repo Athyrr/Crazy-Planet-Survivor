@@ -11,8 +11,7 @@ public class LobbyManager : MonoBehaviour
     [Tooltip("Camera used for the planet selection view (Galaxy).")]
     public CinemachineCamera PlanetSelectionCamera;
 
-    [Header("UI Controllers")] 
-    public CharacterSelectionUIController CharacterSelectionUIController;
+    [Header("UI Controllers")] public CharacterSelectionUIController CharacterSelectionUIController;
     public PlanetSelectionUIController PlanetSelectionUIController;
     public AmuletShopUIController AmuletShopUIController;
 
@@ -65,7 +64,7 @@ public class LobbyManager : MonoBehaviour
             GameManager.Instance.ChangeState(EGameState.PlanetSelection);
             _entityManager.DestroyEntity(_openPlanetSelectionViewQuery);
         }
-        
+
         // Check amulet shop view request
         if (!_openAmuletShopViewQuery.IsEmpty)
         {
@@ -76,7 +75,9 @@ public class LobbyManager : MonoBehaviour
 
     private void HandleStateChange(EGameState newState)
     {
-        // PlanetSelectionUIController.gameObject.SetActive(false);
+        // Let galaxy opened
+        PlanetSelectionUIController.gameObject.SetActive(true);
+
         CharacterSelectionUIController.gameObject.SetActive(false);
         AmuletShopUIController.gameObject.SetActive(false);
 

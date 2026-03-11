@@ -15,17 +15,25 @@ MonoBehaviour:
   DisplayName: Victor 's skull
   Description: 'Collier du crane de Victorrrrrrrrrrr.
 
-    Plein de buffs'
+    Crit Chance ++
+
+    Crit
+    Damage ++'
   UIPrefab: {fileID: 2352876710774900367, guid: 3884b5aa2402cdb4f97649e65fdd4acb, type: 3}
   Icon: {fileID: 1555579377, guid: 4e1d115e8afe1c74cb4527dc970b8362, type: 3}
   Price: 10
   Modifiers:
-  - Stat: 1
-    Strategy: 1
-    Value: 1.15
-  - Stat: 3
-    Strategy: 1
-    Value: 1.15
-  - Stat: 16
+  - UpgradeType: 0
+    CharacterStat: 18
+    SpellStat: 0
+    SpellTags: 0
+    SpellID: 0
     Strategy: 0
-    Value: 3
+    Value: 0.15
+  - UpgradeType: 0
+    CharacterStat: 19
+    SpellStat: 0
+    SpellTags: 0
+    SpellID: 0
+    Strategy: 1
+    Value: 1.5

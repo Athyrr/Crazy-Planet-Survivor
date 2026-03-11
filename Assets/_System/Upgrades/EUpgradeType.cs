@@ -1,6 +1,6 @@
 public enum EUpgradeType
 {
-    Stat,
+    PlayerStat,
     UpgradeSpell,
     UnlockSpell
 }

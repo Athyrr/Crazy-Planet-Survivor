@@ -250,29 +250,29 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   UseSnappedMovement: 1
-  StopDistance: 0
   BaseStats:
-    MaxHealth: 80
-    Armor: 5
-    MoveSpeed: 6
-    Damage: 2
-    CooldownReduction: 0
-    ProjectileSpeedMultiplier: 0
-    EffectAreaRadiusMultiplier: 0
-    BouncesAdded: 0
-    PierceAdded: 0
-    FireResistance: 50
-    IceResistance: 0
-    LightningResistance: 0
-    ArcaneResistance: 0
-    CollectRange: 1
-    MaxCollectRange: 1
+    BaseMaxHealth: 200
+    MaxHealthMultiplier: 1
+    HealthRecovery: 0
+    BaseArmor: 10
+    DamageReductionMultiplier: 1
+    BaseMoveSpeed: 5
+    MoveSpeedMultiplier: 1
+    BasePickupRange: 0
+    PickupRangeMultiplier: 0
+    GlobalDamageMultiplier: 1
+    GlobalCooldownMultiplier: 1
+    GlobalSpellAreaMultiplier: 1
+    GlobalSpellSizeMultiplier: 1
+    GlobalSpellSpeedMultiplier: 1
+    GlobalDurationMultiplier: 1
+    GlobalAmountBonus: 0
+    GlobalPierceBonus: 0
+    GlobalBounceBonus: 0
+    CritChance: 0
+    CritDamageMultiplier: 0
   InitialSpells:
   - {fileID: 11400000, guid: 8938cdea3267e02449c0f0ea1beae59b, type: 2}
-  InitialModifers:
-  - StatID: 0
-    Value: 0
-    Strategy: 0
 --- !u!114 &7077652745905088192
 MonoBehaviour:
   m_ObjectHideFlags: 0

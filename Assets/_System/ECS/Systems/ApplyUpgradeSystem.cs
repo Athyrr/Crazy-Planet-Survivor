@@ -9,16 +9,11 @@ using Unity.Transforms;
 [BurstCompile]
 public partial struct ApplyUpgradeSystem : ISystem
 {
-    private BufferLookup<ActiveSpell> _activeSpellsBufferLookup;
     private EntityQuery _subSpellsSpawnerQuery;
     private EntityQuery _activeAurasQuery;
 
-    private ComponentLookup<Stats> _statsLookup;
-    private ComponentLookup<DamageOnContact> _damageLookup;
-    private ComponentLookup<DamageOnTick> _damageOnTickLookup;
-    private ComponentLookup<LocalTransform> _transformLookup;
-    private ComponentLookup<OrbitMovement> _orbitLookup;
-    private BufferLookup<Child> _childLookup;
+    private BufferLookup<ActiveSpell> _activeSpellsBufferLookup;
+    private BufferLookup<SpellModifier> _spellModifiersLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -26,270 +21,64 @@ public partial struct ApplyUpgradeSystem : ISystem
         state.RequireForUpdate<Player>();
         state.RequireForUpdate<GameState>();
         state.RequireForUpdate<UpgradesDatabase>();
-        state.RequireForUpdate<ApplyUpgradeRequest>();
-
-        _subSpellsSpawnerQuery = new EntityQueryBuilder(Allocator.Temp)
-            .WithAllRW<SubSpellsSpawner>()
-            .WithAll<SpellSource>()
-            .Build(ref state);
-
-        _activeAurasQuery = new EntityQueryBuilder(Allocator.Temp)
-            .WithAllRW<DamageOnTick>()
-            .WithAllRW<LocalTransform>()
-            .WithAll<SpellSource>()
-            .Build(ref state);
+        // state.RequireForUpdate<ApplyUpgradeRequest>();
 
         _activeSpellsBufferLookup = SystemAPI.GetBufferLookup<ActiveSpell>(false);
-
-        _statsLookup = state.GetComponentLookup<Stats>(true);
-        _damageLookup = state.GetComponentLookup<DamageOnContact>(true);
-        _damageOnTickLookup = state.GetComponentLookup<DamageOnTick>(true);
-        _transformLookup = state.GetComponentLookup<LocalTransform>(true);
-        _orbitLookup = state.GetComponentLookup<OrbitMovement>(true);
-        _childLookup = state.GetBufferLookup<Child>(true);
+        _spellModifiersLookup = SystemAPI.GetBufferLookup<SpellModifier>(false);
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+
+        // if (gameState.State != EGameState.Running && gameState.State != EGameState.UpgradeSelection)
+        //     return;
+
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        var ecbForUpgrades = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-        var ecbForSubSpells = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-
-        var playerEntity = SystemAPI.GetSingletonEntity<Player>();
+        var ecbUpgrade = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        var ecbAmulet = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
         var upgradesDatabaseEntity = SystemAPI.GetSingletonEntity<UpgradesDatabase>();
         var upgradesDatabase = SystemAPI.GetComponent<UpgradesDatabase>(upgradesDatabaseEntity);
-
         var spellsDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
 
+        var amuletsDatabaseEntity = SystemAPI.GetSingletonEntity<AmuletsDatabase>();
+        var amuletsDatabase = SystemAPI.GetComponent<AmuletsDatabase>(amuletsDatabaseEntity);
+
         _activeSpellsBufferLookup.Update(ref state);
-        _statsLookup.Update(ref state);
-        _damageLookup.Update(ref state);
-        _damageOnTickLookup.Update(ref state);
-        _transformLookup.Update(ref state);
-        _orbitLookup.Update(ref state);
-        _childLookup.Update(ref state);
+        _spellModifiersLookup.Update(ref state);
 
         var applyUpgradeJob = new ApplyUpgradeJob()
         {
-            ECB = ecbForUpgrades.AsParallelWriter(),
+            ECB = ecbUpgrade.AsParallelWriter(),
+
             GameStateEntity = gameStateEntity,
-            PlayerEntity = playerEntity,
 
             UpgradesDatabaseRef = upgradesDatabase.Blobs,
             SpellsDatabaseRef = spellsDatabase.Blobs,
 
             ActiveSpellLookup = _activeSpellsBufferLookup,
+            SpellModifierLookup = _spellModifiersLookup
         };
-        JobHandle upgradeHandle = applyUpgradeJob.ScheduleParallel(state.Dependency);
+        var applyUpgradeJobHandle = applyUpgradeJob.ScheduleParallel(state.Dependency);
 
-        var updateSubSpellsJob = new UpdateSubSpellsJob
+        var applyAmuletJob = new ApplyAmuletJob()
         {
-            ECB = ecbForSubSpells.AsParallelWriter(),
-            ActiveSpellLookup = _activeSpellsBufferLookup,
+            ECB = ecbAmulet.AsParallelWriter(),
+
+            AmuletsDatabaseRef = amuletsDatabase.Blobs,
             SpellsDatabaseRef = spellsDatabase.Blobs,
 
-            StatsLookup = _statsLookup,
-            DamageLookup = _damageLookup,
-            DamageOnTickLookup = _damageOnTickLookup,
-            TransformLookup = _transformLookup,
-            OrbitLookup = _orbitLookup,
-            ChildLookup = _childLookup
-        };
-        JobHandle subSpellHandle = updateSubSpellsJob.ScheduleParallel(_subSpellsSpawnerQuery, upgradeHandle);
-
-        var updateAurasJob = new UpdateAuraSpellsJob
-        {
             ActiveSpellLookup = _activeSpellsBufferLookup,
-            SpellsDatabaseRef = spellsDatabase.Blobs,
-            StatsLookup = _statsLookup
+            SpellModifierLookup = _spellModifiersLookup
         };
-        state.Dependency = updateAurasJob.ScheduleParallel(_activeAurasQuery, subSpellHandle);
-    }
+        var applyAmuletJobHandle = applyAmuletJob.ScheduleParallel(state.Dependency);
 
-    /// <summary>
-    /// Updates aura spells (Frozen zone) after an upgrade.
-    /// </summary>
-    [BurstCompile]
-    private partial struct UpdateAuraSpellsJob : IJobEntity
-    {
-        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
-
-        public void Execute(ref DamageOnTick damageOnTick, ref LocalTransform transform, in SpellSource spellSource)
-        {
-            if (!ActiveSpellLookup.TryGetBuffer(spellSource.CasterEntity, out var activeSpells) ||
-                !StatsLookup.TryGetComponent(spellSource.CasterEntity, out var stats))
-                return;
-
-            ActiveSpell currentSpellData = default;
-            bool found = false;
-
-            for (int i = 0; i < activeSpells.Length; i++)
-            {
-                if (activeSpells[i].DatabaseIndex == spellSource.DatabaseIndex)
-                {
-                    currentSpellData = activeSpells[i];
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-                return;
-
-            ref var baseSpellData = ref SpellsDatabaseRef.Value.Spells[spellSource.DatabaseIndex];
-
-            float finalTickDamage =
-                (baseSpellData.BaseDamagePerTick + stats.Damage) * currentSpellData.DamageMultiplier;
-
-            float finalArea = baseSpellData.BaseAreaOfEffect * math.max(1f, stats.AreaOfEffectMult) *
-                              currentSpellData.AreaOfEffectMultiplier;
-
-            damageOnTick.DamagePerTick = finalTickDamage;
-            damageOnTick.AreaRadius = finalArea;
-
-            transform.Scale = finalArea;
-        }
-    }
-
-
-    /// <summary>
-    /// Updates sub entities spells (ex Fire orbs) after an upgrade.
-    /// </summary>
-    [BurstCompile]
-    private partial struct UpdateSubSpellsJob : IJobEntity
-    {
-        public EntityCommandBuffer.ParallelWriter ECB;
-        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
-
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
-        [ReadOnly] public ComponentLookup<DamageOnContact> DamageLookup;
-        [ReadOnly] public ComponentLookup<DamageOnTick> DamageOnTickLookup;
-        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
-        [ReadOnly] public ComponentLookup<OrbitMovement> OrbitLookup;
-        [ReadOnly] public BufferLookup<Child> ChildLookup;
-
-
-        public void Execute(
-            [ChunkIndexInQuery] int index,
-            Entity parentEntity,
-            ref SubSpellsSpawner spawner,
-            in SpellSource spellSource)
-        {
-            if (!ActiveSpellLookup.TryGetBuffer(spellSource.CasterEntity, out var activeSpells))
-                return;
-
-            if (!StatsLookup.TryGetComponent(spellSource.CasterEntity, out var stats))
-                return;
-
-            ActiveSpell currentSpellData = default;
-            bool found = false;
-
-            for (int i = 0; i < activeSpells.Length; i++)
-            {
-                if (activeSpells[i].DatabaseIndex == spellSource.DatabaseIndex)
-                {
-                    currentSpellData = activeSpells[i];
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-                return;
-
-            ref var baseSpellData = ref SpellsDatabaseRef.Value.Spells[spellSource.DatabaseIndex];
-            int totalAmount = baseSpellData.SubSpellsCount + currentSpellData.BonusAmount;
-
-            //  Define the desired number of children to allow the sub spells system to update the spell
-            if (spawner.DesiredSubSpellsCount != totalAmount)
-            {
-                spawner.DesiredSubSpellsCount = totalAmount;
-                spawner.IsDirty = true;
-            }
-
-            float finalDamage = (baseSpellData.BaseDamage + stats.Damage) * currentSpellData.DamageMultiplier;
-            float finalTickDamage =
-                (baseSpellData.BaseDamagePerTick + stats.Damage) * currentSpellData.DamageMultiplier;
-            float finalArea = baseSpellData.BaseAreaOfEffect * math.max(1f, stats.AreaOfEffectMult) *
-                              currentSpellData.AreaOfEffectMultiplier;
-            float finalSpeed = baseSpellData.BaseSpeed * math.max(1f, stats.ProjectileSpeedMultiplier) *
-                               currentSpellData.SpeedMultiplier;
-
-            if (DamageLookup.HasComponent(parentEntity))
-            {
-                var dmg = DamageLookup[parentEntity];
-                dmg.Damage = finalDamage;
-                dmg.AreaRadius = finalArea;
-                ECB.SetComponent(index, parentEntity, dmg);
-
-                if (ChildLookup.HasBuffer(parentEntity))
-                {
-                    var children = ChildLookup[parentEntity];
-                    for (int i = 0; i < children.Length; i++)
-                    {
-                        var child = children[i].Value;
-                        if (DamageLookup.HasComponent(child))
-                        {
-                            var childDmg = DamageLookup[child];
-                            childDmg.Damage = finalDamage;
-                            childDmg.AreaRadius = finalArea;
-                            ECB.SetComponent(index, child, childDmg);
-                        }
-                    }
-                }
-            }
-
-            if (DamageOnTickLookup.HasComponent(parentEntity))
-            {
-                var dmgTick = DamageOnTickLookup[parentEntity];
-                dmgTick.DamagePerTick = finalTickDamage;
-                dmgTick.AreaRadius = finalArea;
-                ECB.SetComponent(index, parentEntity, dmgTick);
-
-                if (ChildLookup.HasBuffer(parentEntity))
-                {
-                    var children = ChildLookup[parentEntity];
-                    for (int i = 0; i < children.Length; i++)
-                    {
-                        var child = children[i].Value;
-                        if (DamageOnTickLookup.HasComponent(child))
-                        {
-                            var childDmgTick = DamageOnTickLookup[child];
-                            childDmgTick.DamagePerTick = finalTickDamage;
-                            childDmgTick.AreaRadius = finalArea;
-                            ECB.SetComponent(index, child, childDmgTick);
-                        }
-                    }
-                }
-            }
-
-            // Scale parent = scale children
-            if (TransformLookup.HasComponent(parentEntity))
-            {
-                var parentTransform = TransformLookup[parentEntity];
-                parentTransform.Scale = finalArea;
-                ECB.SetComponent(index, parentEntity, parentTransform);
-            }
-
-            if (OrbitLookup.HasComponent(parentEntity))
-            {
-                var orbit = OrbitLookup[parentEntity];
-                orbit.AngularSpeed = finalSpeed;
-                float orbitRadius = math.length(baseSpellData.BaseSpawnOffset) *
-                                    currentSpellData.AreaOfEffectMultiplier;
-                orbit.Radius = orbitRadius;
-                orbit.RelativeOffset = new float3(0, 0, orbitRadius);
-
-                ECB.SetComponent(index, parentEntity, orbit);
-            }
-        }
+        state.Dependency = JobHandle.CombineDependencies(applyUpgradeJobHandle, applyAmuletJobHandle);
     }
 
     [BurstCompile]
@@ -298,151 +87,302 @@ public partial struct ApplyUpgradeSystem : ISystem
         public EntityCommandBuffer.ParallelWriter ECB;
         public Entity GameStateEntity;
 
-        [ReadOnly] public Entity PlayerEntity;
-
         [ReadOnly] public BlobAssetReference<UpgradeBlobs> UpgradesDatabaseRef;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
 
         [NativeDisableParallelForRestriction] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        [NativeDisableParallelForRestriction] public BufferLookup<SpellModifier> SpellModifierLookup;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in ApplyUpgradeRequest request)
+        public void Execute(
+            [ChunkIndexInQuery] int chunkIndex,
+            Entity playerEntity,
+            in ApplyUpgradeRequest request,
+            ref Stats playerStats,
+            ref Health health)
         {
-            int upgradeIndex = request.DatabaseIndex;
-            ref var upgradeData = ref UpgradesDatabaseRef.Value.Upgrades[upgradeIndex];
+            ref var upgrade = ref UpgradesDatabaseRef.Value.Upgrades[request.DatabaseIndex];
+            bool needSpellUpdate = false;
 
-            switch (upgradeData.UpgradeType)
+            // todo check for keeping StatModifer Buffer
+            // PLAYER GLOBAL STAT UPGRADE: STAT (Modif Directly)
+            if (upgrade.UpgradeType == EUpgradeType.PlayerStat && upgrade.SpellID == ESpellID.None &&
+                upgrade.SpellTags == ESpellTag.None)
             {
-                case EUpgradeType.Stat:
-                    var statModifier = new StatModifier()
-                    {
-                        StatID = upgradeData.CharacterStat,
-                        Strategy = upgradeData.ModifierStrategy,
-                        Value = upgradeData.Value,
-                    };
-                    ECB.AppendToBuffer<StatModifier>(chunkIndex, PlayerEntity, statModifier);
-                    ECB.AddComponent(chunkIndex, PlayerEntity, new RecalculateStatsRequest());
-                    break;
+                ApplyPlayerStatUpgrade(ref playerStats, ref health, upgrade.CharacterStat, upgrade.Value,
+                    ref needSpellUpdate);
+            }
 
-                case EUpgradeType.UnlockSpell:
-                    ECB.AppendToBuffer<SpellActivationRequest>(chunkIndex, PlayerEntity, new SpellActivationRequest()
-                    {
-                        ID = upgradeData.SpellID
-                    });
-                    break;
+            // SPECIFIC SPELL UPGRADE: STAT OR NEW TAG (Modif ActiveSpell Buffer)
+            else if (upgrade.UpgradeType == EUpgradeType.UpgradeSpell)
+            {
+                // todo handle case where the upgrade adds a tag to the spell (ex: make fireball also apply burn or explode on impact).
+                if (ActiveSpellLookup.TryGetBuffer(playerEntity, out var spells))
+                {
+                    var newTags = upgrade.SpellTags != ESpellTag.None ? upgrade.SpellTags : ESpellTag.None;
 
-                case EUpgradeType.UpgradeSpell:
-                    if (ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var activeSpellsBuffer))
+                    // Find spell from database
+                    ref var allSpells = ref SpellsDatabaseRef.Value.Spells;
+                    for (int i = 0; i < spells.Length; i++)
                     {
-                        ref var spellBlobs = ref SpellsDatabaseRef.Value.Spells;
-
-                        for (int i = 0; i < activeSpellsBuffer.Length; i++)
+                        var spell = spells[i];
+                        if (allSpells[spell.DatabaseIndex].ID == upgrade.SpellID)
                         {
-                            var activeSpell = activeSpellsBuffer[i];
-                            ref var baseData = ref spellBlobs[activeSpell.DatabaseIndex];
+                            // Modify spell 
+                            ApplySpellUpgrade(ref spell, upgrade.SpellStat, upgrade.Value, newTags);
 
-                            // Target specific spell
-                            bool matchID = upgradeData.SpellID != ESpellID.None && baseData.ID == upgradeData.SpellID;
+                            // Level up
+                            spell.Level++;
 
-                            // Target specific tag
-                            bool matchTag = upgradeData.SpellID == ESpellID.None &&
-                                            (baseData.Tag & upgradeData.SpellTags) > 0;
+                            // Save to buffer
+                            spells[i] = spell;
 
-                            // todo if spell id not null -> Required tags in field are added to the spell tags
-
-                            ESpellTag newTags = ESpellTag.None;
-                            if (upgradeData.SpellTags != ESpellTag.None)
-                                newTags = upgradeData.SpellTags;
-
-                            if (matchID || matchTag)
-                            {
-                                ApplyModification(ref activeSpell, ref upgradeData, newTags);
-                                activeSpellsBuffer[i] = activeSpell;
-                            }
+                            // Set spell as dirty
+                            needSpellUpdate = true;
+                            break;
                         }
                     }
-
-                    break;
-
-                default:
-                    break;
+                }
             }
+
+            // UNLOCK NEW SPELL (Send SpellActivationRequest)
+            else if (upgrade.UpgradeType == EUpgradeType.UnlockSpell)
+            {
+                ECB.AppendToBuffer<SpellActivationRequest>(chunkIndex, playerEntity, new SpellActivationRequest()
+                {
+                    ID = upgrade.SpellID
+                });
+            }
+
+            // TAGGED SPELLS UPGRADE: TARGETING ALL SPELLS WITH THE SAME TAG (Modif spell Modifier Buffer)
+            else if (upgrade.UpgradeType == EUpgradeType.UpgradeSpell && upgrade.SpellTags != ESpellTag.None &&
+                     upgrade.SpellID == ESpellID.None)
+            {
+                if (SpellModifierLookup.TryGetBuffer(playerEntity, out var spellModifiers))
+                {
+                    spellModifiers.Add(new SpellModifier
+                    {
+                        RequiredTags = upgrade.SpellTags,
+                        SpellStat = upgrade.SpellStat, // ex: Damage
+                        Value = upgrade.Value, // ex: 0.1
+                        Strategy = EModiferStrategy.Multiply // ou Add selon logique
+                    });
+                    needSpellUpdate = true;
+                }
+            }
+
+            // if modifing spells -> send request for SpellStatsUpdateSystem
+            if (needSpellUpdate)
+            {
+                ECB.AddComponent<SpellStatsCalculationRequest>(chunkIndex, playerEntity);
+            }
+
+            // Remove request from player
+            ECB.RemoveComponent<ApplyUpgradeRequest>(chunkIndex, playerEntity);
 
             // Clear upgrades selection buffer 
             ECB.SetBuffer<UpgradeSelectionBufferElement>(chunkIndex, GameStateEntity);
+        }
+    }
 
-            // Destroy ApplyUpgradeRequest
-            ECB.DestroyEntity(chunkIndex, requestEntity);
+    [BurstCompile]
+    private partial struct ApplyAmuletJob : IJobEntity
+    {
+        public EntityCommandBuffer.ParallelWriter ECB;
+
+        [ReadOnly] public BlobAssetReference<AmuletBlobs> AmuletsDatabaseRef;
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
+
+        [NativeDisableParallelForRestriction] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        [NativeDisableParallelForRestriction] public BufferLookup<SpellModifier> SpellModifierLookup;
+
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity playerEntity, in ApplyAmuletRequest request,
+            ref Stats playerStats, ref Health health)
+        {
+            ref var amulet = ref AmuletsDatabaseRef.Value.Amulets[request.DatabaseIndex];
+            bool needSpellUpdate = false;
+
+            for (int i = 0; i < amulet.Modifiers.Length; i++)
+            {
+                var mod = amulet.Modifiers[i];
+
+                // Player Stat Upgrade
+                if (mod.UpgradeType == EUpgradeType.PlayerStat)
+                {
+                    ApplyPlayerStatUpgrade(ref playerStats, ref health, mod.CharacterStat, mod.Value,
+                        ref needSpellUpdate);
+                }
+
+                // Specific Spell Upgrade
+                else if (mod.UpgradeType == EUpgradeType.UpgradeSpell && mod.SpellID != ESpellID.None)
+                {
+                    if (ActiveSpellLookup.TryGetBuffer(playerEntity, out var spells))
+                    {
+                        var newTags = mod.SpellTags != ESpellTag.None ? mod.SpellTags : ESpellTag.None;
+                        ref var allSpells = ref SpellsDatabaseRef.Value.Spells;
+
+                        for (int j = 0; j < spells.Length; j++)
+                        {
+                            var spell = spells[j];
+                            if (allSpells[spell.DatabaseIndex].ID == mod.SpellID)
+                            {
+                                ApplySpellUpgrade(ref spell, mod.SpellStat, mod.Value, newTags);
+                                spells[j] = spell;
+                                needSpellUpdate = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Tagged spells
+                else if (mod.UpgradeType == EUpgradeType.UpgradeSpell && mod.SpellTags != ESpellTag.None &&
+                         mod.SpellID == ESpellID.None)
+                {
+                    if (SpellModifierLookup.TryGetBuffer(playerEntity, out var spellModifiers))
+                    {
+                        spellModifiers.Add(new SpellModifier
+                        {
+                            RequiredTags = mod.SpellTags,
+                            SpellStat = mod.SpellStat,
+                            Value = mod.Value,
+                            Strategy = mod.Strategy
+                        });
+                        needSpellUpdate = true;
+                    }
+                }
+            }
+
+            if (needSpellUpdate)
+            {
+                ECB.AddComponent<SpellStatsCalculationRequest>(chunkIndex, playerEntity);
+            }
+
+            // Remove request from player
+            ECB.RemoveComponent<ApplyAmuletRequest>(chunkIndex, playerEntity);
+        }
+    }
+
+
+    private static void ApplyPlayerStatUpgrade(ref Stats playerStats, ref Health health, ECharacterStat stat,
+        float value, ref bool needSpellUpdate)
+    {
+        switch (stat)
+        {
+            case ECharacterStat.MaxHealth:
+                playerStats.MaxHealthMultiplier += value;
+                health.Value += (int)(playerStats.BaseMaxHealth * value); // todo Heal ?
+                break;
+            case ECharacterStat.Health:
+                health.Value = math.min(health.Value + (int)value,
+                    (int)(playerStats.BaseMaxHealth * playerStats.MaxHealthMultiplier));
+                break;
+            case ECharacterStat.Armor:
+                playerStats.BaseArmor += value;
+                break;
+            case ECharacterStat.Speed:
+                playerStats.MoveSpeedMultiplier += value;
+                break;
+            case ECharacterStat.CollectRange:
+                playerStats.PickupRangeMultiplier += value;
+                break;
+            case ECharacterStat.Damage:
+                playerStats.GlobalDamageMultiplier += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.CooldownReduction:
+                playerStats.GlobalCooldownMultiplier -= value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.AreaSize:
+                playerStats.GlobalSpellAreaMultiplier += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.SizeMultiplier:
+                playerStats.GlobalSpellSizeMultiplier += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.BounceCount:
+                playerStats.GlobalBounceBonus += (int)value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.PierceCount:
+                playerStats.GlobalPierceBonus += (int)value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.CritChance:
+                playerStats.CritChance += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.CritDamage:
+                playerStats.CritDamageMultiplier += value;
+                needSpellUpdate = true;
+                break;
+        }
+    }
+
+    private static void ApplySpellUpgrade(ref ActiveSpell spell, ESpellStat stat, float value, ESpellTag newTags)
+    {
+        // upgrade.Value is a DELTA (e.g., 0.1 for +10%)
+        // ALL percent-based modifiers should be ADDITIVE (+=).
+        switch (stat)
+        {
+            case ESpellStat.Damage:
+                spell.LocalDamageBonusMultiplier += value;
+                break;
+
+            case ESpellStat.Cooldown:
+                spell.LocalCooldownBonusPercent += value;
+                break;
+
+            case ESpellStat.Speed:
+                spell.LocalSpeedBonusPercent += value;
+                break;
+
+            case ESpellStat.AreaOfEffect:
+                spell.LocalAreaBonusMultiplier += value;
+                break;
+
+            case ESpellStat.Range:
+                spell.LocalRangeBonusMultiplier += value;
+                break;
+
+            case ESpellStat.Duration:
+                spell.LocalDurationBonusPercent += value;
+                break;
+
+            case ESpellStat.Amount:
+                spell.LocalAmountBonus += (int)value;
+                break;
+
+            case ESpellStat.TickRate:
+                spell.LocalTickRateBonusMultiplier += value;
+                break;
+
+            case ESpellStat.BounceCount:
+                spell.LocalBounceBonus += (int)value;
+                break;
+
+            case ESpellStat.PierceCount:
+                spell.LocalPierceBonus += (int)value;
+                break;
+
+            case ESpellStat.CritChance:
+                spell.LocalCritChanceBonusPercent += value;
+                break;
+
+            case ESpellStat.CritDamage:
+                spell.LocalCritDamageBonus += value;
+                break;
+
+            case ESpellStat.Size:
+                spell.LocalSizeBonusMultiplier += value;
+                break;
         }
 
-        private void ApplyModification(ref ActiveSpell spell, ref UpgradeBlob upgrade,
-            ESpellTag newTags = ESpellTag.None)
+        // Add new tags
+        if (newTags != ESpellTag.None)
         {
-            switch (upgrade.SpellStat)
-            {
-                case ESpellStat.Damage:
-                    spell.DamageMultiplier *= upgrade.Value;
-                    break;
-
-                case ESpellStat.Cooldown:
-                    spell.CooldownMultiplier *= upgrade.Value;
-                    break;
-
-                case ESpellStat.Speed:
-                    spell.SpeedMultiplier *= upgrade.Value;
-                    break;
-
-                case ESpellStat.AreaOfEffectSize:
-                    spell.AreaOfEffectMultiplier *= upgrade.Value;
-                    break;
-
-                case ESpellStat.Range:
-                    spell.RangeMultiplier *= upgrade.Value;
-                    break;
-
-                case ESpellStat.Duration:
-                    spell.LifetimeMultiplier *= upgrade.Value;
-                    break;
-
-                case ESpellStat.Amount:
-                    spell.BonusAmount += (int)upgrade.Value;
-                    break;
-
-                case ESpellStat.TickRate:
-                    spell.TickRateMultiplier *= upgrade.Value;
-                    break;
-
-                case ESpellStat.BounceCount:
-                    spell.BonusBounces += (int)upgrade.Value;
-                    break;
-
-                case ESpellStat.PierceCount:
-                    spell.BonusPierces += (int)upgrade.Value;
-                    break;
-
-                case ESpellStat.CritChance:
-                    spell.BonusCritChance += upgrade.Value;
-                    break;
-
-                case ESpellStat.CritMultiplier:
-                    spell.BonusCritMultiplier += upgrade.Value;
-                    break;
-
-                case ESpellStat.Size:
-                    spell.SizeMultiplier *= upgrade.Value;
-                    break;
-
-                default:
-                    break;
-            }
-
-            // Handle new tags
-            if (newTags != ESpellTag.None)
-            {
-                var tags = spell.AddedTags;
-                spell.AddedTags = newTags | tags;
-            }
-
-            spell.Level++;
+            spell.AddedTags |= newTags;
         }
     }
 }

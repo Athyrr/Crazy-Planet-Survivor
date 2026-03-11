@@ -19,7 +19,11 @@ public class AmuletSO : ScriptableObject
 [System.Serializable]
 public struct AmuletModifier
 {
-    public ECharacterStat Stat; 
-    public EStatModiferStrategy Strategy; 
+    public EUpgradeType UpgradeType;
+    public ECharacterStat CharacterStat;
+    public ESpellStat SpellStat;
+    public ESpellTag SpellTags;
+    public ESpellID SpellID;
+    public EModiferStrategy Strategy;
     public float Value;
 }

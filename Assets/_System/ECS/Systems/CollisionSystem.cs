@@ -318,7 +318,7 @@ public partial struct CollisionSystem : ISystem
             }
         }
 
-        private void CreateExplosion(Entity damager, ExplodeOnContact explosionData)
+        private void CreateExplosion(Entity damager, ExplodeOnContact explosionData, float criticalDamagesMultiplier, bool isCrit)
         {
             var requestEntity = ECB.CreateEntity(0);
             float3 pos = LocalTransformLookup[damager].Position;
@@ -454,7 +454,7 @@ public partial struct CollisionSystem : ISystem
                     var spell = buffer[i];
                     if (sums.TryGetValue(spell.DatabaseIndex, out int totalAdded))
                     {
-                        spell.DamageDealt += totalAdded;
+                        spell.TotalDamageDealt += totalAdded;
                         buffer[i] = spell;
                     }
                 }
