@@ -17,7 +17,7 @@ public struct SpellBlob
     public float BaseAreaOfEffect;
     public float3 BaseSpawnOffset;
     public float BaseSize;
-
+    
     // Targeting
     public ESpellTargetingMode TargetingMode;
 

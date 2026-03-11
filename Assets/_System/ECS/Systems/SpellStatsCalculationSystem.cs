@@ -93,7 +93,6 @@ public partial struct SpellStatsCalculationSystem : ISystem
         var updateTickDamageSpellJob = new UpdateTickDamageSpellsJob
         {
             ActiveSpellLookup = _activeSpellLookup,
-            StatsLookup = _statsLookup
         };
         JobHandle updateTickDamageSpellJobHandle =
             updateTickDamageSpellJob.ScheduleParallel(_activeTickDamageSpellQuery, calculateSpellStatsJobHandle);
@@ -138,9 +137,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
             for (int i = 0; i < activeSpells.Length; i++)
             {
                 var spell = activeSpells[i];
-                ref var baseData = ref blobSpells[spell.DatabaseIndex];
+                ref var baseSpellData = ref blobSpells[spell.DatabaseIndex];
 
-                ESpellTag currentTags = baseData.Tag | spell.AddedTags;
+                ESpellTag currentTags = baseSpellData.Tag | spell.AddedTags;
 
                 // Multipliers
                 // Total = Base * ( 1 + Global(Player) + Local(Spell))
@@ -150,6 +149,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 float speedMult = stats.GlobalSpellSpeedMultiplier + (1f + spell.LocalSpeedBonusPercent);
                 float durationMult = stats.GlobalDurationMultiplier * (1f + spell.LocalDurationBonusPercent);
                 float tickRateMult = 1 + spell.LocalTickRateBonusMultiplier;
+                float rangeMult = stats.GlobalCastRangeMultiplier + (1f + spell.LocalRangeBonusMultiplier);
 
                 float bounceRangeMult = /*stats.GlobalBounceRangeMultiplier **/
                     (1 + spell.LocalRangeBonusMultiplier); // todo add global bounce range multiplier if needed
@@ -219,26 +219,27 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 }
 
                 // Final values cache
-                spell.FinalDamage = baseData.BaseDamage * dmgMult;
+                spell.FinalDamage = baseSpellData.BaseDamage * dmgMult;
 
 
-                spell.FinalArea = math.max(0.1f, baseData.BaseAreaOfEffect * areaMult);
-                spell.FinalSize = math.max(0.1f, baseData.BaseSize * sizeMult);
-                spell.FinalSpeed = baseData.BaseSpeed * speedMult;
-                spell.FinalDuration = math.max(0.1f, baseData.Lifetime * durationMult);
-                spell.FinalTickRate = math.max(0.1f, baseData.TickRate * tickRateMult);
+                spell.FinalArea = math.max(0.1f, baseSpellData.BaseAreaOfEffect * areaMult);
+                spell.FinalSize = math.max(0.1f, baseSpellData.BaseSize * sizeMult);
+                spell.FinalSpeed = baseSpellData.BaseSpeed * speedMult;
+                spell.FinalDuration = math.max(0.1f, baseSpellData.Lifetime * durationMult);
+                spell.FinalTickRate = math.max(0.1f, baseSpellData.TickRate * tickRateMult);
 
                 // if passive/aura spell, cooldown is 0, otherwise apply multiplier
-                if (baseData.BaseCooldown <= 0)
+                if (baseSpellData.BaseCooldown <= 0)
                     spell.FinalCooldown = 0f;
                 else
-                    spell.FinalCooldown = math.max(0.1f, baseData.BaseCooldown * cdMult);
+                    spell.FinalCooldown = math.max(0.1f, baseSpellData.BaseCooldown * cdMult);
 
-                spell.FinalAmount = math.max(1, baseData.BaseAmount + amountAdd);
-                spell.FinalBounces = baseData.Bounces + bounceAdd;
-                spell.FinalPierces = baseData.Pierces + pierceAdd;
+                spell.FinalAmount = math.max(1, baseSpellData.BaseAmount + amountAdd);
+                spell.FinalBounces = baseSpellData.Bounces + bounceAdd;
+                spell.FinalPierces = baseSpellData.Pierces + pierceAdd;
 
-                spell.FinalBounceRange = math.max(1, baseData.BounceRange * bounceRangeMult);
+                spell.FinalRange = math.max(1f, baseSpellData.BaseCastRange * rangeMult);
+                spell.FinalBounceRange = math.max(1, baseSpellData.BounceRange * bounceRangeMult);
 
                 spell.FinalCritChance = math.clamp(critChanceAdd, 0f, 1f);
                 spell.FinalCritDamageMultiplier = math.max(1f, critDmgAdd);
@@ -257,7 +258,6 @@ public partial struct SpellStatsCalculationSystem : ISystem
     private partial struct UpdateTickDamageSpellsJob : IJobEntity
     {
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
 
         public void Execute(ref DamageOnTick damageOnTick, ref LocalTransform transform, in SpellSource spellSource)
         {

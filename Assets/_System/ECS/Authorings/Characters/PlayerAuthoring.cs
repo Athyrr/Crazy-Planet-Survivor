@@ -96,6 +96,7 @@ public class PlayerAuthoring : MonoBehaviour
                 GlobalSpellSizeMultiplier = 1.0f,
                 GlobalSpellSpeedMultiplier = 1.0f,
                 GlobalDurationMultiplier = 1.0f,
+                GlobalCastRangeMultiplier = 1.0f,
 
                 GlobalAmountBonus = 0,
                 GlobalPierceBonus = 0,

@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: -795139794179562712}
   - component: {fileID: 7077652745905088192}
   - component: {fileID: -6272738867424008012}
+  - component: {fileID: 1392762356999156220}
   m_Layer: 0
   m_Name: PF_Cube2
   m_TagString: Untagged
@@ -272,7 +273,7 @@ MonoBehaviour:
     CritChance: 0
     CritDamageMultiplier: 0
   InitialSpells:
-  - {fileID: 11400000, guid: 8938cdea3267e02449c0f0ea1beae59b, type: 2}
+  - {fileID: 11400000, guid: 9e39f75e475110447adf8ec004d90448, type: 2}
 --- !u!114 &7077652745905088192
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -301,3 +302,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
   _avoidanceDetectionRadius: 1
   _avoidanceWeight: 0.8
+--- !u!114 &1392762356999156220
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4960229139857780973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82ab21110e112b844b45c4d10b6f4436, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StopDistanceAuthoring
+  Distance: 16

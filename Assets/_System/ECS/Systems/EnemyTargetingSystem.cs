@@ -74,7 +74,7 @@ public partial struct EnemyTargetingSystem : ISystem
 
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        void Execute([ChunkIndexInQuery] int chunkIndex, ref DynamicBuffer<EnemySpellReady> readySpells, in LocalTransform transform, in Entity entity)
+        void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref DynamicBuffer<EnemySpellReady> readySpells, ref DynamicBuffer<ActiveSpell> activeSpells, in LocalTransform transform)
         {
             if (readySpells.IsEmpty) return;
 
@@ -91,17 +91,18 @@ public partial struct EnemyTargetingSystem : ISystem
             for (int i = 0; i < readySpells.Length; i++)
             {
                 var spell = readySpells[i].Spell;
-                ref readonly var spellData = ref SpellDatabaseRef.Value.Spells[spell.DatabaseIndex];
+                
+                float finalRange = spell.FinalRange > 0 ? spell.FinalRange : 1f; 
+                
                 bool isInRange = false;
 
-                if (spellData.BaseCastRange >= maxSurfaceDist)
+                if (finalRange >= maxSurfaceDist)
                 {
                     isInRange = true;
                 }
                 else
                 {
-                    float thresholdChord = 2.0f * planetRadius * math.sin(spellData.BaseCastRange / (2.0f * planetRadius));
-
+                    float thresholdChord = 2.0f * planetRadius * math.sin(finalRange / (2.0f * planetRadius));
                     if (distToPlayerSq <= thresholdChord * thresholdChord)
                     {
                         isInRange = true;
@@ -110,6 +111,7 @@ public partial struct EnemyTargetingSystem : ISystem
 
                 if (isInRange)
                 {
+                    // todo create request on caster entity instead of creating a new entity for the request
                     // Create a request entity to be processed by the SpellSystem
                     var request = ECB.CreateEntity(chunkIndex);
                     ECB.AddComponent(chunkIndex, request, new CastSpellRequest
@@ -118,6 +120,20 @@ public partial struct EnemyTargetingSystem : ISystem
                         Target = PlayerEntity,
                         DatabaseIndex = spell.DatabaseIndex
                     });
+                    
+                    // Reset the cooldown of the spell that was just cast
+                    // todo optimize by storing the index of the spell in the ActiveSpells buffer in EnemySpellReady to avoid this loop
+                    // todo reset casted spell cooldown or all ready spells cooldown? 
+                    for (int j = 0; j < activeSpells.Length; j++)
+                    {
+                        if (activeSpells[j].DatabaseIndex == spell.DatabaseIndex)
+                        {
+                            var activeSpellToReset = activeSpells[j];
+                            activeSpellToReset.CurrentCooldown = activeSpellToReset.FinalCooldown;
+                            activeSpells[j] = activeSpellToReset; 
+                            break;
+                        }
+                    }
                 }
             }
 

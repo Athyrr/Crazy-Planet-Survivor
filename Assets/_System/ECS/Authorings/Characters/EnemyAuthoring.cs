@@ -4,25 +4,24 @@ using UnityEngine;
 public class EnemyAuthoring : MonoBehaviour
 {
     [Header("Movement precision")]
-    [Tooltip("If true, the enemy will be snapped perfectly on the ground following the terrain height. Otherwise, it will follow the base radius.")]
+    [Tooltip(
+        "If true, the enemy will be snapped perfectly on the ground following the terrain height. Otherwise, it will follow the base radius.")]
     public bool UseSnappedMovement = true;
 
-    [Header("Stats \nResistances are value in %.")]
-    public Stats BaseStats;
+    [Header("Stats")] public Stats BaseStats;
 
-    [Header("Spells")] 
-    public SpellDataSO[] InitialSpells;
-    
+    [Header("Spells")] public SpellDataSO[] InitialSpells;
+
     private class Baker : Baker<EnemyAuthoring>
     {
         public override void Bake(EnemyAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
-            
+
             AddComponent(entity, new Enemy());
             AddComponent(entity, new FollowTargetMovement { Speed = authoring.BaseStats.BaseMoveSpeed });
             AddComponent(entity, new RunScope());
-            
+
             if (authoring.UseSnappedMovement)
                 AddComponent<HardSnappedMovement>(entity);
 
@@ -30,7 +29,7 @@ public class EnemyAuthoring : MonoBehaviour
 
             AddBuffer<EnemySpellReady>(entity);
             AddBuffer<DamageBufferElement>(entity);
-            
+
             AddComponent(entity, new Stats
             {
                 // Bases
@@ -51,6 +50,7 @@ public class EnemyAuthoring : MonoBehaviour
                 GlobalSpellSizeMultiplier = 1.0f,
                 GlobalSpellSpeedMultiplier = 1.0f,
                 GlobalDurationMultiplier = 1.0f,
+                GlobalCastRangeMultiplier = 1.0f,
 
                 GlobalAmountBonus = 0,
                 GlobalPierceBonus = 0,
@@ -60,18 +60,18 @@ public class EnemyAuthoring : MonoBehaviour
                 CritDamageMultiplier = authoring.BaseStats.CritDamageMultiplier,
             });
 
-            
-            //AddBuffer<SpellModifier>(entity); 
-            
+            // todo virer ça et utiliser lookup de spell modifier dans spell calculation system
+            AddBuffer<SpellModifier>(entity);
+
             AddBuffer<ActiveSpell>(entity);
             DynamicBuffer<SpellActivationRequest> baseSpellBuffer = AddBuffer<SpellActivationRequest>(entity);
-            
+
             if (authoring.InitialSpells != null)
             {
                 foreach (var spellSO in authoring.InitialSpells)
                 {
                     if (spellSO == null) continue;
-                    
+
                     baseSpellBuffer.Add(new SpellActivationRequest
                     {
                         ID = spellSO.ID,

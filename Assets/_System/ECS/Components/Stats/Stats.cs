@@ -73,6 +73,10 @@ public struct Stats : IComponentData
     [UIStat("Duration", "{0:0%}")]
     public float GlobalDurationMultiplier;
     
+    [Tooltip("Cast range multiplier (for targeted spells).")]
+    [UIStat("Cast Range", "{0:0%}")]
+    public float GlobalCastRangeMultiplier;
+    
 
     [Header("Offensive Global Bonuses")]
     

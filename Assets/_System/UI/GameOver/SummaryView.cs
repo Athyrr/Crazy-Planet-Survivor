@@ -23,6 +23,7 @@ public class SummaryView : MonoBehaviour
     private EntityQuery _spellsDatabaseQuery;
     private EntityQuery _playerSpellsQuery;
     private EntityQuery _runProgressionQuery;
+    private EntityQuery _playerStatsQuery;
 
     public void RefreshView()
     {
@@ -37,12 +38,15 @@ public class SummaryView : MonoBehaviour
         if (_spellsDatabaseQuery == default)
             _spellsDatabaseQuery = _entityManager.CreateEntityQuery(typeof(SpellsDatabase));
 
+        if (_playerStatsQuery == default)
+            _playerStatsQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Stats));
+
         // Clear views
         foreach (Transform child in SpellsContainer)
             Destroy(child.gameObject);
 
-        //foreach (Transform child in StatsContainer)
-        //    Destroy(child.gameObject);
+        foreach (Transform child in StatsContainer)
+            Destroy(child.gameObject);
 
         RefreshProgressionSummary();
         RefreshSpellsSummary();
@@ -92,8 +96,42 @@ public class SummaryView : MonoBehaviour
         }
     }
 
-    private void RefreshStatsSummary()
+  private void RefreshStatsSummary()
     {
+        if (_playerStatsQuery.IsEmptyIgnoreFilter) 
+            return;
+
+        var stats = _playerStatsQuery.GetSingleton<Stats>();
+        
+        float finalHealth = stats.BaseMaxHealth * stats.MaxHealthMultiplier;
+        CreateStatUI("Max Health", finalHealth.ToString("0"));
+        CreateStatUI("Health Regen", $"{stats.HealthRecovery:0.0}/s");
+        CreateStatUI("Armor", stats.BaseArmor.ToString("0"));
+        
+        float finalSpeed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
+        CreateStatUI("Move Speed", finalSpeed.ToString("0.0"));
+        
+        float finalPickup = stats.BasePickupRange * stats.PickupRangeMultiplier;
+        CreateStatUI("Pickup Range", finalPickup.ToString("0.0"));
+        
+        CreateStatUI("Global Damage", $"{(stats.GlobalDamageMultiplier * 100f):0}%");
+        CreateStatUI("Cooldown Time", $"{(stats.GlobalCooldownMultiplier * 100f):0}%");
+        CreateStatUI("Area Size", $"{(stats.GlobalSpellAreaMultiplier * 100f):0}%");
+        CreateStatUI("Spell Size", $"{(stats.GlobalSpellSizeMultiplier * 100f):0}%");
+        CreateStatUI("Projectile Speed", $"{(stats.GlobalSpellSpeedMultiplier * 100f):0}%");
+        CreateStatUI("Spell Duration", $"{(stats.GlobalDurationMultiplier * 100f):0}%");
+
+        if (stats.GlobalAmountBonus > 0) 
+            CreateStatUI("Bonus Projectiles", $"+{stats.GlobalAmountBonus}");
+        
+        if (stats.GlobalPierceBonus > 0) 
+            CreateStatUI("Bonus Pierces", $"+{stats.GlobalPierceBonus}");
+            
+        if (stats.GlobalBounceBonus > 0) 
+            CreateStatUI("Bonus Bounces", $"+{stats.GlobalBounceBonus}");
+
+        CreateStatUI("Crit Chance", $"{(stats.CritChance * 100f):0.0}%");
+        CreateStatUI("Crit Damage", $"x{stats.CritDamageMultiplier:0.0}");
     }
 
     private void CreateSpellUI(ref SpellBlob spellData, ActiveSpell activeSpell)
@@ -103,7 +141,9 @@ public class SummaryView : MonoBehaviour
         uiInstance.Refresh(spellData, activeSpell, icon);
     }
 
-    private void CreateStatUI()
+    private void CreateStatUI(string label, string value)
     {
+        var uiInstance = Instantiate(SummaryStatPrefab, StatsContainer);
+        uiInstance.Refresh(label, value);
     }
 }

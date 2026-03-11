@@ -1,16 +1,17 @@
+using TMPro;
 using UnityEngine;
 
+/// <summary>
+/// UI element that represents a single stat in the summary screen after the game is over.
+/// </summary>
 public class SummaryStat : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public TMP_Text StatLabelText;
+    public TMP_Text StatValueText;
+    
+    public void Refresh(string label, string value)
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        if (StatLabelText != null) StatLabelText.text = label;
+        if (StatValueText != null) StatValueText.text = value;
     }
 }
