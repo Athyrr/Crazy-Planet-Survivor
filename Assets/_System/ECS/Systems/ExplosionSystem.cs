@@ -61,7 +61,8 @@ public partial struct ExplosionSystem : ISystem
                 ECB.SetComponent(chunkIndex, vfx, new LocalTransform
                 {
                     Position = explosion.Position,
-                    Scale = explosion.Radius
+                    // // todo scale vfx based on explosion visual
+                    Scale = explosion.Radius / 3
                 });
             }
 

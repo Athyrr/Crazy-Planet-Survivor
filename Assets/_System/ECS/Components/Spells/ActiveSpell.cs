@@ -1,32 +1,53 @@
 using Unity.Entities;
-/// <summary>
-/// Represents a spell in runtime with its coolodwn and datas.
-/// </summary>
+
+[InternalBufferCapacity(8)] 
 public struct ActiveSpell : IBufferElementData
 {
     public int DatabaseIndex;
     public int Level;
-
     public float CurrentCooldown;
 
+    // INPUTS : Local Bonus
+    public float LocalDamageBonusMultiplier; 
+    public float LocalAreaBonusMultiplier;
+    public float LocalSizeBonusMultiplier;
+    public float LocalSpeedBonusPercent;
+    public float LocalDurationBonusPercent;
+    public float LocalCooldownBonusPercent; 
+    public float LocalRangeBonusMultiplier;
+    public float LocalTickRateBonusMultiplier;
+
+    public int LocalAmountBonus;
+    public int LocalBounceBonus;
+    public int LocalPierceBonus;
+    
+    public float LocalBounceRangeBonusMultiplier;
+
+    public float LocalCritChanceBonusPercent;
+    public float LocalCritDamageBonus;
+    
     public ESpellTag AddedTags;
 
-    public float DamageMultiplier;  // ex: 1.5 (+50%)
-    public float CooldownMultiplier;// ex: 0.9 (-10%)
-    public float AreaOfEffectMultiplier;
-    public float SpeedMultiplier;
-    public float DurationMultiplier;
-    public float RangeMultiplier;
-    public float TickRateMultiplier;
-    public float LifetimeMultiplier;
+    // OUTPUTS : Final values (cache)
+    public float FinalDamage;
+    public float FinalArea;
+    public float FinalSize;
+    public float FinalSpeed;
+    public float FinalDuration;
+    public float FinalCooldown; 
     
-    public int BonusAmount;
-    public int BonusBounces;
-    public int BonusPierces;
+    public float FinalRange;
+    public float FinalTickRate;
+    
+    public int FinalAmount;
+    public int FinalBounces;
+    public int FinalPierces;
 
-    public float BonusCritChance;
-    public float BonusCritMultiplier;
-    public float SizeMultiplier;
+    public float FinalBounceRange;
+    
+    public float FinalCritChance;
+    public float FinalCritDamageMultiplier;
 
-    public int DamageDealt;
+    // Tracking
+    public float TotalDamageDealt;
 }

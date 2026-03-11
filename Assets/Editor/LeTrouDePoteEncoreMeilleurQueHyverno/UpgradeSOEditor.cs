@@ -35,7 +35,7 @@ public class UpgradeSOEditor : UnityEditor.Editor
         
         switch (upgrade.ModifierStrategy)
         {
-            case EStatModiferStrategy.Flat:
+            case EModiferStrategy.Flat:
                 helpText = "Flat: Stat = Stat + Value\n" +
                            "Example: Value 5 means +5 to the base stat.";
 
@@ -48,7 +48,7 @@ public class UpgradeSOEditor : UnityEditor.Editor
                     messageType = MessageType.Warning;
                 }
                 break;
-            case EStatModiferStrategy.Multiply:
+            case EModiferStrategy.Multiply:
                 float percentage = (upgrade.Value - 1f) * 100f;
                 helpText = "Multiply: Stat = Stat * Value\n" +
                            "Example: Value 1.1 = +10%, Value 0.9 = -10%.\n" +

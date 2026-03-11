@@ -60,7 +60,7 @@ public class UpgradeUIComponent : MonoBehaviour
         string text = string.Empty;
         switch (data.UpgradeType)
         {
-            case EUpgradeType.Stat:
+            case EUpgradeType.PlayerStat:
                 text = "Stat Upgrade";
                 break;
             case EUpgradeType.UnlockSpell:
@@ -79,13 +79,13 @@ public class UpgradeUIComponent : MonoBehaviour
     {
         switch (data.UpgradeType)
         {
-            case EUpgradeType.Stat:
+            case EUpgradeType.PlayerStat:
                 if (StatLabelText)
                     StatLabelText.text = data.CharacterStat.ToString();
 
                 if (StatValueText)
                 {
-                    string val = data.ModifierStrategy == EStatModiferStrategy.Flat
+                    string val = data.ModifierStrategy == EModiferStrategy.Flat
                         ? $"+{data.Value}"
                         : $"+{(data.Value * 100 - 100):F0}%";
                     StatValueText.text = $"<color=green>{val}</color>";
@@ -124,7 +124,7 @@ public class UpgradeUIComponent : MonoBehaviour
 
         switch (upgradeData.UpgradeType)
         {
-            case EUpgradeType.Stat:
+            case EUpgradeType.PlayerStat:
                 TitleText.color = Color.white;
                 break;
             case EUpgradeType.UnlockSpell:

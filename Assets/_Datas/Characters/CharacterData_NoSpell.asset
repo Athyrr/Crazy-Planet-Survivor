@@ -17,20 +17,27 @@ MonoBehaviour:
   Icon: {fileID: 0}
   UIPrefab: {fileID: 0}
   GamePrefab: {fileID: 5009445124166355485, guid: 04e9602b8009dbb41bf793fc20d24185, type: 3}
+  StatsUpgradesPool: {fileID: 0}
+  SpellUpgradesPool: {fileID: 0}
   InitialSpells: []
   BaseStats:
-    MaxHealth: 100
-    Armor: 69
-    MoveSpeed: 15
-    Damage: 69
-    CooldownReduction: 69
-    ProjectileSpeedMultiplier: 69
-    EffectAreaRadiusMultiplier: 69
-    BouncesAdded: 69
-    PierceAdded: 69
-    FireResistance: 69
-    IceResistance: 69
-    LightningResistance: 69
-    ArcaneResistance: 69
-    CollectRange: 50
-    MaxCollectRange: 50
+    BaseMaxHealth: 500
+    MaxHealthMultiplier: 1
+    HealthRecovery: 0
+    BaseArmor: 10
+    DamageReductionMultiplier: 1
+    BaseMoveSpeed: 10
+    MoveSpeedMultiplier: 1
+    BasePickupRange: 5
+    PickupRangeMultiplier: 1
+    GlobalDamageMultiplier: 1
+    GlobalCooldownMultiplier: 1
+    GlobalSpellAreaMultiplier: 1
+    GlobalSpellSizeMultiplier: 1
+    GlobalSpellSpeedMultiplier: 1
+    GlobalDurationMultiplier: 1
+    GlobalAmountBonus: 0
+    GlobalPierceBonus: 0
+    GlobalBounceBonus: 0
+    CritChance: 4
+    CritDamageMultiplier: 1.5

@@ -15,6 +15,6 @@ public class SummarySpell : MonoBehaviour
         LevelValue.text = activeSpell.Level.ToString();
         Icon.sprite = icon;
 
-        DamageValue.text = activeSpell.DamageDealt.ToString("N0");
+        DamageValue.text = activeSpell.TotalDamageDealt.ToString("N0");
     }
 }

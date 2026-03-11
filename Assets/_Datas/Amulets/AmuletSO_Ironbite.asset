@@ -13,11 +13,24 @@ MonoBehaviour:
   m_Name: AmuletSO_Ironbite
   m_EditorClassIdentifier: Assembly-CSharp::AmuletSO
   DisplayName: Iron Bite
-  Description: Augment Health de 500 wtf
+  Description: '- Health +20%
+
+    - Armor +10%'
   UIPrefab: {fileID: 2352876710774900367, guid: 51cfb735ee0e8ff4ca9ce0296d1b779c, type: 3}
   Icon: {fileID: 1334800264, guid: 4e1d115e8afe1c74cb4527dc970b8362, type: 3}
   Price: 10
   Modifiers:
-  - Stat: 1
+  - UpgradeType: 0
+    CharacterStat: 1
+    SpellStat: 0
+    SpellTags: 0
+    SpellID: 0
     Strategy: 0
-    Value: 500
+    Value: 0.2
+  - UpgradeType: 0
+    CharacterStat: 5
+    SpellStat: 0
+    SpellTags: 0
+    SpellID: 0
+    Strategy: 1
+    Value: 0.1

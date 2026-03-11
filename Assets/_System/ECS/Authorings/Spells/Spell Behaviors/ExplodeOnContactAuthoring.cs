@@ -33,7 +33,7 @@ public class ExplodeOnContactAuthoring : MonoBehaviour
 
 public struct ExplodeOnContact : IComponentData, IEnableableComponent
 {
-    public int Damage;
+    public float Damage;
     public float Radius;
     public Entity VfxPrefab;
 

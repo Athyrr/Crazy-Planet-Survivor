@@ -17,6 +17,7 @@ public class PlanetSelectionUIController : MonoBehaviour
 
     private void OnEnable()
     {
+        ExploreButton.gameObject.SetActive(false);
     }
 
     private void OnDisable()

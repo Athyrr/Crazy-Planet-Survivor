@@ -22,18 +22,23 @@ MonoBehaviour:
   InitialSpells:
   - {fileID: 11400000, guid: 34b36d11bcab2b848935aead547e9769, type: 2}
   BaseStats:
-    MaxHealth: 500
-    Armor: 10
-    MoveSpeed: 20
-    Damage: 30
-    CooldownReduction: 0
-    ProjectileSpeedMultiplier: 1
-    EffectAreaRadiusMultiplier: 0
-    BouncesAdded: 0
-    PierceAdded: 0
-    FireResistance: 0
-    IceResistance: 0
-    LightningResistance: 0
-    ArcaneResistance: 0
-    CollectRange: 10
-    MaxCollectRange: 35
+    BaseMaxHealth: 500
+    MaxHealthMultiplier: 1
+    HealthRecovery: 0
+    BaseArmor: 10
+    DamageReductionMultiplier: 1
+    BaseMoveSpeed: 10
+    MoveSpeedMultiplier: 1
+    BasePickupRange: 5
+    PickupRangeMultiplier: 1
+    GlobalDamageMultiplier: 1
+    GlobalCooldownMultiplier: 1
+    GlobalSpellAreaMultiplier: 1
+    GlobalSpellSizeMultiplier: 1
+    GlobalSpellSpeedMultiplier: 1
+    GlobalDurationMultiplier: 1
+    GlobalAmountBonus: 0
+    GlobalPierceBonus: 0
+    GlobalBounceBonus: 0
+    CritChance: 4
+    CritDamageMultiplier: 1.5

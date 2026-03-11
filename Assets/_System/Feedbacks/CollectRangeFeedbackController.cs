@@ -14,8 +14,6 @@ public class CollectRangeFeedbackController : MonoBehaviour
     private Material _materialInstance;
     private int _radiusRatioPropertyID;
 
-    private float _lastKnownRatio = -1f;
-
     private void Start()
     {
         if (World.DefaultGameObjectInjectionWorld == null)
@@ -24,6 +22,7 @@ public class CollectRangeFeedbackController : MonoBehaviour
             this.enabled = false;
             return;
         }
+
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         _playerStatsQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Stats));
         _playerTransformQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(LocalTransform));
@@ -51,29 +50,6 @@ public class CollectRangeFeedbackController : MonoBehaviour
 
     public void RefreshVisual()
     {
-        if (_playerStatsQuery.IsEmpty || _materialInstance == null)
-            return;
-
-        var playerEntity = _playerStatsQuery.GetSingletonEntity();
-
-        if (!_entityManager.HasComponent<BaseStats>(playerEntity))
-            return;
-
-        var stats = _entityManager.GetComponentData<Stats>(playerEntity);
-        var baseStats = _entityManager.GetComponentData<BaseStats>(playerEntity);
-
-        float ratio = 0f;
-        if (baseStats.MaxCollectRange > 0.001f)
-        {
-            ratio = math.saturate(stats.CollectRange / baseStats.MaxCollectRange); // Clamp 01
-        }
-
-        // If same, dont update shader
-        if (!Mathf.Approximately(ratio, _lastKnownRatio))
-        {
-            _materialInstance.SetFloat(_radiusRatioPropertyID, ratio);
-            _lastKnownRatio = ratio;
-        }
     }
 
     public void RefreshPosition()

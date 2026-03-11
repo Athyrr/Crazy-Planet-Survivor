@@ -6,13 +6,11 @@ using Unity.Collections; // Pour ToArchetypeChunkArray
 
 public class DebugGizmoDrawer : MonoBehaviour
 {
-    [Header("Debugs")]
-    public bool DrawSteeringVectors;
+    [Header("Debugs")] public bool DrawSteeringVectors;
     public bool DrawAvoidanceRadius;
     public bool DrawPlayerCollectRange;
 
-    [Header("Colors")]
-    public Color SteeringColor = Color.red;
+    [Header("Colors")] public Color SteeringColor = Color.red;
     public Color AvoidanceRadiusColor = new Color(1f, 0.5f, 0f);
     public Color CollectRangeColor = Color.cyan;
 
@@ -32,6 +30,7 @@ public class DebugGizmoDrawer : MonoBehaviour
             this.enabled = false;
             return;
         }
+
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
         _enemyQuery = _entityManager.CreateEntityQuery(
@@ -106,7 +105,7 @@ public class DebugGizmoDrawer : MonoBehaviour
             var stats = _playerQuery.GetSingleton<Stats>();
             var transform = _playerQuery.GetSingleton<LocalTransform>();
 
-            DrawWireDisk(transform.Position, transform.Up(), stats.CollectRange);
+            DrawWireDisk(transform.Position, transform.Up(), stats.BasePickupRange * stats.PickupRangeMultiplier);
         }
     }
 

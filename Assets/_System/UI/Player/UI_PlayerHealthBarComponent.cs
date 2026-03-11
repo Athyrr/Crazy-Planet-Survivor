@@ -25,12 +25,11 @@ public class UI_PlayerHealthBarComponent : MonoBehaviour
             ComponentType.ReadOnly<Player>(),
             ComponentType.ReadOnly<Health>(),
             ComponentType.ReadOnly<Stats>()
-            );
+        );
 
         _healthMaterial = HealthImage.material;
         if (_healthMaterial == null)
             Debug.LogError("Image material not found", this);
-
     }
 
     void Update()
@@ -41,11 +40,12 @@ public class UI_PlayerHealthBarComponent : MonoBehaviour
         Health playerHealth = _playerQuery.GetSingleton<Health>();
         var playerStats = _playerQuery.GetSingleton<Stats>();
 
-        float ratio = Mathf.Clamp01(playerHealth.Value / playerStats.MaxHealth);
+        int maxHealth = Mathf.FloorToInt(playerStats.BaseMaxHealth * playerStats.MaxHealthMultiplier);
+        float ratio = Mathf.Clamp01(playerHealth.Value / maxHealth);
 
         _healthMaterial.SetFloat("_Value", ratio);
 
-        HealthText.text = $"{playerHealth.Value} / {playerStats.MaxHealth}";
+        HealthText.text = $"{playerHealth.Value} / {maxHealth}";
         //HealthText.text = $"{playerHealth.Value}";
     }
 }

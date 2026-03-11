@@ -121,10 +121,13 @@ public partial struct ExpOrbAttractionSystem : ISystem
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in ExperienceOrb orb)
         {
-            float collectRange = StatsLookup[PlayerEntity].CollectRange;
-
+            
+            var playerStats = StatsLookup[PlayerEntity];
+            float finalCollectRange = playerStats.BasePickupRange * playerStats.PickupRangeMultiplier;
+            
             // Check if within collection range
-            if (math.distancesq(PlayerPosition, transform.Position) <= collectRange * collectRange)
+            float distSq = math.distancesq(PlayerPosition, transform.Position);
+            if (distSq <= finalCollectRange * finalCollectRange)
             {
                 ECB.AddComponent(chunkIndex, entity, new ExpAttractionAnimation
                 {

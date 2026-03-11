@@ -8,7 +8,7 @@ using Unity.Burst;
 using Unity.Jobs;
 
 /// <summary>
-/// Primary system for entity locomotion. Handles Linear, Follow, and Orbital movement patterns.
+/// system for entity locomotion. Handles Linear, Follow, and Orbital movement patterns.
 /// Supports two modes: "Snapped" (uses Physics Raycasts for terrain) and "Bare" (uses mathematical radius for perfect spheres).
 /// </summary>
 [UpdateInGroup(typeof(CustomUpdateGroup))]
@@ -39,9 +39,12 @@ public partial struct EntitiesMovementSystem : ISystem
     public void OnUpdate(ref SystemState state)
     {
         // Only update movement if the game is in a valid active state
-        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState)) return;
-        if (gameState.State != EGameState.Running && gameState.State != EGameState.Lobby) return;
-        if (!SystemAPI.TryGetSingletonEntity<PlanetData>(out Entity planetEntity)) return;
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
+            return;
+        if (gameState.State != EGameState.Running && gameState.State != EGameState.Lobby)
+            return;
+        if (!SystemAPI.TryGetSingletonEntity<PlanetData>(out Entity planetEntity))
+            return;
 
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
         var delta = SystemAPI.Time.DeltaTime;
@@ -154,7 +157,13 @@ public partial struct EntitiesMovementSystem : ISystem
 
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
         {
-            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
+            float speed = movement.Speed;
+            if (StatsLookup.HasComponent(entity)) // if the entity has stats (player or enemy) use them
+            {
+                var stats = StatsLookup[entity];
+                speed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
+            }
+
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
 
             if (PlanetUtils.SnapToSurfaceRaycast(ref PhysicsCollisionWorld, transform.Position, PlanetCenter,
@@ -170,7 +179,7 @@ public partial struct EntitiesMovementSystem : ISystem
             // Obstacle collision check (only for players)
             if (PlayerLookup.HasComponent(entity))
             {
-                // On ne check que si le joueur essaie de bouger
+                // If is moving
                 if (math.lengthsq(tangentDirection) > 0.001f)
                 {
                     var obstacleInput = new RaycastInput
@@ -191,8 +200,10 @@ public partial struct EntitiesMovementSystem : ISystem
 
                         // Slide along the wall
                         float3 wallNormal = obstacleHit.SurfaceNormal;
-                        // Project the tangent direction onto the wall plane
-                        tangentDirection = tangentDirection - wallNormal * math.dot(tangentDirection, wallNormal);
+                        tangentDirection =
+                            tangentDirection -
+                            wallNormal *
+                            math.dot(tangentDirection, wallNormal); // project the tangent direction onto the wall plane
                     }
                 }
             }
@@ -214,7 +225,7 @@ public partial struct EntitiesMovementSystem : ISystem
                 float3 targetPosition = hit.Position;
 
                 float3 delta = targetPosition - transform.Position;
-                float maxStep = speed * DeltaTime * 1.2f; // petit buffer
+                float maxStep = speed * DeltaTime * 1.2f;
 
                 if (math.lengthsq(delta) > maxStep * maxStep)
                     delta = math.normalize(delta) * maxStep;
@@ -262,10 +273,14 @@ public partial struct EntitiesMovementSystem : ISystem
 
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
         {
-            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
+            float speed = movement.Speed;
+            if (StatsLookup.HasComponent(entity))
+            {
+                var stats = StatsLookup[entity];
+                speed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
+            }
 
             PlanetUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out var currentNormal);
-
             PlanetUtils.ProjectDirectionOnSurface(in movement.Direction, in currentNormal, out float3 tangentDirection);
 
             // Obstacle collision check (only for players)
@@ -336,20 +351,26 @@ public partial struct EntitiesMovementSystem : ISystem
 
         public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
         {
-            if (movement.Target == Entity.Null || !TransformLookup.HasComponent(movement.Target))
+            float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
+            float3 unprojectedDirection;
+
+            if (movement.Target != Entity.Null && TransformLookup.HasComponent(movement.Target))
             {
-                // ecb.DestroyEntity(entity);
-                return;
+                float3 targetPosition = TransformLookup[movement.Target].Position;
+                unprojectedDirection = targetPosition - transform.Position;
+            }
+            else
+            {
+                // if no more target, go forward
+                unprojectedDirection = transform.Forward();
             }
 
-            float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
-            float3 targetPosition = TransformLookup[movement.Target].Position;
-            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
-            float3 directionToTarget = targetPosition - transform.Position;
-            PlanetUtils.ProjectDirectionOnSurface(in directionToTarget, in currentNormal, out float3 tangentDirection);
+            PlanetUtils.ProjectDirectionOnSurface(in unprojectedDirection, in currentNormal,
+                out float3 tangentDirection);
 
             float3 steeringForce = float3.zero;
-            if (SteeringLookup.HasComponent(entity)) steeringForce = SteeringLookup[entity].Value;
+            if (SteeringLookup.HasComponent(entity))
+                steeringForce = SteeringLookup[entity].Value;
 
             float3 finalDirection = tangentDirection + steeringForce;
             if (math.lengthsq(finalDirection) < 0.001f)
@@ -359,13 +380,19 @@ public partial struct EntitiesMovementSystem : ISystem
             if (StopDistanceLookup.HasComponent(entity))
                 stopDistance = StopDistanceLookup[entity].Distance;
 
-            float distanceToTarget = math.length(directionToTarget);
-
+            float distanceToTarget = math.length(unprojectedDirection);
             float stopFactor = distanceToTarget <= stopDistance && stopDistance > 0 ? 0 : 1; // 1: move, 0: stop
 
             // Within stopping distance, slow down
             if (distanceToTarget < stopDistance)
                 finalDirection = math.normalize(finalDirection) * (distanceToTarget / stopDistance);
+
+            float speed = movement.Speed;
+            if (StatsLookup.HasComponent(entity))
+            {
+                var stats = StatsLookup[entity];
+                speed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
+            }
 
             float3 desiredPosition = transform.Position + (finalDirection * (speed * DeltaTime) * stopFactor);
 
@@ -389,8 +416,7 @@ public partial struct EntitiesMovementSystem : ISystem
                     transform.Position = math.lerp(transform.Position, hit.Position, DeltaTime * POS_SMOOTH_SPEED);
                 }
 
-                PlanetUtils.GetRotationOnSurface(in directionToTarget, hit.SurfaceNormal,
-                    out quaternion targetRotation);
+                PlanetUtils.GetRotationOnSurface(in finalDirection, hit.SurfaceNormal, out quaternion targetRotation);
                 transform.Rotation = math.slerp(transform.Rotation, targetRotation, DeltaTime * ROT_SMOOTH_SPEED);
             }
             else
@@ -399,7 +425,7 @@ public partial struct EntitiesMovementSystem : ISystem
             }
         }
     }
-    
+
     /// <summary>
     /// Moves entities toward a target entity, snapping to a perfect sphere radius.
     /// </summary>
@@ -424,7 +450,12 @@ public partial struct EntitiesMovementSystem : ISystem
                 return;
 
             float3 targetPosition = TransformLookup[movement.Target].Position;
-            float speed = StatsLookup.HasComponent(entity) ? StatsLookup[entity].MoveSpeed : movement.Speed;
+            float speed = movement.Speed;
+            if (StatsLookup.HasComponent(entity))
+            {
+                var stats = StatsLookup[entity];
+                speed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
+            }
 
             PlanetUtils.GetSurfaceNormalRadius(in transform.Position, in PlanetCenter, out var normal);
             float3 directionToTarget = targetPosition - transform.Position;

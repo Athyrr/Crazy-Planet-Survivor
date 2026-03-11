@@ -28,7 +28,10 @@ public class UpgradeSelectionUIController : MonoBehaviour
     private RunManager _runManager;
     private EntityManager _entityManager;
     private EntityQuery _upgradeDatabaseQuery;
+    private EntityQuery _playerQuery;
+
     private bool _isInitialized = false;
+
 
     private void Awake()
     {
@@ -39,7 +42,10 @@ public class UpgradeSelectionUIController : MonoBehaviour
     {
         if (_isInitialized) return;
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+
         _upgradeDatabaseQuery = _entityManager.CreateEntityQuery(typeof(UpgradesDatabase));
+        _playerQuery = _entityManager.CreateEntityQuery(typeof(Player));
+
         _isInitialized = true;
     }
 
@@ -97,7 +103,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
             Transform cardTransform = _currentHoveredCard.transform;
 
             _canInteract = false;
-            
+
             var d = Tween.Scale(_currentHoveredCard.transform, endValue: 1.2f, duration: 0.2f)
                 .OnComplete(() => OnUpgradeSelected(selectedDbIndex));
         }
@@ -211,8 +217,9 @@ public class UpgradeSelectionUIController : MonoBehaviour
         _canInteract = false;
 
         InitDatabase();
-        var requestEntity = _entityManager.CreateEntity();
-        _entityManager.AddComponentData(requestEntity, new ApplyUpgradeRequest { DatabaseIndex = databaseIndex });
+        
+        var playerEntity = _playerQuery.GetSingletonEntity();
+        _entityManager.AddComponentData(playerEntity, new ApplyUpgradeRequest { DatabaseIndex = databaseIndex });
 
         _runManager.TogglePause();
     }

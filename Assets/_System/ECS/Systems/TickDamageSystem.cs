@@ -5,7 +5,6 @@ using Unity.Entities;
 using Unity.Physics;
 using Unity.Burst;
 using Unity.Jobs;
-using Random = Unity.Mathematics.Random;
 
 /// <summary>
 /// System that handle damages on tick and not on collisions.
@@ -19,8 +18,10 @@ public partial struct TickDamageSystem : ISystem
     private ComponentLookup<Stats> _statsLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFLagLookup;
+    private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
 
     private EntityQuery _playerQuery;
+    private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -36,6 +37,15 @@ public partial struct TickDamageSystem : ISystem
         _statsLookup = state.GetComponentLookup<Stats>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
         _destroyFLagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
+        _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
+        
+        _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
+    }
+
+    public void OnDestroy(ref SystemState state)
+    {
+        if (_damageEventsQueue.IsCreated)
+            _damageEventsQueue.Dispose();
     }
 
     [BurstCompile]
@@ -65,6 +75,7 @@ public partial struct TickDamageSystem : ISystem
         _statsLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
         _destroyFLagLookup.Update(ref state);
+        _activeSpellBufferLookup.Update(ref state);
 
         var auraTickJob = new TickDamageJob
         {
@@ -100,8 +111,6 @@ public partial struct TickDamageSystem : ISystem
     [BurstCompile]
     private partial struct TickDamageJob : IJobEntity
     {
-        public uint Seed;
-
         public EntityCommandBuffer.ParallelWriter ECB;
         public float DeltaTime;
 
@@ -126,7 +135,6 @@ public partial struct TickDamageSystem : ISystem
                 return;
 
             damageOnTick.ElapsedTime = 0f;
-
             var caster = damageOnTick.Caster;
 
             if (!StatsLookup.HasComponent(caster))
@@ -144,32 +152,11 @@ public partial struct TickDamageSystem : ISystem
                     (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) /*| CollisionLayers.Obstacle*/,
             };
 
-            float radius = damageOnTick.AreaRadius * math.max(1, casterStats.Are);
+            float radius = damageOnTick.AreaRadius * math.max(1, casterStats.GlobalSpellAreaMultiplier);
             float damage = damageOnTick.DamagePerTick; // todo scale tick damage based on stats
 
             // Detection
             CollisionWorld.OverlapSphere(worldPosition.Position, radius, ref hits, filter);
-
-            var hitCount = hits.Length;
-            NativeList<bool> critsList = new NativeList<bool>(Allocator.Temp);
-            NativeList<float> critsMultiplierList = new NativeList<float>(Allocator.Temp);
-
-            for (int i = 0; i < hitCount; i++)
-            {
-                var random = Random.CreateFromIndex(Seed);
-
-                bool isCrit = random.NextFloat(0f, 1f) <= damageOnTick.TotalCritChance;
-
-                critsList.Add(isCrit);
-
-                float criticalDamagesMultiplier = 1f;
-                if (isCrit)
-                    criticalDamagesMultiplier = math.max(1.0f, damageOnTick.TotalCritMultiplier);
-
-                critsMultiplierList.Add(criticalDamagesMultiplier);
-            }
-
-            int index = 0;
 
             foreach (var hit in hits)
             {
@@ -189,9 +176,8 @@ public partial struct TickDamageSystem : ISystem
 
                 ECB.AppendToBuffer(chunkIndex, hit.Entity, new DamageBufferElement
                 {
-                    Damage = (int)(damage * critsMultiplierList[index]),
+                    Damage = (int)damage,
                     Element = damageOnTick.Element,
-                    IsCritical = critsList[index]
                 });
 
                 DamageEventsWriter.Enqueue(new SpellDamageEvent
@@ -204,8 +190,6 @@ public partial struct TickDamageSystem : ISystem
                 // Shake feedback
                 var feedbackReqEntity = ECB.CreateEntity(chunkIndex);
                 ECB.AddComponent<ShakeFeedbackRequest>(chunkIndex, feedbackReqEntity);
-
-                index++;
             }
 
             hits.Dispose();
@@ -237,7 +221,7 @@ public partial struct TickDamageSystem : ISystem
                     var spell = buffer[i];
                     if (sums.TryGetValue(spell.DatabaseIndex, out int totalAdded))
                     {
-                        spell.FinalArea += totalAdded;
+                        spell.TotalDamageDealt += totalAdded;
                         buffer[i] = spell;
                     }
                 }

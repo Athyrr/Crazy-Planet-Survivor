@@ -5,6 +5,7 @@ using Unity.Entities;
 public class AmuletsDatabaseAuthoring : MonoBehaviour
 {
     public AmuletsDatabaseSO Database;
+
     private class Baker : Baker<AmuletsDatabaseAuthoring>
     {
         public override void Bake(AmuletsDatabaseAuthoring authoring)
@@ -22,7 +23,7 @@ public class AmuletsDatabaseAuthoring : MonoBehaviour
 
             int count = amuletDatas.Length;
             BlobBuilderArray<AmuletBlob> amuletBlobArrayBuilder = builder.Allocate(ref root.Amulets, count);
-            
+
             for (int i = 0; i < count; i++)
             {
                 AmuletSO amuletSO = amuletDatas[i];
@@ -33,16 +34,22 @@ public class AmuletsDatabaseAuthoring : MonoBehaviour
 
                 if (amuletSO.Modifiers != null && amuletSO.Modifiers.Length > 0)
                 {
-                    int modifersCount = amuletSO.Modifiers.Length;
-                    BlobBuilderArray<AmuletModifierBlob> modBuilder = builder.Allocate(ref amuletBlob.Modifiers, modifersCount);
-                   
-                    for (int j = 0; j < modifersCount; j++)
+                    int modifiersCount = amuletSO.Modifiers.Length;
+                    BlobBuilderArray<AmuletModifierBlob> modBuilder =
+                        builder.Allocate(ref amuletBlob.Modifiers, modifiersCount);
+
+                    for (int j = 0; j < modifiersCount; j++)
                     {
+                        var modifier = amuletSO.Modifiers[j];
                         modBuilder[j] = new AmuletModifierBlob
                         {
-                            CharacterStat = amuletSO.Modifiers[j].Stat,
-                            ModifierStrategy = amuletSO.Modifiers[j].Strategy,
-                            Value = amuletSO.Modifiers[j].Value
+                            UpgradeType = modifier.UpgradeType,
+                            CharacterStat = modifier.CharacterStat,
+                            SpellStat = modifier.SpellStat,
+                            SpellTags = modifier.SpellTags,
+                            SpellID = modifier.SpellID,
+                            Strategy = modifier.Strategy,
+                            Value = modifier.Value
                         };
                     }
                 }

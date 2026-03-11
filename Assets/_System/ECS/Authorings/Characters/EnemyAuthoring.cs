@@ -7,77 +7,78 @@ public class EnemyAuthoring : MonoBehaviour
     [Tooltip("If true, the enemy will be snapped perfectly on the ground following the terrain height. Otherwise, it will follow the base radius.")]
     public bool UseSnappedMovement = true;
 
-    //[Tooltip("The distance at which the enemy will stop following the target.")]
-    //public float StopDistance = 1f;
+    [Header("Stats \nResistances are value in %.")]
+    public Stats BaseStats;
 
-    [Header("Stats \n" +
-        "Resistances are value in %.")]
-    public BaseStats BaseStats;
-
-    [Header("Spells")]
+    [Header("Spells")] 
     public SpellDataSO[] InitialSpells;
-
-    [Header("Modifiers")]
-    public StatModifier[] InitialModifers;
-
+    
     private class Baker : Baker<EnemyAuthoring>
     {
         public override void Bake(EnemyAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
-
-            AddComponent(entity, new Enemy() { });
-
-            AddComponent(entity, new FollowTargetMovement() { Speed = authoring.BaseStats.MoveSpeed });
-
-            AddComponent(entity, new RunScope() { });
-
-
+            
+            AddComponent(entity, new Enemy());
+            AddComponent(entity, new FollowTargetMovement { Speed = authoring.BaseStats.BaseMoveSpeed });
+            AddComponent(entity, new RunScope());
+            
             if (authoring.UseSnappedMovement)
                 AddComponent<HardSnappedMovement>(entity);
 
-            AddComponent(entity, new Health() { Value = authoring.BaseStats.MaxHealth });
+            AddComponent(entity, new Health { Value = (int)authoring.BaseStats.BaseMaxHealth });
 
             AddBuffer<EnemySpellReady>(entity);
-
-            AddComponent(entity, authoring.BaseStats);
-
-            AddComponent(entity, new Stats()
+            AddBuffer<DamageBufferElement>(entity);
+            
+            AddComponent(entity, new Stats
             {
-                MaxHealth = authoring.BaseStats.MaxHealth,
-                MoveSpeed = authoring.BaseStats.MoveSpeed,
-                Damage = authoring.BaseStats.Damage,
-                Armor = authoring.BaseStats.Armor,
-                CooldownReduction = authoring.BaseStats.CooldownReduction,
+                // Bases
+                BaseMaxHealth = authoring.BaseStats.BaseMaxHealth,
+                BaseArmor = authoring.BaseStats.BaseArmor,
+                BaseMoveSpeed = authoring.BaseStats.BaseMoveSpeed,
+                BasePickupRange = authoring.BaseStats.BasePickupRange,
+
+                MaxHealthMultiplier = 1.0f,
+                HealthRecovery = authoring.BaseStats.HealthRecovery,
+                DamageReductionMultiplier = 1.0f,
+                MoveSpeedMultiplier = 1.0f,
+                PickupRangeMultiplier = 1.0f,
+
+                GlobalDamageMultiplier = 1.0f,
+                GlobalCooldownMultiplier = 1.0f,
+                GlobalSpellAreaMultiplier = 1.0f,
+                GlobalSpellSizeMultiplier = 1.0f,
+                GlobalSpellSpeedMultiplier = 1.0f,
+                GlobalDurationMultiplier = 1.0f,
+
+                GlobalAmountBonus = 0,
+                GlobalPierceBonus = 0,
+                GlobalBounceBonus = 0,
+
                 CritChance = authoring.BaseStats.CritChance,
-                CritMultiplier = authoring.BaseStats.CritMultiplier
+                CritDamageMultiplier = authoring.BaseStats.CritDamageMultiplier,
             });
 
-            DynamicBuffer<StatModifier> modifierBuffer = AddBuffer<StatModifier>(entity);
-            foreach (var modifier in authoring.InitialModifers)
-            {
-                modifierBuffer.Add(modifier);
-            }
-
-            AddComponent<RecalculateStatsRequest>(entity);
-
-            AddBuffer<DamageBufferElement>(entity);
-
-            DynamicBuffer<ActiveSpell> spellBuffer = AddBuffer<ActiveSpell>(entity);
-
+            
+            //AddBuffer<SpellModifier>(entity); 
+            
+            AddBuffer<ActiveSpell>(entity);
             DynamicBuffer<SpellActivationRequest> baseSpellBuffer = AddBuffer<SpellActivationRequest>(entity);
-            foreach (var spellSO in authoring.InitialSpells)
+            
+            if (authoring.InitialSpells != null)
             {
-                if (spellSO == null)
-                    continue;
-
-                baseSpellBuffer.Add(new SpellActivationRequest
+                foreach (var spellSO in authoring.InitialSpells)
                 {
-                    ID = spellSO.ID,
-                });
+                    if (spellSO == null) continue;
+                    
+                    baseSpellBuffer.Add(new SpellActivationRequest
+                    {
+                        ID = spellSO.ID,
+                    });
+                }
             }
 
-            // HitFrame feedback component
             var hitColor = new HitFrameFeedbackSystem.HitFrameColor { Value = 0 };
             AddComponent(entity, hitColor);
             SetComponentEnabled<HitFrameFeedbackSystem.HitFrameColor>(entity, false);

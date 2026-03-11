@@ -9,21 +9,17 @@ public enum ECharacterStat
     Speed = 3,
     Damage = 4,
     Armor = 5,
-
-    FireResistance = 6,
-    IceResistance = 7,
-    LightningResistance = 8,
-    PoisonResistance = 9,
-    LightResistance = 10,
-    DarkResistance = 11,
-    NatureResistance = 12,
-
+    
     CooldownReduction = 13,
     AreaSize = 14,
+    SizeMultiplier = 20,
+    
     CollectRange = 15,
+    
     BounceCount = 16,
     PierceCount = 17,
+    
     CritChance = 18,
-    CritMultiplier = 19,
-    SizeMultiplier = 20,
+    CritDamage = 19,
+    
 }

@@ -11,7 +11,7 @@ public class CharacterDetailViewComponent : MonoBehaviour
     public TMP_Text CharacterNameText;
     public TMP_Text CharacterDescriptionText;
 
-    public void Refresh(CharacterSO data)
+    public void Refresh(CharacterSo data)
     {
         if (data == null)
             return;

@@ -7,23 +7,23 @@ using UnityEngine;
 /// </summary>
 public class CharacterStatsViewComponent : MonoBehaviour
 {
-    [Header("Stats")]
-
-    public CharacterStatsItemComponent StatItemPrefab;
+    [Header("Stats")] public CharacterStatsItemComponent StatItemPrefab;
 
     public Transform StatsItemsContainer;
 
 
-    [Header("Spells")]
+    [Header("Spells")] public Image SpellIcon;
 
-    public Image SpellIcon;
+    public void Refresh()
+    {
+    }
 
-    public void Refresh(BaseStats stats)
+    public void Refresh(Stats stats)
     {
         foreach (Transform child in StatsItemsContainer)
             Destroy(child.gameObject);
 
-        System.Type type = typeof(BaseStats);
+        System.Type type = typeof(Stats);
 
         FieldInfo[] fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
 
@@ -31,7 +31,7 @@ public class CharacterStatsViewComponent : MonoBehaviour
         {
             var attr = field.GetCustomAttribute<UIStatAttribute>();
 
-            if (attr == null) 
+            if (attr == null)
                 continue;
 
             object rawValue = field.GetValue(stats);

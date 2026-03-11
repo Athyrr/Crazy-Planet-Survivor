@@ -19,7 +19,7 @@ MonoBehaviour:
   SpellPrefab: {fileID: 5630578436652499990, guid: 1dab0de3be27bb24098e1675ffb1c895, type: 3}
   Rarity: 0
   Tags: 4
-  BaseDamage: 1
+  BaseDamage: 15
   BaseCooldown: -1
   BaseSpeed: 0
   BaseSpawnOffset: {x: 0, y: 0, z: 0}
@@ -29,10 +29,9 @@ MonoBehaviour:
   TargetingMode: 1
   Lifetime: -1
   Bounces: 0
-  BouncesSearchRadius: 0
+  BounceRange: 0
   Pierces: 0
-  BaseDamagePerTick: 10
   TickRate: 0.5
   ChildPrefab: {fileID: 0}
-  ChildrenCount: 0
+  BaseAmount: 1
   ChildrenSpawnRadius: 1
