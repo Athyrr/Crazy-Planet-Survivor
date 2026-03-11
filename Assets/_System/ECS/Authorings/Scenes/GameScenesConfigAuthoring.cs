@@ -13,7 +13,7 @@ public class GameScenesConfigAuthoring : MonoBehaviour
     }
 
     [Header("Planets scenes")] 
-    public PlanetScene[] PlanetScenes;
+    [SerializeField] public PlanetScene[] PlanetScenes;
 
     private class Baker : Baker<GameScenesConfigAuthoring>
     {

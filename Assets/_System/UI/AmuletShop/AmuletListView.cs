@@ -54,10 +54,11 @@ public class AmuletListView : MonoBehaviour
     
     public void SetSelectedAmulet(int index)
     {
+        // clean this code if we have too many amulets 
         for (int i = 0; i < _amuletList.Count; i++)
         {
             bool isSelected = (i == index);
-            _amuletList[i].SetBorderIcon(isSelected);
+            _amuletList[i].SetFocus(isSelected);
         }
     }
 }

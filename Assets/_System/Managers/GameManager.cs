@@ -33,14 +33,27 @@ public class GameManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(this.gameObject);
     }
-
-    private void Start()
+    
+    private IEnumerator Start()
     {
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _planetScenesBufferQuery = _entityManager.CreateEntityQuery(typeof(PlanetSceneRefBufferElement));
 
-        // Loading Lobby
+        // todo valide this temp fix @Athyrr @hyverno 
+        float timeout = 1f;
+        while (_planetScenesBufferQuery.IsEmpty && timeout > 0)
+        {
+            yield return null; 
+            timeout -= Time.deltaTime;
+        }
+
+        if (_planetScenesBufferQuery.IsEmpty)
+        {
+            Debug.LogError("[GameManager] wait load _planetScenesBuffer !");
+            yield break;
+        }
+
         InternalLoadScene(EPlanetID.Lobby, EGameState.Lobby, sendStartRequest: false);
     }
 
@@ -95,7 +108,11 @@ public class GameManager : MonoBehaviour
         sceneRef = default;
 
         if (_planetScenesBufferQuery.IsEmpty)
+        {
+            Debug.Log($"[GameManager] _planetScenesBufferQuery is empty");
+            
             return false;
+        }
 
         var bufferEntity = _planetScenesBufferQuery.GetSingletonEntity();
         var sceneRefsBuffer = _entityManager.GetBuffer<PlanetSceneRefBufferElement>(bufferEntity);

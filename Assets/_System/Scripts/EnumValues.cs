@@ -104,6 +104,12 @@ public class EnumValuesDrawer : PropertyDrawer
 
         var p_enumValues = property.FindPropertyRelative("m_enumValues");
 
+        if (p_enumValues == null)
+        {
+            base.OnGUI(position, property, label);
+            return;
+        }
+        
         // Get the array size
         int arraySize = 0;
         int intValue;
@@ -167,6 +173,10 @@ public class EnumValuesDrawer : PropertyDrawer
             float height = 25f;
 
             var p_enumValues = property.FindPropertyRelative("m_enumValues");
+            
+            if (p_enumValues == null)
+                return base.GetPropertyHeight(property, label);
+            
             int index;
             foreach (var v in Enum.GetValues(GetEnumType()))
             {
