@@ -37,6 +37,7 @@ public class AmuletUIComponent : MonoBehaviour
         _amuletButton.onClick.RemoveAllListeners();
         _amuletButton.onClick.AddListener(() => _controller.PreviewAmulet(_amuletData, _databaseIndex, _isUnlocked));
 
+        // todo c'est giga chlag, le mieux c'est vertex color en SG et modifier border.color
         _border.material = new Material(_border.material);
         
         Refresh(isUnlocked, false);
