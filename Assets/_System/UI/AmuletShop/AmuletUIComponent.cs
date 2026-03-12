@@ -15,7 +15,7 @@ public class AmuletUIComponent : MonoBehaviour
     private int _databaseIndex;
     private bool _isUnlocked;
     private bool _isFocused;
-    
+
     private static readonly int BackgroundColorShaderProperty = Shader.PropertyToID("_BackgroundColor");
     private static readonly int OutlineColorShaderProperty = Shader.PropertyToID("_OutlineColor");
 
@@ -37,9 +37,8 @@ public class AmuletUIComponent : MonoBehaviour
         _amuletButton.onClick.RemoveAllListeners();
         _amuletButton.onClick.AddListener(() => _controller.PreviewAmulet(_amuletData, _databaseIndex, _isUnlocked));
 
-        // todo c'est giga chlag, le mieux c'est vertex color en SG et modifier border.color
         _border.material = new Material(_border.material);
-        
+
         Refresh(isUnlocked, false);
     }
 
@@ -52,23 +51,27 @@ public class AmuletUIComponent : MonoBehaviour
         RefreshColor();
     }
 
-    public void SetFocus(bool value) => _isFocused = value;
+    public void SetFocus(bool value)
+    {
+        _isFocused = value;
+        RefreshColor();
+    }
 
     private void RefreshColor()
     {
         _label.color = GetCurrentOutlineColor(true);
         _icon.enabled = _isUnlocked;
-        
+
         // todo @hyverno set background with rarity when integrate (BackgroundColorShaderProperty)
-         // _border.material.SetColor(OutlineColorShaderProperty, GetCurrentOutlineColor());
-         
-         Color targetColor = GetCurrentOutlineColor();
-         
-         if (_border.material != null)
-         {
-             _border.material.SetColor(OutlineColorShaderProperty, targetColor);
-         }
-         
+
+        Color targetColor = GetCurrentOutlineColor();
+        if (_border.material != null)
+        {
+            _border.material.SetColor(OutlineColorShaderProperty, targetColor);
+        }
+
+        // _border.color = GetCurrentOutlineColor();
+
         Debug.Log(CpBaseUISettings.ComplementaryColor);
     }
 
@@ -80,15 +83,15 @@ public class AmuletUIComponent : MonoBehaviour
                 return CpBaseUISettings.ComplementaryColor;
             if (_isUnlocked)
                 return CpBaseUISettings.MainColor;
-            
+
             return CpBaseUISettings.SecondColor;
         }
-        
+
         if (isText)
             return CpBaseUISettings.ComplementaryColorOver;
         if (_isUnlocked)
             return CpBaseUISettings.MainColorOver;
-            
+
         return CpBaseUISettings.SecondColorOver;
     }
 }

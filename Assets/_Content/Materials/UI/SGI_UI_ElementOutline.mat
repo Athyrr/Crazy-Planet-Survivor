@@ -18,7 +18,8 @@ Material:
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
-  disabledShaderPasses: []
+  disabledShaderPasses:
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -46,6 +47,8 @@ Material:
     m_Ints: []
     m_Floats:
     - _ColorMask: 15
+    - _QueueControl: 0
+    - _QueueOffset: 0
     - _Stencil: 0
     - _StencilComp: 8
     - _StencilOp: 0
@@ -54,8 +57,8 @@ Material:
     - _UIMaskSoftnessX: 1
     - _UIMaskSoftnessY: 1
     m_Colors:
-    - _BackgroundColor: {r: 0.7921569, g: 0.6549575, b: 0.33333328, a: 0}
+    - _BackgroundColor: {r: 0.7921569, g: 0.6549575, b: 0.33333325, a: 1}
     - _ClipRect: {r: 0, g: 0, b: 0, a: 0}
-    - _OutlineColor: {r: 0, g: 0, b: 0, a: 0}
+    - _OutlineColor: {r: 1, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
