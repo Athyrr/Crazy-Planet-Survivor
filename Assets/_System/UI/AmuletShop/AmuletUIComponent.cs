@@ -37,6 +37,8 @@ public class AmuletUIComponent : MonoBehaviour
         _amuletButton.onClick.RemoveAllListeners();
         _amuletButton.onClick.AddListener(() => _controller.PreviewAmulet(_amuletData, _databaseIndex, _isUnlocked));
 
+        _border.material = new Material(_border.material);
+        
         Refresh(isUnlocked, false);
     }
 
@@ -57,7 +59,15 @@ public class AmuletUIComponent : MonoBehaviour
         _icon.enabled = _isUnlocked;
         
         // todo @hyverno set background with rarity when integrate (BackgroundColorShaderProperty)
-        // _border.material.SetColor(OutlineColorShaderProperty, GetCurrentOutlineColor());
+         // _border.material.SetColor(OutlineColorShaderProperty, GetCurrentOutlineColor());
+         
+         Color targetColor = GetCurrentOutlineColor();
+         
+         if (_border.material != null)
+         {
+             _border.material.SetColor(OutlineColorShaderProperty, targetColor);
+         }
+         
         Debug.Log(CpBaseUISettings.ComplementaryColor);
     }
 

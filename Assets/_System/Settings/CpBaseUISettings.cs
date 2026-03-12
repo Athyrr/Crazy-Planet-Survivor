@@ -6,7 +6,7 @@ namespace _System.Settings
     public class CpBaseUISettings: CPCustomSettings<CpBaseUISettings>
     {
         [Header("Projet Setting")] 
-        [SerializeField] private Color _mainColor;
+        [SerializeField] private Color _mainColor = Color.dodgerBlue;
         [SerializeField] private Color _mainColorOver;
         
         [SerializeField] private Color _secondColor;
