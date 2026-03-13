@@ -389,6 +389,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LobbyManager
   GameCamera: {fileID: 2123309534}
   PlanetSelectionCamera: {fileID: 1355349919}
+  PlanetFocusCamera: {fileID: 1453333773}
   CharacterSelectionUIController: {fileID: 1488603913}
   PlanetSelectionUIController: {fileID: 1154809228}
   AmuletShopUIController: {fileID: 1143203180}
@@ -1061,6 +1062,7 @@ Transform:
   - {fileID: 1937813473}
   - {fileID: 2123309530}
   - {fileID: 1355349918}
+  - {fileID: 1453333772}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1302164726
@@ -1226,7 +1228,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
   Priority:
     Enabled: 1
-    m_Value: 62
+    m_Value: -1
   OutputChannel: 1
   StandbyUpdate: 2
   m_StreamingVersion: 20241001
@@ -1373,6 +1375,101 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0355af83ac7604045a45dc3bf9106fda, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameOverUIController
+--- !u!1 &1453333771
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1453333772}
+  - component: {fileID: 1453333773}
+  - component: {fileID: 1453333775}
+  m_Layer: 0
+  m_Name: CinemachineCamera - Planet Focus
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1453333772
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1453333771}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.085421234, y: -0.19775723, z: 0.017301524, w: 0.9763688}
+  m_LocalPosition: {x: 828.9, y: 431.4, z: -660.1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1302164725}
+  m_LocalEulerAnglesHint: {x: 10, y: -22.9, z: 0}
+--- !u!114 &1453333773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1453333771}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+  Priority:
+    Enabled: 1
+    m_Value: -2
+  OutputChannel: 1
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  Target:
+    TrackingTarget: {fileID: 0}
+    LookAtTarget: {fileID: 0}
+    CustomLookAtTarget: 0
+  Lens:
+    FieldOfView: 40
+    OrthographicSize: 10
+    NearClipPlane: 0.1
+    FarClipPlane: 10000
+    Dutch: 0
+    ModeOverride: 0
+    PhysicalProperties:
+      GateFit: 2
+      SensorSize: {x: 21.946, y: 16.002}
+      LensShift: {x: 0, y: 0}
+      FocusDistance: 10
+      Iso: 200
+      ShutterSpeed: 0.005
+      Aperture: 16
+      BladeCount: 5
+      Curvature: {x: 2, y: 11}
+      BarrelClipping: 0.25
+      Anamorphism: 0
+  BlendHint: 0
+--- !u!114 &1453333775
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1453333771}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b617507da6d07e749b7efdb34e1173e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineFollow
+  TrackerSettings:
+    BindingMode: 4
+    PositionDamping: {x: 1, y: 1, z: 1}
+    AngularDampingMode: 0
+    RotationDamping: {x: 1, y: 1, z: 1}
+    QuaternionDamping: 1
+  FollowOffset: {x: 200, y: 50, z: -250}
 --- !u!1 &1478066650
 GameObject:
   m_ObjectHideFlags: 0
@@ -1977,11 +2074,11 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.1
-  far clip plane: 10000
-  field of view: 40
+  near clip plane: 0.3
+  far clip plane: 5000
+  field of view: 60.000004
   orthographic: 0
-  orthographic size: 10
+  orthographic size: 5
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -2005,8 +2102,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1752244733}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.085421234, y: -0.19775723, z: 0.017301524, w: 0.9763688}
-  m_LocalPosition: {x: 828.9, y: 431.4, z: -660.1}
+  m_LocalRotation: {x: -0.41715324, y: 0, z: 0, w: 0.9088362}
+  m_LocalPosition: {x: 0, y: -6.649295, z: -74.50389}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2115,7 +2212,7 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  CustomBlends: {fileID: 0}
+  CustomBlends: {fileID: 11400000, guid: 7fdcc1f3fe3f5864f8c1bce2547c1d9e, type: 2}
 --- !u!114 &1752244740
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2641,8 +2738,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2123309529}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.3141569, y: 0, z: 0, w: 0.9493711}
-  m_LocalPosition: {x: 0, y: -10.917881, z: -122.332466}
+  m_LocalRotation: {x: -0.41715324, y: 0, z: 0, w: 0.9088362}
+  m_LocalPosition: {x: 0, y: -6.649295, z: -74.50389}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2698,7 +2795,7 @@ MonoBehaviour:
     RotationDamping: {x: 0, y: 0, z: 0}
     QuaternionDamping: 0
   OrbitStyle: 0
-  Radius: 139.5667
+  Radius: 85.00002
   Orbits:
     Top:
       Radius: 2
@@ -2796,17 +2893,49 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_UI_PlanetSelection
       objectReference: {fileID: 0}
-    - target: {fileID: 366621661023058013, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
-      propertyPath: m_IsActive
-      value: 0
+    - target: {fileID: 556228590767339907, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: FocusOffset.x
+      value: 125
       objectReference: {fileID: 0}
     - target: {fileID: 556228590767339907, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
-      propertyPath: PlanetID
-      value: 1
+      propertyPath: FocusOffset.y
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 556228590767339907, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: FocusOffset.z
+      value: -170
       objectReference: {fileID: 0}
     - target: {fileID: 1560494703993710692, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
-      propertyPath: PlanetID
-      value: 3
+      propertyPath: FocusOffset.x
+      value: 400
+      objectReference: {fileID: 0}
+    - target: {fileID: 1560494703993710692, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: FocusOffset.y
+      value: 150
+      objectReference: {fileID: 0}
+    - target: {fileID: 1913221386424184564, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: FocusOffset.x
+      value: 200
+      objectReference: {fileID: 0}
+    - target: {fileID: 1913221386424184564, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: FocusOffset.y
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 1913221386424184564, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: FocusOffset.z
+      value: -250
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592140188283812552, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: FocusOffset.x
+      value: 250
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592140188283812552, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: FocusOffset.y
+      value: 80
+      objectReference: {fileID: 0}
+    - target: {fileID: 3592140188283812552, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: FocusOffset.z
+      value: -300
       objectReference: {fileID: 0}
     - target: {fileID: 4731708443538085709, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
       propertyPath: m_Pivot.x
@@ -2888,12 +3017,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6281730873742736396, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 7565080134919045253, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+    - {fileID: 540352759203952224, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
@@ -3002,6 +3129,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1364564508}
     m_Modifications:
+    - target: {fileID: 3184572793961988289, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -62.50003
+      objectReference: {fileID: 0}
     - target: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -3393,6 +3524,10 @@ PrefabInstance:
     - target: {fileID: 6613217684097594991, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
       propertyPath: m_Name
       value: PF_UI_AmuletShop
+      objectReference: {fileID: 0}
+    - target: {fileID: 9143920543044484455, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -144.86234
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

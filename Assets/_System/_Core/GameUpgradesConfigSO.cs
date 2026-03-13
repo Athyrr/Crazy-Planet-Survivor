@@ -7,6 +7,8 @@ public class GameUpgradesConfigSO : ScriptableObject
     [Tooltip("Global Stats Upgrades (Speed, Health...)")]
     public UpgradesDatabaseSO GameStatUpgradesDatabase;
 
+    [Space]
+    
     [Tooltip("All Character Specific Upgrades")]
     public UpgradesDatabaseSO[] CharacterSpellUpgradesDatabases;
 

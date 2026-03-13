@@ -3,7 +3,8 @@ using UnityEngine.UI;
 
 public class PlanetSelectionUIController : MonoBehaviour
 {
-    public delegate void OnPlanetSelectedDelegate(EPlanetID planetID);
+    public delegate void OnPlanetSelectedDelegate(EPlanetID planetID, Transform planetTransform, Vector3 focusOffset);
+
     public event OnPlanetSelectedDelegate OnPlanetSelected = null;
 
     public Button ExploreButton;
@@ -29,21 +30,25 @@ public class PlanetSelectionUIController : MonoBehaviour
 
     public EPlanetID SelectedPlanet => _currentSelectedPlanet;
 
-    public void SelectPlanet(EPlanetID planetID)
+    public void SelectPlanet(EPlanetID planetID, Transform planetTransform = null, Vector3 focusOffset = default)
     {
         if (_currentSelectedPlanet == planetID)
+        {
             _currentSelectedPlanet = EPlanetID.None;
+            planetTransform = null;
+        }
         else
+        {
             _currentSelectedPlanet = planetID;
+        }
 
-        // Is a planet selected?
         bool hasSelection = _currentSelectedPlanet != EPlanetID.None;
         ExploreButton.gameObject.SetActive(hasSelection);
 
         if (hasSelection)
             Debug.Log($"[Planet Selection] Selected Planet: {_currentSelectedPlanet}");
 
-        OnPlanetSelected?.Invoke(_currentSelectedPlanet);
+        OnPlanetSelected?.Invoke(_currentSelectedPlanet, planetTransform, focusOffset);
     }
 
     public void ExplorePlanet()

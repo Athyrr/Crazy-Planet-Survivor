@@ -5,6 +5,8 @@ using UnityEngine;
 public class PlanetComponent : MonoBehaviour
 {
     public EPlanetID PlanetID;
+    
+    public Vector3 FocusOffset;
 
     [Header("Animation")]
     public bool AllowRotate = false;
@@ -42,7 +44,7 @@ public class PlanetComponent : MonoBehaviour
             _controller.OnPlanetSelected -= HandleSelectionChanged;
     }
 
-    private void HandleSelectionChanged(EPlanetID planetID)
+    private void HandleSelectionChanged(EPlanetID planetID, Transform planetTransform, Vector3 focusOffset)
     {
         _isSelected = planetID == PlanetID;
         UpdateVisual();
@@ -95,7 +97,7 @@ public class PlanetComponent : MonoBehaviour
         if (GameManager.Instance.GetGameState() != EGameState.PlanetSelection)
             return;
 
-        _controller.SelectPlanet(PlanetID);
+        _controller.SelectPlanet(PlanetID, transform, FocusOffset);
     }
 
 }
