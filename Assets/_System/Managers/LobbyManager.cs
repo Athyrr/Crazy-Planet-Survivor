@@ -1,7 +1,6 @@
 using Unity.Cinemachine;
 using Unity.Entities;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -10,6 +9,9 @@ public class LobbyManager : MonoBehaviour
 
     [Tooltip("Camera used for the planet selection view (Galaxy).")]
     public CinemachineCamera PlanetSelectionCamera;
+
+    [Tooltip("Camera used to zoom in on a specific planet.")]
+    public CinemachineCamera PlanetFocusCamera;
 
     [Header("UI Controllers")] public CharacterSelectionUIController CharacterSelectionUIController;
     public PlanetSelectionUIController PlanetSelectionUIController;
@@ -24,12 +26,18 @@ public class LobbyManager : MonoBehaviour
     {
         if (GameManager.Instance != null)
             GameManager.Instance.OnGameStateChanged += HandleStateChange;
+
+        if (PlanetSelectionUIController != null)
+            PlanetSelectionUIController.OnPlanetSelected += HandlePlanetFocus;
     }
 
     private void OnDisable()
     {
         if (GameManager.Instance != null)
             GameManager.Instance.OnGameStateChanged -= HandleStateChange;
+
+        if (PlanetSelectionUIController != null)
+            PlanetSelectionUIController.OnPlanetSelected -= HandlePlanetFocus;
     }
 
 
@@ -82,7 +90,16 @@ public class LobbyManager : MonoBehaviour
         AmuletShopUIController.gameObject.SetActive(false);
 
         bool isGalaxyMode = (newState == EGameState.PlanetSelection);
-        PlanetSelectionCamera.Priority = isGalaxyMode ? 10 : -1;
+        if (isGalaxyMode)
+        {
+            PlanetSelectionCamera.Priority = 10;
+        }
+        else
+        {
+            PlanetSelectionCamera.Priority = -1;
+            PlanetFocusCamera.Priority = -10;
+        }
+
 
         switch (newState)
         {
@@ -119,5 +136,30 @@ public class LobbyManager : MonoBehaviour
     {
         AmuletShopUIController.gameObject.SetActive(true);
         AmuletShopUIController.OpenView();
+    }
+
+    private void HandlePlanetFocus(EPlanetID planetID, Transform planetTransform, Vector3 focusOffset)
+    {
+        if (planetID != EPlanetID.None && planetTransform != null)
+        {
+            PlanetFocusCamera.Follow = planetTransform;
+            PlanetFocusCamera.LookAt = planetTransform;
+
+            var followComponent = PlanetFocusCamera.GetComponent<CinemachineFollow>();
+            if (followComponent != null)
+            {
+                followComponent.FollowOffset = focusOffset;
+            }
+
+            PlanetFocusCamera.Priority = 30;
+        }
+        else
+        {
+            PlanetFocusCamera.Priority = 0;
+            PlanetFocusCamera.Follow = null;
+            PlanetFocusCamera.LookAt = null;
+        }
+
+        //todo hide other planets when focus and show details UI
     }
 }

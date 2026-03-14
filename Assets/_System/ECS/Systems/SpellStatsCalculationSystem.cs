@@ -10,7 +10,7 @@ using Unity.Transforms;
 [BurstCompile]
 public partial struct SpellStatsCalculationSystem : ISystem
 {
-    private EntityQuery _calculatationRequestQuery;
+    private EntityQuery _calculationRequestQuery;
     private EntityQuery _activeTickDamageSpellQuery;
     private EntityQuery _subSpellsSpawnerQuery;
 
@@ -30,7 +30,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         state.RequireForUpdate<Stats>();
         state.RequireForUpdate<SpellsDatabase>();
 
-        _calculatationRequestQuery = SystemAPI
+        _calculationRequestQuery = SystemAPI
             .QueryBuilder()
             .WithAll<SpellStatsCalculationRequest, Stats, ActiveSpell, SpellModifier>()
             .Build();
@@ -63,7 +63,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
             return;
 
-        if (_calculatationRequestQuery.IsEmpty)
+        if (_calculationRequestQuery.IsEmpty)
             return;
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
@@ -87,7 +87,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
             SpellsDatabaseRef = spellBlobs
         };
         JobHandle calculateSpellStatsJobHandle =
-            calculateSpellStatsJob.ScheduleParallel(_calculatationRequestQuery, state.Dependency);
+            calculateSpellStatsJob.ScheduleParallel(_calculationRequestQuery, state.Dependency);
 
         // Update active tick spells (eg. Frozen zone)
         var updateTickDamageSpellJob = new UpdateTickDamageSpellsJob
@@ -96,7 +96,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         };
         JobHandle updateTickDamageSpellJobHandle =
             updateTickDamageSpellJob.ScheduleParallel(_activeTickDamageSpellQuery, calculateSpellStatsJobHandle);
-
+        
         // Update sub spells (eg. Fire orbs)
         var updateSubSpellsJob = new UpdateSubSpellsJob
         {
@@ -104,18 +104,22 @@ public partial struct SpellStatsCalculationSystem : ISystem
             ActiveSpellLookup = _activeSpellLookup,
             // SpellsDatabaseRef = spellBlobs,
 
-            StatsLookup = _statsLookup,
             DamageOnContactLookup = _damageLookup,
             DamageOnTickLookup = _damageOnTickLookup,
             TransformLookup = _transformLookup,
             OrbitLookup = _orbitLookup,
             ChildLookup = _childLookup
         };
+        // JobHandle subSpellHandle =
+        //     updateSubSpellsJob.ScheduleParallel(_subSpellsSpawnerQuery, calculateSpellStatsJobHandle); 
+        
         JobHandle subSpellHandle =
-            updateSubSpellsJob.ScheduleParallel(_subSpellsSpawnerQuery, calculateSpellStatsJobHandle);
+            updateSubSpellsJob.ScheduleParallel(_subSpellsSpawnerQuery, updateTickDamageSpellJobHandle);
+
+        state.Dependency = subSpellHandle;
 
         // System ends after both jobs (tick spells and sub spells) are done, but can run in parallel
-        state.Dependency = JobHandle.CombineDependencies(updateTickDamageSpellJobHandle, subSpellHandle);
+        // state.Dependency = JobHandle.CombineDependencies(updateTickDamageSpellJobHandle, subSpellHandle);
     }
 
     [WithAll(typeof(SpellStatsCalculationRequest))]
@@ -255,6 +259,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         }
     }
 
+    [BurstCompile]
     private partial struct UpdateTickDamageSpellsJob : IJobEntity
     {
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
@@ -289,11 +294,11 @@ public partial struct SpellStatsCalculationSystem : ISystem
         }
     }
 
+    [BurstCompile]
     private partial struct UpdateSubSpellsJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
         [ReadOnly] public ComponentLookup<DamageOnTick> DamageOnTickLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
