@@ -28,14 +28,14 @@ public class ObstacleAuthoring : MonoBehaviour
         _currentRadiusDisplay = GetRadius();
     }
 
-    private void OnDrawGizmosSelected()
+    private void OnDrawGizmos()
     {
         // Update the display here as well so it reacts in real-time 
         // if you change the object's Scale in the scene
         _currentRadiusDisplay = GetRadius();
 
         Gizmos.color = new Color(1f, 0f, 0f, 0.5f); 
-        Gizmos.DrawWireSphere(transform.position, _currentRadiusDisplay);
+        Gizmos.DrawSphere(transform.position, _currentRadiusDisplay);
     }
 
     /// <summary>
