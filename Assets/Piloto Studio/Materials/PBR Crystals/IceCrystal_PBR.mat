@@ -55,6 +55,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords:
+  - _ALPHATEST_ON
   - _DISABLE_SSR
   - _DISABLE_SSR_TRANSPARENT
   - _NORMALMAP_TANGENT_SPACE
@@ -64,6 +65,7 @@ Material:
   m_CustomRenderQueue: 2475
   stringTagMap:
     MotionVector: User
+    RenderType: TransparentCutout
   disabledShaderPasses:
   - MOTIONVECTORS
   - TransparentDepthPostpass
@@ -150,7 +152,7 @@ Material:
     - _DoubleSidedEnable: 0
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 2
-    - _DstBlend: 0
+    - _DstBlend: 10
     - _EnableBlendModePreserveSpecularLighting: 1
     - _EnableFogOnTransparent: 1
     - _ExcludeFromTUAndAA: 0
@@ -163,7 +165,7 @@ Material:
     - _OpaqueCullMode: 2
     - _ParallaxAmplitude: 20
     - _ParallaxSteps: 30
-    - _QueueControl: 1
+    - _QueueControl: -1
     - _QueueOffset: 0
     - _RayTracing: 0
     - _ReceiveShadows: 1
@@ -201,7 +203,6 @@ Material:
     - _UseFresnel: 1
     - _UseShadowThreshold: 0
     - _WorkflowMode: 1
-    - _XRMotionVectorsPass: 1
     - _ZGradientUp: 0
     - _ZTest: 4
     - _ZTestDepthEqualForOpaque: 3

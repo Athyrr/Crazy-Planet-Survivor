@@ -26,10 +26,11 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _SURFACE_TYPE_TRANSPARENT
-  m_InvalidKeywords: []
+  m_InvalidKeywords:
+  - _DOUBLESIDED_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
+  m_DoubleSidedGI: 1
   m_CustomRenderQueue: 3000
   stringTagMap:
     MotionVector: User
@@ -90,7 +91,7 @@ Material:
     - _Alpha_Clip_Threshold: 0.5
     - _BUILTIN_AlphaClip: 0
     - _BUILTIN_Blend: 0
-    - _BUILTIN_CullMode: 2
+    - _BUILTIN_CullMode: 0
     - _BUILTIN_DstBlend: 10
     - _BUILTIN_QueueControl: -1
     - _BUILTIN_QueueOffset: 0
@@ -105,9 +106,9 @@ Material:
     - _BlendSrc: 5
     - _CastShadows: 0
     - _ConservativeDepthOffsetEnable: 0
-    - _Cull: 2
-    - _CullMode: 2
-    - _CullModeForward: 2
+    - _Cull: 0
+    - _CullMode: 0
+    - _CullModeForward: 0
     - _Culling: 0
     - _Cutoff: 0.5
     - _DISABLEEROSION: 0
@@ -117,7 +118,7 @@ Material:
     - _DistortionEnable: 0
     - _DistortionIntensity: 0
     - _DistortionOnly: 0
-    - _DoubleSidedEnable: 0
+    - _DoubleSidedEnable: 1
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 2
     - _DstBlend: 10
@@ -143,7 +144,7 @@ Material:
     - _RequireSplitLighting: 0
     - _SoftFadeFactor: 0.1
     - _SourceBlendRGB: 10
-    - _SrcBlend: 5
+    - _SrcBlend: 1
     - _StencilRef: 0
     - _StencilRefDepth: 1
     - _StencilRefDistortionVec: 4
@@ -175,7 +176,6 @@ Material:
     - _UseShadowThreshold: 0
     - _UseSoftAlpha: 0
     - _UseUVOffset: 0
-    - _XRMotionVectorsPass: 1
     - _ZTest: 4
     - _ZTestDepthEqualForOpaque: 4
     - _ZTestGBuffer: 4

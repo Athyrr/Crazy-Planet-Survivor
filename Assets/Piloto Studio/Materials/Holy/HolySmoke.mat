@@ -42,6 +42,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _SURFACE_TYPE_TRANSPARENT
+  - _USESOFTALPHA
   m_InvalidKeywords:
   - _DOUBLESIDED_ON
   m_LightmapFlags: 4
@@ -147,7 +148,7 @@ Material:
     - _ReceivesSSRTransparent: 0
     - _RenderQueueType: 4
     - _RequireSplitLighting: 0
-    - _SoftFadeFactor: 1
+    - _SoftFadeFactor: 0.1
     - _SourceBlendRGB: 1
     - _SrcBlend: 1
     - _StencilRef: 0
@@ -173,7 +174,7 @@ Material:
     - _USEALPHAOVERRIDE: 0
     - _USEPIXELATION: 0
     - _USERAMP: 0
-    - _USESOFTALPHA: 0
+    - _USESOFTALPHA: 1
     - _USEUVOFFSET: 0
     - _UseAlphaDisolve: 0
     - _UseAlphaOverride: 0

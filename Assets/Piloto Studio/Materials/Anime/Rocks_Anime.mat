@@ -27,7 +27,6 @@ Material:
   m_ValidKeywords:
   - _SURFACE_TYPE_TRANSPARENT
   - _USESOFTALPHA
-  - _USEUVOFFSET
   m_InvalidKeywords:
   - _DISABLE_SSR_TRANSPARENT
   - _DOUBLESIDED_ON
@@ -47,8 +46,6 @@ Material:
   - MOTIONVECTORS
   - TransparentDepthPrepass
   - TransparentDepthPostpass
-  - DepthOnly
-  - SHADOWCASTER
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -255,7 +252,7 @@ Material:
     - _PPDMinSamples: 5
     - _PPDPrimitiveLength: 1
     - _PPDPrimitiveWidth: 1
-    - _QueueControl: 1
+    - _QueueControl: -1
     - _QueueOffset: 0
     - _RayTracing: 0
     - _ReceivesSSR: 1
@@ -271,7 +268,7 @@ Material:
     - _SpecularAAScreenSpaceVariance: 0.1
     - _SpecularAAThreshold: 0.2
     - _SpecularOcclusionMode: 1
-    - _SrcBlend: 5
+    - _SrcBlend: 1
     - _StencilRef: 0
     - _StencilRefDepth: 1
     - _StencilRefDistortionVec: 4
@@ -302,7 +299,7 @@ Material:
     - _USEPIXELATION: 0
     - _USERAMP: 0
     - _USESOFTALPHA: 1
-    - _USEUVOFFSET: 1
+    - _USEUVOFFSET: 0
     - _UVBase: 0
     - _UVDetail: 0
     - _UVEmissive: 0

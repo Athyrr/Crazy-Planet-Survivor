@@ -72,8 +72,6 @@ Material:
   - MOTIONVECTORS
   - TransparentDepthPrepass
   - TransparentDepthPostpass
-  - DepthOnly
-  - SHADOWCASTER
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -300,7 +298,7 @@ Material:
     - _PPDMinSamples: 5
     - _PPDPrimitiveLength: 1
     - _PPDPrimitiveWidth: 1
-    - _QueueControl: 1
+    - _QueueControl: -1
     - _QueueOffset: 0
     - _ReceivesSSR: 0
     - _ReceivesSSRTransparent: 0
@@ -316,7 +314,7 @@ Material:
     - _SpecularAAScreenSpaceVariance: 0.1
     - _SpecularAAThreshold: 0.2
     - _SpecularOcclusionMode: 1
-    - _SrcBlend: 5
+    - _SrcBlend: 1
     - _StencilRef: 0
     - _StencilRefDepth: 1
     - _StencilRefDistortionVec: 4
@@ -333,7 +331,7 @@ Material:
     - _TexWorldScale: 1
     - _TexWorldScaleEmissive: 1
     - _Thickness: 1
-    - _Tint_Fresnel: 0
+    - _Tint_Fresnel: 1
     - _TransmissionEnable: 1
     - _TransparentBackfaceEnable: 0
     - _TransparentCullMode: 1
@@ -384,7 +382,7 @@ Material:
     - _EmissiveColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissiveColorLDR: {r: 0, g: 0, b: 0, a: 1}
     - _FlipbooksColumsRows: {r: 1, g: 1, b: 0, a: 0}
-    - _FresnelColor: {r: 0, g: 2.2358608, b: 5.4033303, a: 1}
+    - _FresnelColor: {r: 7.2138696, g: 7.2138696, b: 7.2138696, a: 1}
     - _InvPrimScale: {r: 1, g: 1, b: 0, a: 0}
     - _IridescenceThicknessRemap: {r: 0, g: 1, b: 0, a: 0}
     - _LastColor: {r: 0, g: 0.13151309, b: 0.5647059, a: 0}
