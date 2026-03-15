@@ -81,12 +81,10 @@ public partial struct HealthSystem : ISystem
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
 
-        // todo @hyverno @athyrr usefull in stats ? add second execute for specific use case mb
         private void Execute(
             [ChunkIndexInQuery] int index,
             Entity entity,
             ref Health health,
-            in Stats stats,
             ref DynamicBuffer<DamageBufferElement> damageBuffer
         )
         {
