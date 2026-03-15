@@ -1,3 +1,4 @@
+using _System.ECS.Components.Entity;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -15,6 +16,7 @@ public partial struct HealthSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
+    private ComponentLookup<CpEntity> _cpEntityLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
 
@@ -25,6 +27,7 @@ public partial struct HealthSystem : ISystem
 
         _playerLookup = state.GetComponentLookup<Player>(true);
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
+        _cpEntityLookup = state.GetComponentLookup<CpEntity>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
     }
@@ -46,6 +49,7 @@ public partial struct HealthSystem : ISystem
 
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
+        _cpEntityLookup.Update(ref state);
         _transformLookup.Update(ref state);
         _destroyFlagLookup.Update(ref state);
 
@@ -54,6 +58,7 @@ public partial struct HealthSystem : ISystem
             ECB = ecb.AsParallelWriter(),
             DestroyFlagLookup = _destroyFlagLookup,
             PlayerLookup = _playerLookup,
+            CpEntityLookup = _cpEntityLookup,
             EnemyLookup = _enemyLookup,
             TransformLookup = _transformLookup,
         };
@@ -72,9 +77,11 @@ public partial struct HealthSystem : ISystem
 
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
+        [ReadOnly] public ComponentLookup<CpEntity> CpEntityLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
 
+        // todo @hyverno @athyrr usefull in stats ? add second execute for specific use case mb
         private void Execute(
             [ChunkIndexInQuery] int index,
             Entity entity,
@@ -146,6 +153,15 @@ public partial struct HealthSystem : ISystem
                         new EnemyKilledEvent { WaveIndex = EnemyLookup[entity].WaveIndex }
                     );
                 }
+                else if (CpEntityLookup.HasComponent(entity))
+                {
+                    var killedEventEntity = ECB.CreateEntity(index);
+                    ECB.AddComponent(
+                        index,
+                        killedEventEntity,
+                        new EntityKilledEvent { }
+                    );
+                }
             }
         }
 
@@ -154,7 +170,7 @@ public partial struct HealthSystem : ISystem
             EntityCommandBuffer.ParallelWriter ecb,
             int amount,
             LocalTransform transform,
-            bool critIntensity
+            bool isCritical
         )
         {
             Entity req = ecb.CreateEntity(key);
@@ -165,7 +181,7 @@ public partial struct HealthSystem : ISystem
                 {
                     Amount = amount,
                     Transform = transform,
-                    IsCritical = critIntensity,
+                    IsCritical = isCritical,
                 }
             );
         }
@@ -175,4 +191,9 @@ public partial struct HealthSystem : ISystem
 public struct EnemyKilledEvent : IComponentData
 {
     public int WaveIndex;
+}
+
+// todo impl this and add enemyKilledEvent override EntityKill logic
+public struct EntityKilledEvent : IComponentData
+{
 }

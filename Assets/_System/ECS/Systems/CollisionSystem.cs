@@ -1,3 +1,4 @@
+using _System.ECS.Components.Entity;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -14,7 +15,7 @@ using static HitFrameFeedbackSystem;
 public partial struct CollisionSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
-    private ComponentLookup<Enemy> _enemyLookup;
+    private ComponentLookup<CpEntity> _cpEntityLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
 
 
@@ -45,7 +46,7 @@ public partial struct CollisionSystem : ISystem
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
 
         _playerLookup = state.GetComponentLookup<Player>(true);
-        _enemyLookup = state.GetComponentLookup<Enemy>(true);
+        _cpEntityLookup = state.GetComponentLookup<CpEntity>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
 
         _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
@@ -83,7 +84,7 @@ public partial struct CollisionSystem : ISystem
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
 
         _playerLookup.Update(ref state);
-        _enemyLookup.Update(ref state);
+        _cpEntityLookup.Update(ref state);
         _transformLookup.Update(ref state);
         _damageOnContactLookup.Update(ref state);
         _destroyOnContactLookup.Update(ref state);
@@ -106,7 +107,7 @@ public partial struct CollisionSystem : ISystem
             CollisionWorld = physicsWorld.CollisionWorld,
 
             PlayerLookup = _playerLookup,
-            EnemyLookup = _enemyLookup,
+            CpEntityLookup = _cpEntityLookup,
             DamageOnContactLookup = _damageOnContactLookup,
             DestroyOnContactLookup = _destroyOnContactLookup,
             LocalTransformLookup = _transformLookup,
@@ -147,7 +148,7 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public CollisionWorld CollisionWorld;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
+        [ReadOnly] public ComponentLookup<CpEntity> CpEntityLookup;
 
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
         [ReadOnly] public ComponentLookup<DestroyOnContact> DestroyOnContactLookup;
@@ -218,7 +219,7 @@ public partial struct CollisionSystem : ISystem
                             criticalDamagesMultiplier = math.max(1.0f, damageData.TotalCritMultiplier);
 
                         int damageDealt = (int)(damageData.Damage * criticalDamagesMultiplier);
-
+                        
                         ECB.AppendToBuffer(
                             0,
                             target,
@@ -347,7 +348,7 @@ public partial struct CollisionSystem : ISystem
 
         private void ApplyFeedbacks(Entity hitEntity)
         {
-            if (!EnemyLookup.HasComponent(hitEntity))
+            if (!CpEntityLookup.HasComponent(hitEntity))
                 return;
 
             var shakeReq = ECB.CreateEntity(0);
@@ -361,7 +362,7 @@ public partial struct CollisionSystem : ISystem
         {
             if (
                 DamageOnContactLookup.HasComponent(entityA)
-                && (EnemyLookup.HasComponent(entityB) || PlayerLookup.HasComponent(entityB))
+                && (CpEntityLookup.HasComponent(entityB))
             )
             {
                 damager = entityA;
@@ -371,7 +372,7 @@ public partial struct CollisionSystem : ISystem
 
             if (
                 DamageOnContactLookup.HasComponent(entityB)
-                && (EnemyLookup.HasComponent(entityA) || PlayerLookup.HasComponent(entityA))
+                && (CpEntityLookup.HasComponent(entityA))
             )
             {
                 damager = entityB;
@@ -408,7 +409,7 @@ public partial struct CollisionSystem : ISystem
                 if (hit.Entity == currentTarget || hit.Entity == projectile)
                     continue;
 
-                if (!EnemyLookup.HasComponent(hit.Entity))
+                if (!CpEntityLookup.HasComponent(hit.Entity))
                     continue;
 
                 if (hit.Distance < closestDistSq)

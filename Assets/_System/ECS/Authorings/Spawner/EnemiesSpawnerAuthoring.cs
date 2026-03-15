@@ -66,7 +66,7 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
 
     [Header("Wave Configuration")]
     [Tooltip("List of waves to be spawned sequentially.")]
-    public WaveData[] Waves;
+    public WaveData[] Waves = new WaveData[0];
 
 
     #region Debug Visualization
@@ -85,7 +85,7 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
         float planetRadius = DebugPlanetRadius;
         Vector3 playerPos = DebugPlayer != null ? DebugPlayer.position : Vector3.zero;
 
-        if (Waves == null) 
+        if (Waves.Length == 0) 
             return;
 
         foreach (var wave in Waves)

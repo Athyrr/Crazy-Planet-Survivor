@@ -219,12 +219,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8684a6a8f36b4f29978520710e23860f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoliageRenderer
-  data: {fileID: 11400000, guid: ac10b938b685f904db878d4193b6d870, type: 2}
-  mesh: {fileID: 2931178734877319190, guid: 4dfe686ae138ffb4fa7572b5ae68e04c, type: 3}
-  material: {fileID: 2100000, guid: dc3c2090bc358644fb684229bc8ed6eb, type: 2}
-  renderBounds:
-    m_Center: {x: -1.0413084, y: -1.0235296, z: -2.0212553}
-    m_Extent: {x: 70.55954, y: 70.55954, z: 70.55954}
+  datas:
+    m_enumValues: []
+  _mesh: {fileID: 0}
+  _material: {fileID: 0}
+  _renderBounds:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 500, y: 500, z: 500}
 --- !u!64 &230536480
 MeshCollider:
   m_ObjectHideFlags: 0

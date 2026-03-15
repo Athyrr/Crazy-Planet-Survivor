@@ -1,3 +1,4 @@
+using _System.ECS.Components.Entity;
 using Unity.Collections;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -14,7 +15,7 @@ using Unity.Jobs;
 public partial struct TickDamageSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
-    private ComponentLookup<Enemy> _enemyLookup;
+    private ComponentLookup<CpEntity> _cpEntityLookup;
     private ComponentLookup<Stats> _statsLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFLagLookup;
@@ -33,7 +34,7 @@ public partial struct TickDamageSystem : ISystem
 
         // Cache lookups
         _playerLookup = state.GetComponentLookup<Player>(true);
-        _enemyLookup = state.GetComponentLookup<Enemy>(true);
+        _cpEntityLookup = state.GetComponentLookup<CpEntity>(true);
         _statsLookup = state.GetComponentLookup<Stats>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
         _destroyFLagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
@@ -71,7 +72,7 @@ public partial struct TickDamageSystem : ISystem
 
         // Update lookups
         _playerLookup.Update(ref state);
-        _enemyLookup.Update(ref state);
+        _cpEntityLookup.Update(ref state);
         _statsLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
         _destroyFLagLookup.Update(ref state);
@@ -85,7 +86,7 @@ public partial struct TickDamageSystem : ISystem
             CollisionWorld = collisionWorld,
 
             PlayerLookup = _playerLookup,
-            EnemyLookup = _enemyLookup,
+            CpEntityLookup = _cpEntityLookup,
 
             StatsLookup = _statsLookup,
             DamageBufferLookup = _damageBufferLookup,
@@ -117,7 +118,7 @@ public partial struct TickDamageSystem : ISystem
         [ReadOnly] public CollisionWorld CollisionWorld;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
+        [ReadOnly] public ComponentLookup<CpEntity> CpEntityLookup;
 
         [ReadOnly] public ComponentLookup<Stats> StatsLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
@@ -160,10 +161,10 @@ public partial struct TickDamageSystem : ISystem
 
             foreach (var hit in hits)
             {
-                var isEnemyHit = EnemyLookup.HasComponent(hit.Entity);
+                var isEntityHit = CpEntityLookup.HasComponent(hit.Entity);
 
                 // Ignore entities that are neither player nor enemy
-                if (!isEnemyHit && !PlayerLookup.HasComponent(hit.Entity))
+                if (!isEntityHit && !PlayerLookup.HasComponent(hit.Entity))
                     continue;
 
                 // Ignore entities that cannot receive damage

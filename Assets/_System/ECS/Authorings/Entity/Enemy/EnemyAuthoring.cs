@@ -1,6 +1,7 @@
 using Unity.Entities;
 using UnityEngine;
 
+[RequireComponent(typeof(EntityAuthoring))]
 public class EnemyAuthoring : MonoBehaviour
 {
     [Header("Movement precision")]

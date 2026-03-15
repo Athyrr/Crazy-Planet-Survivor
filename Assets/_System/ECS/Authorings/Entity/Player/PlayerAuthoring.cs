@@ -3,6 +3,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
+[RequireComponent(typeof(EntityAuthoring))]
 public class PlayerAuthoring : MonoBehaviour
 {
     private GameUpgradesConfigSO _gameUpgradesConfig;

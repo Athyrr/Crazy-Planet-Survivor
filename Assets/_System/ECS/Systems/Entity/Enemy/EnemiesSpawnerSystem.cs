@@ -28,7 +28,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         //state.RequireForUpdate<StartRunRequest>();
-     //   state.RequireForUpdate<EndSimulationEntityCommandBufferSystem>();
+        //   state.RequireForUpdate<EndSimulationEntityCommandBufferSystem>();
         state.RequireForUpdate<SpawnerSettings>();
         state.RequireForUpdate<SpawnerState>();
         state.RequireForUpdate<PlanetData>();
@@ -78,8 +78,12 @@ public partial struct EnemiesSpawnerSystem : ISystem
         }
     }
 
-    private void ManageWaveProgression(ref SystemState systemState, ref EntityCommandBuffer ecb, ref SpawnerState spawnerState, DynamicBuffer<Wave> waves)
+    private void ManageWaveProgression(ref SystemState systemState, ref EntityCommandBuffer ecb,
+        ref SpawnerState spawnerState, DynamicBuffer<Wave> waves)
     {
+        if (waves.Length == 0)
+            return; // dirty condition, but never mind
+
         if (spawnerState.CurrentWaveIndex == -1)
         {
             StartWave(ref spawnerState, waves, 0);
@@ -121,7 +125,8 @@ public partial struct EnemiesSpawnerSystem : ISystem
         }
     }
 
-    private void ManageSpawning(ref EntityCommandBuffer ecb, ref SystemState systemState, ref SpawnerState spawnerState, DynamicBuffer<SpawnGroup> groups, int maxEnemies)
+    private void ManageSpawning(ref EntityCommandBuffer ecb, ref SystemState systemState, ref SpawnerState spawnerState,
+        DynamicBuffer<SpawnGroup> groups, int maxEnemies)
     {
         if (spawnerState.CurrentWaveIndex < 0)
             return;
@@ -208,7 +213,8 @@ public partial struct EnemiesSpawnerSystem : ISystem
         }
     }
 
-    private void ScheduleSpawnJob(ref EntityCommandBuffer ecb, ref SystemState state, SpawnGroup group, int count, int waveIndex)
+    private void ScheduleSpawnJob(ref EntityCommandBuffer ecb, ref SystemState state, SpawnGroup group, int count,
+        int waveIndex)
     {
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
 
@@ -302,12 +308,14 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     float3 randomDir = rand.NextFloat3Direction();
                     float3 roughPos = PlanetCenter + randomDir * PlanetRadius;
 
-                    if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, roughPos, PlanetCenter, groundFilter, 150f, out var hit))
+                    if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, roughPos, PlanetCenter, groundFilter, 150f,
+                            out var hit))
                     {
                         spawnPosition = hit.Position;
                         surfaceNormal = hit.SurfaceNormal;
                         positionFound = true;
                     }
+
                     break;
 
                 case SpawnMode.Zone:
@@ -324,10 +332,11 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     float3 opositePoint = PlanetCenter - (dirToOrigin * PlanetRadius * 1f);
 
                     // Avoid stacking
-                    float oppositePositionRadius = math.max( 15f, TotalAmount * 0.5f);
+                    float oppositePositionRadius = math.max(15f, TotalAmount * 0.5f);
 
                     positionFound = PlanetUtils.GetRandomPointOnSurface(
-                        ref CollisionWorld, ref rand, opositePoint, PlanetCenter, oppositePositionRadius, ref groundFilter,
+                        ref CollisionWorld, ref rand, opositePoint, PlanetCenter, oppositePositionRadius,
+                        ref groundFilter,
                         out spawnPosition, out surfaceNormal);
                     break;
 
@@ -346,7 +355,8 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
             // Entity orientation
             float3 randomTangent = rand.NextFloat3Direction();
-            float3 tangentDirection = math.normalize(randomTangent - math.dot(randomTangent, surfaceNormal) * surfaceNormal);
+            float3 tangentDirection =
+                math.normalize(randomTangent - math.dot(randomTangent, surfaceNormal) * surfaceNormal);
 
             float3 finalPosition = spawnPosition + (surfaceNormal * 0.5f);
 
@@ -365,6 +375,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
             });
 
             // Set Wave Index
+            // todo @hyverno passing Enemy in lookup
             ECB.SetComponent(index, entity, new Enemy { WaveIndex = WaveIndex });
         }
     }
