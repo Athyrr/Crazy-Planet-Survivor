@@ -200,8 +200,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageFeedbackManager
   BaseDamageColor: {r: 1, g: 1, b: 1, a: 1}
-  CriticalDamageColor: {r: 1, g: 0.9295865, b: 0, a: 1}
-  BurnDamageColor: {r: 0.5450981, g: 0, b: 0, a: 1}
+  CriticalDamageColor: {r: 1, g: 0.7012921, b: 0, a: 1}
+  BurnDamageColor: {r: 1, g: 0.14786889, b: 0, a: 1}
   computeShader: {fileID: 7200000, guid: 6667581f9b2f49089280b804d1f82dea, type: 3}
   displayMaterial: {fileID: 2100000, guid: 55105a2f1d0fbf1439ec3323460eadfb, type: 2}
   quadMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
@@ -3138,7 +3138,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3184572793961988289, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -62.50003
+      value: -62.499985
       objectReference: {fileID: 0}
     - target: {fileID: 3660644476963303025, guid: 5d4efb82660164d4999db886dde2d425, type: 3}
       propertyPath: m_Pivot.x
@@ -3538,7 +3538,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9143920543044484455, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -144.86234
+      value: -144.86235
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -61,6 +61,8 @@ public class EnemyAuthoring : MonoBehaviour
                 CritDamageMultiplier = authoring.BaseStats.CritDamageMultiplier,
             });
 
+            AddComponent(entity, new FinalStats());
+
             // todo virer ça et utiliser lookup de spell modifier dans spell calculation system
             AddBuffer<SpellModifier>(entity);
 

@@ -251,6 +251,17 @@ public partial struct CollisionSystem : ISystem
                             });
                             ECB.SetComponentEnabled<SlowEffect>(0, target, true);
                         }
+                        
+                        // todo use case if stun is random
+                        // Stun if spell has stun tag
+                        if ((damageData.Tag & ESpellTag.Stun) != 0)
+                        {
+                            ECB.SetComponent(0, target, new StunEffect
+                            {
+                                DurationLeft = EffectsConfig.StunDuration
+                            });
+                            ECB.SetComponentEnabled<StunEffect>(0, target, true);
+                        }
 
                         // Burn
                         if ((damageData.Tag & ESpellTag.Burn) != 0)

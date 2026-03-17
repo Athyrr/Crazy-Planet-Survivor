@@ -21,6 +21,7 @@ public partial struct EntitiesMovementSystem : ISystem
     private ComponentLookup<StopDistance> _stopDistanceLookup;
 
     private ComponentLookup<Player> _playerLookup;
+    private ComponentLookup<StunEffect> _stunLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -33,6 +34,8 @@ public partial struct EntitiesMovementSystem : ISystem
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _playerLookup = state.GetComponentLookup<Player>(true);
         _stopDistanceLookup = state.GetComponentLookup<StopDistance>(true);
+
+        _stunLookup = state.GetComponentLookup<StunEffect>(true);
     }
 
     [BurstCompile(OptimizeFor = OptimizeFor.Performance)]
@@ -57,6 +60,7 @@ public partial struct EntitiesMovementSystem : ISystem
         _transformLookup.Update(ref state);
         _playerLookup.Update(ref state);
         _stopDistanceLookup.Update(ref state);
+        _stunLookup.Update(ref state);
 
         var linearSnappedJob = new MoveLinearSnappedJob
         {
@@ -87,7 +91,8 @@ public partial struct EntitiesMovementSystem : ISystem
             StatsLookup = _statsLookup,
             SteeringLookup = _steeringLookup,
             TransformLookup = _transformLookup,
-            StopDistanceLookup = _stopDistanceLookup
+            StopDistanceLookup = _stopDistanceLookup,
+            StunLookup = _stunLookup
         };
         JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearSnappedHandle);
         //JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearBareHandle);
@@ -343,6 +348,8 @@ public partial struct EntitiesMovementSystem : ISystem
 
         [NativeDisableContainerSafetyRestriction] [ReadOnly]
         public ComponentLookup<LocalTransform> TransformLookup;
+        
+        [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
 
         private const float SNAP_DISTANCE = 10.0f;
         private const float POS_SMOOTH_SPEED = 25.0f;
@@ -351,6 +358,9 @@ public partial struct EntitiesMovementSystem : ISystem
 
         public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
         {
+            if (StunLookup.TryGetComponent(entity, out var _) && StunLookup.IsComponentEnabled(entity))
+                return;
+
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
             float3 unprojectedDirection;
 

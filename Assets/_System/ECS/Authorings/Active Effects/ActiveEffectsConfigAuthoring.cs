@@ -39,7 +39,7 @@ public class ActiveEffectsConfigAuthoring : MonoBehaviour
                 BurnDuration = authoring.DefaultBurnDuration,
                 BurnTickRate = authoring.DefaultBurnTickRate,
 
-                StunBaseDuration = authoring.DefaultStunDuration,
+                StunDuration = authoring.DefaultStunDuration,
 
                 BaseSlowMultiplier = authoring.DefaultSlowMultiplier,
                 SlowDuration = authoring.DefaultSlowDuration,
@@ -56,7 +56,7 @@ public struct ActiveEffectsConfig : IComponentData
     public float BurnTickRate;
 
     // Stun
-    public float StunBaseDuration;
+    public float StunDuration;
 
     // Slow
     public float BaseSlowMultiplier;
