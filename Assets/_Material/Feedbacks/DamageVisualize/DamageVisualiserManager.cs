@@ -8,6 +8,10 @@ using Unity.Entities;
 [ExecuteAlways]
 public class DamageFeedbackManager : MonoBehaviour
 {
+    public Color BaseDamageColor = Color.white;
+    public Color CriticalDamageColor = Color.goldenRod;
+    public Color BurnDamageColor = Color.darkRed;
+    
     #region Instance
 
     private static DamageFeedbackManager _instance;
@@ -49,6 +53,7 @@ public class DamageFeedbackManager : MonoBehaviour
         public float Value;
         public float StartTime;
         public int DigitCount;
+        public Color Color;
     }
 
     [SerializeField] public ComputeShader computeShader;
@@ -75,12 +80,13 @@ public class DamageFeedbackManager : MonoBehaviour
     {
         if (_damageBuffer == null)
         {
-            _damageBuffer = new ComputeBuffer(_maxNumbers, sizeof(float) * 6);
+            // _damageBuffer = new ComputeBuffer(_maxNumbers, sizeof(float) * 6);
+            _damageBuffer = new ComputeBuffer(_maxNumbers, sizeof(float) * 10);
             _damageBuffer.SetData(new DamageData[_maxNumbers]);
         }
     }
 
-    public void AddDamage(int val, Vector3 pos)
+    public void AddDamage(int val, Vector3 pos, Color color)
     {
         InitBuffer();
 
@@ -91,11 +97,11 @@ public class DamageFeedbackManager : MonoBehaviour
             Position = pos,
             Value = (float)val,
             StartTime = GetCurrentTime(),
-            DigitCount = val.ToString().Length
+            DigitCount = val.ToString().Length,
+            Color = color
         });
 
         _damageBuffer.SetData(_activeDamages.ToArray());
-        //Debug.Log($"hyv; damage feedback applied {val}");
     }
 
     private float GetCurrentTime()
@@ -118,8 +124,20 @@ public class DamageFeedbackManager : MonoBehaviour
 
                 for (int i = 0; i < entities.Length; i++)
                 {
-                    AddDamage(requests[i].Amount, (Vector3)requests[i].Transform.Position +
-                                                  (Vector3)requests[i].Transform.Up() * (1.5f * Random.Range(1, 3f)));
+                    var req = requests[i];
+
+                    var color = BaseDamageColor;
+                    
+                    if (req.IsCritical)
+                        color = CriticalDamageColor;
+                    
+                    else if (req.IsBurn)
+                        color = BurnDamageColor;
+
+                    AddDamage(req.Amount,
+                        (Vector3)req.Transform.Position + (Vector3)req.Transform.Up() * (1.5f * Random.Range(1, 3f)),
+                        color);
+
                     entityManager.DestroyEntity(entities[i]);
                 }
 
@@ -166,17 +184,19 @@ public class DamageFeedbackManager : MonoBehaviour
     [Button]
     void TestDamage()
     {
+        var color = Color.white;
+
         Sequence.Create(cycles: 10, Sequence.SequenceCycleMode.Yoyo)
-            .ChainCallback(() => AddDamage(Random.Range(10, 999999), transform.position))
+            .ChainCallback(() => AddDamage(Random.Range(10, 999999), transform.position, color))
             .ChainDelay(0.1f)
-            .ChainCallback(() => AddDamage(Random.Range(10, 9999), transform.position))
+            .ChainCallback(() => AddDamage(Random.Range(10, 9999), transform.position, color))
             .ChainDelay(0.1f)
-            .ChainCallback(() => AddDamage(Random.Range(10, 99), transform.position));
+            .ChainCallback(() => AddDamage(Random.Range(10, 99), transform.position, color));
     }
 
     [Button]
     void TestDamageSingle()
     {
-        AddDamage(Random.Range(10, 999999), transform.position);
+        AddDamage(Random.Range(10, 999999), transform.position, Color.white);
     }
 }

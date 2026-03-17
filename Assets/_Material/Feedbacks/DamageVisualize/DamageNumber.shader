@@ -34,6 +34,7 @@ Shader "Custom/DamageNumbers"
                 float value;
                 float startTime;
                 int digitCount;
+                float4 color;
             };
 
             StructuredBuffer<DamageData> _DamageBuffer;
@@ -145,7 +146,9 @@ Shader "Custom/DamageNumbers"
                 float emissive = saturate(1.0 - age / _EmissiveDuration);
 
                 col.a *= min(col.r, i.alpha);
-                col.rgb *= _Color.rgb * emissive;
+               // col.rgb *= _Color.rgb * emissive;
+
+                col.rgb *= data.color.rgb * emissive;
 
                 return col;
             }
