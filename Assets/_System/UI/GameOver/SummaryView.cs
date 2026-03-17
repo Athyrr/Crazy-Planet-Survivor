@@ -39,7 +39,7 @@ public class SummaryView : MonoBehaviour
             _spellsDatabaseQuery = _entityManager.CreateEntityQuery(typeof(SpellsDatabase));
 
         if (_playerStatsQuery == default)
-            _playerStatsQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Stats));
+            _playerStatsQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(CoreStats));
 
         // Clear views
         foreach (Transform child in SpellsContainer)
@@ -101,7 +101,7 @@ public class SummaryView : MonoBehaviour
         if (_playerStatsQuery.IsEmptyIgnoreFilter) 
             return;
 
-        var stats = _playerStatsQuery.GetSingleton<Stats>();
+        var stats = _playerStatsQuery.GetSingleton<CoreStats>();
         
         float finalHealth = stats.BaseMaxHealth * stats.MaxHealthMultiplier;
         CreateStatUI("Max Health", finalHealth.ToString("0"));

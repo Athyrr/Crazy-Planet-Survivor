@@ -6,8 +6,7 @@ using UnityEngine.Scripting;
 /// Contains all entity stats (Base + Accumulated Multipliers).
 /// </summary>
 [System.Serializable]
-[Preserve]
-public struct Stats : IComponentData
+public struct CoreStats : IComponentData
 {
     [Header("Survival")]
     [Tooltip("Base Health points (before multipliers).")]

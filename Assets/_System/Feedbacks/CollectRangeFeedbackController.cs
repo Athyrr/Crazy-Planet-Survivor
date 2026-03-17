@@ -24,7 +24,7 @@ public class CollectRangeFeedbackController : MonoBehaviour
         }
 
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-        _playerStatsQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Stats));
+        _playerStatsQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(CoreStats));
         _playerTransformQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(LocalTransform));
 
         var renderer = GetComponent<Renderer>();

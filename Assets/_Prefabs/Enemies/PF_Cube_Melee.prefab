@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &3629201438294732191
+--- !u!1 &2472468011835702828
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,9 +8,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 5907138867354049190}
-  - component: {fileID: 977407518882472899}
-  - component: {fileID: 8210702108464594535}
+  - component: {fileID: 6544048573108671534}
+  - component: {fileID: 4385761708397922400}
+  - component: {fileID: 2999242984564648099}
   m_Layer: 0
   m_Name: renderer
   m_TagString: Untagged
@@ -18,28 +18,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &5907138867354049190
+--- !u!4 &6544048573108671534
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3629201438294732191}
+  m_GameObject: {fileID: 2472468011835702828}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 834412683046234062}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!23 &977407518882472899
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
+--- !u!23 &4385761708397922400
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3629201438294732191}
+  m_GameObject: {fileID: 2472468011835702828}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -58,7 +58,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: c5280f900198a1f49b61acd559330b50, type: 2}
+  - {fileID: 2100000, guid: 82d90d58b9181164284dead9a85744e5, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -82,14 +82,14 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &8210702108464594535
+--- !u!33 &2999242984564648099
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3629201438294732191}
-  m_Mesh: {fileID: 3200485104113939092, guid: be6db30273f46034cbbcdb92d2683d95, type: 3}
+  m_GameObject: {fileID: 2472468011835702828}
+  m_Mesh: {fileID: -541100725682823677, guid: 4c91bc303f2255e4db7488c709bff660, type: 3}
 --- !u!1 &4960229139857780973
 GameObject:
   m_ObjectHideFlags: 0
@@ -103,9 +103,10 @@ GameObject:
   - component: {fileID: -795139794179562712}
   - component: {fileID: 7077652745905088192}
   - component: {fileID: 4190783909020484761}
-  - component: {fileID: 6713757152409590747}
+  - component: {fileID: -8517440183909175222}
+  - component: {fileID: 5661740293285117394}
   m_Layer: 0
-  m_Name: PF_Cube_Ranged
+  m_Name: PF_Cube_Melee
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -124,7 +125,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 5907138867354049190}
+  - {fileID: 6544048573108671534}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &-809601175486125950
@@ -142,12 +143,12 @@ MonoBehaviour:
   m_ShapeType: 2
   m_PrimitiveCenter:
     x: 0
-    y: 0.50346214
-    z: -0.000000059604645
+    y: 1.2
+    z: 0
   m_PrimitiveSize:
-    x: 1.6180801
-    y: 1.6180801
-    z: 1.6180801
+    x: 4.52
+    y: 4.52
+    z: 4.52
   m_PrimitiveOrientation:
     Value:
       x: -0
@@ -155,15 +156,15 @@ MonoBehaviour:
       z: 0
     RotationOrder: 4
   m_Capsule:
-    Height: 1.6180801
-    Radius: 0.80904007
+    Height: 4.52
+    Radius: 2.26
     Axis: 2
   m_Cylinder:
-    Height: 1.6180801
-    Radius: 0.80904007
+    Height: 4.52
+    Radius: 2.26
     Axis: 2
   m_CylinderSideCount: 20
-  m_SphereRadius: 0.80904007
+  m_SphereRadius: 2.26
   m_MinimumSkinnedVertexWeight: 0.1
   m_ConvexHullGenerationParameters:
     m_SimplificationTolerance: 0.015
@@ -284,28 +285,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   UseSnappedMovement: 1
   BaseStats:
-    BaseMaxHealth: 200
+    BaseMaxHealth: 100
     MaxHealthMultiplier: 1
     HealthRecovery: 0
-    BaseArmor: 10
-    DamageReductionMultiplier: 1
-    BaseMoveSpeed: 5
+    BaseArmor: 0
+    DamageReductionMultiplier: 0
+    BaseMoveSpeed: 8
     MoveSpeedMultiplier: 1
     BasePickupRange: 0
-    PickupRangeMultiplier: 0
+    PickupRangeMultiplier: 1
     GlobalDamageMultiplier: 1
     GlobalCooldownMultiplier: 1
     GlobalSpellAreaMultiplier: 1
     GlobalSpellSizeMultiplier: 1
     GlobalSpellSpeedMultiplier: 1
     GlobalDurationMultiplier: 1
+    GlobalCastRangeMultiplier: 0
     GlobalAmountBonus: 0
     GlobalPierceBonus: 0
     GlobalBounceBonus: 0
     CritChance: 0
     CritDamageMultiplier: 0
-  InitialSpells:
-  - {fileID: 11400000, guid: 9e39f75e475110447adf8ec004d90448, type: 2}
+  InitialSpells: []
 --- !u!114 &7077652745905088192
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -318,7 +319,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9572930ed885f804eae7a2b7f785412d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExperienceLootAuthoring
-  ExperienceValue: 200
+  ExperienceValue: 100
   DropChance: 1
 --- !u!114 &4190783909020484761
 MonoBehaviour:
@@ -334,7 +335,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
   _avoidanceDetectionRadius: 1
   _avoidanceWeight: 0.8
---- !u!114 &6713757152409590747
+--- !u!114 &-8517440183909175222
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -343,7 +344,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 4960229139857780973}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 82ab21110e112b844b45c4d10b6f4436, type: 3}
+  m_Script: {fileID: 11500000, guid: 4633fdcad9d177f42a21642207c2da67, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StopDistanceAuthoring
-  Distance: 16
+  m_EditorClassIdentifier: Assembly-CSharp::ActiveEffectsAuthoring
+--- !u!114 &5661740293285117394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4960229139857780973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EntityAuthoring

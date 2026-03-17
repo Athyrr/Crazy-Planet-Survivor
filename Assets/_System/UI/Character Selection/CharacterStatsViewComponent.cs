@@ -18,12 +18,12 @@ public class CharacterStatsViewComponent : MonoBehaviour
     {
     }
 
-    public void Refresh(Stats stats)
+    public void Refresh(CoreStats coreStats)
     {
         foreach (Transform child in StatsItemsContainer)
             Destroy(child.gameObject);
 
-        System.Type type = typeof(Stats);
+        System.Type type = typeof(CoreStats);
 
         FieldInfo[] fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
 
@@ -34,7 +34,7 @@ public class CharacterStatsViewComponent : MonoBehaviour
             if (attr == null)
                 continue;
 
-            object rawValue = field.GetValue(stats);
+            object rawValue = field.GetValue(coreStats);
             string displayValue = string.Format(attr.Format, rawValue);
 
             CreateStatRow(attr.DisplayName, displayValue);

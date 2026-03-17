@@ -16,6 +16,8 @@ GameObject:
   - component: {fileID: 7077652745905088192}
   - component: {fileID: -6272738867424008012}
   - component: {fileID: 1392762356999156220}
+  - component: {fileID: 1984138125118058762}
+  - component: {fileID: 5661740293285117394}
   m_Layer: 0
   m_Name: PF_Cube2
   m_TagString: Untagged
@@ -252,21 +254,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   UseSnappedMovement: 1
   BaseStats:
-    BaseMaxHealth: 200
+    BaseMaxHealth: 100
     MaxHealthMultiplier: 1
     HealthRecovery: 0
-    BaseArmor: 10
-    DamageReductionMultiplier: 1
-    BaseMoveSpeed: 5
+    BaseArmor: 0
+    DamageReductionMultiplier: 0
+    BaseMoveSpeed: 8
     MoveSpeedMultiplier: 1
     BasePickupRange: 0
-    PickupRangeMultiplier: 0
+    PickupRangeMultiplier: 1
     GlobalDamageMultiplier: 1
     GlobalCooldownMultiplier: 1
     GlobalSpellAreaMultiplier: 1
     GlobalSpellSizeMultiplier: 1
     GlobalSpellSpeedMultiplier: 1
     GlobalDurationMultiplier: 1
+    GlobalCastRangeMultiplier: 0
     GlobalAmountBonus: 0
     GlobalPierceBonus: 0
     GlobalBounceBonus: 0
@@ -315,3 +318,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StopDistanceAuthoring
   Distance: 16
+--- !u!114 &1984138125118058762
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4960229139857780973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4633fdcad9d177f42a21642207c2da67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActiveEffectsAuthoring
+--- !u!114 &5661740293285117394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4960229139857780973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EntityAuthoring

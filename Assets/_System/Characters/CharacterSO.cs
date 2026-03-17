@@ -34,5 +34,5 @@ public class CharacterSo : ScriptableObject
     public SpellDataSO[] InitialSpells;
 
     [Header("Statistics")] [Tooltip("Character base stats")]
-    public Stats BaseStats;
+    public CoreStats coreStats;
 }

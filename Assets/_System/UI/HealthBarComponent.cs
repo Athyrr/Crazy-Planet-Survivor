@@ -24,7 +24,7 @@ public class HealthBarComponent : MonoBehaviour
         _playerQuery = _entityManager.CreateEntityQuery(
             ComponentType.ReadOnly<Player>(),
             ComponentType.ReadOnly<Health>(),
-            ComponentType.ReadOnly<Stats>()
+            ComponentType.ReadOnly<CoreStats>()
         );
 
         _healthMaterial = HealthImage.material;
@@ -38,7 +38,7 @@ public class HealthBarComponent : MonoBehaviour
             return;
 
         Health playerHealth = _playerQuery.GetSingleton<Health>();
-        var playerStats = _playerQuery.GetSingleton<Stats>();
+        var playerStats = _playerQuery.GetSingleton<CoreStats>();
 
         float maxHealth = playerStats.BaseMaxHealth * playerStats.MaxHealthMultiplier;
         float ratio = Mathf.Clamp01(playerHealth.Value /maxHealth);

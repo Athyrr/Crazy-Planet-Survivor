@@ -199,6 +199,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 273bd3f1e3494fe9aacbb54a5825e62b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageFeedbackManager
+  BaseDamageColor: {r: 1, g: 1, b: 1, a: 1}
+  CriticalDamageColor: {r: 1, g: 0.9295865, b: 0, a: 1}
+  BurnDamageColor: {r: 0.5450981, g: 0, b: 0, a: 1}
   computeShader: {fileID: 7200000, guid: 6667581f9b2f49089280b804d1f82dea, type: 3}
   displayMaterial: {fileID: 2100000, guid: 55105a2f1d0fbf1439ec3323460eadfb, type: 2}
   quadMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
@@ -336,7 +339,7 @@ MonoBehaviour:
     - {fileID: 0}
     - {fileID: 0}
     - {fileID: 11400000, guid: 662f1c14fedb5a44f810c24c9e56eada, type: 2}
-    - {fileID: 0}
+    - {fileID: 11400000, guid: 662f1c14fedb5a44f810c24c9e56eada, type: 2}
     - {fileID: 0}
   _mesh: {fileID: 3469941466066980970, guid: a129bedfaa6d94341b5f2705af804229, type: 3}
   _material: {fileID: 0}
@@ -2893,6 +2896,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_UI_PlanetSelection
       objectReference: {fileID: 0}
+    - target: {fileID: 366621661023058013, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 556228590767339907, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
       propertyPath: FocusOffset.x
       value: 125
@@ -3243,6 +3250,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1624493395}
     m_Modifications:
+    - target: {fileID: 377892479900848832, guid: db1d8de1221de4c48ad5b482fe57218b, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -20.374878
+      objectReference: {fileID: 0}
     - target: {fileID: 3109205166260260119, guid: db1d8de1221de4c48ad5b482fe57218b, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 

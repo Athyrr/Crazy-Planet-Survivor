@@ -15,7 +15,7 @@ using Unity.Jobs;
 [BurstCompile]
 public partial struct EntitiesMovementSystem : ISystem
 {
-    private ComponentLookup<Stats> _statsLookup;
+    private ComponentLookup<CoreStats> _statsLookup;
     private ComponentLookup<SteeringForce> _steeringLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<StopDistance> _stopDistanceLookup;
@@ -28,7 +28,7 @@ public partial struct EntitiesMovementSystem : ISystem
         // Ensure the planet exists before attempting movement
         state.RequireForUpdate<PlanetData>();
 
-        _statsLookup = state.GetComponentLookup<Stats>(true);
+        _statsLookup = state.GetComponentLookup<CoreStats>(true);
         _steeringLookup = state.GetComponentLookup<SteeringForce>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _playerLookup = state.GetComponentLookup<Player>(true);
@@ -143,7 +143,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float3 PlanetCenter;
 
         [NativeDisableParallelForRestriction] [ReadOnly]
-        public ComponentLookup<Stats> StatsLookup;
+        public ComponentLookup<CoreStats> StatsLookup;
 
         [NativeDisableParallelForRestriction] [ReadOnly]
         public ComponentLookup<Player> PlayerLookup;
@@ -262,7 +262,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float PlanetRadius;
 
         [NativeDisableParallelForRestriction] [ReadOnly]
-        public ComponentLookup<Stats> StatsLookup;
+        public ComponentLookup<CoreStats> StatsLookup;
 
         [NativeDisableParallelForRestriction] [ReadOnly]
         public ComponentLookup<Player> PlayerLookup;
@@ -337,7 +337,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public float3 PlanetCenter;
 
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
+        [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
         [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
         [ReadOnly] public ComponentLookup<StopDistance> StopDistanceLookup;
 
@@ -438,7 +438,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
 
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
+        [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
         [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
 
         [NativeDisableContainerSafetyRestriction] [ReadOnly]

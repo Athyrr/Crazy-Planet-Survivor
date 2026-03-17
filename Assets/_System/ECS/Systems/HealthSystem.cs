@@ -100,19 +100,22 @@ public partial struct HealthSystem : ISystem
 
             float totalDamage = 0;
             bool isCritical = false;
+            bool isBurn = false;
+
             // Process every damage instance stored in the buffer this frame
             for (int i = 0; i < damageBuffer.Length; i++)
             {
                 var dbe = damageBuffer[i];
                 float damage = dbe.Damage;
-                ESpellTag element = dbe.Element;
 
+                //todo use stats 
                 // Apply flat Armor reduction after elemental resistances
                 // damage -= stats.Armor;
                 damage = math.max(0, damage);
 
                 totalDamage += damage;
                 isCritical = dbe.IsCritical;
+                isBurn = dbe.Tag == ESpellTag.Burn;
             }
 
             // Apply the accumulated damage to the health component
@@ -124,7 +127,7 @@ public partial struct HealthSystem : ISystem
             if (!isPlayer)
             {
                 var transform = TransformLookup[entity];
-                TriggerDamageVisual(index, ECB, (int)totalDamage, transform, isCritical);
+                TriggerDamageVisual(index, ECB, (int)totalDamage, transform, isCritical, isBurn);
             }
 
             // Check for death condition
@@ -168,7 +171,8 @@ public partial struct HealthSystem : ISystem
             EntityCommandBuffer.ParallelWriter ecb,
             int amount,
             LocalTransform transform,
-            bool isCritical
+            bool isCritical = false,
+            bool isBurn = false
         )
         {
             Entity req = ecb.CreateEntity(key);
@@ -180,6 +184,7 @@ public partial struct HealthSystem : ISystem
                     Amount = amount,
                     Transform = transform,
                     IsCritical = isCritical,
+                    IsBurn = isBurn
                 }
             );
         }

@@ -61,7 +61,7 @@ public partial struct EnemyTargetingSystem : ISystem
     /// Processes each enemy with ready spells, checking if the player is within the spell's cast range.
     /// </summary>
     [BurstCompile]
-    [WithAll(typeof(Stats), typeof(Enemy))]
+    [WithAll(typeof(CoreStats), typeof(Enemy))]
     private partial struct EnemyTargetingJob : IJobEntity
     {
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;

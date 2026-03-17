@@ -7,4 +7,5 @@ public struct DamageFeedbackRequest : IComponentData
     public int Amount;
     public LocalTransform Transform;
     public bool IsCritical;
+    public bool IsBurn;
 }

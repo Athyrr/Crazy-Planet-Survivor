@@ -50,7 +50,7 @@ public class CharacterSelectionUIController : MonoBehaviour
 
         // Refresh containers
         CharacterDetailView.Refresh(characterData);
-        CharacterStatsView.Refresh(characterData.BaseStats);
+        CharacterStatsView.Refresh(characterData.coreStats);
     }
 
     public void ConfirmSelection()

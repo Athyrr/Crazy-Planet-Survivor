@@ -17,7 +17,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
     /// <summary> Cached lookup for world positions. </summary>
     [ReadOnly] private ComponentLookup<LocalTransform> _transformLookup;
     /// <summary> Cached lookup for player stats (Collection Range/Speed). </summary>
-    [ReadOnly] private ComponentLookup<Stats> _statsLookup;
+    [ReadOnly] private ComponentLookup<CoreStats> _statsLookup;
     /// <summary> Cached lookup for planet-specific data. </summary>
     [ReadOnly] private ComponentLookup<PlanetData> _planetLookup;
 
@@ -35,7 +35,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
         state.RequireForUpdate<ExpAttractionAnimationCurveConfig>();
 
         _transformLookup = state.GetComponentLookup<LocalTransform>(isReadOnly: true);
-        _statsLookup = state.GetComponentLookup<Stats>(isReadOnly: true);
+        _statsLookup = state.GetComponentLookup<CoreStats>(isReadOnly: true);
         _planetLookup = state.GetComponentLookup<PlanetData>(isReadOnly: true);
 
         //_playerQuery = state.GetEntityQuery(typeof(Player));
@@ -116,7 +116,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
 
         public float3 PlayerPosition;
 
-        [ReadOnly] public ComponentLookup<Stats> StatsLookup;
+        [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
         public float AnimDuration;
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in ExperienceOrb orb)

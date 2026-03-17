@@ -1,5 +1,5 @@
 /// <summary>
-/// All possible character stats labels. Make sure that <see cref="ECharacterStat"/> elements correspond to <see cref="Stats"/> + <see cref="BaseStats"/> elements.
+/// All possible character stats labels. Make sure that <see cref="ECharacterStat"/> elements correspond to <see cref="CoreStats"/> + <see cref="BaseStats"/> elements.
 /// </summary>
 public enum ECharacterStat
 {

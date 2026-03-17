@@ -43,7 +43,7 @@ public class DebugGizmoDrawer : MonoBehaviour
         _playerQuery = _entityManager.CreateEntityQuery(
             typeof(Player),
             typeof(LocalTransform),
-            typeof(Stats)
+            typeof(CoreStats)
         );
 
         _transformTypeHandle = _entityManager.GetComponentTypeHandle<LocalTransform>(true);
@@ -102,7 +102,7 @@ public class DebugGizmoDrawer : MonoBehaviour
         if (DrawPlayerCollectRange && !_playerQuery.IsEmpty)
         {
             Gizmos.color = CollectRangeColor;
-            var stats = _playerQuery.GetSingleton<Stats>();
+            var stats = _playerQuery.GetSingleton<CoreStats>();
             var transform = _playerQuery.GetSingleton<LocalTransform>();
 
             DrawWireDisk(transform.Position, transform.Up(), stats.BasePickupRange * stats.PickupRangeMultiplier);

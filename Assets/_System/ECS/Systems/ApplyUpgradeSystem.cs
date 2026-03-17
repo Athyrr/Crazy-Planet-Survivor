@@ -97,7 +97,7 @@ public partial struct ApplyUpgradeSystem : ISystem
             [ChunkIndexInQuery] int chunkIndex,
             Entity playerEntity,
             in ApplyUpgradeRequest request,
-            ref Stats playerStats,
+            ref CoreStats playerCoreStats,
             ref Health health)
         {
             ref var upgrade = ref UpgradesDatabaseRef.Value.Upgrades[request.DatabaseIndex];
@@ -105,10 +105,9 @@ public partial struct ApplyUpgradeSystem : ISystem
 
             // todo check for keeping StatModifer Buffer
             // PLAYER GLOBAL STAT UPGRADE: STAT (Modif Directly)
-            if (upgrade.UpgradeType == EUpgradeType.PlayerStat && upgrade.SpellID == ESpellID.None &&
-                upgrade.SpellTags == ESpellTag.None)
+            if (upgrade.UpgradeType == EUpgradeType.PlayerStat && upgrade.CharacterStat != ECharacterStat.None )
             {
-                ApplyPlayerStatUpgrade(ref playerStats, ref health, upgrade.CharacterStat, upgrade.Value,
+                ApplyPlayerStatUpgrade(ref playerCoreStats, ref health, upgrade.CharacterStat, upgrade.Value,
                     ref needSpellUpdate);
             }
 
@@ -196,7 +195,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         [NativeDisableParallelForRestriction] public BufferLookup<SpellModifier> SpellModifierLookup;
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity playerEntity, in ApplyAmuletRequest request,
-            ref Stats playerStats, ref Health health)
+            ref CoreStats playerCoreStats, ref Health health)
         {
             ref var amulet = ref AmuletsDatabaseRef.Value.Amulets[request.DatabaseIndex];
             bool needSpellUpdate = false;
@@ -208,7 +207,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                 // Player Stat Upgrade
                 if (mod.UpgradeType == EUpgradeType.PlayerStat)
                 {
-                    ApplyPlayerStatUpgrade(ref playerStats, ref health, mod.CharacterStat, mod.Value,
+                    ApplyPlayerStatUpgrade(ref playerCoreStats, ref health, mod.CharacterStat, mod.Value,
                         ref needSpellUpdate);
                 }
 
@@ -263,60 +262,62 @@ public partial struct ApplyUpgradeSystem : ISystem
     }
 
 
-    private static void ApplyPlayerStatUpgrade(ref Stats playerStats, ref Health health, ECharacterStat stat,
+    private static void ApplyPlayerStatUpgrade(ref CoreStats playerCoreStats, ref Health health, ECharacterStat stat,
         float value, ref bool needSpellUpdate)
     {
         switch (stat)
         {
             case ECharacterStat.MaxHealth:
-                playerStats.MaxHealthMultiplier += value;
-                health.Value += (int)(playerStats.BaseMaxHealth * value); // todo Heal ?
+                playerCoreStats.MaxHealthMultiplier += value;
+                health.Value += (int)(playerCoreStats.BaseMaxHealth * value); // todo Heal ?
                 break;
             case ECharacterStat.Health:
                 health.Value = math.min(health.Value + (int)value,
-                    (int)(playerStats.BaseMaxHealth * playerStats.MaxHealthMultiplier));
+                    (int)(playerCoreStats.BaseMaxHealth * playerCoreStats.MaxHealthMultiplier));
                 break;
             case ECharacterStat.Armor:
-                playerStats.BaseArmor += value;
+                playerCoreStats.BaseArmor += value;
                 break;
             case ECharacterStat.Speed:
-                playerStats.MoveSpeedMultiplier += value;
+                playerCoreStats.MoveSpeedMultiplier += value;
                 break;
             case ECharacterStat.CollectRange:
-                playerStats.PickupRangeMultiplier += value;
+                playerCoreStats.PickupRangeMultiplier += value;
                 break;
             case ECharacterStat.Damage:
-                playerStats.GlobalDamageMultiplier += value;
+                playerCoreStats.GlobalDamageMultiplier += value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.CooldownReduction:
-                playerStats.GlobalCooldownMultiplier -= value;
+                playerCoreStats.GlobalCooldownMultiplier -= value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.AreaSize:
-                playerStats.GlobalSpellAreaMultiplier += value;
+                playerCoreStats.GlobalSpellAreaMultiplier += value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.SizeMultiplier:
-                playerStats.GlobalSpellSizeMultiplier += value;
+                playerCoreStats.GlobalSpellSizeMultiplier += value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.BounceCount:
-                playerStats.GlobalBounceBonus += (int)value;
+                playerCoreStats.GlobalBounceBonus += (int)value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.PierceCount:
-                playerStats.GlobalPierceBonus += (int)value;
+                playerCoreStats.GlobalPierceBonus += (int)value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.CritChance:
-                playerStats.CritChance += value;
+                playerCoreStats.CritChance += value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.CritDamage:
-                playerStats.CritDamageMultiplier += value;
+                playerCoreStats.CritDamageMultiplier += value;
                 needSpellUpdate = true;
                 break;
+            // todo other character stats (ex SpellSize, SpellSpeed, Duration...)
+            // todo Handle status (burn duration, slow strength...)  + use to calculate current stats in active effects system
         }
     }
 

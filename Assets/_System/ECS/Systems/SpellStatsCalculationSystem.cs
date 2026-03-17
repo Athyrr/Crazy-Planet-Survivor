@@ -14,7 +14,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
     private EntityQuery _activeTickDamageSpellQuery;
     private EntityQuery _subSpellsSpawnerQuery;
 
-    private ComponentLookup<Stats> _statsLookup;
+    private ComponentLookup<CoreStats> _statsLookup;
     private ComponentLookup<DamageOnContact> _damageLookup;
     private ComponentLookup<DamageOnTick> _damageOnTickLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
@@ -27,12 +27,12 @@ public partial struct SpellStatsCalculationSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<Stats>();
+        state.RequireForUpdate<CoreStats>();
         state.RequireForUpdate<SpellsDatabase>();
 
         _calculationRequestQuery = SystemAPI
             .QueryBuilder()
-            .WithAll<SpellStatsCalculationRequest, Stats, ActiveSpell, SpellModifier>()
+            .WithAll<SpellStatsCalculationRequest, CoreStats, ActiveSpell, SpellModifier>()
             .Build();
 
         _activeTickDamageSpellQuery = SystemAPI.QueryBuilder()
@@ -46,7 +46,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
             .WithAll<SpellSource>()
             .Build();
 
-        _statsLookup = state.GetComponentLookup<Stats>(true);
+        _statsLookup = state.GetComponentLookup<CoreStats>(true);
         _damageLookup = state.GetComponentLookup<DamageOnContact>(true);
         _damageOnTickLookup = state.GetComponentLookup<DamageOnTick>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
@@ -132,7 +132,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         private void Execute(
             [ChunkIndexInQuery] int chunkIndex,
             Entity entity,
-            in Stats stats,
+            in CoreStats coreStats,
             ref DynamicBuffer<ActiveSpell> activeSpells,
             in DynamicBuffer<SpellModifier> spellModifiers)
         {
@@ -147,28 +147,28 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
                 // Multipliers
                 // Total = Base * ( 1 + Global(Player) + Local(Spell))
-                float dmgMult = stats.GlobalDamageMultiplier + (1f + spell.LocalDamageBonusMultiplier);
-                float areaMult = stats.GlobalSpellAreaMultiplier + (1f + spell.LocalAreaBonusMultiplier);
-                float sizeMult = stats.GlobalSpellSizeMultiplier + (1f + spell.LocalSizeBonusMultiplier);
-                float speedMult = stats.GlobalSpellSpeedMultiplier + (1f + spell.LocalSpeedBonusPercent);
-                float durationMult = stats.GlobalDurationMultiplier * (1f + spell.LocalDurationBonusPercent);
+                float dmgMult = coreStats.GlobalDamageMultiplier + (1f + spell.LocalDamageBonusMultiplier);
+                float areaMult = coreStats.GlobalSpellAreaMultiplier + (1f + spell.LocalAreaBonusMultiplier);
+                float sizeMult = coreStats.GlobalSpellSizeMultiplier + (1f + spell.LocalSizeBonusMultiplier);
+                float speedMult = coreStats.GlobalSpellSpeedMultiplier + (1f + spell.LocalSpeedBonusPercent);
+                float durationMult = coreStats.GlobalDurationMultiplier * (1f + spell.LocalDurationBonusPercent);
                 float tickRateMult = 1 + spell.LocalTickRateBonusMultiplier;
-                float rangeMult = stats.GlobalCastRangeMultiplier + (1f + spell.LocalRangeBonusMultiplier);
+                float rangeMult = coreStats.GlobalCastRangeMultiplier + (1f + spell.LocalRangeBonusMultiplier);
 
                 float bounceRangeMult = /*stats.GlobalBounceRangeMultiplier **/
                     (1 + spell.LocalRangeBonusMultiplier); // todo add global bounce range multiplier if needed
 
-                float cdMult = stats.GlobalCooldownMultiplier * math.max(0.1f, 1f - spell.LocalCooldownBonusPercent);
+                float cdMult = coreStats.GlobalCooldownMultiplier * math.max(0.1f, 1f - spell.LocalCooldownBonusPercent);
 
                 // Additives
-                int amountAdd = stats.GlobalAmountBonus + spell.LocalAmountBonus;
-                int bounceAdd = stats.GlobalBounceBonus + spell.LocalBounceBonus;
-                int pierceAdd = stats.GlobalPierceBonus + spell.LocalPierceBonus;
+                int amountAdd = coreStats.GlobalAmountBonus + spell.LocalAmountBonus;
+                int bounceAdd = coreStats.GlobalBounceBonus + spell.LocalBounceBonus;
+                int pierceAdd = coreStats.GlobalPierceBonus + spell.LocalPierceBonus;
 
 
                 // Crit
-                float critChanceAdd = stats.CritChance + spell.LocalCritChanceBonusPercent;
-                float critDmgAdd = stats.CritDamageMultiplier + (1 - spell.LocalCritDamageBonus);
+                float critChanceAdd = coreStats.CritChance + spell.LocalCritChanceBonusPercent;
+                float critDmgAdd = coreStats.CritDamageMultiplier + spell.LocalCritDamageBonus;
 
                 // Spell modifier buffer
                 for (int j = 0; j < spellModifiers.Length; j++)

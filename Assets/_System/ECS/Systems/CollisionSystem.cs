@@ -18,18 +18,15 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<CpEntity> _cpEntityLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
 
-
     private ComponentLookup<DamageOnContact> _damageOnContactLookup;
     private ComponentLookup<DestroyOnContact> _destroyOnContactLookup;
     private ComponentLookup<Invincible> _invincibleLookup;
     private BufferLookup<HitEntityMemory> _hitMemoryLookup;
 
-
     private ComponentLookup<Bounce> _ricochetLookup;
     private ComponentLookup<Pierce> _pierceLookup;
     private ComponentLookup<LinearMovement> _linearMovementLookup;
     private ComponentLookup<FollowTargetMovement> _followMovementLookup;
-
 
     private ComponentLookup<ExplodeOnContact> _explodeLookup;
     private ComponentLookup<SpellSource> _subSpellRootLookup;
@@ -37,9 +34,12 @@ public partial struct CollisionSystem : ISystem
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
+    // private ActiveEffectsConfig _effectsConfig;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<ActiveEffectsConfig>();
         state.RequireForUpdate<PhysicsStep>();
         state.RequireForUpdate<SimulationSingleton>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
@@ -63,6 +63,7 @@ public partial struct CollisionSystem : ISystem
         _subSpellRootLookup = state.GetComponentLookup<SpellSource>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
 
+        // _effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
 
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
@@ -82,6 +83,8 @@ public partial struct CollisionSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
+
+        var effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
 
         _playerLookup.Update(ref state);
         _cpEntityLookup.Update(ref state);
@@ -105,6 +108,9 @@ public partial struct CollisionSystem : ISystem
             ECB = ecb.AsParallelWriter(),
             CurrentTime = SystemAPI.Time.ElapsedTime,
             CollisionWorld = physicsWorld.CollisionWorld,
+
+            // EffectsConfig = _effectsConfig,
+            EffectsConfig = effectsConfig,
 
             PlayerLookup = _playerLookup,
             CpEntityLookup = _cpEntityLookup,
@@ -146,6 +152,8 @@ public partial struct CollisionSystem : ISystem
         public EntityCommandBuffer.ParallelWriter ECB;
         public double CurrentTime;
         [ReadOnly] public CollisionWorld CollisionWorld;
+
+        [ReadOnly] public ActiveEffectsConfig EffectsConfig;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<CpEntity> CpEntityLookup;
@@ -226,11 +234,39 @@ public partial struct CollisionSystem : ISystem
                             new DamageBufferElement
                             {
                                 Damage = damageDealt,
-                                Element = damageData.Element,
+                                Tag = damageData.Tag,
                                 IsCritical = isCrit,
                             }
                         );
 
+                        // Active effects using tags
+
+                        // Slow
+                        if ((damageData.Tag & ESpellTag.Slow) != 0)
+                        {
+                            ECB.SetComponent(0, target, new SlowEffect
+                            {
+                                SpeedReductionMultiplier = EffectsConfig.BaseSlowMultiplier,
+                                DurationLeft = EffectsConfig.SlowDuration
+                            });
+                            ECB.SetComponentEnabled<SlowEffect>(0, target, true);
+                        }
+
+                        // Burn
+                        if ((damageData.Tag & ESpellTag.Burn) != 0)
+                        {
+                            ECB.SetComponent(0, target, new BurnEffect
+                            {
+                                DamageOnTick = EffectsConfig.BurnDamageRatio * damageData.Damage,
+                                TickRate = EffectsConfig.BurnTickRate,
+                                TickTimer = 0f,
+                                RemainingTime = EffectsConfig.BurnDuration
+                            });
+                            ECB.SetComponentEnabled<BurnEffect>(0, target, true);
+                        }
+
+
+                        // Track Spell damages
                         if (SpellSourceLookup.TryGetComponent(damagerEntity, out var spellSource))
                         {
                             // todo tracks only player spells
@@ -241,13 +277,13 @@ public partial struct CollisionSystem : ISystem
                             });
                         }
 
+                        // Feedbacks
                         ApplyFeedbacks(target);
                     }
 
                     if (ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
                         ExplodeOnContactLookup.IsComponentEnabled(damagerEntity))
                     {
-
                         var damageData = DamageOnContactLookup[damagerEntity];
 
                         var random = Random.CreateFromIndex(Seed);
@@ -319,7 +355,8 @@ public partial struct CollisionSystem : ISystem
             }
         }
 
-        private void CreateExplosion(Entity damager, ExplodeOnContact explosionData, float criticalDamagesMultiplier, bool isCrit)
+        private void CreateExplosion(Entity damager, ExplodeOnContact explosionData, float criticalDamagesMultiplier,
+            bool isCrit)
         {
             var requestEntity = ECB.CreateEntity(0);
             float3 pos = LocalTransformLookup[damager].Position;
@@ -327,7 +364,7 @@ public partial struct CollisionSystem : ISystem
             ESpellTag element = ESpellTag.None;
             if (DamageOnContactLookup.HasComponent(damager))
             {
-                element = DamageOnContactLookup[damager].Element | ESpellTag.Explosive;
+                element = DamageOnContactLookup[damager].Tag | ESpellTag.Explosive;
             }
 
             ECB.AddComponent(
@@ -354,6 +391,7 @@ public partial struct CollisionSystem : ISystem
             var shakeReq = ECB.CreateEntity(0);
             ECB.AddComponent<ShakeFeedbackRequest>(0, shakeReq);
 
+            // todo request on the entity itself
             var flashReq = ECB.CreateEntity(0);
             ECB.AddComponent(0, flashReq, new HitFrameColorRequest { TargetEntity = hitEntity });
         }

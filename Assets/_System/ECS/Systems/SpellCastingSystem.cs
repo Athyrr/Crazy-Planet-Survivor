@@ -442,7 +442,7 @@ public partial struct SpellCastingSystem : ISystem
                     ECB.SetComponent(chunkIndex, spellEntity, new DamageOnContact
                     {
                         Damage = finalDamage,
-                        Element = totalTags,
+                        Tag = totalTags,
                         AreaRadius = finalArea,
                         TotalCritChance = activeSpell.FinalCritChance,
                         TotalCritMultiplier = activeSpell.FinalCritDamageMultiplier

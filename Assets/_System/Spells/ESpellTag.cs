@@ -29,6 +29,12 @@ public enum ESpellTag : uint
     Piercing = 1 << 16,
     Bouncing = 1 << 17,
 
+    // Active Effects
+    Burn = 1 << 18,
+    Stun = 1 << 19,
+    Slow = 1 << 20,
+
+    
     MagicDamage = Fire | Ice | Lightning | Light | Dark | Nature,
     All = ~0u,
 }

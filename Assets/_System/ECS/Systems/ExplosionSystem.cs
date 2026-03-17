@@ -89,7 +89,7 @@ public partial struct ExplosionSystem : ISystem
                         ECB.AppendToBuffer(chunkIndex, hitEntity, new DamageBufferElement
                         {
                             Damage = (int)explosion.Damage,
-                            Element = explosion.Element,
+                            Tag = explosion.Element,
                             IsCritical = explosion.IsCritical
                         });
 

@@ -64,7 +64,7 @@ public class PlayerAuthoring : MonoBehaviour
 
             List<UpgradeSO> gameUpgradesList = authoring._gameUpgradesConfig.GetFlattenedUpgrades();
             var data = authoring.characterData;
-            var baseStats = data.BaseStats;
+            var baseStats = data.coreStats;
             var initialSpells = data.InitialSpells;
 
             AddComponent(entity, new Player());
@@ -77,7 +77,7 @@ public class PlayerAuthoring : MonoBehaviour
 
             AddBuffer<DamageBufferElement>(entity);
 
-            AddComponent(entity, new Stats
+            AddComponent(entity, new CoreStats
             {
                 // Bases
                 BaseMaxHealth = baseStats.BaseMaxHealth,

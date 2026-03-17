@@ -9,7 +9,7 @@ public class EnemyAuthoring : MonoBehaviour
         "If true, the enemy will be snapped perfectly on the ground following the terrain height. Otherwise, it will follow the base radius.")]
     public bool UseSnappedMovement = true;
 
-    [Header("Stats")] public Stats BaseStats;
+    [Header("Stats")] public CoreStats BaseStats;
 
     [Header("Spells")] public SpellDataSO[] InitialSpells;
 
@@ -31,7 +31,7 @@ public class EnemyAuthoring : MonoBehaviour
             AddBuffer<EnemySpellReady>(entity);
             AddBuffer<DamageBufferElement>(entity);
 
-            AddComponent(entity, new Stats
+            AddComponent(entity, new CoreStats
             {
                 // Bases
                 BaseMaxHealth = authoring.BaseStats.BaseMaxHealth,
@@ -39,23 +39,23 @@ public class EnemyAuthoring : MonoBehaviour
                 BaseMoveSpeed = authoring.BaseStats.BaseMoveSpeed,
                 BasePickupRange = authoring.BaseStats.BasePickupRange,
 
-                MaxHealthMultiplier = 1.0f,
+                MaxHealthMultiplier = authoring.BaseStats.MaxHealthMultiplier,
                 HealthRecovery = authoring.BaseStats.HealthRecovery,
-                DamageReductionMultiplier = 1.0f,
-                MoveSpeedMultiplier = 1.0f,
-                PickupRangeMultiplier = 1.0f,
+                DamageReductionMultiplier = authoring.BaseStats.DamageReductionMultiplier,
+                MoveSpeedMultiplier = authoring.BaseStats.MoveSpeedMultiplier,
+                PickupRangeMultiplier = authoring.BaseStats.PickupRangeMultiplier,
 
-                GlobalDamageMultiplier = 1.0f,
-                GlobalCooldownMultiplier = 1.0f,
-                GlobalSpellAreaMultiplier = 1.0f,
-                GlobalSpellSizeMultiplier = 1.0f,
-                GlobalSpellSpeedMultiplier = 1.0f,
-                GlobalDurationMultiplier = 1.0f,
-                GlobalCastRangeMultiplier = 1.0f,
+                GlobalDamageMultiplier = authoring.BaseStats.GlobalDamageMultiplier,
+                GlobalCooldownMultiplier = authoring.BaseStats.GlobalCooldownMultiplier,
+                GlobalSpellAreaMultiplier = authoring.BaseStats.GlobalSpellAreaMultiplier,
+                GlobalSpellSizeMultiplier = authoring.BaseStats.GlobalSpellSizeMultiplier,
+                GlobalSpellSpeedMultiplier = authoring.BaseStats.GlobalSpellSpeedMultiplier,
+                GlobalDurationMultiplier = authoring.BaseStats.GlobalDurationMultiplier,
+                GlobalCastRangeMultiplier = authoring.BaseStats.GlobalCastRangeMultiplier,
 
-                GlobalAmountBonus = 0,
-                GlobalPierceBonus = 0,
-                GlobalBounceBonus = 0,
+                GlobalAmountBonus = authoring.BaseStats.GlobalAmountBonus,
+                GlobalPierceBonus = authoring.BaseStats.GlobalPierceBonus,
+                GlobalBounceBonus = authoring.BaseStats.GlobalBounceBonus,
 
                 CritChance = authoring.BaseStats.CritChance,
                 CritDamageMultiplier = authoring.BaseStats.CritDamageMultiplier,

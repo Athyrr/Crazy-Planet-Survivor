@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class StatsAuthoring : MonoBehaviour
 {
-    [Header("Stats")] public Stats baseStats;
+    [Header("Stats")] public CoreStats baseStats;
     
     private class Baker : Baker<StatsAuthoring>
     {
