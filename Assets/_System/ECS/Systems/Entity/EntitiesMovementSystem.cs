@@ -62,6 +62,17 @@ public partial struct EntitiesMovementSystem : ISystem
         _stopDistanceLookup.Update(ref state);
         _stunLookup.Update(ref state);
 
+
+        // Scheduled first cause just reading transform
+        var updateOrbitCenterJob = new UpdateOrbitCenterPositionJob
+        {
+            LocalTransformLookup = _transformLookup
+        };
+        JobHandle orbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(state.Dependency);
+
+
+        // Schedule movement jobs
+
         var linearSnappedJob = new MoveLinearSnappedJob
         {
             DeltaTime = delta,
@@ -70,18 +81,7 @@ public partial struct EntitiesMovementSystem : ISystem
             StatsLookup = _statsLookup,
             PlayerLookup = _playerLookup
         };
-        JobHandle linearSnappedHandle = linearSnappedJob.ScheduleParallel(state.Dependency);
-
-        //var linearBareJob = new MoveLinearBareJob
-        //{
-        //    DeltaTime = delta,
-        //    PlanetCenter = planetTransform.Position,
-        //    PlanetRadius = planetData.Radius,
-        //    StatsLookup = _statsLookup,
-        //    PlayerLookup = _playerLookup,
-        //    PhysicsCollisionWorld = collisionWorld
-        //};
-        //JobHandle linearBareHandle = linearBareJob.ScheduleParallel(linearSnappedHandle);
+        JobHandle linearHandle = linearSnappedJob.ScheduleParallel(orbitCenterHandle);
 
         var followSnappedJob = new MoveFollowSnappedJob
         {
@@ -94,27 +94,10 @@ public partial struct EntitiesMovementSystem : ISystem
             StopDistanceLookup = _stopDistanceLookup,
             StunLookup = _stunLookup
         };
-        JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearSnappedHandle);
-        //JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearBareHandle);
+        JobHandle followHandle = followSnappedJob.ScheduleParallel(orbitCenterHandle);
 
-        //var followBareJob = new MoveFollowBareJob
-        //{
-        //    DeltaTime = delta,
-        //    PlanetCenter = planetTransform.Position,
-        //    PlanetRadius = planetData.Radius,
-        //    StatsLookup = _statsLookup,
-        //    SteeringLookup = _steeringLookup,
-        //    TransformLookup = _transformLookup
-        //};
-        //JobHandle followBareHandle = followBareJob.ScheduleParallel(followSnappedHandle);
-
-        var updateOrbitCenterJob = new UpdateOrbitCenterPositionJob
-        {
-            LocalTransformLookup = _transformLookup
-        };
-        //JobHandle orbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(followBareHandle);
-        JobHandle orbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(followSnappedHandle);
-
+        var linearAndFollowHandle = JobHandle.CombineDependencies(linearHandle, followHandle);
+        
         var orbitSnappedJob = new MoveOrbitSnappedJob
         {
             DeltaTime = delta,
@@ -129,18 +112,20 @@ public partial struct EntitiesMovementSystem : ISystem
             PlanetCenter = planetTransform.Position,
             PlanetRadius = planetData.Radius
         };
-        JobHandle orbitBareHandle = orbitBareJob.ScheduleParallel(orbitSnappedHandle);
-
-        state.Dependency = orbitBareHandle;
+        JobHandle orbitBareHandle = orbitBareJob.ScheduleParallel(orbitCenterHandle);
+        
+        
+        var orbitsHandle = JobHandle.CombineDependencies(orbitSnappedHandle, orbitBareHandle);
+        
+        state.Dependency = JobHandle.CombineDependencies(linearAndFollowHandle, orbitsHandle);
     }
-
-    #region Jobs
 
     /// <summary>
     /// Moves entities in a straight line while using raycasts to snap them to uneven terrain.
     /// </summary>
     [BurstCompile]
-    [WithAll(typeof(LinearMovement) /*, typeof(HardSnappedMovement)*/)]
+    //[WithAll(typeof(LinearMovement) /*, typeof(HardSnappedMovement)*/)]
+    [WithNone(typeof(FollowTargetMovement), typeof(OrbitMovement))]
     private partial struct MoveLinearSnappedJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;
@@ -336,6 +321,7 @@ public partial struct EntitiesMovementSystem : ISystem
     /// </summary>
     [BurstCompile]
     [WithAll(typeof(FollowTargetMovement), typeof(HardSnappedMovement))]
+    [WithNone(typeof(LinearMovement), typeof(OrbitMovement))]
     private partial struct MoveFollowSnappedJob : IJobEntity
     {
         [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
@@ -348,7 +334,7 @@ public partial struct EntitiesMovementSystem : ISystem
 
         [NativeDisableContainerSafetyRestriction] [ReadOnly]
         public ComponentLookup<LocalTransform> TransformLookup;
-        
+
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
 
         private const float SNAP_DISTANCE = 10.0f;
@@ -597,6 +583,4 @@ public partial struct EntitiesMovementSystem : ISystem
             }
         }
     }
-
-    #endregion
 }

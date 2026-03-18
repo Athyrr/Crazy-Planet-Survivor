@@ -3,7 +3,6 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
-using Unity.Transforms;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -18,6 +17,9 @@ public partial struct ApplyUpgradeSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<AmuletsDatabase>();
+        state.RequireForUpdate<SpellsDatabase>();
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<Player>();
         state.RequireForUpdate<GameState>();
         state.RequireForUpdate<UpgradesDatabase>();
