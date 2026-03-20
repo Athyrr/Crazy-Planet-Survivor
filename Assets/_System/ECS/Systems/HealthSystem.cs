@@ -10,6 +10,7 @@ using UnityEngine;
 /// Processes incoming damage from the <see cref="DamageBufferElement"/>, applying elemental
 /// resistances and armor reductions before updating the entity's health.
 /// </summary>
+[UpdateAfter(typeof(CollisionSystem))]
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
 public partial struct HealthSystem : ISystem
@@ -17,6 +18,7 @@ public partial struct HealthSystem : ISystem
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
     private ComponentLookup<CpEntity> _cpEntityLookup;
+    private ComponentLookup<Ressource> _ressourceLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
 
@@ -28,6 +30,7 @@ public partial struct HealthSystem : ISystem
         _playerLookup = state.GetComponentLookup<Player>(true);
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
         _cpEntityLookup = state.GetComponentLookup<CpEntity>(true);
+        _ressourceLookup = state.GetComponentLookup<Ressource>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
     }
@@ -50,6 +53,7 @@ public partial struct HealthSystem : ISystem
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
         _cpEntityLookup.Update(ref state);
+        _ressourceLookup.Update(ref state);
         _transformLookup.Update(ref state);
         _destroyFlagLookup.Update(ref state);
 
@@ -60,6 +64,7 @@ public partial struct HealthSystem : ISystem
             PlayerLookup = _playerLookup,
             CpEntityLookup = _cpEntityLookup,
             EnemyLookup = _enemyLookup,
+            RessourceLookup = _ressourceLookup,
             TransformLookup = _transformLookup,
         };
 
@@ -79,6 +84,7 @@ public partial struct HealthSystem : ISystem
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<CpEntity> CpEntityLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
+        [ReadOnly] public ComponentLookup<Ressource> RessourceLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
 
         private void Execute(
@@ -89,7 +95,7 @@ public partial struct HealthSystem : ISystem
         )
         {
             // Skip entities already marked for destruction
-            if (DestroyFlagLookup.HasComponent(entity))
+            if (DestroyFlagLookup.HasComponent(entity) && DestroyFlagLookup.IsComponentEnabled(entity))
                 return;
 
             // Skip if health is already zero or there is no damage to process
@@ -134,7 +140,7 @@ public partial struct HealthSystem : ISystem
             if (health.Value <= 0)
             {
                 health.Value = 0;
-                ECB.AddComponent(index, entity, new DestroyEntityFlag());
+                ECB.SetComponentEnabled<DestroyEntityFlag>(index, entity, true);
 
                 if (isPlayer)
                 {
@@ -152,6 +158,15 @@ public partial struct HealthSystem : ISystem
                         index,
                         killedEventEntity,
                         new EnemyKilledEvent { WaveIndex = EnemyLookup[entity].WaveIndex }
+                    );
+                }
+                else if (RessourceLookup.HasComponent(entity))
+                {
+                    var killedEventEntity = ECB.CreateEntity(index);
+                    ECB.AddComponent(
+                        index,
+                        killedEventEntity,
+                        new RessourceKilledEvent { }
                     );
                 }
                 else if (CpEntityLookup.HasComponent(entity))
@@ -198,5 +213,9 @@ public struct EnemyKilledEvent : IComponentData
 
 // todo impl this and add enemyKilledEvent override EntityKill logic
 public struct EntityKilledEvent : IComponentData
+{
+}
+
+public struct RessourceKilledEvent : IComponentData
 {
 }

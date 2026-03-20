@@ -23,11 +23,22 @@ public static class SaveManager
 
     #region Save Directory
 
-    private static DirectoryInfo SaveDirectoryInfo { get; set; }
-
-    private static void GetOrCreateSaveDirectory()
+    private static DirectoryInfo _saveDirectoryInfo;
+    private static DirectoryInfo SaveDirectoryInfo
     {
-        if (SaveDirectoryInfo == null)
+        get
+        {
+            if (_saveDirectoryInfo == null)
+                GetOrCreateSaveDirectory();
+
+            return _saveDirectoryInfo;
+        }
+        set { _saveDirectoryInfo = value; }
+    }
+
+    private static DirectoryInfo GetOrCreateSaveDirectory()
+    {
+        if (_saveDirectoryInfo == null)
         {
             if (!Directory.Exists(SaveDirectoryPath))
             {
@@ -50,7 +61,7 @@ public static class SaveManager
             // Get old saves back
             DirectoryInfo oldSaveFolderDirectoryInfo = null;
             oldSaveFolderDirectoryInfo = Directory.GetParent(SaveDirectoryPath);
-            
+
             if (oldSaveFolderDirectoryInfo != null)
             {
                 foreach (var file in oldSaveFolderDirectoryInfo.EnumerateFiles())
@@ -74,6 +85,8 @@ public static class SaveManager
                 }
             }
         }
+
+        return SaveDirectoryInfo;
     }
 
 #endregion
@@ -414,7 +427,10 @@ public static class SaveManager
         // CurrentSave.saveType = saveType;
         // CurrentSave.version = GameStateSettings.GameVersion;
         // return Modifier != null ? Modifier.GetSaveContent() : JsonUtility.ToJson(CurrentSave);
-        return "";
+        
+
+        
+        return JsonUtility.ToJson(CurrentSave);
     }
 
     #endregion

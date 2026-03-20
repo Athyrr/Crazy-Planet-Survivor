@@ -90,7 +90,7 @@ public partial struct TickDamageSystem : ISystem
 
             StatsLookup = _statsLookup,
             DamageBufferLookup = _damageBufferLookup,
-            DestroyFLagLookup = _destroyFLagLookup,
+            DestroyFlagLookup = _destroyFLagLookup,
             
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter()
         };
@@ -108,6 +108,7 @@ public partial struct TickDamageSystem : ISystem
 
     /// <summary>
     /// @todo summary for all jobs in game
+    /// todo faire des withAll et withNone nan ? adam baeeeee grrrr roar
     /// </summary>
     [BurstCompile]
     private partial struct TickDamageJob : IJobEntity
@@ -122,7 +123,7 @@ public partial struct TickDamageSystem : ISystem
 
         [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
-        [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFLagLookup;
+        [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
 
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
 
@@ -172,7 +173,7 @@ public partial struct TickDamageSystem : ISystem
                     continue;
 
                 // Ignore destroyed entities
-                if (DestroyFLagLookup.HasComponent(hit.Entity))
+                if (DestroyFlagLookup.HasComponent(hit.Entity) && DestroyFlagLookup.IsComponentEnabled(hit.Entity))
                     continue;
 
                 ECB.AppendToBuffer(chunkIndex, hit.Entity, new DamageBufferElement

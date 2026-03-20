@@ -27,6 +27,11 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<Pierce> _pierceLookup;
     private ComponentLookup<LinearMovement> _linearMovementLookup;
     private ComponentLookup<FollowTargetMovement> _followMovementLookup;
+    
+    // todo clean this, tmp fix
+    private ComponentLookup<SlowEffect> _slowLookup;
+    private ComponentLookup<StunEffect> _stunLookup;
+    private ComponentLookup<BurnEffect> _burnLookup;
 
     private ComponentLookup<ExplodeOnContact> _explodeLookup;
     private ComponentLookup<SpellSource> _subSpellRootLookup;
@@ -44,6 +49,10 @@ public partial struct CollisionSystem : ISystem
         state.RequireForUpdate<SimulationSingleton>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
+        
+        _slowLookup = state.GetComponentLookup<SlowEffect>(true);
+        _stunLookup = state.GetComponentLookup<StunEffect>(true);
+        _burnLookup = state.GetComponentLookup<BurnEffect>(true);
 
         _playerLookup = state.GetComponentLookup<Player>(true);
         _cpEntityLookup = state.GetComponentLookup<CpEntity>(true);
@@ -86,6 +95,9 @@ public partial struct CollisionSystem : ISystem
 
         var effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
 
+        _slowLookup.Update(ref state);
+        _stunLookup.Update(ref state);
+        _burnLookup.Update(ref state);
         _playerLookup.Update(ref state);
         _cpEntityLookup.Update(ref state);
         _transformLookup.Update(ref state);
@@ -126,6 +138,10 @@ public partial struct CollisionSystem : ISystem
             HitMemoryLookup = _hitMemoryLookup,
             InvincibleLookup = _invincibleLookup,
             ExplodeOnContactLookup = _explodeLookup,
+            
+            SlowLookup = _slowLookup,
+            StunLookup = _stunLookup,
+            BurnLookup = _burnLookup,
 
             SpellSourceLookup = _subSpellRootLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter()
@@ -133,12 +149,16 @@ public partial struct CollisionSystem : ISystem
 
         JobHandle triggerHandle =
             triggerCollisionJob.Schedule(SystemAPI.GetSingleton<SimulationSingleton>(), state.Dependency);
+        
+        var slowLookup = state.GetComponentLookup<SlowEffect>(true);
+        var stunLookup = state.GetComponentLookup<StunEffect>(true);
+        var burnLookup = state.GetComponentLookup<BurnEffect>(true);
 
         var trackDamageJob = new TrackDamageJob
         {
             DamageEventsQueue = _damageEventsQueue,
             ActiveSpellLookup = _activeSpellBufferLookup,
-            PlayerEntity = SystemAPI.GetSingletonEntity<Player>()
+            PlayerEntity = SystemAPI.GetSingletonEntity<Player>(),
         };
 
         state.Dependency = trackDamageJob.Schedule(triggerHandle);
@@ -161,6 +181,11 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
         [ReadOnly] public ComponentLookup<DestroyOnContact> DestroyOnContactLookup;
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
+        
+        [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
+        [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
+        [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
+        
         public BufferLookup<HitEntityMemory> HitMemoryLookup;
 
         [ReadOnly] public ComponentLookup<LocalTransform> LocalTransformLookup;
@@ -241,46 +266,66 @@ public partial struct CollisionSystem : ISystem
 
                         // Active effects using tags
 
-                        // Slow
                         if ((damageData.Tag & ESpellTag.Slow) != 0)
                         {
-                            ECB.SetComponent(0, target, new SlowEffect
+                            var slow = new SlowEffect
                             {
                                 SpeedReductionMultiplier = EffectsConfig.BaseSlowMultiplier,
                                 DurationLeft = EffectsConfig.SlowDuration
-                            });
-                            ECB.SetComponentEnabled<SlowEffect>(0, target, true);
-                        }
-                        
-                        // todo use case if stun is random
-                        // Stun if spell has stun tag
-                        if ((damageData.Tag & ESpellTag.Stun) != 0)
-                        {
-                            ECB.SetComponent(0, target, new StunEffect
+                            };
+
+                            if (SlowLookup.HasComponent(target))
                             {
-                                DurationLeft = EffectsConfig.StunDuration
-                            });
-                            ECB.SetComponentEnabled<StunEffect>(0, target, true);
+                                ECB.SetComponent(0, target, slow);
+                                ECB.SetComponentEnabled<SlowEffect>(0, target, true);
+                            }
+                            else
+                            {
+                                ECB.AddComponent(0, target, slow);
+                            }
                         }
 
-                        // Burn
+                        if ((damageData.Tag & ESpellTag.Stun) != 0)
+                        {
+                            var stun = new StunEffect
+                            {
+                                DurationLeft = EffectsConfig.StunDuration
+                            };
+
+                            if (StunLookup.HasComponent(target))
+                            {
+                                ECB.SetComponent(0, target, stun);
+                                ECB.SetComponentEnabled<StunEffect>(0, target, true);
+                            }
+                            else
+                            {
+                                ECB.AddComponent(0, target, stun);
+                            }
+                        }
+
                         if ((damageData.Tag & ESpellTag.Burn) != 0)
                         {
-                            ECB.SetComponent(0, target, new BurnEffect
+                            var burn = new BurnEffect
                             {
                                 DamageOnTick = EffectsConfig.BurnDamageRatio * damageData.Damage,
                                 TickRate = EffectsConfig.BurnTickRate,
                                 TickTimer = 0f,
                                 RemainingTime = EffectsConfig.BurnDuration
-                            });
-                            ECB.SetComponentEnabled<BurnEffect>(0, target, true);
+                            };
+
+                            if (BurnLookup.HasComponent(target))
+                            {
+                                ECB.SetComponent(0, target, burn);
+                                ECB.SetComponentEnabled<BurnEffect>(0, target, true);
+                            }
+                            else
+                            {
+                                ECB.AddComponent(0, target, burn);
+                            }
                         }
 
-
-                        // Track Spell damages
                         if (SpellSourceLookup.TryGetComponent(damagerEntity, out var spellSource))
                         {
-                            // todo tracks only player spells
                             DamageEventsWriter.Enqueue(new SpellDamageEvent
                             {
                                 DatabaseIndex = spellSource.DatabaseIndex,
@@ -358,7 +403,7 @@ public partial struct CollisionSystem : ISystem
                         }
                     }
 
-                    if (shouldDestroy)
+                    if (shouldDestroy && CpEntityLookup.HasComponent(damagerEntity))
                     {
                         ECB.AddComponent(0, damagerEntity, new DestroyEntityFlag());
                     }

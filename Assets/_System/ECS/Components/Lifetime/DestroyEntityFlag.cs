@@ -1,3 +1,3 @@
 using Unity.Entities;
 
-public struct DestroyEntityFlag : IComponentData { }
+public struct DestroyEntityFlag : IComponentData, IEnableableComponent { }

@@ -12,6 +12,9 @@ public class EntityAuthoring : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.Dynamic);
             
             AddComponent(entity, new CpEntity());
+            
+            AddComponent(entity, new DestroyEntityFlag());
+            SetComponentEnabled<DestroyEntityFlag>(entity, false);
         }
     }
 }

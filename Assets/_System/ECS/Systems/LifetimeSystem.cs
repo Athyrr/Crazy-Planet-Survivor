@@ -34,8 +34,7 @@ public partial struct LifetimeSystem : ISystem
     }
 
     [BurstCompile]
-    [WithAll(typeof(Lifetime))]
-    [WithNone(typeof(DestroyEntityFlag))]
+    [WithAll(typeof(Lifetime), typeof(DestroyEntityFlag))]
     private partial struct LifetimeJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
@@ -48,7 +47,7 @@ public partial struct LifetimeSystem : ISystem
 
             if (lifetime.TimeLeft <= 0f)
             {
-                ECB.AddComponent(chunkIndex, entity, new DestroyEntityFlag());
+                ECB.SetComponentEnabled<DestroyEntityFlag>(chunkIndex, entity, true);
             }
         }
     }

@@ -39,6 +39,7 @@ public partial struct EntityDestructionSystem : ISystem
         state.Dependency = destructionJob.ScheduleParallel(state.Dependency);
     }
 
+    [WithAll(typeof(DestroyEntityFlag))]
     [BurstCompile]
     private partial struct DestructionJob : IJobEntity
     {
