@@ -16,9 +16,11 @@ public class ExperienceOrbAuthoring : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
             AddComponent(entity, new ExperienceOrb { Value = authoring.Value });
-
             AddComponent(entity, new RunScope());
-
+            
+            AddComponent(entity, new DestroyEntityFlag());
+            SetComponentEnabled<DestroyEntityFlag>(entity, false);
+            
             if (authoring.HardSnapToGround)
                 AddComponent<HardSnappedMovement>(entity);
         }

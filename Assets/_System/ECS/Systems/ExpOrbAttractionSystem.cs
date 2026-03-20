@@ -183,7 +183,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
                 });
 
                 // Destruction
-                ECB.AddComponent<DestroyEntityFlag>(chunkIndex, entity);
+                ECB.SetComponentEnabled<DestroyEntityFlag>(chunkIndex, entity, true);
             }
         }
     }
