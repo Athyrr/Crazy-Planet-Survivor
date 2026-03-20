@@ -3,10 +3,10 @@ using Unity.Entities;
 using Unity.Transforms;
 using Unity.Collections;
 using Unity.Mathematics;
-using System.Runtime.InteropServices.WindowsRuntime;
+using _System.ECS.Authorings.Ressources;
 
 /// <summary>
-/// Manages the lifecycle of experience orbs, handling both the detection of nearby orbs (attraction) 
+/// Manages the lifecycle of any ressources / xp orbs, handling both the detection of nearby orbs (attraction) 
 /// and the final collection when they reach the player. 
 /// Uses a throttled scanning approach to minimize performance impact.
 /// </summary>
@@ -20,6 +20,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
     [ReadOnly] private ComponentLookup<CoreStats> _statsLookup;
     /// <summary> Cached lookup for planet-specific data. </summary>
     [ReadOnly] private ComponentLookup<PlanetData> _planetLookup;
+    [ReadOnly] private ComponentLookup<ExperienceOrb> _experienceOrbLookup;
 
     private EntityQuery _playerQuery;
 
@@ -32,11 +33,12 @@ public partial struct ExpOrbAttractionSystem : ISystem
     {
         state.RequireForUpdate<Player>();
         state.RequireForUpdate<PlanetData>();
-        state.RequireForUpdate<ExpAttractionAnimationCurveConfig>();
+        state.RequireForUpdate<AttractionAnimationCurveConfig>();
 
         _transformLookup = state.GetComponentLookup<LocalTransform>(isReadOnly: true);
         _statsLookup = state.GetComponentLookup<CoreStats>(isReadOnly: true);
         _planetLookup = state.GetComponentLookup<PlanetData>(isReadOnly: true);
+        _experienceOrbLookup = state.GetComponentLookup<ExperienceOrb>(isReadOnly: true);
 
         //_playerQuery = state.GetEntityQuery(typeof(Player));
         ComponentType playerComponentType = ComponentType.ReadOnly<Player>();
@@ -52,13 +54,14 @@ public partial struct ExpOrbAttractionSystem : ISystem
             return;
 
         _transformLookup.Update(ref state);
+        _experienceOrbLookup.Update(ref state);
 
         if (_playerQuery.IsEmptyIgnoreFilter)
             return;
 
         float deltaTime = SystemAPI.Time.DeltaTime;
 
-        var config = SystemAPI.GetSingleton<ExpAttractionAnimationCurveConfig>();
+        var config = SystemAPI.GetSingleton<AttractionAnimationCurveConfig>();
         if (!config.CurveBlobRef.IsCreated)
             return;
 
@@ -76,7 +79,8 @@ public partial struct ExpOrbAttractionSystem : ISystem
             PlayerEntity = playerEntity,
             PlayerPosition = playerPosition,
             DeltaTime = deltaTime,
-            CurveBlobRef = config.CurveBlobRef
+            CurveBlobRef = config.CurveBlobRef,
+            ExperienceOrbLookup = _experienceOrbLookup
         };
         state.Dependency = moveAndcollectJob.ScheduleParallel(state.Dependency);
 
@@ -108,7 +112,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
     /// a movement component to pull them toward the player.
     /// </summary>
     [BurstCompile]
-    [WithNone(typeof(ExpAttractionAnimation))]
+    [WithNone(typeof(AttractionAnimation))]
     private partial struct AttractExpJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
@@ -119,7 +123,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
         [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
         public float AnimDuration;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in ExperienceOrb orb)
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in Ressource ressource)
         {
             
             var playerStats = StatsLookup[PlayerEntity];
@@ -129,7 +133,7 @@ public partial struct ExpOrbAttractionSystem : ISystem
             float distSq = math.distancesq(PlayerPosition, transform.Position);
             if (distSq <= finalCollectRange * finalCollectRange)
             {
-                ECB.AddComponent(chunkIndex, entity, new ExpAttractionAnimation
+                ECB.AddComponent(chunkIndex, entity, new AttractionAnimation
                 {
                     StartPosition = transform.Position,
                     ElapsedTime = 0f,
@@ -150,10 +154,11 @@ public partial struct ExpOrbAttractionSystem : ISystem
         public float DeltaTime;
         public Entity PlayerEntity;
         public float3 PlayerPosition;
+        
+        [ReadOnly] public ComponentLookup<ExperienceOrb> ExperienceOrbLookup;
+        [ReadOnly] public BlobAssetReference<AttractionAnimationCurveBlob> CurveBlobRef;
 
-        [ReadOnly] public BlobAssetReference<ExpAttractionAnimationCurveBlob> CurveBlobRef;
-
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref LocalTransform transform, ref ExpAttractionAnimation anim, in ExperienceOrb orb)
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref LocalTransform transform, ref AttractionAnimation anim, in Ressource ressource)
         {
             anim.ElapsedTime += DeltaTime;
             float progress01 = math.clamp(anim.ElapsedTime / anim.Duration, 0f, 1f);
@@ -176,11 +181,14 @@ public partial struct ExpOrbAttractionSystem : ISystem
             // Collection 
             if (progress01 >= 1f)
             {
-                // Add experience to player
-                ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedExperienceBufferElement
+                if (ressource.Type == ERessourceType.Xp && ExperienceOrbLookup.HasComponent(entity))
                 {
-                    Value = orb.Value
-                });
+                    // Add experience to player
+                    ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedExperienceBufferElement
+                    {
+                        Value = ExperienceOrbLookup[entity].Value
+                    });
+                }
 
                 // Destruction
                 ECB.SetComponentEnabled<DestroyEntityFlag>(chunkIndex, entity, true);

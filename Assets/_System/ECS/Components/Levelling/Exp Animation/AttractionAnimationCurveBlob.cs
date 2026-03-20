@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// Exp gems animation curve blob.
 /// </summary>
-public struct ExpAttractionAnimationCurveBlob
+public struct AttractionAnimationCurveBlob
 {
     public BlobArray<float> Samples;
     public float Duration;

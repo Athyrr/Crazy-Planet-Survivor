@@ -54,7 +54,7 @@ public class OrbsDatabaseAuthoring : MonoBehaviour
 
             // Orb animation curve
             using var builder = new BlobBuilder(Allocator.Temp);
-            ref var root = ref builder.ConstructRoot<ExpAttractionAnimationCurveBlob>();
+            ref var root = ref builder.ConstructRoot<AttractionAnimationCurveBlob>();
 
             BlobBuilderArray<float> arrayBuilder = builder.Allocate(ref root.Samples, authoring.Resolution);
 
@@ -67,9 +67,9 @@ public class OrbsDatabaseAuthoring : MonoBehaviour
             root.Duration = authoring.AttractionDuration;
             root.SampleCount = authoring.Resolution;
 
-            var animCurveBlobRef = builder.CreateBlobAssetReference<ExpAttractionAnimationCurveBlob>(Allocator.Persistent);
+            var animCurveBlobRef = builder.CreateBlobAssetReference<AttractionAnimationCurveBlob>(Allocator.Persistent);
 
-            AddComponent(entity, new ExpAttractionAnimationCurveConfig
+            AddComponent(entity, new AttractionAnimationCurveConfig
             {
                 CurveBlobRef = animCurveBlobRef
             });
