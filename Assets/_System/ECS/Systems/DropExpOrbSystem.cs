@@ -37,7 +37,7 @@ public partial struct DropExpOrbSystem : ISystem
     }
 
 
-    [WithAll(typeof(ExperienceLoot), typeof(DestroyEntityFlag))]
+    [WithAll(typeof(Loot), typeof(DestroyEntityFlag))]
     [WithNone(typeof(LootHasBeenDroppedTag))]
     private partial struct DropExpOrbJob : IJobEntity
     {
@@ -45,7 +45,7 @@ public partial struct DropExpOrbSystem : ISystem
         [ReadOnly] public DynamicBuffer<OrbDatabaseBufferElement> OrbDatabase;
         public uint Seed;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in ExperienceLoot loot)
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in Loot loot)
         {
             var rand = Random.CreateFromIndex(Seed);
             
@@ -56,7 +56,7 @@ public partial struct DropExpOrbSystem : ISystem
                 return;
             }
 
-            int totalExp = loot.ExperienceValue;
+            int totalExp = loot.Value;
 
             //@todo benchmark
             for (int i = 0; i < OrbDatabase.Length; i++)

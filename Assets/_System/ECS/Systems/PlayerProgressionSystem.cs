@@ -26,11 +26,11 @@ public partial struct PlayerProgressionSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
 
-        var gainExpJob = new GainExperienceJob()
-        {
-            ECB = ecb,
-        };
+        var gainExpJob = new GainExperienceJob() { ECB = ecb, };
+        var gainRessourceJob = new GainRessourceJob() { ECB = ecb, };
+        
         state.Dependency = gainExpJob.ScheduleParallel(state.Dependency);
+        state.Dependency = gainRessourceJob.ScheduleParallel(state.Dependency);
     }
 
     [BurstCompile]
@@ -57,6 +57,21 @@ public partial struct PlayerProgressionSystem : ISystem
 
                 ECB.AddComponent(chunkIndex, entity, new PlayerLevelUpRequest() { });
             }
+        }
+    }
+    
+    [BurstCompile]
+    private partial struct GainRessourceJob : IJobEntity
+    {
+        public EntityCommandBuffer.ParallelWriter ECB;
+
+        public void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, ref PlayerRessources ressources, ref DynamicBuffer<CollectedRessourcesBufferElement> ressourcesBuffer)
+        {
+            foreach (var ressource in ressourcesBuffer)
+            {
+                ressources.Ressources[(int)ressource.Type] += ressource.Value;
+            }
+            ressourcesBuffer.Clear();
         }
     }
 }

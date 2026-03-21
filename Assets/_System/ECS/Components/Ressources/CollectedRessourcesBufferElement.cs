@@ -1,9 +1,8 @@
 using _System.ECS.Authorings.Ressources;
 using Unity.Entities;
 
-public struct Ressource : IComponentData
+public struct CollectedRessourcesBufferElement : IBufferElementData
 {
-    public int Value;
     public ERessourceType Type;
-    public bool Persistant;
+    public int Value;
 }
