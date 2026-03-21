@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using _System.ECS.Authorings.Ressources;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
@@ -167,13 +170,24 @@ public class PlayerAuthoring : MonoBehaviour
                 }
             }
 
-            // Experience 
+            // Experience / Ressources 
             AddBuffer<CollectedExperienceBufferElement>(entity);
             AddComponent(entity, new PlayerExperience
             {
                 Experience = 0,
                 Level = 1,
                 NextLevelExperienceRequired = 500,
+            });
+            
+            AddBuffer<CollectedRessourcesBufferElement>(entity);
+            var ressourcesMap = new FixedList128Bytes<int>();
+            
+            foreach (ERessourceType type in Enum.GetValues(typeof(ERessourceType)))
+                ressourcesMap.Add(0);
+            
+            AddComponent(entity, new PlayerRessources
+            { 
+                Ressources = ressourcesMap 
             });
 
             // Invincibility 

@@ -12,7 +12,7 @@ using _System.ECS.Authorings.Ressources;
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
-public partial struct ExpOrbAttractionSystem : ISystem
+public partial struct RessourceAttractionSystem : ISystem
 {
     /// <summary> Cached lookup for world positions. </summary>
     [ReadOnly] private ComponentLookup<LocalTransform> _transformLookup;
@@ -187,6 +187,14 @@ public partial struct ExpOrbAttractionSystem : ISystem
                     ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedExperienceBufferElement
                     {
                         Value = ExperienceOrbLookup[entity].Value
+                    });
+                }
+                else
+                {
+                    ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedRessourcesBufferElement()
+                    {
+                        Type = ressource.Type,
+                        Value = ressource.Value
                     });
                 }
 
