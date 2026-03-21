@@ -348,10 +348,10 @@ public partial struct EntitiesMovementSystem : ISystem
 
         [NativeDisableContainerSafetyRestriction] [ReadOnly]
         public ComponentLookup<LocalTransform> TransformLookup;
-        
+
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
 
-        private const float SNAP_DISTANCE = 10.0f;
+        private const float SNAP_DISTANCE = 500f;
         private const float POS_SMOOTH_SPEED = 25.0f;
         private const float ROT_SMOOTH_SPEED = 15.0f;
 
@@ -500,7 +500,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
-        private const float SNAP_DISTANCE = 10.0f;
+        private const float SNAP_DISTANCE = 500f;
 
         public void Execute(ref LocalTransform transform, ref OrbitMovement movement)
         {
