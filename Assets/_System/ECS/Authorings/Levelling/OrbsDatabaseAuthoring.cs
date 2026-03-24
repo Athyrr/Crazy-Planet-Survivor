@@ -1,9 +1,13 @@
+using _System.ECS.Authorings.Ressources;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
 public class OrbsDatabaseAuthoring : MonoBehaviour
 {
+    [Header("Ressources part")]
+    [SerializeField] private EnumValues<ERessourceType, RessourceAuthoring> _ressourceTypes;
+    
     [Header("Orbs Database")]
 
     public ExperienceOrbAuthoring[] OrbPrefabs;
@@ -27,10 +31,8 @@ public class OrbsDatabaseAuthoring : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.None);
 
             // Orbs Database Buffer
-            var buffer = AddBuffer<OrbDatabaseBufferElement>(entity);
-
+            var orbBuffer = AddBuffer<OrbDatabaseBufferElement>(entity);
             var orderedOrbs = new NativeList<OrbDatabaseBufferElement>(Allocator.Temp);
-
             foreach (var orbPrefab in authoring.OrbPrefabs)
             {
                 if (orbPrefab == null)
@@ -43,14 +45,31 @@ public class OrbsDatabaseAuthoring : MonoBehaviour
                 });
             }
 
-            // Sort by descending
             orderedOrbs.Sort();
-            // Set buffer
-            buffer.AddRange(orderedOrbs.AsArray());
-            //Clean up
+            
+            orbBuffer.AddRange(orderedOrbs.AsArray());
             orderedOrbs.Dispose();
 
+            // Ressources Database Buffer
+            
+            var ressourcesbuffer = AddBuffer<RessourcesDatabaseBufferElement>(entity);
+            var orderedRessources = new NativeList<RessourcesDatabaseBufferElement>(Allocator.Temp);
+            foreach ((var lootType, var ressourceAuthoring) in authoring._ressourceTypes)
+            {
+                if (ressourceAuthoring == null)
+                    continue;
 
+                orderedRessources.Add(new RessourcesDatabaseBufferElement
+                {
+                    Prefab = GetEntity(ressourceAuthoring.gameObject, TransformUsageFlags.Dynamic),
+                    Value = 1
+                });
+            }
+
+            orderedRessources.Sort();
+            
+            ressourcesbuffer.AddRange(orderedRessources.AsArray());
+            orderedRessources.Dispose();
 
             // Orb animation curve
             using var builder = new BlobBuilder(Allocator.Temp);

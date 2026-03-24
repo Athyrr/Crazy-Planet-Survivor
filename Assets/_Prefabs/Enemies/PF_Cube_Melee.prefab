@@ -285,7 +285,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   UseSnappedMovement: 1
   BaseStats:
-    BaseMaxHealth: 100
+    BaseMaxHealth: 10
     MaxHealthMultiplier: 1
     HealthRecovery: 0
     BaseArmor: 0
@@ -319,8 +319,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9572930ed885f804eae7a2b7f785412d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExperienceLootAuthoring
-  Value: 100
-  DropChance: 1
+  _ressourceType: 0
+  _value: 30
+  _dropChance: 1
 --- !u!114 &4190783909020484761
 MonoBehaviour:
   m_ObjectHideFlags: 0

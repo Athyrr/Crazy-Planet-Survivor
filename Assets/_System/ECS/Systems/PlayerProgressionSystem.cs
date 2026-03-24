@@ -1,5 +1,6 @@
 using Unity.Burst;
 using Unity.Entities;
+using UnityEngine;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -9,6 +10,7 @@ public partial struct PlayerProgressionSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<PlayerExperience>();
+        state.RequireForUpdate<PlayerRessources>();
     }
 
     [BurstCompile]
@@ -69,6 +71,7 @@ public partial struct PlayerProgressionSystem : ISystem
         {
             foreach (var ressource in ressourcesBuffer)
             {
+                Debug.Log($"Gained {ressource.Value} of {ressource.Type}");
                 ressources.Ressources[(int)ressource.Type] += ressource.Value;
             }
             ressourcesBuffer.Clear();

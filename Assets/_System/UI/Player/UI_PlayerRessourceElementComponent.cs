@@ -34,6 +34,6 @@ public class UI_PlayerRessourceElementComponent : MonoBehaviour
             return;
 
         PlayerRessources playerRessources = _playerQuery.GetSingleton<PlayerRessources>();
-        _ressourceCountText.text = $"{playerRessources.Ressources[_ressourceType]}";
+        _ressourceCountText.text = $"{playerRessources.Ressources[_ressourceType -1]}";
     }
 }

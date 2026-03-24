@@ -5,5 +5,4 @@ public struct Ressource : IComponentData
 {
     public int Value;
     public ERessourceType Type;
-    public bool Persistant;
 }

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4437340946059754192}
   - component: {fileID: 1195332726998391989}
   m_Layer: 0
-  m_Name: PF_ExpOrbsDatabase
+  m_Name: PF_RessourcesDatabase
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -44,6 +44,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 970877bccffdf164d99124d14eb5aef9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OrbsDatabaseAuthoring
+  _ressourceTypes:
+    m_enumValues:
+    - {fileID: 1398511359867696999, guid: 54c50bd47673030468587ca664afdaad, type: 3}
+    - {fileID: -7198508953208535663, guid: 845db3059367c014cb28d94776fa172b, type: 3}
+    - {fileID: -7198508953208535663, guid: 845db3059367c014cb28d94776fa172b, type: 3}
+    - {fileID: -7198508953208535663, guid: 845db3059367c014cb28d94776fa172b, type: 3}
+    - {fileID: -7198508953208535663, guid: 845db3059367c014cb28d94776fa172b, type: 3}
   OrbPrefabs:
   - {fileID: -6852477989670749302, guid: ac3f117352c07dc428a3b29c41fa03f0, type: 3}
   - {fileID: -6852477989670749302, guid: 2827c8c6e75e05f418a6486cf17547db, type: 3}

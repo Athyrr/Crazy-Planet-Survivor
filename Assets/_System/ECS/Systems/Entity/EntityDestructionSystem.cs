@@ -3,7 +3,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Transforms;
 
-[UpdateAfter(typeof(DropExpOrbSystem))]
+[UpdateAfter(typeof(DropLootSystem))]
 [BurstCompile]
 public partial struct EntityDestructionSystem : ISystem
 {
@@ -12,6 +12,7 @@ public partial struct EntityDestructionSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<BeginSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<DestroyEntityFlag>();
         _childLookup = state.GetBufferLookup<Child>(true);
     }
@@ -25,7 +26,7 @@ public partial struct EntityDestructionSystem : ISystem
         if (gameState.State != EGameState.Running)
             return;
 
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var ecbSingleton = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
         _childLookup.Update(ref state);
@@ -50,8 +51,7 @@ public partial struct EntityDestructionSystem : ISystem
         {
             NativeList<Entity> entitiesToDestroy = new NativeList<Entity>(Allocator.Temp);
             entitiesToDestroy.Add(entity);
-
-            // todo @troupote faire quelque chose recursive
+            
             for (int i = 0; i < entitiesToDestroy.Length; i++)
             {
                 Entity currentEntity = entitiesToDestroy[i];

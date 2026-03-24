@@ -10,9 +10,12 @@ GameObject:
   m_Component:
   - component: {fileID: 4622693586495422407}
   - component: {fileID: 3918028881243006822}
-  - component: {fileID: -7198508953208535663}
+  - component: {fileID: 3768014921949670360}
+  - component: {fileID: 9158025620537658741}
+  - component: {fileID: -2144704330199856869}
+  - component: {fileID: 4961507190960928361}
   m_Layer: 0
-  m_Name: PF_Ressource
+  m_Name: PF_RessourceEmitter
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -177,7 +180,7 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
---- !u!114 &-7198508953208535663
+--- !u!114 &3768014921949670360
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -186,12 +189,49 @@ MonoBehaviour:
   m_GameObject: {fileID: 3734580914521661075}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 66da7682fd8a4f0abf2d1505b64bec7a, type: 3}
+  m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RessourceAuthoring
+  m_EditorClassIdentifier: Assembly-CSharp::EntityAuthoring
+--- !u!114 &9158025620537658741
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3734580914521661075}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9572930ed885f804eae7a2b7f785412d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ExperienceLootAuthoring
   _ressourceType: 1
-  _persistant: 0
-  _hardSnapToGround: 1
+  _value: 4
+  _dropChance: 1
+--- !u!114 &-2144704330199856869
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3734580914521661075}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fe2447857404073a3dbce213071856d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HealthAuthoring
+  _defaultValue: 40
+--- !u!114 &4961507190960928361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3734580914521661075}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1879f2e698124ce69c1716927b4db6a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageBufferAuthoring
 --- !u!1 &8085639778618329337
 GameObject:
   m_ObjectHideFlags: 0
@@ -251,8 +291,8 @@ Transform:
   m_GameObject: {fileID: 8132074984958018057}
   serializedVersion: 2
   m_LocalRotation: {x: 0.11783612, y: -0.17970447, z: -0.04713456, w: 0.9754995}
-  m_LocalPosition: {x: -0.000000034813, y: 0.00000002785, z: 0.108}
-  m_LocalScale: {x: 1.8493096, y: 2.7358992, z: 1.8493093}
+  m_LocalPosition: {x: 0, y: 0, z: 0.108}
+  m_LocalScale: {x: 0.44315007, y: 1.5758187, z: 0.44315}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 292319664730688676}
@@ -290,7 +330,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 6f7cf40a4a74ec84b9a7fadb0d0a1c43, type: 2}
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

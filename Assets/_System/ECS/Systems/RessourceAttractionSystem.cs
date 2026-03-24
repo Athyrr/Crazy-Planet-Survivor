@@ -194,11 +194,11 @@ public partial struct RessourceAttractionSystem : ISystem
                     ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedRessourcesBufferElement()
                     {
                         Type = ressource.Type,
-                        Value = ressource.Value
+                        Value = 1 // todo passing value here ? actually ressource.Value == 0
                     });
                 }
 
-                // Destruction
+                // Destruction todo check why component doesn't have to be removed
                 ECB.SetComponentEnabled<DestroyEntityFlag>(chunkIndex, entity, true);
             }
         }
