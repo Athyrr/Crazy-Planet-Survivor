@@ -1,5 +1,6 @@
 using Unity.Burst;
 using Unity.Entities;
+using UnityEngine;
 
 [BurstCompile]
 public partial struct LifetimeSystem : ISystem
@@ -7,6 +8,7 @@ public partial struct LifetimeSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<Lifetime>();
     }
 
@@ -34,7 +36,8 @@ public partial struct LifetimeSystem : ISystem
     }
 
     [BurstCompile]
-    [WithAll(typeof(Lifetime), typeof(DestroyEntityFlag))]
+    [WithAll(typeof(Lifetime))]
+    [WithDisabled(typeof(DestroyEntityFlag))]
     private partial struct LifetimeJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
@@ -43,7 +46,7 @@ public partial struct LifetimeSystem : ISystem
         void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref Lifetime lifetime)
         {
             // Decrease time to live
-            lifetime.TimeLeft -= DeltaTime;
+            lifetime.TimeLeft -= DeltaTime; // todo check, mb never trigger by spell
 
             if (lifetime.TimeLeft <= 0f)
             {

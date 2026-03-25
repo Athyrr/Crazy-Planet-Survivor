@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 8476352369238515311}
   - component: {fileID: -2270420446039416495}
   - component: {fileID: 8571963054993361669}
+  - component: {fileID: -5789341459660323737}
   - component: {fileID: -8487747740836865413}
   - component: {fileID: -1432415074452656385}
   - component: {fileID: 6547550216343406221}
@@ -290,6 +291,18 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
+--- !u!114 &-5789341459660323737
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486797506737824905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EntityAuthoring
 --- !u!114 &-8487747740836865413
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -302,7 +315,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e68958eb03ae2642a796d252020255b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LinearMovementAuthoring
-  EnabledOnInit: 1
+  _enabledOnInit: 1
+  _hardSnapOnSurface: 0
 --- !u!114 &-1432415074452656385
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -2,6 +2,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Transforms;
+using UnityEngine;
 
 [UpdateAfter(typeof(DropLootSystem))]
 [BurstCompile]
@@ -71,6 +72,7 @@ public partial struct EntityDestructionSystem : ISystem
             }
 
             ECB.DestroyEntity(chunkIndex, entity);
+            Debug.Log("hyv; destroy entities with flag");
         }
     }
 }
