@@ -72,7 +72,6 @@ public partial struct EntityDestructionSystem : ISystem
             }
 
             ECB.DestroyEntity(chunkIndex, entity);
-            Debug.Log("hyv; destroy entities with flag");
         }
     }
 }
