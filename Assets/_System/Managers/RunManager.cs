@@ -1,4 +1,3 @@
-using System;
 using Unity.Entities;
 using UnityEngine;
 
@@ -15,6 +14,7 @@ public class RunManager : MonoBehaviour
     private EntityManager _entityManager;
     private EntityQuery _playerHealthQuery;
     private EntityQuery _endRunQuery;
+    private EntityQuery _ressourcesQuery;
     private EntityQuery _openUpgradesRequestQuery;
     private EntityQuery _gameStateQuery;
 
@@ -38,6 +38,7 @@ public class RunManager : MonoBehaviour
         _openUpgradesRequestQuery = _entityManager.CreateEntityQuery(typeof(GameState), typeof(OpenUpgradesSelectionViewRequest));
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _endRunQuery = _entityManager.CreateEntityQuery(typeof(EndRunRequest));
+        _ressourcesQuery = _entityManager.CreateEntityQuery(typeof(PlayerRessources));
 
         InitPanels();
     }
@@ -60,17 +61,21 @@ public class RunManager : MonoBehaviour
         if (GameManager.Instance.GetGameState() != EGameState.Running)
             return;
 
-        if (!_endRunQuery.IsEmpty)
+        if (!_endRunQuery.IsEmpty && !_ressourcesQuery.IsEmpty)
         {
-            var reqEntity = _endRunQuery.GetSingletonEntity();
-            var endRunRequest = _entityManager.GetComponentData<EndRunRequest>(reqEntity);
+            var endRunReqEntity = _endRunQuery.GetSingletonEntity();
+            var ressourcesReqEntity = _ressourcesQuery.GetSingletonEntity();
+            
+            var endRunRequest = _entityManager.GetComponentData<EndRunRequest>(endRunReqEntity);
+            var ressourcesRequest = _entityManager.GetComponentData<PlayerRessources>(ressourcesReqEntity);
 
             if (GameManager.Instance.GetGameState() != EGameState.GameOver)
                 GameManager.Instance.ChangeState(EGameState.GameOver);
 
-            GameOverUIController.OpenView(endRunRequest.State);
+            GameOverUIController.OpenView(endRunRequest.State, ressourcesRequest);
 
-            _entityManager.DestroyEntity(reqEntity);
+            _entityManager.DestroyEntity(endRunReqEntity);
+            _entityManager.DestroyEntity(ressourcesReqEntity);
         }
     }
 

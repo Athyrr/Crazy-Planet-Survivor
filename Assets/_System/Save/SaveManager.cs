@@ -114,7 +114,7 @@ public static class SaveManager
                         if (string.IsNullOrEmpty(file.Extension))
                         {
                             // var saveFileInfo = new SaveFileInfo(file);
-                            // if (saveFileInfo.isValid) m_saveFiles.Add(saveFileInfo);
+                            m_saveFiles.Add(file);
                         }
                         else if (file.Extension == TextExtension)
                         {
@@ -126,7 +126,7 @@ public static class SaveManager
                             // Create new zip
                             var fileInfo = CreateNewSaveFile(path, content, false);
                             // var saveFileInfo = new SaveFileInfo(fileInfo);
-                            // if (saveFileInfo.isValid) m_saveFiles.Add(saveFileInfo);
+                            m_saveFiles.Add(file);
                         }
                     }
                     catch (Exception e)
@@ -366,6 +366,10 @@ public static class SaveManager
     public static void LoadSelectedSave()
     {
         Refresh();
+     
+        if (SelectedSaveFile == null && m_saveFiles.Count > 0)
+            SelectedSaveFile = m_saveFiles[0].FullName;
+        
         if (LoadSave(SelectedSaveFile, out var save))
         {
             CurrentSave = save;

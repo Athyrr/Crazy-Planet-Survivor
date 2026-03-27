@@ -1,4 +1,5 @@
 using System.Collections;
+using _System.ECS.Authorings.Ressources;
 using UnityEngine;
 using TMPro;
 
@@ -14,36 +15,39 @@ public class GameOverUIController : MonoBehaviour
     public SummaryView RunSummaryView;
 
 
-    public void OpenView(EEndRunState endState)
+    public void OpenView(EEndRunState endState, PlayerRessources ressources)
     {
         gameObject.SetActive(true);
         GameOverView.SetActive(true);
         RunSummaryView.gameObject.SetActive(false);
 
-        SetupText(endState);
+        StateUpdate(endState, ressources);
 
         SetTextAlpha(0f);
 
         StartCoroutine(PlaySequenceCoroutine());
     }
 
-    private void SetupText(EEndRunState state)
+    private void StateUpdate(EEndRunState state, PlayerRessources ressources)
     {
         switch (state)
         {
             case EEndRunState.Success:
                 GameOverText.text = "YOUPI";
                 GameOverText.color = Color.yellow;
+                KeepPersistantRessources(ressources);
                 break;
 
             case EEndRunState.Death:
                 GameOverText.text = "YOU DIED (nulos)";
                 GameOverText.color = Color.red;
+                KeepPersistantRessources(ressources); // todo remove here
                 break;
 
             case EEndRunState.Timeout:
                 GameOverText.text = "TIME OUT";
                 GameOverText.color = Color.gray;
+                KeepPersistantRessources(ressources);
                 break;
 
             default:
@@ -51,6 +55,18 @@ public class GameOverUIController : MonoBehaviour
                 GameOverText.color = Color.red;
                 break;
         }
+    }
+
+    private void KeepPersistantRessources(PlayerRessources ressources)
+    {
+        var saveRessources = SaveManager.GetCurrentSaveAs<Save>().ressources;
+        
+        saveRessources.chromeCore += ressources.Ressources[(int)ERessourceType.ChromeCore];
+        saveRessources.eatherDust += ressources.Ressources[(int)ERessourceType.AetherDust];
+        saveRessources.starSingularity += ressources.Ressources[(int)ERessourceType.StarSingularity];
+        saveRessources.voidCrystal += ressources.Ressources[(int)ERessourceType.VoidCrystal];
+
+        SaveManager.ManualSave();
     }
 
     private void SetTextAlpha(float alpha)
