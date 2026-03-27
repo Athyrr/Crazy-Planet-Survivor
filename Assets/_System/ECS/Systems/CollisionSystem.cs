@@ -27,11 +27,12 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<Pierce> _pierceLookup;
     private ComponentLookup<LinearMovement> _linearMovementLookup;
     private ComponentLookup<FollowTargetMovement> _followMovementLookup;
-    
+
     // todo clean this, tmp fix
     private ComponentLookup<SlowEffect> _slowLookup;
     private ComponentLookup<StunEffect> _stunLookup;
     private ComponentLookup<BurnEffect> _burnLookup;
+    private ComponentLookup<ActiveKnockback> _knockbackLookup;
 
     private ComponentLookup<ExplodeOnContact> _explodeLookup;
     private ComponentLookup<SpellSource> _subSpellRootLookup;
@@ -49,10 +50,11 @@ public partial struct CollisionSystem : ISystem
         state.RequireForUpdate<SimulationSingleton>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
-        
+
         _slowLookup = state.GetComponentLookup<SlowEffect>(true);
         _stunLookup = state.GetComponentLookup<StunEffect>(true);
         _burnLookup = state.GetComponentLookup<BurnEffect>(true);
+        _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(true);
 
         _playerLookup = state.GetComponentLookup<Player>(true);
         _cpEntityLookup = state.GetComponentLookup<CpEntity>(true);
@@ -107,6 +109,7 @@ public partial struct CollisionSystem : ISystem
         _hitMemoryLookup.Update(ref state);
         _ricochetLookup.Update(ref state);
         _pierceLookup.Update(ref state);
+        _knockbackLookup.Update(ref state);
         _linearMovementLookup.Update(ref state);
         _followMovementLookup.Update(ref state);
         _explodeLookup.Update(ref state);
@@ -138,10 +141,11 @@ public partial struct CollisionSystem : ISystem
             HitMemoryLookup = _hitMemoryLookup,
             InvincibleLookup = _invincibleLookup,
             ExplodeOnContactLookup = _explodeLookup,
-            
+
             SlowLookup = _slowLookup,
             StunLookup = _stunLookup,
             BurnLookup = _burnLookup,
+            KnockbackLookup = _knockbackLookup,
 
             SpellSourceLookup = _subSpellRootLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter()
@@ -149,10 +153,6 @@ public partial struct CollisionSystem : ISystem
 
         JobHandle triggerHandle =
             triggerCollisionJob.Schedule(SystemAPI.GetSingleton<SimulationSingleton>(), state.Dependency);
-        
-        var slowLookup = state.GetComponentLookup<SlowEffect>(true);
-        var stunLookup = state.GetComponentLookup<StunEffect>(true);
-        var burnLookup = state.GetComponentLookup<BurnEffect>(true);
 
         var trackDamageJob = new TrackDamageJob
         {
@@ -181,11 +181,11 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
         [ReadOnly] public ComponentLookup<DestroyOnContact> DestroyOnContactLookup;
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
-        
+
         [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
         [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
-        
+
         public BufferLookup<HitEntityMemory> HitMemoryLookup;
 
         [ReadOnly] public ComponentLookup<LocalTransform> LocalTransformLookup;
@@ -193,6 +193,7 @@ public partial struct CollisionSystem : ISystem
         public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
         public ComponentLookup<Bounce> BounceLookup;
         public ComponentLookup<Pierce> PierceLookup;
+        [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
         [ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeOnContactLookup;
 
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
@@ -252,7 +253,7 @@ public partial struct CollisionSystem : ISystem
                             criticalDamagesMultiplier = math.max(1.0f, damageData.TotalCritMultiplier);
 
                         int damageDealt = (int)(damageData.Damage * criticalDamagesMultiplier);
-                        
+
                         ECB.AppendToBuffer(
                             0,
                             target,
@@ -300,6 +301,40 @@ public partial struct CollisionSystem : ISystem
                             else
                             {
                                 ECB.AddComponent(0, target, stun);
+                            }
+                        }
+
+                        if ((damageData.Tag & ESpellTag.Knockback) != 0)
+                        {
+                            float3 damagerPos = LocalTransformLookup[damagerEntity].Position;
+                            float3 targetPos = LocalTransformLookup[target].Position;
+
+                            // Normalize direction
+                            float3 pushDir = targetPos - damagerPos;
+                            float distSq = math.lengthsq(pushDir);
+
+                            if (distSq > 0.001f)
+                                math.normalize(pushDir);
+                            else
+                                pushDir = LocalTransformLookup[damagerEntity].Forward();
+
+
+                            var kbData = new ActiveKnockback
+                            {
+                                Direction = pushDir,
+                                InitialForce = EffectsConfig.KnockbackForce, // ex: 15f
+                                DurationLeft = EffectsConfig.KnockbackDuration, // ex: 0.3f
+                                MaxDuration = EffectsConfig.KnockbackDuration
+                            };
+
+                            if (KnockbackLookup.HasComponent(target))
+                            {
+                                ECB.SetComponent(0, target, kbData);
+                                // ECB.SetComponentEnabled<ActiveKnockback>(0, target, true);
+                            }
+                            else
+                            {
+                                ECB.AddComponent(0, target, kbData);
                             }
                         }
 
@@ -405,7 +440,7 @@ public partial struct CollisionSystem : ISystem
 
                     if (shouldDestroy && CpEntityLookup.HasComponent(damagerEntity))
                     {
-                        ECB.AddComponent(0, damagerEntity, new DestroyEntityFlag());
+                        ECB.SetComponentEnabled<DestroyEntityFlag>(0, damagerEntity, true);
                     }
                 }
             }

@@ -27,6 +27,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<CoreStats>();
         state.RequireForUpdate<SpellsDatabase>();
 
@@ -224,8 +225,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
                 // Final values cache
                 spell.FinalDamage = baseSpellData.BaseDamage * dmgMult;
-
-
+                
                 spell.FinalArea = math.max(0.1f, baseSpellData.BaseAreaOfEffect * areaMult);
                 spell.FinalSize = math.max(0.1f, baseSpellData.BaseSize * sizeMult);
                 spell.FinalSpeed = baseSpellData.BaseSpeed * speedMult;

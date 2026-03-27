@@ -33,6 +33,7 @@ public enum ESpellTag : uint
     Burn = 1 << 18,
     Stun = 1 << 19,
     Slow = 1 << 20,
+    Knockback = 1 << 21,
 
     
     MagicDamage = Fire | Ice | Lightning | Light | Dark | Nature,

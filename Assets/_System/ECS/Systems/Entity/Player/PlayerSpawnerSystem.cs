@@ -96,7 +96,6 @@ public partial struct PlayerSpawnerSystem : ISystem
             { 
                 DatabaseIndex = equippedAmulet.DbIndex 
             });
-
         }
     }
 }

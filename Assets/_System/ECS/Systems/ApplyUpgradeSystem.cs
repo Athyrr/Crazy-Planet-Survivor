@@ -197,6 +197,9 @@ public partial struct ApplyUpgradeSystem : ISystem
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity playerEntity, in ApplyAmuletRequest request,
             ref CoreStats playerCoreStats, ref Health health)
         {
+            // Remove request from player
+            ECB.RemoveComponent<ApplyAmuletRequest>(chunkIndex, playerEntity);
+            
             ref var amulet = ref AmuletsDatabaseRef.Value.Amulets[request.DatabaseIndex];
             bool needSpellUpdate = false;
 
@@ -256,8 +259,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                 ECB.AddComponent<SpellStatsCalculationRequest>(chunkIndex, playerEntity);
             }
 
-            // Remove request from player
-            ECB.RemoveComponent<ApplyAmuletRequest>(chunkIndex, playerEntity);
+
         }
     }
 
