@@ -34,16 +34,19 @@ public class GameOverUIController : MonoBehaviour
             case EEndRunState.Success:
                 GameOverText.text = "YOUPI";
                 GameOverText.color = Color.yellow;
+                KeepPersistantRessources();
                 break;
 
             case EEndRunState.Death:
                 GameOverText.text = "YOU DIED (nulos)";
                 GameOverText.color = Color.red;
+                KeepPersistantRessources(); // todo remove here
                 break;
 
             case EEndRunState.Timeout:
                 GameOverText.text = "TIME OUT";
                 GameOverText.color = Color.gray;
+                KeepPersistantRessources();
                 break;
 
             default:
@@ -51,6 +54,16 @@ public class GameOverUIController : MonoBehaviour
                 GameOverText.color = Color.red;
                 break;
         }
+    }
+
+    private void KeepPersistantRessources()
+    {
+        var ressources = SaveManager.GetCurrentSaveAs<Save>().ressources;
+        
+        // todo increment reel value
+        ressources.chromeCore += 1;
+
+        SaveManager.ManualSave();
     }
 
     private void SetTextAlpha(float alpha)
