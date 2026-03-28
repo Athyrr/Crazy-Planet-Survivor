@@ -1,5 +1,9 @@
+using System;
+using System.Linq;
+using _System.ECS.Authorings.Ressources;
 using _System.Settings;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +13,10 @@ public class AmuletUIComponent : MonoBehaviour
     [SerializeField] private TMP_Text _label;
     [SerializeField] private Image _icon;
     [SerializeField] private Image _border;
-
+    [SerializeField] private EnumValues<ERessourceType, Sprite> _ressourcesSprite; // todo @hyverno move in icon database with CPBaseSettings
+    [SerializeField] private UI_PlayerRessourceElementComponent _ressourceComponent; // same
+    [SerializeField] private GameObject _ressourceComponentParent;
+    
     private AmuletShopUIController _controller;
     private AmuletSO _amuletData;
     private int _databaseIndex;
@@ -39,6 +46,17 @@ public class AmuletUIComponent : MonoBehaviour
 
         _border.material = new Material(_border.material);
 
+        var idx = -1;
+        foreach ((var key, var sprite) in _ressourcesSprite)
+        {
+            ++idx;
+            if (amuletData.RessourcesPrice[key] <= 0)
+                continue;
+            
+            var inst = Instantiate(_ressourceComponent, _ressourceComponentParent.transform);
+            inst.Init(idx, sprite, amuletData.RessourcesPrice[key]);
+        }
+
         Refresh(isUnlocked, false);
     }
 
@@ -48,6 +66,8 @@ public class AmuletUIComponent : MonoBehaviour
         _isFocused = isFocused;
 
         _icon.sprite = _amuletData.Icon;
+        _ressourceComponentParent.SetActive(!isUnlock);
+        
         RefreshColor();
     }
 

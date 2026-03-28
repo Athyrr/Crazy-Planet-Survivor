@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using _System.ECS.Authorings.Ressources;
 
 [Serializable]
 public class Save
@@ -57,20 +59,14 @@ public class SaveClass_Ressources
 
     public SaveClass_Ressources()
     {
-        eatherDust = 0;
-        chromeCore = 0;
-        voidCrystal = 0;
-        starSingularity = 0;
+        Ressources = new int[Enum.GetNames(typeof(ERessourceType)).Length];
     }
 
     #endregion
 
     #region Members
-
-    public int eatherDust;
-    public int chromeCore;
-    public int voidCrystal;
-    public int starSingularity;
+    
+    public int[] Ressources; // id == ERessourceType
 
     #endregion
 }

@@ -13,24 +13,37 @@ public class UI_PlayerRessourceElementComponent : MonoBehaviour
     private EntityManager _entityManager;
     private EntityQuery _playerQuery;
     private bool _init;
+    private bool _ecsContext;
     
-    public void Init(int ressourceType, Sprite ressourceImageTexture)
+    public void Init(int ressourceType, Sprite ressourceImageTexture, int defaultValue = -1)
     {
         _ressourceType = ressourceType;
         _ressourceImage.sprite = ressourceImageTexture;
             
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
-        _playerQuery = _entityManager.CreateEntityQuery(
-            ComponentType.ReadOnly<Player>(),
-            ComponentType.ReadOnly<PlayerRessources>());
+        // todo clean this @hyverno
+        _playerQuery = default;
+        
+        if (defaultValue >= 0)
+        {
+            _ressourceCountText.text = "" + defaultValue;
+            _ecsContext = false;
+        }
+        else
+        {
+            _playerQuery = _entityManager.CreateEntityQuery(
+                ComponentType.ReadOnly<Player>(),
+                ComponentType.ReadOnly<PlayerRessources>());
+            _ecsContext = true;
+        }
 
         _init = true;
     }
 
     void Update()
     {
-        if (!_init || _playerQuery.IsEmpty)
+        if (!_init || !_ecsContext || (_ecsContext && _playerQuery.IsEmpty))
             return;
 
         PlayerRessources playerRessources = _playerQuery.GetSingleton<PlayerRessources>();

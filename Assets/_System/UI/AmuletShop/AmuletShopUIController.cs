@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using _System.ECS.Authorings.Ressources;
 using UnityEngine.UI;
 using UnityEngine;
 using TMPro;
@@ -137,8 +139,12 @@ public class AmuletShopUIController : MonoBehaviour
         if (_currentSelectedAmuletIndex < 0 || _currentSelectedAmuletIndex >= Database.Amulets.Length)
             return;
 
-        // todo amulet price
+        // todo feedback amulet price
+        if (!CanBuyAmulet(out var cost))
+            return;
 
+        BuyAmulet(cost);
+        
         if (!_gameStateQuery.IsEmpty)
         {
             var gameStateEntity = _gameStateQuery.GetSingletonEntity();
@@ -151,6 +157,41 @@ public class AmuletShopUIController : MonoBehaviour
         // Refresh views
         AmuletListView.Refresh();
         RefreshDetailView();
+    }
+
+    private void BuyAmulet(int[] cost)
+    {
+        var ressources = SaveManager.GetCurrentSaveAs<Save>().ressources.Ressources;
+        
+        foreach (var el in cost.ToList())
+        {
+            if (el != 0)
+                ressources[el] -= _currentSelectedAmuletData.RessourcesPrice[(ERessourceType)el];
+        }
+    }
+
+    private bool CanBuyAmulet(out int[] cost)
+    {
+        var ressources = SaveManager.GetCurrentSaveAs<Save>().ressources.Ressources;
+
+        cost = new int[Enum.GetNames(typeof(ERessourceType)).Length];
+        var res = true;
+        
+        foreach (var el in _currentSelectedAmuletData.RessourcesPrice.ToList())
+        {
+            var idx = (int)el.Key;
+            if (ressources[idx] >= el.Value)
+            {
+                cost[(idx)] = idx;
+            }
+            else
+            {
+                res = false;
+                break;
+            }            
+        }
+
+        return res;
     }
 
     private void EquipAmulet()

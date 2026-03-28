@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using _System.ECS.Authorings.Ressources;
 using UnityEngine;
@@ -60,12 +61,10 @@ public class GameOverUIController : MonoBehaviour
     private void KeepPersistantRessources(PlayerRessources ressources)
     {
         var saveRessources = SaveManager.GetCurrentSaveAs<Save>().ressources;
-        
-        saveRessources.chromeCore += ressources.Ressources[(int)ERessourceType.ChromeCore];
-        saveRessources.eatherDust += ressources.Ressources[(int)ERessourceType.AetherDust];
-        saveRessources.starSingularity += ressources.Ressources[(int)ERessourceType.StarSingularity];
-        saveRessources.voidCrystal += ressources.Ressources[(int)ERessourceType.VoidCrystal];
 
+        for (int i = 0; i < Enum.GetNames(typeof(ERessourceType)).Length; i++)
+            saveRessources.Ressources[i] += ressources.Ressources[i];
+        
         SaveManager.ManualSave();
     }
 
