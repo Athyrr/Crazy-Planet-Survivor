@@ -14,8 +14,10 @@ public class ActiveEffectsConfigAuthoring : MonoBehaviour
              "\n0.5f = every 0.5 seconds.")]
     public float DefaultBurnTickRate = 1f;
 
-    [Header("Stun Rules")] public float DefaultStunDuration = 1.5f;
+    public GameObject BurnEffectPrefab;
 
+    [Header("Stun Rules")] public float DefaultStunDuration = 1.5f;
+    public GameObject StunEffectPrefab;
 
     [Header("Slow Rules")]
     [Tooltip(("Multiplier applied to the target's speed." +
@@ -23,11 +25,10 @@ public class ActiveEffectsConfigAuthoring : MonoBehaviour
     public float DefaultSlowMultiplier = 0.3f;
 
     public float DefaultSlowDuration = 2.0f;
-    
-    [Header("Knockback Rules")]
-    public float DefaultKnockbackForce = 15f;
+    public GameObject SlowEffectPrefab;
+
+    [Header("Knockback Rules")] public float DefaultKnockbackForce = 15f;
     public float DefaultKnockbackDuration = 0.3f;
-    
 
     private class Baker : Baker<ActiveEffectsConfigAuthoring>
     {
@@ -45,9 +46,16 @@ public class ActiveEffectsConfigAuthoring : MonoBehaviour
 
                 BaseSlowMultiplier = authoring.DefaultSlowMultiplier,
                 SlowDuration = authoring.DefaultSlowDuration,
-                
-                KnockbackForce =authoring.DefaultKnockbackForce,
+
+                KnockbackForce = authoring.DefaultKnockbackForce,
                 KnockbackDuration = authoring.DefaultKnockbackDuration,
+            });
+
+            AddComponentObject(entity, new ActiveEffectsVfxConfig
+            {
+                BurnEffectPrefab = authoring.BurnEffectPrefab,
+                StunEffectPrefab = authoring.StunEffectPrefab,
+                SlowEffectPrefab = authoring.SlowEffectPrefab,
             });
         }
     }
@@ -70,4 +78,11 @@ public struct ActiveEffectsConfig : IComponentData
     // Knockback
     public float KnockbackForce;
     public float KnockbackDuration;
+}
+
+public class ActiveEffectsVfxConfig : IComponentData
+{
+    public GameObject BurnEffectPrefab;
+    public GameObject StunEffectPrefab;
+    public GameObject SlowEffectPrefab;
 }

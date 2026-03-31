@@ -97,7 +97,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         };
         JobHandle updateTickDamageSpellJobHandle =
             updateTickDamageSpellJob.ScheduleParallel(_activeTickDamageSpellQuery, calculateSpellStatsJobHandle);
-        
+
         // Update sub spells (eg. Fire orbs)
         var updateSubSpellsJob = new UpdateSubSpellsJob
         {
@@ -113,7 +113,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         };
         // JobHandle subSpellHandle =
         //     updateSubSpellsJob.ScheduleParallel(_subSpellsSpawnerQuery, calculateSpellStatsJobHandle); 
-        
+
         JobHandle subSpellHandle =
             updateSubSpellsJob.ScheduleParallel(_subSpellsSpawnerQuery, updateTickDamageSpellJobHandle);
 
@@ -148,24 +148,24 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
                 // Multipliers
                 // Total = Base * ( 1 + Global(Player) + Local(Spell))
-                float dmgMult = coreStats.GlobalDamageMultiplier + (1f + spell.LocalDamageBonusMultiplier);
-                float areaMult = coreStats.GlobalSpellAreaMultiplier + (1f + spell.LocalAreaBonusMultiplier);
-                float sizeMult = coreStats.GlobalSpellSizeMultiplier + (1f + spell.LocalSizeBonusMultiplier);
-                float speedMult = coreStats.GlobalSpellSpeedMultiplier + (1f + spell.LocalSpeedBonusPercent);
-                float durationMult = coreStats.GlobalDurationMultiplier * (1f + spell.LocalDurationBonusPercent);
-                float tickRateMult = 1 + spell.LocalTickRateBonusMultiplier;
+                float dmgMult = coreStats.GlobalDamageMultiplier + spell.LocalDamageBonusMultiplier;
+                float areaMult = coreStats.GlobalSpellAreaMultiplier + spell.LocalAreaBonusMultiplier;
+                float sizeMult = coreStats.GlobalSpellSizeMultiplier + spell.LocalSizeBonusMultiplier;
+                float speedMult = coreStats.GlobalSpellSpeedMultiplier + spell.LocalSpeedBonusPercent;
+                float durationMult = coreStats.GlobalDurationMultiplier * spell.LocalDurationBonusPercent;
+                float tickRateMult = spell.LocalTickRateBonusMultiplier;
                 float rangeMult = coreStats.GlobalCastRangeMultiplier + (1f + spell.LocalRangeBonusMultiplier);
 
                 float bounceRangeMult = /*stats.GlobalBounceRangeMultiplier **/
                     (1 + spell.LocalRangeBonusMultiplier); // todo add global bounce range multiplier if needed
 
-                float cdMult = coreStats.GlobalCooldownMultiplier * math.max(0.1f, 1f - spell.LocalCooldownBonusPercent);
+                float cdMult = coreStats.GlobalCooldownMultiplier *
+                               math.max(0.1f, 1f - spell.LocalCooldownBonusPercent);
 
                 // Additives
                 int amountAdd = coreStats.GlobalAmountBonus + spell.LocalAmountBonus;
                 int bounceAdd = coreStats.GlobalBounceBonus + spell.LocalBounceBonus;
                 int pierceAdd = coreStats.GlobalPierceBonus + spell.LocalPierceBonus;
-
 
                 // Crit
                 float critChanceAdd = coreStats.CritChance + spell.LocalCritChanceBonusPercent;
@@ -182,7 +182,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
                         {
                             case ESpellStat.Damage:
                                 if (mod.Strategy == EModiferStrategy.Flat) dmgMult += mod.Value;
-                                else dmgMult *= (1f + mod.Value);
+                                else dmgMult *= mod.Value;
                                 break;
 
                             case ESpellStat.AreaOfEffect:
@@ -225,7 +225,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
                 // Final values cache
                 spell.FinalDamage = baseSpellData.BaseDamage * dmgMult;
-                
+
                 spell.FinalArea = math.max(0.1f, baseSpellData.BaseAreaOfEffect * areaMult);
                 spell.FinalSize = math.max(0.1f, baseSpellData.BaseSize * sizeMult);
                 spell.FinalSpeed = baseSpellData.BaseSpeed * speedMult;
@@ -247,9 +247,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
                 spell.FinalCritChance = math.clamp(critChanceAdd, 0f, 1f);
                 spell.FinalCritDamageMultiplier = math.max(1f, critDmgAdd);
-
-                // todo cache for all stats
-
+                
                 // Save
                 activeSpells[i] = spell;
             }
@@ -285,12 +283,15 @@ public partial struct SpellStatsCalculationSystem : ISystem
             if (!found)
                 return;
 
-            // todo set all damageOnTick values
             damageOnTick.DamagePerTick = activeSpell.FinalDamage;
             damageOnTick.AreaRadius = activeSpell.FinalArea;
             damageOnTick.TickRate = activeSpell.FinalTickRate;
+            damageOnTick.Element |= activeSpell.AddedTags;
+            damageOnTick.TickRate = activeSpell.FinalTickRate;
+            damageOnTick.TotalCritChance = activeSpell.FinalCritChance;
+            damageOnTick.TotalCritMultiplier = activeSpell.FinalCritDamageMultiplier;
 
-            transform.Scale = activeSpell.FinalArea;
+            // transform.Scale = activeSpell.FinalArea;
         }
     }
 

@@ -69,4 +69,9 @@ public class CharacterSelectionUIController : MonoBehaviour
         GameManager.Instance.ChangeState(EGameState.Lobby);
         //Debug.Log($"Select Character Index {index}");
     }
+
+    public void Back()
+    {
+        GameManager.Instance.ChangeState(EGameState.Lobby);
+    }
 }

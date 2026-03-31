@@ -56,6 +56,8 @@ public class PlanetSelectionUIController : MonoBehaviour
         if (_currentSelectedPlanet == EPlanetID.None)
             return;
 
+        ExploreButton.gameObject.SetActive(false);
+
         GameManager.Instance.StartRun(_currentSelectedPlanet);
     }
 

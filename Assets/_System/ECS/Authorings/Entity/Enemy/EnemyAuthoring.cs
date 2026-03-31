@@ -4,6 +4,8 @@ using UnityEngine;
 [RequireComponent(typeof(EntityAuthoring))]
 public class EnemyAuthoring : MonoBehaviour
 {
+    public Renderer MainRenderer;
+    
     [Header("Movement precision")]
     [Tooltip(
         "If true, the enemy will be snapped perfectly on the ground following the terrain height. Otherwise, it will follow the base radius.")]
@@ -19,6 +21,9 @@ public class EnemyAuthoring : MonoBehaviour
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
+            if (authoring.MainRenderer != null)
+                AddComponentObject(entity, new VisualRendererLink { Renderer = authoring.MainRenderer });
+            
             AddComponent(entity, new Enemy());
             AddComponent(entity, new FollowTargetMovement { Speed = authoring.BaseStats.BaseMoveSpeed });
             AddComponent(entity, new RunScope());

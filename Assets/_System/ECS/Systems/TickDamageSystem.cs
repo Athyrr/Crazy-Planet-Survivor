@@ -141,6 +141,7 @@ public partial struct TickDamageSystem : ISystem
 
             if (!StatsLookup.HasComponent(caster))
                 return;
+            
             var casterStats = StatsLookup[caster];
 
             var hits = new NativeList<DistanceHit>(Allocator.Temp);
@@ -187,11 +188,6 @@ public partial struct TickDamageSystem : ISystem
                     DatabaseIndex = spellSource.DatabaseIndex,
                     DamageAmount = (int)damage
                 });
-
-                // todo feedbacks damage and hitframe
-                // Shake feedback
-                var feedbackReqEntity = ECB.CreateEntity(chunkIndex);
-                ECB.AddComponent<ShakeFeedbackRequest>(chunkIndex, feedbackReqEntity);
             }
 
             hits.Dispose();
