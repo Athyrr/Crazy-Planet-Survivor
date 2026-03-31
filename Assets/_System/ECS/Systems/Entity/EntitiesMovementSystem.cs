@@ -15,7 +15,7 @@ using Unity.Jobs;
 [BurstCompile]
 public partial struct EntitiesMovementSystem : ISystem
 {
-    private ComponentLookup<CoreStats> _statsLookup;
+    private ComponentLookup<FinalStats> _finalStatsLookup;
     private ComponentLookup<SteeringForce> _steeringLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<StopDistance> _stopDistanceLookup;
@@ -29,7 +29,7 @@ public partial struct EntitiesMovementSystem : ISystem
         // Ensure the planet exists before attempting movement
         state.RequireForUpdate<PlanetData>();
 
-        _statsLookup = state.GetComponentLookup<CoreStats>(true);
+        _finalStatsLookup = state.GetComponentLookup<FinalStats>(true);
         _steeringLookup = state.GetComponentLookup<SteeringForce>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _playerLookup = state.GetComponentLookup<Player>(true);
@@ -55,7 +55,7 @@ public partial struct EntitiesMovementSystem : ISystem
         var planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
 
         // Refresh lookups for use in jobs
-        _statsLookup.Update(ref state);
+        _finalStatsLookup.Update(ref state);
         _steeringLookup.Update(ref state);
         _transformLookup.Update(ref state);
         _playerLookup.Update(ref state);
@@ -67,7 +67,7 @@ public partial struct EntitiesMovementSystem : ISystem
             DeltaTime = delta,
             PhysicsCollisionWorld = collisionWorld,
             PlanetCenter = planetTransform.Position,
-            StatsLookup = _statsLookup,
+            FinalStatsLookup = _finalStatsLookup,
             PlayerLookup = _playerLookup
         };
         JobHandle linearSnappedHandle = linearSnappedJob.ScheduleParallel(state.Dependency);
@@ -88,7 +88,7 @@ public partial struct EntitiesMovementSystem : ISystem
             PhysicsCollisionWorld = collisionWorld,
             DeltaTime = delta,
             PlanetCenter = planetTransform.Position,
-            StatsLookup = _statsLookup,
+            StatsLookup = _finalStatsLookup,
             SteeringLookup = _steeringLookup,
             TransformLookup = _transformLookup,
             StopDistanceLookup = _stopDistanceLookup,
@@ -148,7 +148,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float3 PlanetCenter;
 
         [NativeDisableParallelForRestriction] [ReadOnly]
-        public ComponentLookup<CoreStats> StatsLookup;
+        public ComponentLookup<FinalStats> FinalStatsLookup;
 
         [NativeDisableParallelForRestriction] [ReadOnly]
         public ComponentLookup<Player> PlayerLookup;
@@ -163,10 +163,10 @@ public partial struct EntitiesMovementSystem : ISystem
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
         {
             float speed = movement.Speed;
-            if (StatsLookup.HasComponent(entity)) // if the entity has stats (player or enemy) use them
+            if (FinalStatsLookup.HasComponent(entity)) // if the entity has stats (player or enemy) use them
             {
-                var stats = StatsLookup[entity];
-                speed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
+                var stats = FinalStatsLookup[entity];
+                speed = stats.MoveSpeed;
             }
 
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
@@ -267,7 +267,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float PlanetRadius;
 
         [NativeDisableParallelForRestriction] [ReadOnly]
-        public ComponentLookup<CoreStats> StatsLookup;
+        public ComponentLookup<FinalStats> StatsLookup;
 
         [NativeDisableParallelForRestriction] [ReadOnly]
         public ComponentLookup<Player> PlayerLookup;
@@ -282,7 +282,7 @@ public partial struct EntitiesMovementSystem : ISystem
             if (StatsLookup.HasComponent(entity))
             {
                 var stats = StatsLookup[entity];
-                speed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
+                speed = stats.MoveSpeed;
             }
 
             PlanetUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out var currentNormal);
@@ -342,7 +342,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public float3 PlanetCenter;
 
-        [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
+        [ReadOnly] public ComponentLookup<FinalStats> StatsLookup;
         [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
         [ReadOnly] public ComponentLookup<StopDistance> StopDistanceLookup;
 
@@ -401,7 +401,7 @@ public partial struct EntitiesMovementSystem : ISystem
             if (StatsLookup.HasComponent(entity))
             {
                 var stats = StatsLookup[entity];
-                speed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
+                speed = stats.MoveSpeed;
             }
 
             float3 desiredPosition = transform.Position + (finalDirection * (speed * DeltaTime) * stopFactor);
@@ -448,7 +448,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public float PlanetRadius;
 
-        [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
+        [ReadOnly] public ComponentLookup<FinalStats> StatsLookup;
         [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
 
         [NativeDisableContainerSafetyRestriction] [ReadOnly]
@@ -464,7 +464,7 @@ public partial struct EntitiesMovementSystem : ISystem
             if (StatsLookup.HasComponent(entity))
             {
                 var stats = StatsLookup[entity];
-                speed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
+                speed = stats.MoveSpeed;
             }
 
             PlanetUtils.GetSurfaceNormalRadius(in transform.Position, in PlanetCenter, out var normal);

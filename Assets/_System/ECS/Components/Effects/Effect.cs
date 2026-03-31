@@ -31,6 +31,7 @@ public struct FinalStats : IComponentData
     public float MoveSpeed;
     public float GlobalDamageMultiplier;
     public float ArmorMultiplier;
+    public float RangeMultiplier;
 }
 
 public struct ActiveKnockback : IComponentData

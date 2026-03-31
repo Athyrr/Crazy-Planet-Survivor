@@ -16,7 +16,7 @@ public partial struct TickDamageSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<CpEntity> _cpEntityLookup;
-    private ComponentLookup<CoreStats> _statsLookup;
+    private ComponentLookup<FinalStats> _finalStatsLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFLagLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
@@ -35,7 +35,7 @@ public partial struct TickDamageSystem : ISystem
         // Cache lookups
         _playerLookup = state.GetComponentLookup<Player>(true);
         _cpEntityLookup = state.GetComponentLookup<CpEntity>(true);
-        _statsLookup = state.GetComponentLookup<CoreStats>(true);
+        _finalStatsLookup = state.GetComponentLookup<FinalStats>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
         _destroyFLagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
@@ -73,7 +73,7 @@ public partial struct TickDamageSystem : ISystem
         // Update lookups
         _playerLookup.Update(ref state);
         _cpEntityLookup.Update(ref state);
-        _statsLookup.Update(ref state);
+        _finalStatsLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
         _destroyFLagLookup.Update(ref state);
         _activeSpellBufferLookup.Update(ref state);
@@ -88,7 +88,7 @@ public partial struct TickDamageSystem : ISystem
             PlayerLookup = _playerLookup,
             CpEntityLookup = _cpEntityLookup,
 
-            StatsLookup = _statsLookup,
+            FinalStatsLookup = _finalStatsLookup,
             DamageBufferLookup = _damageBufferLookup,
             DestroyFlagLookup = _destroyFLagLookup,
             
@@ -121,7 +121,7 @@ public partial struct TickDamageSystem : ISystem
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<CpEntity> CpEntityLookup;
 
-        [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
+        [ReadOnly] public ComponentLookup<FinalStats> FinalStatsLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
 
@@ -139,9 +139,9 @@ public partial struct TickDamageSystem : ISystem
             damageOnTick.ElapsedTime = 0f;
             var caster = damageOnTick.Caster;
 
-            if (!StatsLookup.HasComponent(caster))
+            if (!FinalStatsLookup.HasComponent(caster))
                 return;
-            var casterStats = StatsLookup[caster];
+            var casterStats = FinalStatsLookup[caster];
 
             var hits = new NativeList<DistanceHit>(Allocator.Temp);
 
@@ -154,7 +154,7 @@ public partial struct TickDamageSystem : ISystem
                     (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) /*| CollisionLayers.Obstacle*/,
             };
 
-            float radius = damageOnTick.AreaRadius * math.max(1, casterStats.GlobalSpellAreaMultiplier);
+            float radius = damageOnTick.AreaRadius * math.max(1, casterStats.RangeMultiplier);
             float damage = damageOnTick.DamagePerTick; // todo scale tick damage based on stats
 
             // Detection
