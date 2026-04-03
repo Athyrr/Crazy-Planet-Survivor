@@ -1,9 +1,6 @@
-using System;
-using System.Linq;
 using _System.ECS.Authorings.Ressources;
 using _System.Settings;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 

@@ -80,7 +80,7 @@ public class AmuletShopUIController : MonoBehaviour
         }
     }
     
-    public void CloseView()
+    private void CloseView()
     {
         foreach (Transform child in transform)
             child.gameObject.SetActive(false);
@@ -227,6 +227,14 @@ public class AmuletShopUIController : MonoBehaviour
         }
 
         return false;
+    }
 
+    public void Back()
+    {
+        // //Close view 
+        // CloseView();
+        
+        // Back to lobby 
+        GameManager.Instance.ChangeState(EGameState.Lobby);
     }
 }

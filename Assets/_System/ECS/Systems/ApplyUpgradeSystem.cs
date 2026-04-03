@@ -263,7 +263,6 @@ public partial struct ApplyUpgradeSystem : ISystem
         }
     }
 
-
     private static void ApplyPlayerStatUpgrade(ref CoreStats playerCoreStats, ref Health health, ECharacterStat stat,
         float value, ref bool needSpellUpdate)
     {
