@@ -287,8 +287,7 @@ MonoBehaviour:
   MainRenderer: {fileID: 977407518882472899}
   UseSnappedMovement: 1
   BaseStats:
-    BaseMaxHealth: 50
-    MaxHealthMultiplier: 1
+    MaxHealth: 120
     HealthRecovery: 0
     BaseArmor: 0
     DamageReductionMultiplier: 0
@@ -297,12 +296,12 @@ MonoBehaviour:
     BasePickupRange: 0
     PickupRangeMultiplier: 1
     GlobalDamageMultiplier: 1
-    GlobalCooldownMultiplier: 1
+    GlobalCooldownReductionMultiplier: 0
     GlobalSpellAreaMultiplier: 1
     GlobalSpellSizeMultiplier: 1
     GlobalSpellSpeedMultiplier: 1
-    GlobalDurationMultiplier: 1
-    GlobalCastRangeMultiplier: 0
+    GlobalSpellDurationMultiplier: 1
+    GlobalCastRangeMultiplier: 1
     GlobalAmountBonus: 0
     GlobalPierceBonus: 0
     GlobalBounceBonus: 0

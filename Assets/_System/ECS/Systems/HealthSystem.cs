@@ -17,8 +17,8 @@ public partial struct HealthSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
-    private ComponentLookup<CpEntity> _cpEntityLookup;
-    private ComponentLookup<Ressource> _ressourceLookup;
+    private ComponentLookup<Destructible> _cpEntityLookup;
+    private ComponentLookup<Resource> _ressourceLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
 
@@ -29,8 +29,8 @@ public partial struct HealthSystem : ISystem
 
         _playerLookup = state.GetComponentLookup<Player>(true);
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
-        _cpEntityLookup = state.GetComponentLookup<CpEntity>(true);
-        _ressourceLookup = state.GetComponentLookup<Ressource>(true);
+        _cpEntityLookup = state.GetComponentLookup<Destructible>(true);
+        _ressourceLookup = state.GetComponentLookup<Resource>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
     }
@@ -64,7 +64,7 @@ public partial struct HealthSystem : ISystem
             PlayerLookup = _playerLookup,
             CpEntityLookup = _cpEntityLookup,
             EnemyLookup = _enemyLookup,
-            RessourceLookup = _ressourceLookup,
+            ResourceLookup = _ressourceLookup,
             TransformLookup = _transformLookup,
         };
 
@@ -82,11 +82,13 @@ public partial struct HealthSystem : ISystem
 
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        [ReadOnly] public ComponentLookup<CpEntity> CpEntityLookup;
+        [ReadOnly] public ComponentLookup<Destructible> CpEntityLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
-        [ReadOnly] public ComponentLookup<Ressource> RessourceLookup;
+        [ReadOnly] public ComponentLookup<Resource> ResourceLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
 
+        // todo Opti here: If  possible use Query instead of lookup
+        
         private void Execute(
             [ChunkIndexInQuery] int index,
             Entity entity,
@@ -94,6 +96,8 @@ public partial struct HealthSystem : ISystem
             ref DynamicBuffer<DamageBufferElement> damageBuffer
         )
         {
+            // todo use skip condition in query -> Comp + EnabledRefRW  
+            
             // Skip entities already marked for destruction
             if (DestroyFlagLookup.HasComponent(entity) && DestroyFlagLookup.IsComponentEnabled(entity))
                 return;
@@ -160,7 +164,7 @@ public partial struct HealthSystem : ISystem
                         new EnemyKilledEvent { WaveIndex = EnemyLookup[entity].WaveIndex }
                     );
                 }
-                else if (RessourceLookup.HasComponent(entity))
+                else if (ResourceLookup.HasComponent(entity))
                 {
                     var killedEventEntity = ECB.CreateEntity(index);
                     ECB.AddComponent(

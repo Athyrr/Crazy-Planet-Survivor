@@ -9,9 +9,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2083530997628004068}
-  - component: {fileID: 4366719830564651683}
+  - component: {fileID: 1845363423725880442}
+  - component: {fileID: 3553389542406024689}
+  - component: {fileID: 3942090319779090746}
   m_Layer: 5
-  m_Name: HB
+  m_Name: Container
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -31,12 +33,20 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 4930209758089356810}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 450, y: 100}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4366719830564651683
+--- !u!222 &1845363423725880442
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3794419943379237736}
+  m_CullTransparentMesh: 1
+--- !u!114 &3553389542406024689
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -45,15 +55,45 @@ MonoBehaviour:
   m_GameObject: {fileID: 3794419943379237736}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 30649d3a9faa99c48a7b1166b86bf2a0, type: 3}
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.HorizontalLayoutGroup
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!114 &3942090319779090746
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3794419943379237736}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59f8146938fff824cb5fd77236b75775, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.VerticalLayoutGroup
   m_Padding:
     m_Left: 0
     m_Right: 0
     m_Top: 0
     m_Bottom: 0
-  m_ChildAlignment: 4
+  m_ChildAlignment: 0
   m_Spacing: 0
   m_ChildForceExpandWidth: 1
   m_ChildForceExpandHeight: 1
@@ -73,7 +113,6 @@ GameObject:
   - component: {fileID: 4930209758089356810}
   - component: {fileID: 8125773816179158667}
   - component: {fileID: 3158232350670973485}
-  - component: {fileID: 3676571810889061170}
   m_Layer: 5
   m_Name: PF_UI_Ressources
   m_TagString: Untagged
@@ -121,8 +160,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30144ac06df748a39487fb4bd663508b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UI_PlayerRessourceComponent
-  _ressourceElementComponentRef: {fileID: 2633479180020865581, guid: d8880033ee705014ba86b9f3b6d20078, type: 3}
-  _ressourceLayoutGroup: {fileID: 4366719830564651683}
+  _ressourceModel: {fileID: 2633479180020865581, guid: d8880033ee705014ba86b9f3b6d20078, type: 3}
+  _container: {fileID: 2083530997628004068}
   _ressources:
     m_enumValues:
     - {fileID: -1849319583, guid: 4e1d115e8afe1c74cb4527dc970b8362, type: 3}
@@ -130,17 +169,3 @@ MonoBehaviour:
     - {fileID: -1122124154, guid: c7709e70f5753114182d7030c29d86f9, type: 3}
     - {fileID: 1956573695, guid: c7709e70f5753114182d7030c29d86f9, type: 3}
     - {fileID: -1865773691, guid: c7709e70f5753114182d7030c29d86f9, type: 3}
---- !u!114 &3676571810889061170
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6732832515594181049}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ContentSizeFitter
-  m_HorizontalFit: 1
-  m_VerticalFit: 1

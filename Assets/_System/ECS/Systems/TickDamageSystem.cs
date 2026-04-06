@@ -15,7 +15,7 @@ using Unity.Jobs;
 public partial struct TickDamageSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
-    private ComponentLookup<CpEntity> _cpEntityLookup;
+    private ComponentLookup<Destructible> _cpEntityLookup;
     private ComponentLookup<CoreStats> _statsLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFLagLookup;
@@ -34,7 +34,7 @@ public partial struct TickDamageSystem : ISystem
 
         // Cache lookups
         _playerLookup = state.GetComponentLookup<Player>(true);
-        _cpEntityLookup = state.GetComponentLookup<CpEntity>(true);
+        _cpEntityLookup = state.GetComponentLookup<Destructible>(true);
         _statsLookup = state.GetComponentLookup<CoreStats>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
         _destroyFLagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
@@ -119,7 +119,7 @@ public partial struct TickDamageSystem : ISystem
         [ReadOnly] public CollisionWorld CollisionWorld;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        [ReadOnly] public ComponentLookup<CpEntity> CpEntityLookup;
+        [ReadOnly] public ComponentLookup<Destructible> CpEntityLookup;
 
         [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;

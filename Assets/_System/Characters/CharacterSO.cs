@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewCharacterData", menuName = "Survivor/Characters/Character Data")]
-public class CharacterSo : ScriptableObject
+public class CharacterSO : ScriptableObject
 {
     [Header("General")] [Tooltip("Name displayed in the UI.")]
     public string DisplayName = string.Empty;
