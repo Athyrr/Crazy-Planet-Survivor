@@ -1,8 +1,9 @@
 using UnityEngine.UI;
 using UnityEngine;
 using TMPro;
+using UnityEngine.EventSystems;
 
-public class SummarySpell : MonoBehaviour
+public class SummarySpell : UIViewItemBase
 {
     public TMP_Text Label;
     public Image Icon;
@@ -16,5 +17,10 @@ public class SummarySpell : MonoBehaviour
         Icon.sprite = icon;
 
         DamageValue.text = activeSpell.TotalDamageDealt.ToString("N0");
+    }
+
+    public override void OnPointerEnter(PointerEventData eventData)
+    {
+        throw new System.NotImplementedException();
     }
 }

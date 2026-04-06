@@ -1,10 +1,12 @@
 using UnityEngine;
 using TMPro;
-using System;
-using System.Numerics;
+using UnityEngine.EventSystems;
 using Vector3 = UnityEngine.Vector3;
 
-public class UpgradeUIComponent : MonoBehaviour
+/// <summary>
+/// Represents an upgrade card displayed when the player is leveling up. 
+/// </summary>
+public class UpgradeViewItem : UIViewItemBase
 {
     [Header("3D Visuals")] public SpriteRenderer Icon;
     public TextMeshPro TitleText;
@@ -28,15 +30,7 @@ public class UpgradeUIComponent : MonoBehaviour
     public int DbIndex => _dbIndex;
     private Transform _visualRoot;
 
-    private void Start()
-    {
-        if (_visualRoot == null)
-            _visualRoot = transform;
-
-        _intialPosition = transform.localPosition;
-        _intialScale = transform.localScale;
-    }
-
+   
     public void SetData(ref UpgradeBlob upgradeData, int dbIndex)
     {
         _dbIndex = dbIndex;
@@ -187,5 +181,10 @@ public class UpgradeUIComponent : MonoBehaviour
         }
 
         transform.localPosition = Vector3.Lerp(transform.localPosition, targetPosition, Time.deltaTime * FloatingSpeed);
+    }
+
+    public override void OnPointerEnter(PointerEventData eventData)
+    {
+        throw new System.NotImplementedException();
     }
 }

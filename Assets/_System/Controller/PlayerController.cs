@@ -8,13 +8,15 @@ public class PlayerController : MonoBehaviour
     private GameInputs _gameInputs;
     private EntityQuery _inputQuery;
     private Vector2 _inputDirection = Vector2.zero;
+
     private bool _isInteractPressed = false;
+    private bool _isTabPressed = false;
 
     private void Awake()
     {
         _gameInputs = new GameInputs();
 
-        if (_runManager == null) 
+        if (_runManager == null)
             _runManager = FindFirstObjectByType<RunManager>();
     }
 
@@ -30,6 +32,7 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Player.Move.canceled += HandleMoveInput;
         _gameInputs.Player.Pause.started += HandlePauseInput;
         _gameInputs.Player.Interact.canceled += HandleInteractInput;
+        _gameInputs.Player.StatsView.canceled += HandleTabInput;
 
         _gameInputs.Enable();
     }
@@ -40,9 +43,10 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Player.Move.canceled -= HandleMoveInput;
         _gameInputs.Player.Pause.started -= HandlePauseInput;
         _gameInputs.Player.Interact.canceled -= HandleInteractInput;
-       
+
         _gameInputs.Disable();
     }
+
     void Update()
     {
         InjectInputDirectionToECS(_inputDirection);
@@ -68,10 +72,12 @@ public class PlayerController : MonoBehaviour
             new InputData
             {
                 Value = direction,
-                IsInteractPressed = _isInteractPressed
+                IsInteractPressed = _isInteractPressed,
+                IsTabPressed = _isTabPressed
             });
 
         _isInteractPressed = false;
+        _isTabPressed = false;
     }
 
     private void HandlePauseInput(CallbackContext ctx)
@@ -86,4 +92,11 @@ public class PlayerController : MonoBehaviour
             _isInteractPressed = true;
     }
 
+    private void HandleTabInput(CallbackContext ctx)
+    {
+        if (ctx.canceled)
+            _isTabPressed = true;
+        
+        Debug.Log(("Tavbbb"));
+    }
 }

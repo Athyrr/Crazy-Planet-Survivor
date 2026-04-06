@@ -1,13 +1,14 @@
 using Unity.Entities;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class RunManager : MonoBehaviour
 {
     [Header("UI Managers")]
     public GameObject HUDPanel;
-    public UpgradeSelectionUIController UpgradeSelectionController;
+    public UpgradeSelectionUIController upgradeSelectionController;
 
-    public GameOverUIController GameOverUIController;
+    [FormerlySerializedAs("GameOverUIController")] public GameOverUIController gameOverUIController;
 
     public GameObject PausePanel;
 
@@ -53,7 +54,7 @@ public class RunManager : MonoBehaviour
 
     private void InitPanels()
     {
-        UpgradeSelectionController.Init(this);
+        upgradeSelectionController.Init(this);
     }
 
     private void CheckEndRun()
@@ -72,7 +73,7 @@ public class RunManager : MonoBehaviour
             if (GameManager.Instance.GetGameState() != EGameState.GameOver)
                 GameManager.Instance.ChangeState(EGameState.GameOver);
 
-            GameOverUIController.OpenView(endRunRequest.State, ressourcesRequest);
+            gameOverUIController.OpenView(endRunRequest.State, ressourcesRequest);
 
             _entityManager.DestroyEntity(endRunReqEntity);
             _entityManager.DestroyEntity(ressourcesReqEntity);
@@ -108,7 +109,7 @@ public class RunManager : MonoBehaviour
             var buffer = _entityManager.GetBuffer<UpgradeSelectionBufferElement>(gameStateEntity, true);
 
             GameManager.Instance.ChangeState(EGameState.UpgradeSelection);
-            UpgradeSelectionController.DisplaySelection(buffer);
+            upgradeSelectionController.DisplaySelection(buffer);
 
             _entityManager.RemoveComponent<OpenUpgradesSelectionViewRequest>(gameStateEntity);
         }
@@ -136,9 +137,9 @@ public class RunManager : MonoBehaviour
     {
         // Hide all panels
         HUDPanel.SetActive(false);
-        UpgradeSelectionController.gameObject.SetActive(false);
+        upgradeSelectionController.gameObject.SetActive(false);
         PausePanel.SetActive(false);
-        GameOverUIController.gameObject.SetActive(false);
+        gameOverUIController.gameObject.SetActive(false);
 
         switch (newState)
         {
@@ -153,7 +154,7 @@ public class RunManager : MonoBehaviour
                 //GameOverUIController.OpenView();
                 break;
             case EGameState.UpgradeSelection:
-                UpgradeSelectionController.gameObject.SetActive(true);
+                upgradeSelectionController.gameObject.SetActive(true);
                 break;
             default:
                 break;

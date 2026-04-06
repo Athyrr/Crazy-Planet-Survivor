@@ -13,14 +13,14 @@ public class GameOverUIController : MonoBehaviour
     public float DisplayDuration = 1f;
 
     [Header("Summary View")]
-    public SummaryView RunSummaryView;
+    public SummaryListView runSummaryListView;
 
 
     public void OpenView(EEndRunState endState, PlayerRessources ressources)
     {
         gameObject.SetActive(true);
         GameOverView.SetActive(true);
-        RunSummaryView.gameObject.SetActive(false);
+        runSummaryListView.gameObject.SetActive(false);
 
         StateUpdate(endState, ressources);
 
@@ -83,8 +83,8 @@ public class GameOverUIController : MonoBehaviour
         yield return new WaitForSeconds(DisplayDuration);
 
         GameOverView.SetActive(false);
-        RunSummaryView.gameObject.SetActive(true);
-        RunSummaryView.RefreshView();
+        runSummaryListView.gameObject.SetActive(true);
+        runSummaryListView.RefreshView();
     }
 
     private IEnumerator FadeTextAlpha(float startAlpha, float endAlpha, float duration)

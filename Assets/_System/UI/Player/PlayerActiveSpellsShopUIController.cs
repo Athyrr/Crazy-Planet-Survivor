@@ -1,17 +1,17 @@
-using System;
 using System.Collections.Generic;
 using Unity.Entities;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
-public class PlayerSpellsUIController : MonoBehaviour
+// Displays player's spell currently active during the run.
+public class PlayerActiveSpellsShopUIController : UIControllerBase
 {
     [Header("Databases")] public SpellDatabaseSO SpellsDatabase;
     public AmuletsDatabaseSO AmuletsDatabase;
-
-
+    
     [Header("UI References")] public Transform SpellsContainer;
-    public UIActiveSpellComponent SpellUIPrefab;
+    [FormerlySerializedAs("SpellUIPrefab")] public ActiveSpellViewItem spellPrefab;
 
     public Transform AmuletContainer;
     public Image AmuletIcon;
@@ -20,8 +20,8 @@ public class PlayerSpellsUIController : MonoBehaviour
     private EntityQuery _playerQuery;
     private EntityQuery _gameStateQuery;
 
-    private Dictionary<int, UIActiveSpellComponent> _indexToActiveSpellsMap =
-        new Dictionary<int, UIActiveSpellComponent>();
+    private Dictionary<int, ActiveSpellViewItem> _indexToActiveSpellsMap =
+        new Dictionary<int, ActiveSpellViewItem>();
 
     private void Start()
     {
@@ -74,11 +74,11 @@ public class PlayerSpellsUIController : MonoBehaviour
             int dbIndex = activeSpell.DatabaseIndex;
             var spellData = SpellsDatabase.Spells[dbIndex];
 
-            if (_indexToActiveSpellsMap.TryGetValue(dbIndex, out var uiComponent)) // if exists -> update
+            if (_indexToActiveSpellsMap.TryGetValue(dbIndex, out var uiComponent))
             {
                 uiComponent.Refresh(spellData, dbIndex, activeSpell.Level);
             }
-            else // else -> create new
+            else 
             {
                 CreateSpellIcon(activeSpell);
             }
@@ -93,7 +93,7 @@ public class PlayerSpellsUIController : MonoBehaviour
             return;
 
         var spellData = SpellsDatabase.Spells[dbIndex];
-        var uiActiveSpellComponent = Instantiate(SpellUIPrefab, SpellsContainer);
+        var uiActiveSpellComponent = Instantiate(spellPrefab, SpellsContainer);
 
         uiActiveSpellComponent.Refresh(spellData, dbIndex, activeSpell.Level);
 
