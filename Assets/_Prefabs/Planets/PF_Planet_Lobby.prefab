@@ -271,14 +271,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5075d250c6a932b44900fd1ab8740d9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlanetConfigAuthoring
-  _heightMapTexture: {fileID: 0}
-  _atlasPixelWidth: 2048
-  _maxPlanetHeight: 10
-  _radius: 50
-  _autoFindPlanetRadius: 1
-  _findWaterLevel: 0
-  _waterLevelObject: {fileID: 0}
-  _useHeightMap: 0
+  _planetID: 5
+  _autoCalculate: 1
+  _planetRenderer: {fileID: 0}
+  _manualRadius: 50
+  _manualCenterOffset: {x: 0, y: 0, z: 0}
+  _runDuration: 60
 --- !u!114 &4383303850947694623
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -291,9 +289,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8684a6a8f36b4f29978520710e23860f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoliageRenderer
-  data: {fileID: 11400000, guid: 8138c995ee9057242929c9d3cfaa41b3, type: 2}
-  mesh: {fileID: 2931178734877319190, guid: 4dfe686ae138ffb4fa7572b5ae68e04c, type: 3}
-  material: {fileID: 2100000, guid: dc3c2090bc358644fb684229bc8ed6eb, type: 2}
-  renderBounds:
-    m_Center: {x: -0.07108547, y: 0.08297, z: -0.0059291353}
-    m_Extent: {x: 62.19952, y: 62.19952, z: 62.19952}
+  datas:
+    m_enumValues:
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+    - {fileID: 0}
+  _mesh: {fileID: 0}
+  _material: {fileID: 0}
+  _renderBounds:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 500, y: 500, z: 500}
