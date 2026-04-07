@@ -429,10 +429,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03db88175c3880e4d91f5497f684801e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
+  MainRenderer: {fileID: 2295197189331311308}
   UseSnappedMovement: 1
   BaseStats:
-    BaseMaxHealth: 100
-    MaxHealthMultiplier: 1
+    MaxHealth: 120
     HealthRecovery: 0
     BaseArmor: 0
     DamageReductionMultiplier: 0
@@ -441,12 +441,12 @@ MonoBehaviour:
     BasePickupRange: 0
     PickupRangeMultiplier: 1
     GlobalDamageMultiplier: 1
-    GlobalCooldownMultiplier: 1
+    GlobalCooldownReductionMultiplier: 0
     GlobalSpellAreaMultiplier: 1
     GlobalSpellSizeMultiplier: 1
     GlobalSpellSpeedMultiplier: 1
-    GlobalDurationMultiplier: 1
-    GlobalCastRangeMultiplier: 0
+    GlobalSpellDurationMultiplier: 1
+    GlobalCastRangeMultiplier: 1
     GlobalAmountBonus: 0
     GlobalPierceBonus: 0
     GlobalBounceBonus: 0
@@ -466,8 +466,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9572930ed885f804eae7a2b7f785412d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExperienceLootAuthoring
-  ExperienceValue: 150
-  DropChance: 1
+  _ressourceType: 0
+  _value: 500
+  _dropChance: 1
 --- !u!114 &4190783909020484761
 MonoBehaviour:
   m_ObjectHideFlags: 0

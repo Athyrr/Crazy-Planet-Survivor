@@ -387,9 +387,9 @@ public static class SaveManager
             try
             {
                 save = Modifier != null ? Modifier.ReadSaveFromFile(content) : JsonUtility.FromJson<Save>(content);
-#if !UNITY_EDITOR
-                if (save != null && save.version != GameStateSettings.GameVersion) return false;
-#endif
+// #if !UNITY_EDITOR
+//                 if (save != null && save.version != GameStateSettings.GameVersion) return false;
+// #endif
             }
             catch (Exception e)
             {

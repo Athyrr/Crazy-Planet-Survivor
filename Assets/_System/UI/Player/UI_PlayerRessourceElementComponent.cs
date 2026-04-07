@@ -15,7 +15,7 @@ public class UI_PlayerRessourceElementComponent : MonoBehaviour
     private bool _init;
     private bool _ecsContext;
     
-    public void Init(int ressourceType, Sprite ressourceImageTexture, int defaultValue = -1)
+    public void Refresh(int ressourceType, Sprite ressourceImageTexture, int defaultValue = -1)
     {
         _ressourceType = ressourceType;
         _ressourceImage.sprite = ressourceImageTexture;

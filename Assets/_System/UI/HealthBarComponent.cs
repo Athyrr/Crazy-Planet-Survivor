@@ -40,8 +40,8 @@ public class HealthBarComponent : MonoBehaviour
         Health playerHealth = _playerQuery.GetSingleton<Health>();
         var playerStats = _playerQuery.GetSingleton<CoreStats>();
 
-        float maxHealth = playerStats.BaseMaxHealth * playerStats.MaxHealthMultiplier;
-        float ratio = Mathf.Clamp01(playerHealth.Value /maxHealth);
+        float maxHealth = playerStats.MaxHealth;
+        float ratio = Mathf.Clamp01(playerHealth.Value / maxHealth);
 
         _healthMaterial.SetFloat("_Value", ratio);
 

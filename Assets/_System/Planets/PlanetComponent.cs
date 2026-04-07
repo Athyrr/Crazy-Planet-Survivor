@@ -28,7 +28,7 @@ public class PlanetComponent : MonoBehaviour
     {
         _controller = FindFirstObjectByType<PlanetSelectionUIController>();
         _baseScale = transform.localScale;
-        _targetScale = Vector3.one;
+        _targetScale = _baseScale;
         _currentSpeed = IdleSpeed;
     }
 
@@ -36,6 +36,10 @@ public class PlanetComponent : MonoBehaviour
     {
         if (_controller != null)
             _controller.OnPlanetSelected += HandleSelectionChanged;
+
+        _baseScale = transform.localScale;
+        _targetScale = _baseScale;
+        UpdateVisual();
     }
 
     private void OnDisable()
@@ -73,8 +77,12 @@ public class PlanetComponent : MonoBehaviour
     {
         if (AllowRotate)
             transform.Rotate(transform.up * Time.deltaTime * _currentSpeed);
-
-        transform.localScale = Vector3.Lerp(transform.localScale, _targetScale, Time.deltaTime * ScaleSpeed);
+        
+        Vector3 current = transform.localScale;
+        if ((current - _targetScale).sqrMagnitude > 0.0001f)
+            transform.localScale = Vector3.Lerp(current, _targetScale, Time.deltaTime * ScaleSpeed);
+        else
+            transform.localScale = _targetScale; // snap final pour éviter la dérive
     }
 
     private void OnMouseEnter()
@@ -99,5 +107,4 @@ public class PlanetComponent : MonoBehaviour
 
         _controller.SelectPlanet(PlanetID, transform, FocusOffset);
     }
-
 }

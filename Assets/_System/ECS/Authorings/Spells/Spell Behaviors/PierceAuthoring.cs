@@ -1,6 +1,7 @@
 using Unity.Entities;
 using UnityEngine;
 
+[RequireComponent(typeof(DestructibleAuthoring))]
 public class PierceAuthoring : MonoBehaviour
 {
     class Baker : Baker<PierceAuthoring>

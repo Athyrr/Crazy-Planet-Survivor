@@ -143,12 +143,12 @@ MonoBehaviour:
   m_ShapeType: 2
   m_PrimitiveCenter:
     x: 0
-    y: 1.2
+    y: 0.8
     z: 0
   m_PrimitiveSize:
-    x: 4.52
-    y: 4.52
-    z: 4.52
+    x: 3.6
+    y: 3.6
+    z: 3.6
   m_PrimitiveOrientation:
     Value:
       x: -0
@@ -156,15 +156,15 @@ MonoBehaviour:
       z: 0
     RotationOrder: 4
   m_Capsule:
-    Height: 4.52
-    Radius: 2.26
+    Height: 3.6
+    Radius: 1.8
     Axis: 2
   m_Cylinder:
-    Height: 4.52
-    Radius: 2.26
+    Height: 3.6
+    Radius: 1.8
     Axis: 2
   m_CylinderSideCount: 20
-  m_SphereRadius: 2.26
+  m_SphereRadius: 1.8
   m_MinimumSkinnedVertexWeight: 0.1
   m_ConvexHullGenerationParameters:
     m_SimplificationTolerance: 0.015
@@ -177,7 +177,7 @@ MonoBehaviour:
     m_Template: {fileID: 0}
     m_CollisionResponse:
       m_Override: 0
-      m_Value: 1
+      m_Value: 3
     m_Friction:
       m_Override: 0
       m_Value:
@@ -283,10 +283,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03db88175c3880e4d91f5497f684801e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
+  MainRenderer: {fileID: 4385761708397922400}
   UseSnappedMovement: 1
   BaseStats:
-    BaseMaxHealth: 10
-    MaxHealthMultiplier: 1
+    MaxHealth: 120
     HealthRecovery: 0
     BaseArmor: 0
     DamageReductionMultiplier: 0
@@ -295,12 +295,12 @@ MonoBehaviour:
     BasePickupRange: 0
     PickupRangeMultiplier: 1
     GlobalDamageMultiplier: 1
-    GlobalCooldownMultiplier: 1
+    GlobalCooldownReductionMultiplier: 0
     GlobalSpellAreaMultiplier: 1
     GlobalSpellSizeMultiplier: 1
     GlobalSpellSpeedMultiplier: 1
-    GlobalDurationMultiplier: 1
-    GlobalCastRangeMultiplier: 0
+    GlobalSpellDurationMultiplier: 1
+    GlobalCastRangeMultiplier: 1
     GlobalAmountBonus: 0
     GlobalPierceBonus: 0
     GlobalBounceBonus: 0
@@ -320,7 +320,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExperienceLootAuthoring
   _ressourceType: 0
-  _value: 30
+  _value: 80
   _dropChance: 1
 --- !u!114 &4190783909020484761
 MonoBehaviour:

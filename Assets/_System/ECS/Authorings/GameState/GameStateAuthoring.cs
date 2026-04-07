@@ -16,10 +16,13 @@ public class GameStateAuthoring : MonoBehaviour
             AddBuffer<UpgradeSelectionBufferElement>(entity);
 
             // Store selected character
-            AddComponent(entity, new SelectedCharacterData
+            AddComponent(entity, new SelectedCharacter
             {
-                CharacterIndex = 0,
+                DbIndex = 0,
             });
+
+            // Store playable characters 
+            // AddBuffer<UnlockedCharacter>(entity);
 
             // Store wearable amulets
             AddBuffer<UnlockedAmulet>(entity);

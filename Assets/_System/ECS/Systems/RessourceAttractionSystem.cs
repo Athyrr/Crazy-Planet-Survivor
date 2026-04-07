@@ -123,7 +123,7 @@ public partial struct RessourceAttractionSystem : ISystem
         [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
         public float AnimDuration;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in Ressource ressource)
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in Resource resource)
         {
             
             var playerStats = StatsLookup[PlayerEntity];
@@ -158,7 +158,7 @@ public partial struct RessourceAttractionSystem : ISystem
         [ReadOnly] public ComponentLookup<ExperienceOrb> ExperienceOrbLookup;
         [ReadOnly] public BlobAssetReference<AttractionAnimationCurveBlob> CurveBlobRef;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref LocalTransform transform, ref AttractionAnimation anim, in Ressource ressource)
+        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref LocalTransform transform, ref AttractionAnimation anim, in Resource resource)
         {
             anim.ElapsedTime += DeltaTime;
             float progress01 = math.clamp(anim.ElapsedTime / anim.Duration, 0f, 1f);
@@ -181,7 +181,7 @@ public partial struct RessourceAttractionSystem : ISystem
             // Collection 
             if (progress01 >= 1f)
             {
-                if (ressource.Type == ERessourceType.Xp && ExperienceOrbLookup.HasComponent(entity))
+                if (resource.Type == ERessourceType.Xp && ExperienceOrbLookup.HasComponent(entity))
                 {
                     // Add experience to player
                     ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedExperienceBufferElement
@@ -193,7 +193,7 @@ public partial struct RessourceAttractionSystem : ISystem
                 {
                     ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedRessourcesBufferElement()
                     {
-                        Type = ressource.Type,
+                        Type = resource.Type,
                         Value = 1 // todo passing value here ? actually ressource.Value == 0
                     });
                 }

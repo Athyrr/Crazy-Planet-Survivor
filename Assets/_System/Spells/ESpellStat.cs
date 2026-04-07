@@ -4,7 +4,7 @@ public enum ESpellStat
 
     // Core Combat
     Damage,             
-    Cooldown,         
+    CooldownReduction,         
 
     // Spatial
     Speed,           
