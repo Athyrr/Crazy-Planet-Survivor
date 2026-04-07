@@ -16,7 +16,7 @@ public partial struct TickDamageSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Destructible> _cpEntityLookup;
-    private ComponentLookup<FinalStats> _statsLookup;
+    private ComponentLookup<FinalStats> _finalStatsLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFLagLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
@@ -35,7 +35,7 @@ public partial struct TickDamageSystem : ISystem
         // Cache lookups
         _playerLookup = state.GetComponentLookup<Player>(true);
         _cpEntityLookup = state.GetComponentLookup<Destructible>(true);
-        _statsLookup = state.GetComponentLookup<FinalStats>(true);
+        _finalStatsLookup = state.GetComponentLookup<FinalStats>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
         _destroyFLagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
