@@ -108,7 +108,7 @@ Shader "Custom/DamageNumbers"
             {
                 DamageData data = _DamageBuffer[i.inst];
 
-                float number = data.value -1;
+                float number = data.value;
                 float2 uv = i.uv;
 
                 fixed4 col = fixed4(0,0,0,0);
@@ -134,7 +134,7 @@ Shader "Custom/DamageNumbers"
                         float right = step(uv.x, (at + 1) / (float)data.digitCount);
 
                         float2 tc;
-                        tc.x = uv.x * data.digitCount / 10.0 + digit / 10.0;
+                        tc.x = (uv.x * data.digitCount - at + digit) / 10.0;
                         tc.y = uv.y;
 
                         col += left * right * tex2D(_MainTex, tc);
