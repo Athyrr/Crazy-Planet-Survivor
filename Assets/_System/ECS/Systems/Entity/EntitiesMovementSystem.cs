@@ -333,9 +333,11 @@ public partial struct EntitiesMovementSystem : ISystem
 
     /// <summary>
     /// Moves entities toward a target entity, incorporating steering forces and terrain snapping.
+    /// Excludes entities using FlowFieldFollowerMovement, which are handled by FlowFieldMovementSystem.
     /// </summary>
     [BurstCompile]
     [WithAll(typeof(FollowTargetMovement), typeof(HardSnappedMovement))]
+    [WithNone(typeof(FlowFieldFollowerMovement))]
     private partial struct MoveFollowSnappedJob : IJobEntity
     {
         [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
