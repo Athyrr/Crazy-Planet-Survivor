@@ -604,7 +604,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 1000
+    maxNumParticles: 50
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -24326,6 +24326,7 @@ GameObject:
   - component: {fileID: -3046622321105270786}
   - component: {fileID: 2248150641823454588}
   - component: {fileID: 3265751959081834841}
+  - component: {fileID: 1898412360352966185}
   m_Layer: 0
   m_Name: PF_Spell_ShockChain
   m_TagString: Untagged
@@ -26773,9 +26774,9 @@ MonoBehaviour:
     y: 0
     z: 0
   m_PrimitiveSize:
-    x: 0.4
-    y: 0.4
-    z: 0.4
+    x: 0.6
+    y: 0.6
+    z: 0.6
   m_PrimitiveOrientation:
     Value:
       x: -0
@@ -26783,15 +26784,15 @@ MonoBehaviour:
       z: 0
     RotationOrder: 4
   m_Capsule:
-    Height: 0.4
-    Radius: 0.2
+    Height: 0.6
+    Radius: 0.3
     Axis: 2
   m_Cylinder:
-    Height: 0.4
-    Radius: 0.2
+    Height: 0.6
+    Radius: 0.3
     Axis: 2
   m_CylinderSideCount: 20
-  m_SphereRadius: 0.2
+  m_SphereRadius: 0.3
   m_MinimumSkinnedVertexWeight: 0.1
   m_ConvexHullGenerationParameters:
     m_SimplificationTolerance: 0.015
@@ -26952,3 +26953,15 @@ MonoBehaviour:
   Damage: 10
   VfxPrefab: {fileID: 6340610747241723204, guid: dd6564044a4c8cb4d87badf40a9d1942, type: 3}
   StartEnabled: 0
+--- !u!114 &1898412360352966185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8913368109206024948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DestructibleAuthoring

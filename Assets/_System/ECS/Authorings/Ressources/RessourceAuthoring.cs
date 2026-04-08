@@ -16,7 +16,7 @@ public class RessourceAuthoring : MonoBehaviour
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            AddComponent<Ressource>(entity, new Ressource()
+            AddComponent<Resource>(entity, new Resource()
             {
                 Type = authoring._ressourceType,
                 Value = 0,

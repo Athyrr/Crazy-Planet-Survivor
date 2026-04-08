@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using UnityEngine.UI;
 using UnityEngine;
@@ -5,26 +6,24 @@ using UnityEngine;
 /// <summary>
 /// Represents the section that display the selected character base stats.
 /// </summary>
-public class CharacterStatsViewComponent : MonoBehaviour
+public class CharacterStatsListView : ShopListViewBase<CharacterItemComponent>
 {
-    [Header("Stats")] public CharacterStatsItemComponent StatItemPrefab;
+    
+    // todo make a single container for character details + stats
+    
+    
+    [Header("Stats")] public CharacterItemComponent itemPrefab;
 
     public Transform StatsItemsContainer;
-
-
+    
     [Header("Spells")] public Image SpellIcon;
-
-    public void Refresh()
-    {
-    }
-
+    
     public void Refresh(CoreStats coreStats)
     {
         foreach (Transform child in StatsItemsContainer)
             Destroy(child.gameObject);
-
-        System.Type type = typeof(CoreStats);
-
+        
+        Type type = typeof(CoreStats);
         FieldInfo[] fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
 
         foreach (FieldInfo field in fields)
@@ -43,7 +42,7 @@ public class CharacterStatsViewComponent : MonoBehaviour
 
     private void CreateStatRow(string name, string value)
     {
-        var row = Instantiate(StatItemPrefab, StatsItemsContainer);
+        var row = Instantiate(itemPrefab, StatsItemsContainer);
         row.Init(name, value);
     }
 }

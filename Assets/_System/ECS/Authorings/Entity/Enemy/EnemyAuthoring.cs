@@ -1,11 +1,11 @@
 using Unity.Entities;
 using UnityEngine;
 
-[RequireComponent(typeof(EntityAuthoring))]
+[RequireComponent(typeof(DestructibleAuthoring))]
 public class EnemyAuthoring : MonoBehaviour
 {
     public Renderer MainRenderer;
-    
+
     [Header("Movement precision")]
     [Tooltip(
         "If true, the enemy will be snapped perfectly on the ground following the terrain height. Otherwise, it will follow the base radius.")]
@@ -23,7 +23,7 @@ public class EnemyAuthoring : MonoBehaviour
 
             if (authoring.MainRenderer != null)
                 AddComponentObject(entity, new VisualRendererLink { Renderer = authoring.MainRenderer });
-            
+
             AddComponent(entity, new Enemy());
             AddComponent(entity, new FollowTargetMovement { Speed = authoring.BaseStats.BaseMoveSpeed });
             AddComponent(entity, new RunScope());
@@ -31,7 +31,7 @@ public class EnemyAuthoring : MonoBehaviour
             if (authoring.UseSnappedMovement)
                 AddComponent<HardSnappedMovement>(entity);
 
-            AddComponent(entity, new Health { Value = (int)authoring.BaseStats.BaseMaxHealth });
+            AddComponent(entity, new Health { Value = (int)authoring.BaseStats.MaxHealth });
 
             AddBuffer<EnemySpellReady>(entity);
             AddBuffer<DamageBufferElement>(entity);
@@ -39,23 +39,22 @@ public class EnemyAuthoring : MonoBehaviour
             AddComponent(entity, new CoreStats
             {
                 // Bases
-                BaseMaxHealth = authoring.BaseStats.BaseMaxHealth,
+                MaxHealth = authoring.BaseStats.MaxHealth,
                 BaseArmor = authoring.BaseStats.BaseArmor,
                 BaseMoveSpeed = authoring.BaseStats.BaseMoveSpeed,
                 BasePickupRange = authoring.BaseStats.BasePickupRange,
 
-                MaxHealthMultiplier = authoring.BaseStats.MaxHealthMultiplier,
                 HealthRecovery = authoring.BaseStats.HealthRecovery,
                 DamageReductionMultiplier = authoring.BaseStats.DamageReductionMultiplier,
                 MoveSpeedMultiplier = authoring.BaseStats.MoveSpeedMultiplier,
                 PickupRangeMultiplier = authoring.BaseStats.PickupRangeMultiplier,
 
                 GlobalDamageMultiplier = authoring.BaseStats.GlobalDamageMultiplier,
-                GlobalCooldownMultiplier = authoring.BaseStats.GlobalCooldownMultiplier,
+                GlobalCooldownReductionMultiplier = authoring.BaseStats.GlobalCooldownReductionMultiplier,
                 GlobalSpellAreaMultiplier = authoring.BaseStats.GlobalSpellAreaMultiplier,
                 GlobalSpellSizeMultiplier = authoring.BaseStats.GlobalSpellSizeMultiplier,
                 GlobalSpellSpeedMultiplier = authoring.BaseStats.GlobalSpellSpeedMultiplier,
-                GlobalDurationMultiplier = authoring.BaseStats.GlobalDurationMultiplier,
+                GlobalSpellDurationMultiplier = authoring.BaseStats.GlobalSpellDurationMultiplier,
                 GlobalCastRangeMultiplier = authoring.BaseStats.GlobalCastRangeMultiplier,
 
                 GlobalAmountBonus = authoring.BaseStats.GlobalAmountBonus,

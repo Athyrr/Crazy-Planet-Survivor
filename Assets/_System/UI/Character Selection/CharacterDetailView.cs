@@ -2,16 +2,16 @@ using TMPro;
 using UnityEngine;
 
 /// <summary>
-/// Represents le selected character prview container
+/// Represents the selected character prview container
 /// </summary>
-public class CharacterDetailViewComponent : MonoBehaviour
+public class CharacterDetailView : ShopDetailViewBase<CharacterSO>
 {
     [Header("UI Elements")]
     public Transform CharacterPreviewContainer;
     public TMP_Text CharacterNameText;
     public TMP_Text CharacterDescriptionText;
 
-    public void Refresh(CharacterSo data)
+    public void Refresh(CharacterSO data, bool isUnlocked)
     {
         if (data == null)
             return;
@@ -30,4 +30,5 @@ public class CharacterDetailViewComponent : MonoBehaviour
         if (CharacterDescriptionText != null)
             CharacterDescriptionText.text = data.Description;
     }
+    
 }

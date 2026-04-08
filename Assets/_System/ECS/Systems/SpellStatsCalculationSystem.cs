@@ -152,15 +152,16 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 float areaMult = coreStats.GlobalSpellAreaMultiplier + spell.LocalAreaBonusMultiplier;
                 float sizeMult = coreStats.GlobalSpellSizeMultiplier + spell.LocalSizeBonusMultiplier;
                 float speedMult = coreStats.GlobalSpellSpeedMultiplier + spell.LocalSpeedBonusPercent;
-                float durationMult = coreStats.GlobalDurationMultiplier * spell.LocalDurationBonusPercent;
-                float tickRateMult = spell.LocalTickRateBonusMultiplier;
-                float rangeMult = coreStats.GlobalCastRangeMultiplier + (1f + spell.LocalRangeBonusMultiplier);
+                float durationMult = coreStats.GlobalSpellDurationMultiplier + spell.LocalSpellDurationBonusMultiplier;
+                float rangeMult = coreStats.GlobalCastRangeMultiplier + spell.LocalRangeBonusMultiplier;
+                float tickRateMult = 1f + spell.LocalTickRateBonusMultiplier;
 
-                float bounceRangeMult = /*stats.GlobalBounceRangeMultiplier **/
-                    (1 + spell.LocalRangeBonusMultiplier); // todo add global bounce range multiplier if needed
+                float bounceRangeMult =
+                    (1 + spell.LocalBounceRangeBonusMultiplier); 
+                // todo add global bounce range multiplier if needed
 
-                float cdMult = coreStats.GlobalCooldownMultiplier *
-                               math.max(0.1f, 1f - spell.LocalCooldownBonusPercent);
+                float cdReductionMult = coreStats.GlobalCooldownReductionMultiplier +
+                                        spell.LocalCooldownReducBonusMultiplier;
 
                 // Additives
                 int amountAdd = coreStats.GlobalAmountBonus + spell.LocalAmountBonus;
@@ -195,9 +196,10 @@ public partial struct SpellStatsCalculationSystem : ISystem
                                 else speedMult *= (1f + mod.Value);
                                 break;
 
-                            case ESpellStat.Cooldown:
-                                if (mod.Strategy == EModiferStrategy.Flat) cdMult -= mod.Value;
-                                else cdMult *= math.max(0.1f, 1f - mod.Value);
+                            case ESpellStat.CooldownReduction:
+                                //todo reclaculate cd
+                                if (mod.Strategy == EModiferStrategy.Flat) cdReductionMult += mod.Value;
+                                // else cdReductionMult *= math.max(0.1f, 1f - mod.Value);
                                 break;
 
                             case ESpellStat.Amount:
@@ -230,13 +232,14 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 spell.FinalSize = math.max(0.1f, baseSpellData.BaseSize * sizeMult);
                 spell.FinalSpeed = baseSpellData.BaseSpeed * speedMult;
                 spell.FinalDuration = math.max(0.1f, baseSpellData.Lifetime * durationMult);
+
                 spell.FinalTickRate = math.max(0.1f, baseSpellData.TickRate * tickRateMult);
 
                 // if passive/aura spell, cooldown is 0, otherwise apply multiplier
                 if (baseSpellData.BaseCooldown <= 0)
                     spell.FinalCooldown = 0f;
                 else
-                    spell.FinalCooldown = math.max(0.1f, baseSpellData.BaseCooldown * cdMult);
+                    spell.FinalCooldown = math.max(0.1f, baseSpellData.BaseCooldown * (1 - cdReductionMult));
 
                 spell.FinalAmount = math.max(1, baseSpellData.BaseAmount + amountAdd);
                 spell.FinalBounces = baseSpellData.Bounces + bounceAdd;
@@ -247,7 +250,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
                 spell.FinalCritChance = math.clamp(critChanceAdd, 0f, 1f);
                 spell.FinalCritDamageMultiplier = math.max(1f, critDmgAdd);
-                
+
                 // Save
                 activeSpells[i] = spell;
             }
@@ -339,78 +342,49 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 spawner.IsDirty = true;
             }
 
-            if (DamageOnContactLookup.HasComponent(parentEntity))
-            {
-                // Set parent damage 
-                var dmg = DamageOnContactLookup[parentEntity];
-                dmg.Damage = activeSpell.FinalDamage;
-                dmg.AreaRadius = activeSpell.FinalArea;
-                // todo set other damage values
-                ECB.SetComponent(chunkIndex, parentEntity, dmg);
-
-                // Set children damage as parent damage
-                if (ChildLookup.HasBuffer(parentEntity))
-                {
-                    var children = ChildLookup[parentEntity];
-                    for (int i = 0; i < children.Length; i++)
-                    {
-                        var child = children[i].Value;
-                        if (DamageOnContactLookup.HasComponent(child))
-                        {
-                            var childDmg = DamageOnContactLookup[child];
-                            childDmg.Damage = activeSpell.FinalDamage;
-                            childDmg.AreaRadius = activeSpell.FinalArea;
-                            // todo set other damage values for child 
-                            ECB.SetComponent(chunkIndex, child, childDmg);
-                        }
-                    }
-                }
-            }
-
-            if (DamageOnTickLookup.HasComponent(parentEntity))
-            {
-                var dmgTick = DamageOnTickLookup[parentEntity];
-                dmgTick.DamagePerTick = activeSpell.FinalDamage;
-                dmgTick.AreaRadius = activeSpell.FinalArea;
-                // todo set other tick damage values
-                ECB.SetComponent(chunkIndex, parentEntity, dmgTick);
-
-                // Set children as parent
-                if (ChildLookup.HasBuffer(parentEntity))
-                {
-                    var children = ChildLookup[parentEntity];
-                    for (int i = 0; i < children.Length; i++)
-                    {
-                        var child = children[i].Value;
-                        if (DamageOnTickLookup.HasComponent(child))
-                        {
-                            var childDmg = DamageOnTickLookup[child];
-                            childDmg.DamagePerTick = activeSpell.FinalDamage;
-                            childDmg.AreaRadius = activeSpell.FinalArea;
-                            // todo set other values for child 
-                            ECB.SetComponent(chunkIndex, child, childDmg);
-                        }
-                    }
-                }
-            }
-
             if (OrbitLookup.HasComponent(parentEntity))
             {
                 var orbit = OrbitLookup[parentEntity];
                 orbit.AngularSpeed = activeSpell.FinalSpeed;
-                orbit.Radius = activeSpell.FinalArea; //todo idk but use scale to adjust radius ? or base offset
-                orbit.RelativeOffset =
-                    new float3(0, 0,
-                        activeSpell.FinalArea); // todo same as above, or keep original offset and just scale it ?
+                orbit.Radius = activeSpell.FinalArea;
+                if (math.lengthsq(orbit.RelativeOffset) > 0.001f)
+                    orbit.RelativeOffset = math.normalize(orbit.RelativeOffset) * activeSpell.FinalArea;
+                else
+                    orbit.RelativeOffset = new float3(0, 0, activeSpell.FinalArea);
+
                 ECB.SetComponent(chunkIndex, parentEntity, orbit);
             }
 
-            // Scale parent = scale children
-            if (TransformLookup.HasComponent(parentEntity))
+            if (ChildLookup.HasBuffer(parentEntity))
             {
-                var parentTransform = TransformLookup[parentEntity];
-                parentTransform.Scale = activeSpell.FinalArea;
-                ECB.SetComponent(chunkIndex, parentEntity, parentTransform);
+                var children = ChildLookup[parentEntity];
+                for (int i = 0; i < children.Length; i++)
+                {
+                    var child = children[i].Value;
+
+                    // Scale parent = scale children
+                    if (TransformLookup.HasComponent(parentEntity))
+                    {
+                        var parentTransform = TransformLookup[parentEntity];
+                        parentTransform.Scale = activeSpell.FinalArea;
+                        ECB.SetComponent(chunkIndex, parentEntity, parentTransform);
+                    }
+
+                    if (DamageOnContactLookup.HasComponent(child))
+                    {
+                        var childDmg = DamageOnContactLookup[child];
+                        childDmg.Damage = activeSpell.FinalDamage;
+                        ECB.SetComponent(chunkIndex, child, childDmg);
+                    }
+
+                    if (DamageOnTickLookup.HasComponent(child))
+                    {
+                        var childDmg = DamageOnTickLookup[child];
+                        childDmg.DamagePerTick = activeSpell.FinalDamage;
+                        childDmg.AreaRadius = activeSpell.FinalSize;
+                        ECB.SetComponent(chunkIndex, child, childDmg);
+                    }
+                }
             }
         }
     }

@@ -2,9 +2,9 @@
 using TMPro;
 
 /// <summary>
-/// Represents à stat row in UI. Displayed on character selection menu.
+/// Represents stat row in UI. Displayed on character selection menu.
 /// </summary>
-public class CharacterStatsItemComponent : MonoBehaviour
+public class CharacterItemComponent : StatTabViewItem
 {
     public TMP_Text LabelText;
     public TMP_Text ValueText;

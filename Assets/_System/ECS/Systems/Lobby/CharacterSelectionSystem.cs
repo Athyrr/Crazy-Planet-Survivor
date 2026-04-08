@@ -25,10 +25,10 @@ public partial struct CharacterSelectionSystem : ISystem
         if (!SystemAPI.TryGetSingletonEntity<SelectCharacterRequest>(out var selectCharacterRequestEntity))
             return;
 
-        if (!SystemAPI.TryGetSingletonEntity<SelectedCharacterData>(out var selectedCharacterDataEntity))
+        if (!SystemAPI.TryGetSingletonEntity<SelectedCharacter>(out var selectedCharacterDataEntity))
             return;
 
-        var selectedCharacterData = SystemAPI.GetComponent<SelectedCharacterData>(selectedCharacterDataEntity);
+        var selectedCharacterData = SystemAPI.GetComponent<SelectedCharacter>(selectedCharacterDataEntity);
 
         var request = SystemAPI.GetComponent<SelectCharacterRequest>(selectCharacterRequestEntity);
 
@@ -73,11 +73,11 @@ public partial struct CharacterSelectionSystem : ISystem
         if (request.CharacterIndex >= 0 && request.CharacterIndex < charactersBuffer.Length)
         {
             var selectedPrefab = charactersBuffer[request.CharacterIndex].CharacterPrefabEntity;
-            var selectedDataEntity = SystemAPI.GetSingletonEntity<SelectedCharacterData>();
+            var selectedDataEntity = SystemAPI.GetSingletonEntity<SelectedCharacter>();
 
-            SystemAPI.SetComponent(selectedDataEntity, new SelectedCharacterData
+            SystemAPI.SetComponent(selectedDataEntity, new SelectedCharacter
             {
-                CharacterIndex = request.CharacterIndex,
+                DbIndex = request.CharacterIndex,
             });
 
             if (SystemAPI.TryGetSingletonEntity<Player>(out var currentPlayer))

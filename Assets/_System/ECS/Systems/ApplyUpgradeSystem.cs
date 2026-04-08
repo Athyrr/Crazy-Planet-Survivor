@@ -105,7 +105,7 @@ public partial struct ApplyUpgradeSystem : ISystem
 
             // todo check for keeping StatModifer Buffer
             // PLAYER GLOBAL STAT UPGRADE: STAT (Modif Directly)
-            if (upgrade.UpgradeType == EUpgradeType.PlayerStat && upgrade.CharacterStat != ECharacterStat.None )
+            if (upgrade.UpgradeType == EUpgradeType.PlayerStat && upgrade.CharacterStat != ECharacterStat.None)
             {
                 ApplyPlayerStatUpgrade(ref playerCoreStats, ref health, upgrade.CharacterStat, upgrade.Value,
                     ref needSpellUpdate);
@@ -199,7 +199,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         {
             // Remove request from player
             ECB.RemoveComponent<ApplyAmuletRequest>(chunkIndex, playerEntity);
-            
+
             ref var amulet = ref AmuletsDatabaseRef.Value.Amulets[request.DatabaseIndex];
             bool needSpellUpdate = false;
 
@@ -258,8 +258,6 @@ public partial struct ApplyUpgradeSystem : ISystem
             {
                 ECB.AddComponent<SpellStatsCalculationRequest>(chunkIndex, playerEntity);
             }
-
-
         }
     }
 
@@ -269,15 +267,10 @@ public partial struct ApplyUpgradeSystem : ISystem
         switch (stat)
         {
             case ECharacterStat.MaxHealth:
-                playerCoreStats.MaxHealthMultiplier += value;
-                health.Value += (int)(playerCoreStats.BaseMaxHealth * value); // todo Heal ?
-                break;
-            case ECharacterStat.Health:
-                health.Value = math.min(health.Value + (int)value,
-                    (int)(playerCoreStats.BaseMaxHealth * playerCoreStats.MaxHealthMultiplier));
+                playerCoreStats.MaxHealth += value;
                 break;
             case ECharacterStat.Armor:
-                playerCoreStats.BaseArmor += value;
+                playerCoreStats.DamageReductionMultiplier += value;
                 break;
             case ECharacterStat.Speed:
                 playerCoreStats.MoveSpeedMultiplier += value;
@@ -290,7 +283,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.CooldownReduction:
-                playerCoreStats.GlobalCooldownMultiplier -= value;
+                playerCoreStats.GlobalCooldownReductionMultiplier += value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.AreaSize:
@@ -317,8 +310,31 @@ public partial struct ApplyUpgradeSystem : ISystem
                 playerCoreStats.CritDamageMultiplier += value;
                 needSpellUpdate = true;
                 break;
+            case ECharacterStat.SpellSpeed:
+                playerCoreStats.GlobalSpellSpeedMultiplier += value;
+                needSpellUpdate = true;
+                break;
+            // case ECharacterStat.BurnDamage:
+            //     playerCoreStats.GlobalBurnDamageMultiplier += value;
+            //     needSpellUpdate = true;
+            //     break;
+            // case ECharacterStat.BurnDuration:
+            //     playerCoreStats.GlobalBurnDurationMultiplier += value;
+            //     needSpellUpdate = true;
+            //     break;
+            // case ECharacterStat.SlowStrength:
+            //     playerCoreStats.GlobalSlowStrengthMultiplier += value;
+            //     needSpellUpdate = true;
+            // case ECharacterStat.SlowDuration:
+            //     playerCoreStats.GlobalSlowDurationMultiplier += value;
+            //     needSpellUpdate = true;
+            // case ECharacterStat.StunDuration:
+            //     playerCoreStats.GlobalStunDurationMultiplier += value;
+            //     needSpellUpdate = true;
+            //     break;
+
             // todo other character stats (ex SpellSize, SpellSpeed, Duration...)
-            // todo Handle status (burn duration, slow strength...)  + use to calculate current stats in active effects system
+            // todo Handle status (burn duration, slow strength, effects duration...)  + use to calculate current stats in active effects system
         }
     }
 
@@ -332,8 +348,8 @@ public partial struct ApplyUpgradeSystem : ISystem
                 spell.LocalDamageBonusMultiplier += value;
                 break;
 
-            case ESpellStat.Cooldown:
-                spell.LocalCooldownBonusPercent += value;
+            case ESpellStat.CooldownReduction:
+                spell.LocalCooldownReducBonusMultiplier += value;
                 break;
 
             case ESpellStat.Speed:
@@ -349,7 +365,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                 break;
 
             case ESpellStat.Duration:
-                spell.LocalDurationBonusPercent += value;
+                spell.LocalSpellDurationBonusMultiplier += value;
                 break;
 
             case ESpellStat.Amount:

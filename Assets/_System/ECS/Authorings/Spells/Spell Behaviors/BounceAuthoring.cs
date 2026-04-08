@@ -1,6 +1,7 @@
 using Unity.Entities;
 using UnityEngine;
 
+[RequireComponent(typeof(DestructibleAuthoring))]
 public class BounceAuthoring : MonoBehaviour
 {
     class Baker : Baker<BounceAuthoring>

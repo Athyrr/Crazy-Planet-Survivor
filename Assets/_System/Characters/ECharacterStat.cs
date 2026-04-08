@@ -21,5 +21,12 @@ public enum ECharacterStat
     
     CritChance = 18,
     CritDamage = 19,
+
+    SpellSpeed = 21,
     
+    BurnDamage = 22,
+    BurnDuration = 23,
+    SlowStrength = 24,
+    SlowDuration = 25,
+    StunDuration = 26,
 }

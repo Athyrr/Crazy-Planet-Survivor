@@ -20,23 +20,22 @@ MonoBehaviour:
   StatsUpgradesPool: {fileID: 11400000, guid: 65be180b5958ee040864032b0a195caf, type: 2}
   SpellUpgradesPool: {fileID: 11400000, guid: 58171efd1d1c66b428a33360e869d815, type: 2}
   InitialSpells:
-  - {fileID: 11400000, guid: a13ca1f0a33c36a46bac651b45432abc, type: 2}
+  - {fileID: 11400000, guid: cd05c33d42552764aab5856b7fbbaaa6, type: 2}
   coreStats:
-    BaseMaxHealth: 5000
-    MaxHealthMultiplier: 1
+    MaxHealth: 1500
     HealthRecovery: 2
-    BaseArmor: 0
+    BaseArmor: 10
     DamageReductionMultiplier: 0
     BaseMoveSpeed: 12
     MoveSpeedMultiplier: 1
     BasePickupRange: 10
     PickupRangeMultiplier: 1
-    GlobalDamageMultiplier: 1
-    GlobalCooldownMultiplier: 1
+    GlobalDamageMultiplier: 1.15
+    GlobalCooldownReductionMultiplier: 0
     GlobalSpellAreaMultiplier: 1
     GlobalSpellSizeMultiplier: 1
     GlobalSpellSpeedMultiplier: 1
-    GlobalDurationMultiplier: 1
+    GlobalSpellDurationMultiplier: 1
     GlobalCastRangeMultiplier: 1
     GlobalAmountBonus: 0
     GlobalPierceBonus: 0

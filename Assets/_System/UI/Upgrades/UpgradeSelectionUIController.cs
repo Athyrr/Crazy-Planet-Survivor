@@ -5,7 +5,7 @@ using Unity.Entities;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class UpgradeSelectionUIController : MonoBehaviour
+public class UpgradeSelectionUIController : UIControllerBase
 {
     [Header("Interaction")] public Camera UICamera;
     public LayerMask UI3DLayer;
@@ -22,7 +22,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
     public AnimationCurve PopCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
     private List<GameObject> _spawnedCards = new List<GameObject>();
-    private UpgradeUIComponent _currentHoveredCard;
+    private UpgradeViewItem _currentHoveredCard;
     private bool _canInteract = false;
 
     private RunManager _runManager;
@@ -81,10 +81,10 @@ public class UpgradeSelectionUIController : MonoBehaviour
         }
 
         Ray ray = UICamera.ScreenPointToRay(pointerPos);
-        UpgradeUIComponent hitCard = null;
+        UpgradeViewItem hitCard = null;
 
         if (Physics.Raycast(ray, out RaycastHit hitInfo, 1000f, UI3DLayer))
-            hitCard = hitInfo.collider.GetComponentInParent<UpgradeUIComponent>();
+            hitCard = hitInfo.collider.GetComponentInParent<UpgradeViewItem>();
 
         if (hitCard != _currentHoveredCard)
         {
@@ -138,7 +138,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
             cardsTransforms.Add(cardObj.transform);
 
             // Setup Data
-            var uiComp = cardObj.GetComponent<UpgradeUIComponent>();
+            var uiComp = cardObj.GetComponent<UpgradeViewItem>();
             if (uiComp != null)
                 uiComp.SetData(ref upgradeData, dbIndex);
 
@@ -217,7 +217,7 @@ public class UpgradeSelectionUIController : MonoBehaviour
         _canInteract = false;
 
         InitDatabase();
-        
+
         var playerEntity = _playerQuery.GetSingletonEntity();
         _entityManager.AddComponentData(playerEntity, new ApplyUpgradeRequest { DatabaseIndex = databaseIndex });
 

@@ -15,7 +15,7 @@ using static HitFrameFeedbackSystem;
 public partial struct CollisionSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
-    private ComponentLookup<CpEntity> _cpEntityLookup;
+    private ComponentLookup<Destructible> _cpEntityLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
 
     private ComponentLookup<DamageOnContact> _damageOnContactLookup;
@@ -57,7 +57,7 @@ public partial struct CollisionSystem : ISystem
         _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(true);
 
         _playerLookup = state.GetComponentLookup<Player>(true);
-        _cpEntityLookup = state.GetComponentLookup<CpEntity>(true);
+        _cpEntityLookup = state.GetComponentLookup<Destructible>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
 
         _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
@@ -128,7 +128,7 @@ public partial struct CollisionSystem : ISystem
             EffectsConfig = effectsConfig,
 
             PlayerLookup = _playerLookup,
-            CpEntityLookup = _cpEntityLookup,
+            DestructibleLookup = _cpEntityLookup,
             DamageOnContactLookup = _damageOnContactLookup,
             DestroyOnContactLookup = _destroyOnContactLookup,
             LocalTransformLookup = _transformLookup,
@@ -176,7 +176,7 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ActiveEffectsConfig EffectsConfig;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        [ReadOnly] public ComponentLookup<CpEntity> CpEntityLookup;
+        [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
 
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
         [ReadOnly] public ComponentLookup<DestroyOnContact> DestroyOnContactLookup;
@@ -199,7 +199,7 @@ public partial struct CollisionSystem : ISystem
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
 
-        private const double DurationBetweenCollisionHit = 0.3f;
+        private const double MultiHitDelay = 1f; // Delay before allowing another hit if collision stays.
 
         public void Execute(TriggerEvent triggerEvent)
         {
@@ -220,7 +220,7 @@ public partial struct CollisionSystem : ISystem
                         if (history[i].HitEntity == target)
                         {
                             asAlreadyHit = true;
-                            if (CurrentTime - history[i].LastHitTime < DurationBetweenCollisionHit)
+                            if (CurrentTime - history[i].LastHitTime < MultiHitDelay)
                             {
                                 canDealDamage = false;
                             }
@@ -438,7 +438,7 @@ public partial struct CollisionSystem : ISystem
                         }
                     }
 
-                    if (shouldDestroy && CpEntityLookup.HasComponent(damagerEntity))
+                    if (shouldDestroy && DestructibleLookup.HasComponent(damagerEntity))
                     {
                         ECB.SetComponentEnabled<DestroyEntityFlag>(0, damagerEntity, true);
                     }
@@ -476,7 +476,7 @@ public partial struct CollisionSystem : ISystem
 
         private void ApplyFeedbacks(Entity hitEntity)
         {
-            if (!CpEntityLookup.HasComponent(hitEntity))
+            if (!DestructibleLookup.HasComponent(hitEntity))
                 return;
 
             var shakeReq = ECB.CreateEntity(0);
@@ -491,7 +491,7 @@ public partial struct CollisionSystem : ISystem
         {
             if (
                 DamageOnContactLookup.HasComponent(entityA)
-                && (CpEntityLookup.HasComponent(entityB))
+                && (DestructibleLookup.HasComponent(entityB))
             )
             {
                 damager = entityA;
@@ -501,7 +501,7 @@ public partial struct CollisionSystem : ISystem
 
             if (
                 DamageOnContactLookup.HasComponent(entityB)
-                && (CpEntityLookup.HasComponent(entityA))
+                && (DestructibleLookup.HasComponent(entityA))
             )
             {
                 damager = entityB;
@@ -538,7 +538,7 @@ public partial struct CollisionSystem : ISystem
                 if (hit.Entity == currentTarget || hit.Entity == projectile)
                     continue;
 
-                if (!CpEntityLookup.HasComponent(hit.Entity))
+                if (!DestructibleLookup.HasComponent(hit.Entity))
                     continue;
 
                 if (hit.Distance < closestDistSq)

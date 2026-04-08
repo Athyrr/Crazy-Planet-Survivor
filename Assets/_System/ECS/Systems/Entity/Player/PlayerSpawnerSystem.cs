@@ -16,7 +16,7 @@ public partial struct PlayerSpawnerSystem : ISystem
         state.RequireForUpdate<GameState>();
         state.RequireForUpdate<AmuletsDatabase>();
         state.RequireForUpdate<CharactersDatabase>();
-        state.RequireForUpdate<SelectedCharacterData>();
+        state.RequireForUpdate<SelectedCharacter>();
 
         _playerQuery = state.GetEntityQuery(ComponentType.ReadWrite<Player>());
     }
@@ -33,7 +33,7 @@ public partial struct PlayerSpawnerSystem : ISystem
         if (gameState.State != EGameState.Lobby && gameState.State != EGameState.Running)
             return;
 
-        if (!SystemAPI.TryGetSingleton<SelectedCharacterData>(out SelectedCharacterData selection))
+        if (!SystemAPI.TryGetSingleton<SelectedCharacter>(out SelectedCharacter selection))
             return;
 
         if (!SystemAPI.TryGetSingleton<PlanetData>(out PlanetData planetData))
@@ -49,10 +49,10 @@ public partial struct PlayerSpawnerSystem : ISystem
         var databaseEntity = SystemAPI.GetSingletonEntity<CharactersDatabase>();
         var characterPrefabsBuffer = SystemAPI.GetBuffer<CharacterPrefabBufferElement>(databaseEntity);
 
-        if (selection.CharacterIndex < 0 || selection.CharacterIndex >= characterPrefabsBuffer.Length)
+        if (selection.DbIndex < 0 || selection.DbIndex >= characterPrefabsBuffer.Length)
             return;
 
-        var prefabToSpawn = characterPrefabsBuffer[selection.CharacterIndex].CharacterPrefabEntity;
+        var prefabToSpawn = characterPrefabsBuffer[selection.DbIndex].CharacterPrefabEntity;
         if (prefabToSpawn == Entity.Null)
             return;
 

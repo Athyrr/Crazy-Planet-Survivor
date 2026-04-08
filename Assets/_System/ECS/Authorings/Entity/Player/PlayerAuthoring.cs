@@ -1,18 +1,19 @@
 using System;
 using System.Collections.Generic;
 using _System.ECS.Authorings.Ressources;
+using _System.ECS.Components.Entity;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-[RequireComponent(typeof(EntityAuthoring))]
+[RequireComponent(typeof(DestructibleAuthoring))]
 public class PlayerAuthoring : MonoBehaviour
 {
     private GameUpgradesConfigSO _gameUpgradesConfig;
 
     [Header("Datas")] [Tooltip("The character's base stats and initial spells.")]
-    public CharacterSo characterData;
+    public CharacterSO characterData;
 
     [Header("Movement Settings")]
     [Tooltip("If true, the player will be snapped perfectly on the ground following the terrain height.")]
@@ -72,7 +73,7 @@ public class PlayerAuthoring : MonoBehaviour
 
             AddComponent(entity, new Player());
             AddComponent(entity, new InputData { Value = new float2(0, 0) });
-            AddComponent(entity, new Health { Value = (int)baseStats.BaseMaxHealth });
+            AddComponent(entity, new Health { Value = (int)baseStats.MaxHealth });
 
             AddComponent(entity, new LinearMovement { Direction = float3.zero, Speed = baseStats.BaseMoveSpeed });
             if (authoring.UseSnappedMovement)
@@ -83,28 +84,27 @@ public class PlayerAuthoring : MonoBehaviour
             AddComponent(entity, new CoreStats
             {
                 // Bases
-                BaseMaxHealth = baseStats.BaseMaxHealth,
                 BaseArmor = baseStats.BaseArmor,
                 BaseMoveSpeed = baseStats.BaseMoveSpeed,
                 BasePickupRange = baseStats.BasePickupRange,
 
-                MaxHealthMultiplier = 1.0f,
+                MaxHealth = baseStats.MaxHealth,
                 HealthRecovery = baseStats.HealthRecovery,
-                DamageReductionMultiplier = 1.0f,
-                MoveSpeedMultiplier = 1.0f,
-                PickupRangeMultiplier = 1.0f,
+                DamageReductionMultiplier = baseStats.DamageReductionMultiplier,
+                MoveSpeedMultiplier = baseStats.MoveSpeedMultiplier,
+                PickupRangeMultiplier = baseStats.PickupRangeMultiplier,
 
-                GlobalDamageMultiplier = 1.0f,
-                GlobalCooldownMultiplier = 1.0f,
-                GlobalSpellAreaMultiplier = 1.0f,
-                GlobalSpellSizeMultiplier = 1.0f,
-                GlobalSpellSpeedMultiplier = 1.0f,
-                GlobalDurationMultiplier = 1.0f,
-                GlobalCastRangeMultiplier = 1.0f,
+                GlobalDamageMultiplier = baseStats.GlobalDamageMultiplier,
+                GlobalCooldownReductionMultiplier = baseStats.GlobalCooldownReductionMultiplier,
+                GlobalSpellAreaMultiplier = baseStats.GlobalSpellAreaMultiplier,
+                GlobalSpellSizeMultiplier = baseStats.GlobalSpellSizeMultiplier,
+                GlobalSpellSpeedMultiplier = baseStats.GlobalSpellSpeedMultiplier,
+                GlobalSpellDurationMultiplier = baseStats.GlobalSpellDurationMultiplier,
+                GlobalCastRangeMultiplier = baseStats.GlobalCastRangeMultiplier,
 
-                GlobalAmountBonus = 0,
-                GlobalPierceBonus = 0,
-                GlobalBounceBonus = 0,
+                GlobalAmountBonus = baseStats.GlobalAmountBonus,
+                GlobalPierceBonus = baseStats.GlobalPierceBonus,
+                GlobalBounceBonus = baseStats.GlobalBounceBonus,
 
                 CritChance = baseStats.CritChance,
                 CritDamageMultiplier = baseStats.CritDamageMultiplier,
@@ -178,21 +178,24 @@ public class PlayerAuthoring : MonoBehaviour
                 Level = 1,
                 NextLevelExperienceRequired = 500,
             });
-            
+
             AddBuffer<CollectedRessourcesBufferElement>(entity);
-            var ressourcesMap = new FixedList128Bytes<int>();
-            
+            var resséourcesMap = new FixedList128Bytes<int>();
+
             foreach (ERessourceType type in Enum.GetValues(typeof(ERessourceType)))
-                ressourcesMap.Add(0);
-            
+                resséourcesMap.Add(0);
+
             AddComponent(entity, new PlayerRessources
-            { 
-                Ressources = ressourcesMap 
+            {
+                Ressources = resséourcesMap
             });
 
             // Invincibility 
             if (authoring.IsInvincible)
+            {
                 AddComponent(entity, new Invincible());
+                // SetComponentEnabled<Destructible>(entity, false);
+            }
         }
     }
 }

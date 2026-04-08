@@ -2,16 +2,16 @@ using _System.ECS.Components.Entity;
 using Unity.Entities;
 using UnityEngine;
 
-public class EntityAuthoring : MonoBehaviour
+public class DestructibleAuthoring : MonoBehaviour
 {
     
-    private class Baker : Baker<EntityAuthoring>
+    private class Baker : Baker<DestructibleAuthoring>
     {
-        public override void Bake(EntityAuthoring authoring)
+        public override void Bake(DestructibleAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
             
-            AddComponent(entity, new CpEntity());
+            AddComponent(entity, new Destructible());
             
             AddComponent(entity, new DestroyEntityFlag());
             SetComponentEnabled<DestroyEntityFlag>(entity, false);

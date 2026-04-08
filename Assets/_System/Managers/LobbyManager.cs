@@ -1,6 +1,7 @@
 using Unity.Cinemachine;
 using Unity.Entities;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -13,9 +14,9 @@ public class LobbyManager : MonoBehaviour
     [Tooltip("Camera used to zoom in on a specific planet.")]
     public CinemachineCamera PlanetFocusCamera;
 
-    [Header("UI Controllers")] public CharacterSelectionUIController CharacterSelectionUIController;
+    [FormerlySerializedAs("CharacterSelectionUIController")] [Header("UI Controllers")] public CharacterSelectionShopUIController characterSelectionShopUIController;
     public PlanetSelectionUIController PlanetSelectionUIController;
-    public AmuletShopUIController AmuletShopUIController;
+    public AmuletShopUIController amuletShopUIController;
 
     private EntityManager _entityManager;
     private EntityQuery _openCharacterSelectionViewQuery;
@@ -86,8 +87,8 @@ public class LobbyManager : MonoBehaviour
         // Let galaxy opened
         PlanetSelectionUIController.gameObject.SetActive(true);
 
-        CharacterSelectionUIController.gameObject.SetActive(false);
-        AmuletShopUIController.gameObject.SetActive(false);
+        characterSelectionShopUIController.gameObject.SetActive(false);
+        amuletShopUIController.gameObject.SetActive(false);
 
         bool isGalaxyMode = (newState == EGameState.PlanetSelection);
         if (isGalaxyMode)
@@ -119,8 +120,8 @@ public class LobbyManager : MonoBehaviour
 
     private void OpenCharacterSelectionView()
     {
-        CharacterSelectionUIController.gameObject.SetActive(true);
-        CharacterSelectionUIController.OpenView();
+        characterSelectionShopUIController.gameObject.SetActive(true);
+        characterSelectionShopUIController.OpenView();
     }
 
     private void OpenPlanetSelectionView()
@@ -134,8 +135,8 @@ public class LobbyManager : MonoBehaviour
 
     private void OpenAmuletShopView()
     {
-        AmuletShopUIController.gameObject.SetActive(true);
-        AmuletShopUIController.OpenView();
+        amuletShopUIController.gameObject.SetActive(true);
+        amuletShopUIController.OpenView();
     }
 
     private void HandlePlanetFocus(EPlanetID planetID, Transform planetTransform, Vector3 focusOffset)
