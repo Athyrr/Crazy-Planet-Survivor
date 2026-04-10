@@ -49,7 +49,7 @@ public partial struct FlowFieldMovementSystem : ISystem
             return;
 
         var flowFieldEntity = SystemAPI.GetSingletonEntity<FlowFieldData>();
-        var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(SystemAPI.GetSingletonEntity<PlanetData>()).ValueRO;
+        var planetData = SystemAPI.GetSingleton<PlanetData>();
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
 
         _steeringLookup.Update(ref state);
@@ -61,7 +61,7 @@ public partial struct FlowFieldMovementSystem : ISystem
         var moveJob = new MoveFlowFieldSnappedJob
         {
             DeltaTime = SystemAPI.Time.DeltaTime,
-            PlanetCenter = planetTransform.Position,
+            PlanetCenter = planetData.Center,
             PhysicsCollisionWorld = collisionWorld,
             FlowField = flowFieldData,
             FlowFieldEntity = flowFieldEntity,
@@ -95,8 +95,12 @@ public partial struct FlowFieldMovementSystem : ISystem
         [ReadOnly] public ComponentLookup<StopDistance> StopDistanceLookup;
 
         private const float SnapDistance = 500f;
-        private const float PosLerpSpeed = 25.0f;
-        private const float RotLerpSpeed = 15.0f;
+        private const float VertSnapSpeed = 20.0f;
+        private const float RotLerpSpeed = 10.0f;
+        private const float TurnSmoothSpeed = 8.0f;
+        // Avoidance is already in world-space units; cap its contribution so it
+        // doesn't overpower the flow-field direction on its own.
+        private const float SteeringBlend = 0.35f;
 
         public void Execute(Entity entity, ref LocalTransform transform, in FlowFieldFollowerMovement _)
         {
@@ -104,20 +108,27 @@ public partial struct FlowFieldMovementSystem : ISystem
             if (StunLookup.TryGetComponent(entity, out var _) && StunLookup.IsComponentEnabled(entity))
                 return;
 
-            // --- Sample flow field ---
+            // --- Sample flow field (bilinear) ---
             float3 flowDirection = SampleFlowField(transform.Position);
-
             if (math.lengthsq(flowDirection) < 0.001f)
                 flowDirection = transform.Forward();
+            else
+                flowDirection = math.normalize(flowDirection);
 
-            // --- Add avoidance steering ---
+            // --- Blend avoidance steering (capped so it never fully overrides flow) ---
             float3 steeringForce = float3.zero;
             if (SteeringLookup.HasComponent(entity))
                 steeringForce = SteeringLookup[entity].Value;
 
-            float3 finalDirection = flowDirection + steeringForce;
-            if (math.lengthsq(finalDirection) < 0.001f)
-                finalDirection = transform.Forward();
+            float3 desiredDirection = flowDirection + steeringForce * SteeringBlend;
+            if (math.lengthsq(desiredDirection) < 0.001f)
+                desiredDirection = transform.Forward();
+            desiredDirection = math.normalize(desiredDirection);
+
+            // --- Smooth turn: lerp current facing toward desired, then move along it ---
+            float3 currentFacing = transform.Forward();
+            float3 moveDirection = math.normalize(
+                math.lerp(currentFacing, desiredDirection, math.min(1f, DeltaTime * TurnSmoothSpeed)));
 
             // --- Speed ---
             float speed = 3f;
@@ -127,7 +138,7 @@ public partial struct FlowFieldMovementSystem : ISystem
                 speed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
             }
 
-            // --- Stop distance (uses Euclidean distance to the flow field goal/player) ---
+            // --- Stop distance ---
             if (StopDistanceLookup.HasComponent(entity))
             {
                 float stopDist = StopDistanceLookup[entity].Distance;
@@ -137,7 +148,7 @@ public partial struct FlowFieldMovementSystem : ISystem
                     if (distToGoal <= stopDist)
                     {
                         float t = math.saturate(distToGoal / stopDist);
-                        finalDirection = math.normalize(finalDirection) * t;
+                        moveDirection *= t;
                         if (t < 0.05f)
                             return;
                     }
@@ -145,7 +156,7 @@ public partial struct FlowFieldMovementSystem : ISystem
             }
 
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
-            float3 desiredPosition = transform.Position + finalDirection * (speed * DeltaTime);
+            float3 desiredPosition = transform.Position + moveDirection * (speed * DeltaTime);
 
             // --- Raycast terrain snap ---
             var input = new RaycastInput
@@ -161,12 +172,22 @@ public partial struct FlowFieldMovementSystem : ISystem
 
             if (PhysicsCollisionWorld.CastRay(input, out var hit))
             {
-                if (math.distancesq(transform.Position, hit.Position) > 1.0f)
-                    transform.Position = hit.Position;
-                else
-                    transform.Position = math.lerp(transform.Position, hit.Position, DeltaTime * PosLerpSpeed);
+                // Decompose the delta into horizontal (tangential) and vertical (normal) parts.
+                // Apply full horizontal movement; smooth only the vertical (terrain-following) component
+                // to avoid jarring jumps over bumpy terrain.
+                float3 toHit = hit.Position - transform.Position;
+                float verticalDelta = math.dot(toHit, currentNormal);
+                float3 horizontalDelta = toHit - currentNormal * verticalDelta;
 
-                PlanetUtils.GetRotationOnSurface(in finalDirection, hit.SurfaceNormal, out quaternion targetRotation);
+                // Snap immediately for large gaps (spawning/teleport), smooth for small terrain bumps
+                float absVert = math.abs(verticalDelta);
+                float vertSmooth = absVert > 1.5f
+                    ? verticalDelta
+                    : verticalDelta * math.min(1f, DeltaTime * VertSnapSpeed);
+
+                transform.Position += horizontalDelta + currentNormal * vertSmooth;
+
+                PlanetUtils.GetRotationOnSurface(in desiredDirection, hit.SurfaceNormal, out quaternion targetRotation);
                 transform.Rotation = math.slerp(transform.Rotation, targetRotation, DeltaTime * RotLerpSpeed);
             }
             else
@@ -176,30 +197,50 @@ public partial struct FlowFieldMovementSystem : ISystem
         }
 
         /// <summary>
-        /// Projects the entity's world position onto the grid and returns the stored flow direction.
-        /// Returns float3.zero when outside the grid bounds or the buffer is unavailable.
+        /// Projects the entity's world position onto the grid and returns a bilinearly
+        /// interpolated flow direction across the four surrounding cells.
+        /// Blocked cells (cost=255) contribute zero, so entities near walls are smoothly
+        /// steered away rather than receiving a hard direction flip.
+        /// Returns float3.zero when fully outside the grid or the buffer is unavailable.
         /// </summary>
         private float3 SampleFlowField(float3 worldPos)
         {
             if (!CellBufferLookup.HasBuffer(FlowFieldEntity))
                 return float3.zero;
 
+            var cells = CellBufferLookup[FlowFieldEntity];
+
             float3 offset = worldPos - FlowField.Origin;
             float localX = math.dot(offset, FlowField.GridRight);
             float localZ = math.dot(offset, FlowField.GridForward);
 
-            int cx = (int)math.round(localX / FlowField.CellSize) + FlowField.GridWidth / 2;
-            int cy = (int)math.round(localZ / FlowField.CellSize) + FlowField.GridHeight / 2;
+            // Fractional grid coordinates (cell centers are at integer positions)
+            float fx = localX / FlowField.CellSize + FlowField.GridWidth  * 0.5f - 0.5f;
+            float fz = localZ / FlowField.CellSize + FlowField.GridHeight * 0.5f - 0.5f;
 
-            if (cx < 0 || cx >= FlowField.GridWidth || cy < 0 || cy >= FlowField.GridHeight)
+            int x0 = (int)math.floor(fx);
+            int z0 = (int)math.floor(fz);
+            float tx = fx - x0;
+            float tz = fz - z0;
+
+            float3 d00 = GetCellDir(in cells, x0,     z0);
+            float3 d10 = GetCellDir(in cells, x0 + 1, z0);
+            float3 d01 = GetCellDir(in cells, x0,     z0 + 1);
+            float3 d11 = GetCellDir(in cells, x0 + 1, z0 + 1);
+
+            float3 dir = math.lerp(math.lerp(d00, d10, tx), math.lerp(d01, d11, tx), tz);
+            return math.lengthsq(dir) > 0.001f ? dir : float3.zero;
+        }
+
+        /// <summary>
+        /// Returns the stored direction for a cell, or float3.zero for out-of-bounds and blocked cells.
+        /// </summary>
+        private float3 GetCellDir(in DynamicBuffer<FlowFieldCell> cells, int cx, int cz)
+        {
+            if (cx < 0 || cx >= FlowField.GridWidth || cz < 0 || cz >= FlowField.GridHeight)
                 return float3.zero;
-
-            var cells = CellBufferLookup[FlowFieldEntity];
-            int idx = cy * FlowField.GridWidth + cx;
-            if (idx < 0 || idx >= cells.Length)
-                return float3.zero;
-
-            return cells[idx].Direction;
+            var cell = cells[cz * FlowField.GridWidth + cx];
+            return cell.Cost == byte.MaxValue ? float3.zero : cell.Direction;
         }
     }
 }
