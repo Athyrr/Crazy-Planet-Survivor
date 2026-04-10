@@ -51,7 +51,6 @@ public partial struct EntitiesMovementSystem : ISystem
 
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
         var delta = SystemAPI.Time.DeltaTime;
-        var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
         var planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
 
         // Refresh lookups for use in jobs
@@ -66,7 +65,7 @@ public partial struct EntitiesMovementSystem : ISystem
         {
             DeltaTime = delta,
             PhysicsCollisionWorld = collisionWorld,
-            PlanetCenter = planetTransform.Position,
+            PlanetCenter = planetData.Center,
             StatsLookup = _statsLookup,
             PlayerLookup = _playerLookup
         };
@@ -87,7 +86,7 @@ public partial struct EntitiesMovementSystem : ISystem
         {
             PhysicsCollisionWorld = collisionWorld,
             DeltaTime = delta,
-            PlanetCenter = planetTransform.Position,
+            PlanetCenter = planetData.Center,
             StatsLookup = _statsLookup,
             SteeringLookup = _steeringLookup,
             TransformLookup = _transformLookup,
@@ -118,7 +117,7 @@ public partial struct EntitiesMovementSystem : ISystem
         var orbitSnappedJob = new MoveOrbitSnappedJob
         {
             DeltaTime = delta,
-            PlanetCenter = planetTransform.Position,
+            PlanetCenter = planetData.Center,
             PhysicsCollisionWorld = collisionWorld
         };
         JobHandle orbitSnappedHandle = orbitSnappedJob.ScheduleParallel(orbitCenterHandle);
@@ -126,7 +125,7 @@ public partial struct EntitiesMovementSystem : ISystem
         var orbitBareJob = new MoveOrbitBareJob
         {
             DeltaTime = delta,
-            PlanetCenter = planetTransform.Position,
+            PlanetCenter = planetData.Center,
             PlanetRadius = planetData.Radius
         };
         JobHandle orbitBareHandle = orbitBareJob.ScheduleParallel(orbitSnappedHandle);
@@ -333,9 +332,11 @@ public partial struct EntitiesMovementSystem : ISystem
 
     /// <summary>
     /// Moves entities toward a target entity, incorporating steering forces and terrain snapping.
+    /// Excludes entities using FlowFieldFollowerMovement, which are handled by FlowFieldMovementSystem.
     /// </summary>
     [BurstCompile]
     [WithAll(typeof(FollowTargetMovement), typeof(HardSnappedMovement))]
+    [WithNone(typeof(FlowFieldFollowerMovement))]
     private partial struct MoveFollowSnappedJob : IJobEntity
     {
         [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
@@ -352,8 +353,8 @@ public partial struct EntitiesMovementSystem : ISystem
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
 
         private const float SNAP_DISTANCE = 500f;
-        private const float POS_SMOOTH_SPEED = 25.0f;
-        private const float ROT_SMOOTH_SPEED = 15.0f;
+        private const float VERT_SNAP_SPEED = 20.0f;
+        private const float ROT_SMOOTH_SPEED = 10.0f;
 
 
         public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
@@ -417,14 +418,19 @@ public partial struct EntitiesMovementSystem : ISystem
 
             if (PhysicsCollisionWorld.CastRay(input, out var hit))
             {
-                if (math.distancesq(transform.Position, hit.Position) > 1.0f)
-                {
-                    transform.Position = hit.Position;
-                }
-                else
-                {
-                    transform.Position = math.lerp(transform.Position, hit.Position, DeltaTime * POS_SMOOTH_SPEED);
-                }
+                // Smooth only the vertical (normal) component to avoid bumpy-terrain jitter.
+                // Horizontal component is applied in full so lateral speed is not affected.
+                float3 toHit = hit.Position - transform.Position;
+                float3 upDir = math.normalize(transform.Position - PlanetCenter);
+                float verticalDelta   = math.dot(toHit, upDir);
+                float3 horizontalDelta = toHit - upDir * verticalDelta;
+
+                float absVert = math.abs(verticalDelta);
+                float vertSmooth = absVert > 1.5f
+                    ? verticalDelta
+                    : verticalDelta * math.min(1f, DeltaTime * VERT_SNAP_SPEED);
+
+                transform.Position += horizontalDelta + upDir * vertSmooth;
 
                 PlanetUtils.GetRotationOnSurface(in finalDirection, hit.SurfaceNormal, out quaternion targetRotation);
                 transform.Rotation = math.slerp(transform.Rotation, targetRotation, DeltaTime * ROT_SMOOTH_SPEED);
