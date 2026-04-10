@@ -1,9 +1,7 @@
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
-using Unity.Physics;
 using Unity.Burst;
 using Unity.Jobs;
 
@@ -93,14 +91,9 @@ public partial struct FlowFieldSystem : ISystem
         if (!_transformLookup.HasComponent(playerEntity))
             return;
 
-        var planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
-        if (!_transformLookup.HasComponent(planetEntity))
-            return;
-
         float3 playerPos = _transformLookup[playerEntity].Position;
-        float3 planetCenter = _transformLookup[planetEntity].Position;
         var planetData = SystemAPI.GetSingleton<PlanetData>();
-        var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
+        float3 planetCenter = planetData.Center;
 
         int gridWidth = flowFieldData.GridWidth;
         int gridHeight = flowFieldData.GridHeight;
@@ -222,15 +215,23 @@ public partial struct FlowFieldSystem : ISystem
         {
             int cx = index % GridWidth;
             int cy = index / GridWidth;
-            float3 cellWorldPos = CellToWorld(cx, cy);
+            float cellLocalX = (cx - GridWidth / 2) * CellSize;
+            float cellLocalZ = (cy - GridHeight / 2) * CellSize;
 
             byte cost = 1;
             float halfCell = CellSize * 0.5f;
 
             for (int i = 0; i < ObstaclePositions.Length; i++)
             {
+                // Project obstacle onto tangent plane (ignore normal component)
+                // to get a true 2D distance regardless of planet curvature.
+                float3 delta = ObstaclePositions[i] - Origin;
+                float obsLocalX = math.dot(delta, GridRight);
+                float obsLocalZ = math.dot(delta, GridForward);
+                float dx = cellLocalX - obsLocalX;
+                float dz = cellLocalZ - obsLocalZ;
                 float r = ObstacleRadii[i] + halfCell;
-                if (math.distancesq(cellWorldPos, ObstaclePositions[i]) < r * r)
+                if (dx * dx + dz * dz < r * r)
                 {
                     cost = byte.MaxValue;
                     break;
@@ -238,13 +239,6 @@ public partial struct FlowFieldSystem : ISystem
             }
 
             CostField[index] = cost;
-        }
-
-        private float3 CellToWorld(int cx, int cy)
-        {
-            float localX = (cx - GridWidth / 2) * CellSize;
-            float localZ = (cy - GridHeight / 2) * CellSize;
-            return Origin + GridRight * localX + GridForward * localZ;
         }
     }
 

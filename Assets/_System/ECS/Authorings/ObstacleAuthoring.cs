@@ -66,7 +66,7 @@ public class ObstacleAuthoring : MonoBehaviour
     {
         public override void Bake(ObstacleAuthoring authoring)
         {
-            var entity = GetEntity(TransformUsageFlags.Renderable | TransformUsageFlags.WorldSpace);
+            var entity = GetEntity(TransformUsageFlags.Dynamic); //TransformUsageFlags.Renderable | TransformUsageFlags.WorldSpace
 
             float radius = authoring.GetRadius();
 
