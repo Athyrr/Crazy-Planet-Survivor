@@ -3,7 +3,7 @@ using UnityEngine;
 using System;
 using TMPro;
 
-public class SummaryListView : ShopListViewBase<SummarySpell>
+public class SummaryListView : UIViewBase
 {
     [Header("Databases")] public SpellDatabaseSO SpellsDatabase;
 

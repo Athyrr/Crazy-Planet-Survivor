@@ -23,4 +23,9 @@ public class SummarySpell : UIViewItemBase
     {
         throw new System.NotImplementedException();
     }
+
+    public override void OnPointerClick(PointerEventData eventData)
+    {
+        throw new System.NotImplementedException();
+    }
 }

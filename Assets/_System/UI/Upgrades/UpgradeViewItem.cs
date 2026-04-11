@@ -6,17 +6,15 @@ using Vector3 = UnityEngine.Vector3;
 /// <summary>
 /// Represents an upgrade card displayed when the player is leveling up. 
 /// </summary>
-public class UpgradeViewItem : UIViewItemBase
+public class UpgradeViewItem : MonoBehaviour
 {
-    [Header("3D Visuals")] public SpriteRenderer Icon;
+    [Header("3D Visuals")]
+    public SpriteRenderer Icon;
     public TextMeshPro TitleText;
     public TextMeshPro DescriptionText;
     public TextMeshPro StatLabelText;
     public TextMeshPro StatValueText;
     public TextMeshPro UpgradeTypeText;
-
-    [Header("Hover")] public float HoverScale = 1.15f;
-    public float SmoothSpeed = 15f;
 
     [Header("Floating")] public float FloatingSpeed;
     public float FloatingAmplitude;
@@ -30,7 +28,7 @@ public class UpgradeViewItem : UIViewItemBase
     public int DbIndex => _dbIndex;
     private Transform _visualRoot;
 
-   
+
     public void SetData(ref UpgradeBlob upgradeData, int dbIndex)
     {
         _dbIndex = dbIndex;
@@ -67,7 +65,6 @@ public class UpgradeViewItem : UIViewItemBase
 
         UpgradeTypeText.text = text;
     }
-
 
     private void RefreshStatsDetails(ref UpgradeBlob data)
     {
@@ -172,19 +169,17 @@ public class UpgradeViewItem : UIViewItemBase
     private void Update()
     {
         Vector3 targetPosition = _intialPosition;
-        Vector3 targetScale = _intialScale;
-
         if (_isHovered)
         {
             float yOffset = Mathf.Sin(Time.time * FloatingSpeed) * FloatingAmplitude;
             targetPosition.y += yOffset;
         }
-
         transform.localPosition = Vector3.Lerp(transform.localPosition, targetPosition, Time.deltaTime * FloatingSpeed);
     }
 
-    public override void OnPointerEnter(PointerEventData eventData)
+    public void SetInitialPosition(Vector3 pos)
     {
-        throw new System.NotImplementedException();
+        _intialPosition = pos;
+        transform.localPosition = pos;
     }
 }

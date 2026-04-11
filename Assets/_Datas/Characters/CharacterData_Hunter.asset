@@ -22,8 +22,7 @@ MonoBehaviour:
   InitialSpells:
   - {fileID: 11400000, guid: 7299152c23536b94ab90b924a544bf81, type: 2}
   coreStats:
-    BaseMaxHealth: 5000
-    MaxHealthMultiplier: 1
+    MaxHealth: 500
     HealthRecovery: 2
     BaseArmor: 0
     DamageReductionMultiplier: 0
@@ -32,14 +31,14 @@ MonoBehaviour:
     BasePickupRange: 10
     PickupRangeMultiplier: 1
     GlobalDamageMultiplier: 1
-    GlobalCooldownMultiplier: 1
+    GlobalCooldownReductionMultiplier: 0
     GlobalSpellAreaMultiplier: 1
     GlobalSpellSizeMultiplier: 1
     GlobalSpellSpeedMultiplier: 1
-    GlobalDurationMultiplier: 1
+    GlobalSpellDurationMultiplier: 1
     GlobalCastRangeMultiplier: 1
     GlobalAmountBonus: 0
-    GlobalPierceBonus: 0
+    GlobalPierceBonus: 3
     GlobalBounceBonus: 0
-    CritChance: 0.1
+    CritChance: 0.15
     CritDamageMultiplier: 1.5
