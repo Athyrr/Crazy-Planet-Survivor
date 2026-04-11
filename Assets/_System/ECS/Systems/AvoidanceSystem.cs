@@ -154,7 +154,9 @@ public partial struct AvoidanceSystem : ISystem
 
         public void Execute(Entity entity, [ChunkIndexInQuery] int chunkIndex, EnabledRefRO<Avoidance> avoidanceEnabled, in LocalTransform transform)
         {
-            if (!TransformLookup.HasComponent(PlayerEntity)) return;
+            if (!TransformLookup.HasComponent(PlayerEntity)) 
+                return;
+            
             float3 playerPos = TransformLookup[PlayerEntity].Position;
 
             bool shouldBeActive = math.distancesq(transform.Position, playerPos) < DistSqThreshold;

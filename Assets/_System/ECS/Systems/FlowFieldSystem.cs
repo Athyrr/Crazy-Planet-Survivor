@@ -88,10 +88,8 @@ public partial struct FlowFieldSystem : ISystem
         _cellBufferLookup.Update(ref state);
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
-        if (!_transformLookup.HasComponent(playerEntity))
-            return;
 
-        float3 playerPos = _transformLookup[playerEntity].Position;
+        float3 playerPos = SystemAPI.GetComponent<LocalTransform>(playerEntity).Position;
         var planetData = SystemAPI.GetSingleton<PlanetData>();
         float3 planetCenter = planetData.Center;
 
@@ -124,6 +122,7 @@ public partial struct FlowFieldSystem : ISystem
             obstaclePositions[i] = _transformLookup[obstacleEntities[i]].Position;
             obstacleRadii[i] = obstacleComponents[i].AvoidanceRadius;
         }
+
         obstacleEntities.Dispose();
         obstacleComponents.Dispose();
 
@@ -208,8 +207,7 @@ public partial struct FlowFieldSystem : ISystem
         [ReadOnly] public NativeArray<float3> ObstaclePositions;
         [ReadOnly] public NativeArray<float> ObstacleRadii;
 
-        [NativeDisableParallelForRestriction]
-        public NativeArray<byte> CostField;
+        [NativeDisableParallelForRestriction] public NativeArray<byte> CostField;
 
         public void Execute(int index)
         {
@@ -320,8 +318,7 @@ public partial struct FlowFieldSystem : ISystem
 
         [ReadOnly] public NativeArray<ushort> IntegrationField;
 
-        [NativeDisableParallelForRestriction]
-        public NativeArray<float3> DirectionField;
+        [NativeDisableParallelForRestriction] public NativeArray<float3> DirectionField;
 
         public void Execute(int index)
         {
@@ -340,14 +337,14 @@ public partial struct FlowFieldSystem : ISystem
             int bestDy = 0;
 
             // 8-directional neighbor check — manually unrolled for Burst compatibility
-            CheckNeighbor(cx, cy, -1,  0, selfCost, ref bestCost, ref bestDx, ref bestDy);
-            CheckNeighbor(cx, cy,  1,  0, selfCost, ref bestCost, ref bestDx, ref bestDy);
-            CheckNeighbor(cx, cy,  0, -1, selfCost, ref bestCost, ref bestDx, ref bestDy);
-            CheckNeighbor(cx, cy,  0,  1, selfCost, ref bestCost, ref bestDx, ref bestDy);
+            CheckNeighbor(cx, cy, -1, 0, selfCost, ref bestCost, ref bestDx, ref bestDy);
+            CheckNeighbor(cx, cy, 1, 0, selfCost, ref bestCost, ref bestDx, ref bestDy);
+            CheckNeighbor(cx, cy, 0, -1, selfCost, ref bestCost, ref bestDx, ref bestDy);
+            CheckNeighbor(cx, cy, 0, 1, selfCost, ref bestCost, ref bestDx, ref bestDy);
             CheckNeighbor(cx, cy, -1, -1, selfCost, ref bestCost, ref bestDx, ref bestDy);
-            CheckNeighbor(cx, cy,  1, -1, selfCost, ref bestCost, ref bestDx, ref bestDy);
-            CheckNeighbor(cx, cy, -1,  1, selfCost, ref bestCost, ref bestDx, ref bestDy);
-            CheckNeighbor(cx, cy,  1,  1, selfCost, ref bestCost, ref bestDx, ref bestDy);
+            CheckNeighbor(cx, cy, 1, -1, selfCost, ref bestCost, ref bestDx, ref bestDy);
+            CheckNeighbor(cx, cy, -1, 1, selfCost, ref bestCost, ref bestDx, ref bestDy);
+            CheckNeighbor(cx, cy, 1, 1, selfCost, ref bestCost, ref bestDx, ref bestDy);
 
             if (bestCost < selfCost)
             {

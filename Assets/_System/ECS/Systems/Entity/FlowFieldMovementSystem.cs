@@ -102,7 +102,7 @@ public partial struct FlowFieldMovementSystem : ISystem
         // doesn't overpower the flow-field direction on its own.
         private const float SteeringBlend = 0.35f;
 
-        public void Execute(Entity entity, ref LocalTransform transform, in FlowFieldFollowerMovement _)
+        public void Execute(Entity entity, ref LocalTransform transform)
         {
             // Stunned entities do not move
             if (StunLookup.TryGetComponent(entity, out var _) && StunLookup.IsComponentEnabled(entity))

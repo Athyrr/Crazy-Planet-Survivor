@@ -36,7 +36,7 @@ public class TabStatsUIView : UIViewBase
 
         foreach (Transform el in StatsContainer.transform)
             Destroy(el.gameObject);
-        
+
         Type type = typeof(CoreStats);
         var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
         foreach (var field in fields)
@@ -48,11 +48,11 @@ public class TabStatsUIView : UIViewBase
             }
         }
     }
-    
+
     public override void OpenView()
     {
-        base.OpenView();
         IsOpen = true;
+        gameObject.SetActive(true);
         StatsContainer.gameObject.SetActive(true);
         AnimateView(OnScreenPosition);
     }
@@ -60,10 +60,11 @@ public class TabStatsUIView : UIViewBase
     public override void CloseView()
     {
         base.CloseView();
+
         IsOpen = false;
         AnimateView(OffScreenPosition);
     }
-    
+
     public void RefreshData(CoreStats coreStats)
     {
         foreach (var meta in _cachedStatFields)
@@ -85,12 +86,17 @@ public class TabStatsUIView : UIViewBase
             _statUIs.Add(label, statUI);
         }
 
-        statUI.Refresh(label, formattedValue); 
+        statUI.Refresh(label, formattedValue);
     }
 
     private void AnimateView(Vector2 targetPosition)
     {
-        if (_animationCoroutine != null) StopCoroutine(_animationCoroutine);
+        if (_animationCoroutine != null)
+            StopCoroutine(_animationCoroutine);
+
+        if (!gameObject.activeInHierarchy)
+            gameObject.SetActive(true);
+
         _animationCoroutine = StartCoroutine(AnimateViewCoroutine(targetPosition));
     }
 
@@ -111,6 +117,5 @@ public class TabStatsUIView : UIViewBase
 
         PanelRect.anchoredPosition = targetPosition;
         _animationCoroutine = null;
-        StatsContainer.gameObject.SetActive(IsOpen);
     }
 }
