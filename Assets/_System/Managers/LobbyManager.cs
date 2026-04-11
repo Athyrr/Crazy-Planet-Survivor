@@ -14,7 +14,7 @@ public class LobbyManager : MonoBehaviour
     [Tooltip("Camera used to zoom in on a specific planet.")]
     public CinemachineCamera PlanetFocusCamera;
 
-    [FormerlySerializedAs("CharacterSelectionUIController")] [Header("UI Controllers")] public CharacterSelectionShopUIController characterSelectionShopUIController;
+    [FormerlySerializedAs("CharacterSelectionUIController")] [Header("UI Controllers")] public CharacterShopUIController characterShopUIController;
     public PlanetSelectionUIController PlanetSelectionUIController;
     public AmuletShopUIController amuletShopUIController;
 
@@ -87,7 +87,7 @@ public class LobbyManager : MonoBehaviour
         // Let galaxy opened
         PlanetSelectionUIController.gameObject.SetActive(true);
 
-        characterSelectionShopUIController.gameObject.SetActive(false);
+        characterShopUIController.gameObject.SetActive(false);
         amuletShopUIController.gameObject.SetActive(false);
 
         bool isGalaxyMode = (newState == EGameState.PlanetSelection);
@@ -120,8 +120,8 @@ public class LobbyManager : MonoBehaviour
 
     private void OpenCharacterSelectionView()
     {
-        characterSelectionShopUIController.gameObject.SetActive(true);
-        characterSelectionShopUIController.OpenView();
+        characterShopUIController.gameObject.SetActive(true);
+        characterShopUIController.OpenView();
     }
 
     private void OpenPlanetSelectionView()

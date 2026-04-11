@@ -8,7 +8,7 @@ using UnityEngine.Scripting;
 [System.Serializable]
 public struct CoreStats : IComponentData
 {
-    [Header("Survival")] [Tooltip("Max Health points.")] [UIStat("Max Health.", "+{0}")]
+    [Header("Survival")] [Tooltip("Max Health points.")] [UIStat("Max Health.", "{0}")]
     public float MaxHealth;
 
     [Tooltip("Health points recovered per second.")] [UIStat("Regen/s", "{0}/s")]
@@ -59,19 +59,19 @@ public struct CoreStats : IComponentData
 
     [Header("Offensive Global Bonuses")]
     [Tooltip("Number of projectiles added to all spells.")]
-    [UIStat("Amount +", "+{0}")]
+    [UIStat("Amount", "+{0}")]
     public int GlobalAmountBonus;
 
-    [Tooltip("Number of pierces added to all projectiles.")] [UIStat("Pierce +", "+{0}")]
+    [Tooltip("Number of pierces added to all projectiles.")] [UIStat("Pierce", "+{0}")]
     public int GlobalPierceBonus;
 
-    [Tooltip("Number of bounces added to all projectiles.")] [UIStat("Bounce +", "+{0}")]
+    [Tooltip("Number of bounces added to all projectiles.")] [UIStat("Bounce", "+{0}")]
     public int GlobalBounceBonus;
 
 
     [Header("Critical")] [Tooltip("Critical chance probability (0.0 to 1.0).")] [UIStat("Crit Chance", "{0:0%}")]
     public float CritChance;
 
-    [Tooltip("Critical damage multiplier (1.5 = 150%).")] [UIStat("Crit Dmg", "x{0:0.0}")]
+    [Tooltip("Critical damage multiplier (1.5 = 150%).")] [UIStat("Crit Damage", "{0:0%}")]
     public float CritDamageMultiplier;
 }

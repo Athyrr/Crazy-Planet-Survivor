@@ -4,11 +4,11 @@ using UnityEngine.Serialization;
 
 public class RunManager : MonoBehaviour
 {
-    [Header("UI Managers")]
-    public GameObject HUDPanel;
+    [Header("UI Managers")] public HUDController HUDController;
     public UpgradeSelectionUIController upgradeSelectionController;
 
-    [FormerlySerializedAs("GameOverUIController")] public GameOverUIController gameOverUIController;
+    [FormerlySerializedAs("GameOverUIController")]
+    public GameOverUIController gameOverUIController;
 
     public GameObject PausePanel;
 
@@ -36,7 +36,8 @@ public class RunManager : MonoBehaviour
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
         _playerHealthQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Health));
-        _openUpgradesRequestQuery = _entityManager.CreateEntityQuery(typeof(GameState), typeof(OpenUpgradesSelectionViewRequest));
+        _openUpgradesRequestQuery =
+            _entityManager.CreateEntityQuery(typeof(GameState), typeof(OpenUpgradesSelectionViewRequest));
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _endRunQuery = _entityManager.CreateEntityQuery(typeof(EndRunRequest));
         _ressourcesQuery = _entityManager.CreateEntityQuery(typeof(PlayerRessources));
@@ -66,7 +67,7 @@ public class RunManager : MonoBehaviour
         {
             var endRunReqEntity = _endRunQuery.GetSingletonEntity();
             var ressourcesReqEntity = _ressourcesQuery.GetSingletonEntity();
-            
+
             var endRunRequest = _entityManager.GetComponentData<EndRunRequest>(endRunReqEntity);
             var ressourcesRequest = _entityManager.GetComponentData<PlayerRessources>(ressourcesReqEntity);
 
@@ -136,7 +137,7 @@ public class RunManager : MonoBehaviour
     private void HandleStateChange(EGameState newState)
     {
         // Hide all panels
-        HUDPanel.SetActive(false);
+        HUDController.gameObject.SetActive(false);
         upgradeSelectionController.gameObject.SetActive(false);
         PausePanel.SetActive(false);
         gameOverUIController.gameObject.SetActive(false);
@@ -144,7 +145,7 @@ public class RunManager : MonoBehaviour
         switch (newState)
         {
             case EGameState.Running:
-                HUDPanel.SetActive(true);
+                HUDController.gameObject.SetActive(true);
                 break;
             case EGameState.Paused:
                 PausePanel.SetActive(true);
