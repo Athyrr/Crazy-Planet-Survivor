@@ -4,7 +4,7 @@ using _System.ECS.Authorings.Ressources;
 using UnityEngine;
 using TMPro;
 
-public class GameOverUIController : MonoBehaviour
+public class GameOverUIController : UIControllerBase
 {
     [Header("Game Over View")]
     public GameObject GameOverView;

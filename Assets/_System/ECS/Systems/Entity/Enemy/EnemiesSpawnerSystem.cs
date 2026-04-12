@@ -369,10 +369,8 @@ public partial struct EnemiesSpawnerSystem : ISystem
             });
 
             // Set Movement Target
-            ECB.SetComponent(index, entity, new FollowTargetMovement
-            {
-                Target = PlayerEntity
-            });
+            // ECB.SetComponent(index, entity, new FollowTargetMovement
+            ECB.SetComponent(index, entity, new FlowFieldFollowerMovement());
 
             // Set Wave Index
             // todo @hyverno passing Enemy in lookup

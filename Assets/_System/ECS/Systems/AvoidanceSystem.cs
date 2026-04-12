@@ -67,7 +67,7 @@ public partial struct AvoidanceSystem : ISystem
         _transformLookup.Update(ref state);
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
-        var planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
+        var planetData = SystemAPI.GetSingleton<PlanetData>();
 
         // --- PHASE 1: Level of Detail (LOD) Management ---
         _timeSinceLastLOD += SystemAPI.Time.DeltaTime;
@@ -116,8 +116,7 @@ public partial struct AvoidanceSystem : ISystem
         var avoidanceJob = new AvoidanceJob
         {
             Map = spatialMap,
-            TransformLookup = _transformLookup,
-            PlanetEntity = planetEntity,
+            PlanetCenter = planetData.Center,
             CellSize = CellSize
         };
         state.Dependency = avoidanceJob.ScheduleParallel(_activeEnemyQuery, state.Dependency);
@@ -155,7 +154,9 @@ public partial struct AvoidanceSystem : ISystem
 
         public void Execute(Entity entity, [ChunkIndexInQuery] int chunkIndex, EnabledRefRO<Avoidance> avoidanceEnabled, in LocalTransform transform)
         {
-            if (!TransformLookup.HasComponent(PlayerEntity)) return;
+            if (!TransformLookup.HasComponent(PlayerEntity)) 
+                return;
+            
             float3 playerPos = TransformLookup[PlayerEntity].Position;
 
             bool shouldBeActive = math.distancesq(transform.Position, playerPos) < DistSqThreshold;
@@ -215,14 +216,12 @@ public partial struct AvoidanceSystem : ISystem
         /// Projects the final force onto the planet's surface tangent plane.
         /// </summary>
         [ReadOnly] public NativeParallelMultiHashMap<int, AvoidanceData> Map;
-        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
-        public Entity PlanetEntity;
+        public float3 PlanetCenter;
         public float CellSize;
 
         public void Execute(Entity entity, in Avoidance avoidance, in LocalTransform transform, ref SteeringForce steering)
         {
-            if (!TransformLookup.HasComponent(PlanetEntity)) return;
-            float3 planetCenter = TransformLookup[PlanetEntity].Position;
+            float3 planetCenter = PlanetCenter;
 
             float3 avoidanceForce = float3.zero;
             int3 centerCell = (int3)math.floor(transform.Position / CellSize);

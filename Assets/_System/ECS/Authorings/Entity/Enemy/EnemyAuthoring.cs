@@ -25,7 +25,8 @@ public class EnemyAuthoring : MonoBehaviour
                 AddComponentObject(entity, new VisualRendererLink { Renderer = authoring.MainRenderer });
 
             AddComponent(entity, new Enemy());
-            AddComponent(entity, new FollowTargetMovement { Speed = authoring.BaseStats.BaseMoveSpeed });
+            // AddComponent(entity, new FollowTargetMovement { Speed = authoring.BaseStats.BaseMoveSpeed });
+            AddComponent(entity, new FlowFieldFollowerMovement());
             AddComponent(entity, new RunScope());
 
             if (authoring.UseSnappedMovement)
