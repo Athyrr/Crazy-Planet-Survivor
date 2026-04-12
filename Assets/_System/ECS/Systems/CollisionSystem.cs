@@ -18,7 +18,7 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<Destructible> _cpEntityLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
 
-    private ComponentLookup<DamageOnContact> _damageOnContactLookup;
+    [NativeDisableParallelForRestriction] public ComponentLookup<DamageOnContact> _damageOnContactLookup;
     private ComponentLookup<DestroyOnContact> _destroyOnContactLookup;
     private ComponentLookup<Invincible> _invincibleLookup;
     private BufferLookup<HitEntityMemory> _hitMemoryLookup;
@@ -60,8 +60,8 @@ public partial struct CollisionSystem : ISystem
         _cpEntityLookup = state.GetComponentLookup<Destructible>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
 
-        _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
-        _destroyOnContactLookup = state.GetComponentLookup<DestroyOnContact>(true);
+        _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(false);
+        _destroyOnContactLookup = state.GetComponentLookup<DestroyOnContact>(false);
         _invincibleLookup = state.GetComponentLookup<Invincible>(true);
         _hitMemoryLookup = state.GetBufferLookup<HitEntityMemory>(false);
 
@@ -208,6 +208,10 @@ public partial struct CollisionSystem : ISystem
 
             if (TryResolveDamagerVsTarget(entityA, entityB, out Entity damagerEntity, out Entity target))
             {
+                if (DestroyOnContactLookup.HasComponent(damagerEntity) &&
+                    !DestroyOnContactLookup.IsComponentEnabled(damagerEntity))
+                    return;
+
                 bool canDealDamage = true;
 
                 if (HitMemoryLookup.HasBuffer(damagerEntity))
@@ -440,6 +444,7 @@ public partial struct CollisionSystem : ISystem
 
                     if (shouldDestroy && DestructibleLookup.HasComponent(damagerEntity))
                     {
+                        DamageOnContactLookup.SetComponentEnabled(damagerEntity, false);
                         ECB.SetComponentEnabled<DestroyEntityFlag>(0, damagerEntity, true);
                     }
                 }
@@ -489,20 +494,17 @@ public partial struct CollisionSystem : ISystem
 
         private bool TryResolveDamagerVsTarget(Entity entityA, Entity entityB, out Entity damager, out Entity target)
         {
-            if (
-                DamageOnContactLookup.HasComponent(entityA)
-                && (DestructibleLookup.HasComponent(entityB))
-            )
+            if (DamageOnContactLookup.HasComponent(entityA) && DamageOnContactLookup.IsComponentEnabled(entityA) &&
+                DestructibleLookup.HasComponent(entityB))
             {
                 damager = entityA;
                 target = entityB;
                 return true;
             }
 
-            if (
-                DamageOnContactLookup.HasComponent(entityB)
-                && (DestructibleLookup.HasComponent(entityA))
-            )
+            if (DamageOnContactLookup.HasComponent(entityB) &&
+                DamageOnContactLookup.IsComponentEnabled(entityB) &&
+                DestructibleLookup.HasComponent(entityA))
             {
                 damager = entityB;
                 target = entityA;

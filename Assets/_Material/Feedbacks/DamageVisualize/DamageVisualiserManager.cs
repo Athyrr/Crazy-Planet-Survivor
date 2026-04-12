@@ -4,6 +4,7 @@ using EasyButtons;
 using PrimeTween;
 using Random = UnityEngine.Random;
 using Unity.Entities;
+using UnityEditor;
 
 [ExecuteAlways]
 public class DamageFeedbackManager : MonoBehaviour
@@ -11,7 +12,7 @@ public class DamageFeedbackManager : MonoBehaviour
     public Color BaseDamageColor = Color.white;
     public Color CriticalDamageColor = Color.goldenRod;
     public Color BurnDamageColor = Color.darkRed;
-    
+
     #region Instance
 
     private static DamageFeedbackManager _instance;
@@ -109,28 +110,31 @@ public class DamageFeedbackManager : MonoBehaviour
         return Application.isPlaying ? Time.time : (float)Time.realtimeSinceStartup;
     }
 
-    void Update()
+    private void Update()
     {
         if (World.DefaultGameObjectInjectionWorld != null)
         {
-            var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-            var requestQuery = entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
+            if (!EditorApplication.isPlaying)
+            {
+                _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+                _damageFeedbackQuery = _entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
+            }
 
-            if (!requestQuery.IsEmpty)
+            if (!_damageFeedbackQuery.IsEmpty)
             {
                 var requests =
-                    requestQuery.ToComponentDataArray<DamageFeedbackRequest>(Unity.Collections.Allocator.Temp);
-                var entities = requestQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
+                    _damageFeedbackQuery.ToComponentDataArray<DamageFeedbackRequest>(Unity.Collections.Allocator.Temp);
+                var entities = _damageFeedbackQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
 
                 for (int i = 0; i < entities.Length; i++)
                 {
                     var req = requests[i];
 
                     var color = BaseDamageColor;
-                    
+
                     if (req.IsCritical)
                         color = CriticalDamageColor;
-                    
+
                     else if (req.IsBurn)
                         color = BurnDamageColor;
 
@@ -138,7 +142,7 @@ public class DamageFeedbackManager : MonoBehaviour
                         (Vector3)req.Transform.Position + (Vector3)req.Transform.Up() * (1.5f * Random.Range(1, 3f)),
                         color);
 
-                    entityManager.DestroyEntity(entities[i]);
+                    _entityManager.DestroyEntity(entities[i]);
                 }
 
                 requests.Dispose();
@@ -170,6 +174,8 @@ public class DamageFeedbackManager : MonoBehaviour
     private void OnDestroy()
     {
         ReleaseBuffer();
+        _damageFeedbackQuery.Dispose();
+        _damageBuffer?.Release();
     }
 
     private void ReleaseBuffer()

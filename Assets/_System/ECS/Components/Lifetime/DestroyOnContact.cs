@@ -1,3 +1,5 @@
 using Unity.Entities;
 
-public struct DestroyOnContact : IComponentData { }
+public struct DestroyOnContact : IComponentData, IEnableableComponent
+{
+}

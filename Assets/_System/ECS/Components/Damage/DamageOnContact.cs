@@ -1,6 +1,6 @@
 using Unity.Entities;
 
-public struct DamageOnContact : IComponentData
+public struct DamageOnContact : IComponentData, IEnableableComponent
 {
     public float Damage;
     public ESpellTag Tag;
