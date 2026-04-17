@@ -21,6 +21,7 @@ public partial struct HealthSystem : ISystem
     private ComponentLookup<Resource> _ressourceLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
+    private ComponentLookup<ExplodeOnDeath> _explodeOnDeathLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -33,6 +34,7 @@ public partial struct HealthSystem : ISystem
         _ressourceLookup = state.GetComponentLookup<Resource>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
+        _explodeOnDeathLookup = state.GetComponentLookup<ExplodeOnDeath>(true);
     }
 
     [BurstCompile]
@@ -56,16 +58,17 @@ public partial struct HealthSystem : ISystem
         _ressourceLookup.Update(ref state);
         _transformLookup.Update(ref state);
         _destroyFlagLookup.Update(ref state);
+        _explodeOnDeathLookup.Update(ref state);
 
         var applyDamageJob = new ApplyDamageJob
         {
             ECB = ecb.AsParallelWriter(),
             DestroyFlagLookup = _destroyFlagLookup,
             PlayerLookup = _playerLookup,
-            DestrucibleLookup = _destrucibleLookup,
+            DestructibleLookup = _destrucibleLookup,
             EnemyLookup = _enemyLookup,
             ResourceLookup = _ressourceLookup,
-            TransformLookup = _transformLookup,
+            ExplodeOnDeathLookup = _explodeOnDeathLookup
         };
 
         state.Dependency = applyDamageJob.ScheduleParallel(state.Dependency);
@@ -82,22 +85,22 @@ public partial struct HealthSystem : ISystem
 
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        [ReadOnly] public ComponentLookup<Destructible> DestrucibleLookup;
+        [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
         [ReadOnly] public ComponentLookup<Resource> ResourceLookup;
-        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
+        [ReadOnly] public ComponentLookup<ExplodeOnDeath> ExplodeOnDeathLookup;
 
         // todo Opti here: If  possible use Query instead of lookup
-        
+
         private void Execute(
             [ChunkIndexInQuery] int index,
             Entity entity,
             ref Health health,
-            ref DynamicBuffer<DamageBufferElement> damageBuffer
+            ref DynamicBuffer<DamageBufferElement> damageBuffer, in LocalTransform transform
         )
         {
             // todo use skip condition in query -> Comp + EnabledRefRW  
-            
+
             // Skip entities already marked for destruction
             if (DestroyFlagLookup.HasComponent(entity) && DestroyFlagLookup.IsComponentEnabled(entity))
                 return;
@@ -136,7 +139,6 @@ public partial struct HealthSystem : ISystem
             // Send feedback request
             if (!isPlayer)
             {
-                var transform = TransformLookup[entity];
                 TriggerDamageVisual(index, ECB, (int)totalDamage, transform, isCritical, isBurn);
             }
 
@@ -144,6 +146,27 @@ public partial struct HealthSystem : ISystem
             if (health.Value <= 0)
             {
                 health.Value = 0;
+
+                if (!isPlayer && ExplodeOnDeathLookup.TryGetComponent(entity, out var explosionData))
+                {
+                    var explosionRequest = ECB.CreateEntity(0);
+
+                    ECB.AddComponent(
+                        0,
+                        explosionRequest,
+                        new ExplosionRequest()
+                        {
+                            Position = transform.Position,
+                            Radius = 1,
+                            Damage = explosionData.Damage,
+                            VfxPrefab = explosionData.VfxPrefab,
+                            IsCritical = false,
+                            Tags = explosionData.Tags,
+                            TargetLayers = CollisionLayers.Enemy | CollisionLayers.Player | CollisionLayers.Obstacle,
+                        }
+                    );
+                }
+
                 ECB.SetComponentEnabled<DestroyEntityFlag>(index, entity, true);
 
                 if (isPlayer)
@@ -173,7 +196,7 @@ public partial struct HealthSystem : ISystem
                         new RessourceKilledEvent { }
                     );
                 }
-                else if (DestrucibleLookup.HasComponent(entity))
+                else if (DestructibleLookup.HasComponent(entity))
                 {
                     var killedEventEntity = ECB.CreateEntity(index);
                     ECB.AddComponent(

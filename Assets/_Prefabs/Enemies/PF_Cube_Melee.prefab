@@ -105,6 +105,7 @@ GameObject:
   - component: {fileID: 4190783909020484761}
   - component: {fileID: -8517440183909175222}
   - component: {fileID: 5661740293285117394}
+  - component: {fileID: 9020855171300096482}
   m_Layer: 0
   m_Name: PF_Cube_Melee
   m_TagString: Untagged
@@ -360,3 +361,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntityAuthoring
+--- !u!114 &9020855171300096482
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4960229139857780973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05265eb629ba62142b63f6dffe26b3de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ExplodeOnDeathAuthoring
+  Damage: 150
+  Radius: 1
+  TargetLayers: 0
+  Tags: 8192
+  VfxPrefab: {fileID: 5356559924620498424, guid: ca60ae3135600ba409ee2211d63e719a, type: 3}
+  StartEnabled: 0

@@ -475,7 +475,7 @@ public partial struct CollisionSystem : ISystem
                     Damage = explosionData.Damage * criticalDamagesMultiplier,
                     VfxPrefab = explosionData.VfxPrefab,
                     IsCritical = isCrit,
-                    Element = element,
+                    Tags = element,
                     TargetLayers = CollisionLayers.Enemy,
                 }
             );

@@ -16,6 +16,7 @@ public partial struct ExplosionSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
 
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
@@ -62,7 +63,7 @@ public partial struct ExplosionSystem : ISystem
                 {
                     Position = explosion.Position,
                     // // todo scale vfx based on explosion visual
-                    Scale = explosion.Radius / 3
+                    Scale = explosion.Radius
                 });
             }
 
@@ -89,7 +90,7 @@ public partial struct ExplosionSystem : ISystem
                         ECB.AppendToBuffer(chunkIndex, hitEntity, new DamageBufferElement
                         {
                             Damage = (int)explosion.Damage,
-                            Tag = explosion.Element,
+                            Tag = explosion.Tags,
                             IsCritical = explosion.IsCritical
                         });
 
@@ -113,7 +114,7 @@ public struct ExplosionRequest : IComponentData
     public float3 Position;
     public float Radius;
     public float Damage;
-    public ESpellTag Element;
+    public ESpellTag Tags;
     public bool IsCritical;
     public Entity VfxPrefab;
 
