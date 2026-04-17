@@ -24327,6 +24327,7 @@ GameObject:
   - component: {fileID: 2248150641823454588}
   - component: {fileID: 3265751959081834841}
   - component: {fileID: 1898412360352966185}
+  - component: {fileID: 7227297696236979541}
   m_Layer: 0
   m_Name: PF_Spell_ShockChain
   m_TagString: Untagged
@@ -26965,3 +26966,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DestructibleAuthoring
+--- !u!114 &7227297696236979541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8913368109206024948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6fbacaf139918b4bbe3416bfcc81482, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitMemoryAuthoring

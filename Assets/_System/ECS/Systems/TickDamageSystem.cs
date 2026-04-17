@@ -8,7 +8,7 @@ using Unity.Burst;
 using Unity.Jobs;
 
 /// <summary>
-/// System that handle damages on tick and not on collisions.
+/// System that handle damages on tick like aura spells or and not on collisions.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -78,7 +78,7 @@ public partial struct TickDamageSystem : ISystem
         _destroyFLagLookup.Update(ref state);
         _activeSpellBufferLookup.Update(ref state);
 
-        var auraTickJob = new TickDamageJob
+        var auraTickJob = new ProcessSpellTickDamageJob
         {
             ECB = ecb.AsParallelWriter(),
             DeltaTime = SystemAPI.Time.DeltaTime,
@@ -86,7 +86,7 @@ public partial struct TickDamageSystem : ISystem
             CollisionWorld = collisionWorld,
 
             PlayerLookup = _playerLookup,
-            CpEntityLookup = _cpEntityLookup,
+            DestructibleLookup = _cpEntityLookup,
 
             StatsLookup = _statsLookup,
             DamageBufferLookup = _damageBufferLookup,
@@ -111,7 +111,7 @@ public partial struct TickDamageSystem : ISystem
     /// todo faire des withAll et withNone nan ? adam baeeeee grrrr roar
     /// </summary>
     [BurstCompile]
-    private partial struct TickDamageJob : IJobEntity
+    private partial struct ProcessSpellTickDamageJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
         public float DeltaTime;
@@ -119,7 +119,7 @@ public partial struct TickDamageSystem : ISystem
         [ReadOnly] public CollisionWorld CollisionWorld;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        [ReadOnly] public ComponentLookup<Destructible> CpEntityLookup;
+        [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
 
         [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
@@ -163,7 +163,7 @@ public partial struct TickDamageSystem : ISystem
 
             foreach (var hit in hits)
             {
-                var isEntityHit = CpEntityLookup.HasComponent(hit.Entity);
+                var isEntityHit = DestructibleLookup.HasComponent(hit.Entity);
 
                 // Ignore entities that are neither player nor enemy
                 if (!isEntityHit && !PlayerLookup.HasComponent(hit.Entity))

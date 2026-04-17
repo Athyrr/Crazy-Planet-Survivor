@@ -3,7 +3,7 @@ using Unity.Entities;
 namespace _System.ECS.Components.Entity
 {
     /// <summary>
-    /// Defines an entity as destructible.
+    /// Defines an entity as destructible. Replace CpEntity
     /// </summary>
     public struct Destructible : IComponentData, IEnableableComponent
     {

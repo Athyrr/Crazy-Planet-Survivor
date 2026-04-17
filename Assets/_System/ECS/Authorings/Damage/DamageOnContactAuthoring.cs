@@ -10,6 +10,7 @@ public class DamageOnContactAuthoring : MonoBehaviour
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
             AddComponent<DamageOnContact>(entity);
+            SetComponentEnabled<DamageOnContact>(entity, true);
         }
     }
 }

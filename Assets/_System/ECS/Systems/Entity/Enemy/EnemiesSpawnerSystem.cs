@@ -24,11 +24,14 @@ public partial struct EnemiesSpawnerSystem : ISystem
     /// </summary>
     private const int MAX_SPAWNS_PER_FRAME = 50;
 
+    //todo allocate Ms budget et dispacth into frames
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<PhysicsWorldSingleton>();
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         //state.RequireForUpdate<StartRunRequest>();
-        //   state.RequireForUpdate<EndSimulationEntityCommandBufferSystem>();
         state.RequireForUpdate<SpawnerSettings>();
         state.RequireForUpdate<SpawnerState>();
         state.RequireForUpdate<PlanetData>();
@@ -235,7 +238,6 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
             CollisionWorld = physicsWorld.CollisionWorld,
 
-            PlayerEntity = playerEntity,
             PlayerTransform = playerTransform,
             Prefab = group.Prefab,
 
@@ -264,7 +266,6 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
         [ReadOnly] public CollisionWorld CollisionWorld;
 
-        [ReadOnly] public Entity PlayerEntity;
         [ReadOnly] public LocalTransform PlayerTransform;
         [ReadOnly] public Entity Prefab;
 
@@ -304,25 +305,83 @@ public partial struct EnemiesSpawnerSystem : ISystem
             // Calculate spawn postion based on spawning mode
             switch (Mode)
             {
-                case SpawnMode.RandomInPlanet:
-                    float3 randomDir = rand.NextFloat3Direction();
-                    float3 roughPos = PlanetCenter + randomDir * PlanetRadius;
+                // case SpawnMode.RandomInPlanet:
+                //     float3 randomDir = rand.NextFloat3Direction();
+                //     float3 roughPos = PlanetCenter + randomDir * PlanetRadius;
+                //
+                //     if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, roughPos, PlanetCenter, groundFilter, 150f,
+                //             out var hit))
+                //     {
+                //         spawnPosition = hit.Position;
+                //         surfaceNormal = hit.SurfaceNormal;
+                //         positionFound = true;
+                //     }
+                //
+                //     break;
 
-                    if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, roughPos, PlanetCenter, groundFilter, 150f,
-                            out var hit))
+                case SpawnMode.RandomInPlanet:
+                    float goldenAngleSphere = 2.39996323f; // PI * (3 - sqrt(5))
+
+                    float maxAmount = math.max(1f, (float)TotalAmount);
+                    float z = 1f - (2f * globalIndex + 1f) / maxAmount;
+
+                    float radiusAtZ = math.sqrt(1f - z * z);
+
+                    float thetaSphere = goldenAngleSphere * globalIndex;
+
+                    float x = radiusAtZ * math.cos(thetaSphere);
+                    float y = radiusAtZ * math.sin(thetaSphere);
+
+                    float3 sphereDirection = new float3(x, y, z);
+                    float3 roughPosPlanet = PlanetCenter + (sphereDirection * PlanetRadius);
+
+                    if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, roughPosPlanet, PlanetCenter, groundFilter,
+                            150f, out var hitPlanet))
                     {
-                        spawnPosition = hit.Position;
-                        surfaceNormal = hit.SurfaceNormal;
+                        spawnPosition = hitPlanet.Position;
+                        surfaceNormal = hitPlanet.SurfaceNormal;
                         positionFound = true;
                     }
 
                     break;
 
+                // case SpawnMode.Zone:
+                //     float zoneRadius = math.max(5f, TotalAmount * 0.5f);
+                //     positionFound = PlanetUtils.GetRandomPointOnSurface(
+                //         ref CollisionWorld, ref rand, SpawnOrigin, PlanetCenter, zoneRadius, ref groundFilter,
+                //         out spawnPosition, out surfaceNormal);
+                //     break;
+
                 case SpawnMode.Zone:
-                    float zoneRadius = math.max(5f, TotalAmount * 0.5f);
-                    positionFound = PlanetUtils.GetRandomPointOnSurface(
-                        ref CollisionWorld, ref rand, SpawnOrigin, PlanetCenter, zoneRadius, ref groundFilter,
-                        out spawnPosition, out surfaceNormal);
+                    float goldenAngle = 2.39996323f;
+
+                    float c = MaxRange / math.sqrt(TotalAmount);
+
+                    float angle = globalIndex * goldenAngle;
+                    float spiralRadius = c * math.sqrt(globalIndex);
+
+                    spiralRadius += MinRange;
+
+                    float2 perfectCircle = new float2(math.cos(angle), math.sin(angle)) * spiralRadius;
+
+                    float3 up = math.normalize(SpawnOrigin - PlanetCenter);
+                    float3 tangent = math.cross(up, new float3(0, 1, 0));
+                    if (math.lengthsq(tangent) < 0.001f)
+                        tangent = math.cross(up, new float3(1, 0, 0));
+
+                    quaternion alignmentRot = quaternion.LookRotationSafe(tangent, up);
+                    float3 localOffset = new float3(perfectCircle.x, 0f, perfectCircle.y);
+                    float3 worldOffset = math.rotate(alignmentRot, localOffset);
+                    float3 p = SpawnOrigin + worldOffset;
+
+                    if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, p, PlanetCenter, groundFilter, 100f,
+                            out var h))
+                    {
+                        spawnPosition = h.Position;
+                        surfaceNormal = h.SurfaceNormal;
+                        positionFound = true;
+                    }
+
                     break;
 
                 case SpawnMode.PlayerOpposite:
@@ -340,10 +399,41 @@ public partial struct EnemiesSpawnerSystem : ISystem
                         out spawnPosition, out surfaceNormal);
                     break;
 
+                // case SpawnMode.AroundPlayer:
+                //     positionFound = PlanetUtils.GetRandomPointOnSurface(
+                //         ref CollisionWorld, ref rand, SpawnOrigin, PlanetCenter, MinRange, MaxRange, ref groundFilter,
+                //         out spawnPosition, out surfaceNormal);
+                //     break;
+
                 case SpawnMode.AroundPlayer:
-                    positionFound = PlanetUtils.GetRandomPointOnSurface(
-                        ref CollisionWorld, ref rand, SpawnOrigin, PlanetCenter, MinRange, MaxRange, ref groundFilter,
-                        out spawnPosition, out surfaceNormal);
+                    float goldenAngleAround = 2.39996323f;
+                    float angleAround = globalIndex * goldenAngleAround;
+
+                    float fraction = (float)globalIndex / TotalAmount;
+
+                    float radiusAround = math.lerp(MinRange, MaxRange, math.sqrt(fraction));
+
+                    float2 perfectCircleAround =
+                        new float2(math.cos(angleAround), math.sin(angleAround)) * radiusAround;
+
+                    float3 upAround = math.normalize(SpawnOrigin - PlanetCenter);
+                    float3 tangentAround = math.cross(upAround, new float3(0, 1, 0));
+                    if (math.lengthsq(tangentAround) < 0.001f)
+                        tangentAround = math.cross(upAround, new float3(1, 0, 0));
+
+                    quaternion alignmentRotAround = quaternion.LookRotationSafe(tangentAround, upAround);
+                    float3 localOffsetAround = new float3(perfectCircleAround.x, 0f, perfectCircleAround.y);
+                    float3 worldOffsetAround = math.rotate(alignmentRotAround, localOffsetAround);
+                    float3 roughPosAround = SpawnOrigin + worldOffsetAround;
+
+                    if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, roughPosAround, PlanetCenter, groundFilter,
+                            100f, out var hitAround))
+                    {
+                        spawnPosition = hitAround.Position;
+                        surfaceNormal = hitAround.SurfaceNormal;
+                        positionFound = true;
+                    }
+
                     break;
             }
 
@@ -358,7 +448,9 @@ public partial struct EnemiesSpawnerSystem : ISystem
             float3 tangentDirection =
                 math.normalize(randomTangent - math.dot(randomTangent, surfaceNormal) * surfaceNormal);
 
-            float3 finalPosition = spawnPosition + (surfaceNormal * 0.5f);
+            float3 spawnOffset = rand.NextFloat(0f, 8f); // Avoid overlap
+            float3 finalPosition =
+                spawnPosition + (tangentDirection * spawnOffset) + (surfaceNormal * 0.5f);
 
             // Set Transform 
             ECB.SetComponent(index, entity, new LocalTransform

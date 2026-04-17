@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: -795139794179562712}
   - component: {fileID: 7077652745905088192}
   - component: {fileID: 4190783909020484761}
+  - component: {fileID: 6197895928645730550}
   m_Layer: 0
   m_Name: PF_Spider
   m_TagString: Untagged
@@ -214,34 +215,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03db88175c3880e4d91f5497f684801e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
+  MainRenderer: {fileID: 0}
   UseSnappedMovement: 1
   BaseStats:
     MaxHealth: 80
-    Armor: 0
-    MoveSpeed: 1
-    Damage: 5
-    CooldownReduction: 0
+    HealthRecovery: 0
+    BaseArmor: 0
+    DamageReductionMultiplier: 0
+    BaseMoveSpeed: 0
+    MoveSpeedMultiplier: 0
+    BasePickupRange: 0
+    PickupRangeMultiplier: 0
+    GlobalDamageMultiplier: 0
+    GlobalCooldownReductionMultiplier: 0
+    GlobalSpellAreaMultiplier: 0
+    GlobalSpellSizeMultiplier: 0
+    GlobalSpellSpeedMultiplier: 0
+    GlobalSpellDurationMultiplier: 0
+    GlobalCastRangeMultiplier: 0
+    GlobalAmountBonus: 0
+    GlobalPierceBonus: 0
+    GlobalBounceBonus: 0
     CritChance: 0
-    CritMultiplier: 0
-    ProjectileSpeedMultiplier: 0
-    EffectAreaRadiusMultiplier: 0
-    BouncesAdded: 0
-    PierceAdded: 0
-    SizeMultiplier: 0
-    FireResistance: 50
-    IceResistance: 0
-    LightningResistance: 0
-    PoisonResistance: 0
-    LightResistance: 0
-    DarkResistance: 0
-    NatureResistance: 0
-    CollectRange: 1
-    MaxCollectRange: 1
+    CritDamageMultiplier: 0
   InitialSpells: []
-  InitialModifers:
-  - StatID: 0
-    Value: 0
-    Strategy: 0
 --- !u!114 &7077652745905088192
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -254,8 +251,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9572930ed885f804eae7a2b7f785412d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExperienceLootAuthoring
-  ExperienceValue: 60
-  DropChance: 0.7
+  _ressourceType: 0
+  _value: 0
+  _dropChance: 1
 --- !u!114 &4190783909020484761
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -269,7 +267,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
   _avoidanceDetectionRadius: 2
-  _avoidanceWeight: 0.5
+  _avoidanceWeight: 0.8
+--- !u!114 &6197895928645730550
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4960229139857780973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DestructibleAuthoring
 --- !u!1 &7892183719345375266
 GameObject:
   m_ObjectHideFlags: 0

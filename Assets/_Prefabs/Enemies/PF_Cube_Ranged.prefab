@@ -27,8 +27,8 @@ Transform:
   m_GameObject: {fileID: 3629201438294732191}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2.5, y: 2.5, z: 2.5}
+  m_LocalPosition: {x: 0, y: -1.5, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 834412683046234062}
@@ -291,7 +291,7 @@ MonoBehaviour:
     HealthRecovery: 0
     BaseArmor: 0
     DamageReductionMultiplier: 0
-    BaseMoveSpeed: 8
+    BaseMoveSpeed: 5
     MoveSpeedMultiplier: 1
     BasePickupRange: 0
     PickupRangeMultiplier: 1
@@ -336,8 +336,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 569916e10732eba4caf53ace7f5ac10d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
-  _avoidanceDetectionRadius: 1.5
-  _avoidanceWeight: 0.85
+  _avoidanceDetectionRadius: 2.5
+  _avoidanceWeight: 0.8
 --- !u!114 &6713757152409590747
 MonoBehaviour:
   m_ObjectHideFlags: 0

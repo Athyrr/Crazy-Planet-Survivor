@@ -18,7 +18,7 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<Destructible> _cpEntityLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
 
-    [NativeDisableParallelForRestriction] public ComponentLookup<DamageOnContact> _damageOnContactLookup;
+    private ComponentLookup<DamageOnContact> _damageOnContactLookup;
     private ComponentLookup<DestroyOnContact> _destroyOnContactLookup;
     private ComponentLookup<Invincible> _invincibleLookup;
     private BufferLookup<HitEntityMemory> _hitMemoryLookup;
@@ -178,7 +178,9 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
 
-        [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
+        // [NativeDisableParallelForRestriction]
+        public ComponentLookup<DamageOnContact> DamageOnContactLookup;
+
         [ReadOnly] public ComponentLookup<DestroyOnContact> DestroyOnContactLookup;
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
 
@@ -199,7 +201,7 @@ public partial struct CollisionSystem : ISystem
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
 
-        private const double MultiHitDelay = 1f; // Delay before allowing another hit if collision stays.
+        private const double MultiHitDelay = 0.6f; // Delay before allowing another hit if collision stays.
 
         public void Execute(TriggerEvent triggerEvent)
         {
@@ -208,10 +210,6 @@ public partial struct CollisionSystem : ISystem
 
             if (TryResolveDamagerVsTarget(entityA, entityB, out Entity damagerEntity, out Entity target))
             {
-                if (DestroyOnContactLookup.HasComponent(damagerEntity) &&
-                    !DestroyOnContactLookup.IsComponentEnabled(damagerEntity))
-                    return;
-
                 bool canDealDamage = true;
 
                 if (HitMemoryLookup.HasBuffer(damagerEntity))
@@ -399,7 +397,7 @@ public partial struct CollisionSystem : ISystem
                         if (bounce.RemainingBounces > 0)
                         {
                             if (TryFindNextTarget(damagerEntity, target, bounce.BounceRange, out Entity newTarget,
-                                    out float3 newDirection))
+                                    out float3 _))
                             {
                                 if (LinearMovementLookup.IsComponentEnabled(damagerEntity))
                                     ECB.SetComponentEnabled<LinearMovement>(0, damagerEntity, false);
@@ -415,6 +413,9 @@ public partial struct CollisionSystem : ISystem
                                 bounce.RemainingBounces--;
                                 BounceLookup[damagerEntity] = bounce;
                                 shouldDestroy = false;
+
+                                // if (bounce.RemainingBounces <= 0)
+                                //     shouldDestroy = true;
                             }
                             else
                             {
@@ -442,10 +443,11 @@ public partial struct CollisionSystem : ISystem
                         }
                     }
 
-                    if (shouldDestroy && DestructibleLookup.HasComponent(damagerEntity))
+                    if (shouldDestroy /*&& DestructibleLookup.HasComponent(damagerEntity)*/)
                     {
-                        DamageOnContactLookup.SetComponentEnabled(damagerEntity, false);
+                        // Ensure spell will not apply more damages this frame
                         ECB.SetComponentEnabled<DestroyEntityFlag>(0, damagerEntity, true);
+                        DamageOnContactLookup.SetComponentEnabled(damagerEntity, false);
                     }
                 }
             }
@@ -484,12 +486,12 @@ public partial struct CollisionSystem : ISystem
             if (!DestructibleLookup.HasComponent(hitEntity))
                 return;
 
-            var shakeReq = ECB.CreateEntity(0);
-            ECB.AddComponent<ShakeFeedbackRequest>(0, shakeReq);
+            // var shakeReq = ECB.CreateEntity(0);
+            // ECB.AddComponent<ShakeFeedbackRequest>(0, shakeReq);
 
             // todo request on the entity itself
-            var flashReq = ECB.CreateEntity(0);
-            ECB.AddComponent(0, flashReq, new HitFrameColorRequest { TargetEntity = hitEntity });
+            // var flashReq = ECB.CreateEntity(0);
+            // ECB.AddComponent(0, flashReq, new HitFrameColorRequest { TargetEntity = hitEntity });
         }
 
         private bool TryResolveDamagerVsTarget(Entity entityA, Entity entityB, out Entity damager, out Entity target)
@@ -502,8 +504,7 @@ public partial struct CollisionSystem : ISystem
                 return true;
             }
 
-            if (DamageOnContactLookup.HasComponent(entityB) &&
-                DamageOnContactLookup.IsComponentEnabled(entityB) &&
+            if (DamageOnContactLookup.HasComponent(entityB) && DamageOnContactLookup.IsComponentEnabled(entityB) &&
                 DestructibleLookup.HasComponent(entityA))
             {
                 damager = entityB;
@@ -516,9 +517,12 @@ public partial struct CollisionSystem : ISystem
             return false;
         }
 
+        // todo try resolve player collide with enemies/damaging obstacles
+
         private bool TryFindNextTarget(Entity projectile, Entity currentTarget, float range, out Entity newTarget,
             out float3 direction)
         {
+            // var memory = HitMemoryLookup[projectile];
             float3 currentPos = LocalTransformLookup[projectile].Position;
             var hits = new NativeList<DistanceHit>(16, Allocator.Temp);
             var filter = new CollisionFilter
@@ -556,6 +560,100 @@ public partial struct CollisionSystem : ISystem
 
             hits.Dispose();
             return found;
+        }
+
+        private bool TryFindNextUnvisitedTarget(Entity projectile, Entity currentTarget, float range, out Entity newTarget,
+            out float3 direction)
+        {
+            float3 currentPos = LocalTransformLookup[projectile].Position;
+            var hits = new NativeList<DistanceHit>(16, Allocator.Temp);
+
+            var filter = new CollisionFilter
+            {
+                BelongsTo = CollisionLayers.Raycast,
+                CollidesWith = CollisionLayers.Enemy
+            };
+
+            CollisionWorld.OverlapSphere(currentPos, range, ref hits, filter);
+
+            bool hasMemory = HitMemoryLookup.HasBuffer(projectile);
+            DynamicBuffer<HitEntityMemory> memory = default;
+            if (hasMemory)
+            {
+                memory = HitMemoryLookup[projectile];
+            }
+
+            float closestUnvisitedDistSq = float.MaxValue;
+            float closestVisitedDistSq = float.MaxValue;
+
+            Entity bestUnvisited = Entity.Null;
+            Entity bestVisited = Entity.Null;
+
+            float3 bestUnvisitedPos = float3.zero;
+            float3 bestVisitedPos = float3.zero;
+
+            for (int i = 0; i < hits.Length; i++)
+            {
+                var hit = hits[i];
+
+                if (hit.Entity == currentTarget || hit.Entity == projectile)
+                    continue;
+
+                if (!DestructibleLookup.HasComponent(hit.Entity))
+                    continue;
+
+                bool alreadyVisited = false;
+                if (hasMemory)
+                {
+                    for (int m = 0; m < memory.Length; m++)
+                    {
+                        if (memory[m].HitEntity == hit.Entity)
+                        {
+                            alreadyVisited = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (alreadyVisited)
+                {
+                    if (hit.Distance < closestVisitedDistSq)
+                    {
+                        closestVisitedDistSq = hit.Distance;
+                        bestVisitedPos = hit.Position;
+                        bestVisited = hit.Entity;
+                    }
+                }
+                else
+                {
+                    if (hit.Distance < closestUnvisitedDistSq)
+                    {
+                        closestUnvisitedDistSq = hit.Distance;
+                        bestUnvisitedPos = hit.Position;
+                        bestUnvisited = hit.Entity;
+                    }
+                }
+            }
+
+            hits.Dispose();
+
+            if (bestUnvisited != Entity.Null)
+            {
+                newTarget = bestUnvisited;
+                direction = math.normalize(bestUnvisitedPos - currentPos);
+                return true;
+            }
+
+            if (bestVisited != Entity.Null)
+            {
+                newTarget = bestVisited;
+                direction = math.normalize(bestVisitedPos - currentPos);
+                return true;
+            }
+
+            newTarget = Entity.Null;
+            direction = float3.zero;
+            return false;
         }
     }
 
