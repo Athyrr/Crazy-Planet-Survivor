@@ -13,4 +13,6 @@ public static class CollisionLayers
     public const uint Landscape = 1 << 6;
 
     public const uint Raycast = 1 << 7;
+
+    public const uint Everything = Enemy | Player | Obstacle;
 }

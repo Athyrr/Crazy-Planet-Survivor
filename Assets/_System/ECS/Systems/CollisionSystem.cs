@@ -7,7 +7,10 @@ using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Physics.Systems;
 using Unity.Transforms;
+using UnityEngine;
+using UnityEngine.LowLevelPhysics2D;
 using static HitFrameFeedbackSystem;
+using Random = Unity.Mathematics.Random;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [UpdateAfter(typeof(PhysicsSystemGroup))]
@@ -39,6 +42,8 @@ public partial struct CollisionSystem : ISystem
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
+
+    private ComponentLookup<PhysicsCollider> _colliderLookup;
 
     // private ActiveEffectsConfig _effectsConfig;
 
@@ -73,6 +78,8 @@ public partial struct CollisionSystem : ISystem
         _explodeLookup = state.GetComponentLookup<ExplodeOnContact>(true);
         _subSpellRootLookup = state.GetComponentLookup<SpellSource>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
+
+        _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
 
         // _effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
 
@@ -115,6 +122,7 @@ public partial struct CollisionSystem : ISystem
         _explodeLookup.Update(ref state);
         _subSpellRootLookup.Update(ref state);
         _activeSpellBufferLookup.Update(ref state);
+        _colliderLookup.Update(ref state);
 
         var triggerCollisionJob = new TriggerCollisionJob
         {
@@ -148,7 +156,9 @@ public partial struct CollisionSystem : ISystem
             KnockbackLookup = _knockbackLookup,
 
             SpellSourceLookup = _subSpellRootLookup,
-            DamageEventsWriter = _damageEventsQueue.AsParallelWriter()
+            DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
+
+            ColliderLookup = _colliderLookup
         };
 
         JobHandle triggerHandle =
@@ -198,6 +208,7 @@ public partial struct CollisionSystem : ISystem
 
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
+        [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
 
         private const double MultiHitDelay = 1f; // Delay before allowing another hit if collision stays.
 
@@ -384,7 +395,7 @@ public partial struct CollisionSystem : ISystem
                         if (isCrit)
                             criticalDamagesMultiplier = math.max(1.0f, damageData.TotalCritMultiplier);
 
-                        CreateExplosion(damagerEntity, explosion, criticalDamagesMultiplier, isCrit);
+                        CreateExplosion(damagerEntity, explosion, criticalDamagesMultiplier, isCrit, ECB);
                     }
 
                     bool shouldDestroy = DestroyOnContactLookup.HasComponent(damagerEntity);
@@ -447,16 +458,34 @@ public partial struct CollisionSystem : ISystem
         }
 
         private void CreateExplosion(Entity damager, ExplodeOnContact explosionData, float criticalDamagesMultiplier,
-            bool isCrit)
+            bool isCrit, EntityCommandBuffer.ParallelWriter ECB)
         {
             var requestEntity = ECB.CreateEntity(0);
-            float3 pos = LocalTransformLookup[damager].Position;
 
             ESpellTag element = ESpellTag.None;
             if (DamageOnContactLookup.HasComponent(damager))
             {
                 element = DamageOnContactLookup[damager].Tag | ESpellTag.Explosive;
             }
+            //
+            int dbIndex = -1;
+            //Entity tempCasterEntity;
+            if (SpellSourceLookup.TryGetComponent(damager, out var spellSource))
+            {
+                //tempCasterEntity = spellSource.CasterEntity;
+                dbIndex = spellSource.DatabaseIndex;
+            }
+
+
+            var collisionLayer = CollisionLayers.Everything;
+            if (ColliderLookup.TryGetComponent(damager, out var collider))
+            {
+                collisionLayer = collider.Value.Value.GetCollisionFilter().CollidesWith;
+            }
+
+
+
+            float3 pos = LocalTransformLookup[damager].Position;
 
             ECB.AddComponent(
                 0,
@@ -464,14 +493,34 @@ public partial struct CollisionSystem : ISystem
                 new ExplosionRequest()
                 {
                     Position = pos,
-                    Radius = explosionData.Radius,
                     Damage = explosionData.Damage * criticalDamagesMultiplier,
                     VfxPrefab = explosionData.VfxPrefab,
                     IsCritical = isCrit,
                     Element = element,
-                    TargetLayers = CollisionLayers.Enemy,
+                    TargetLayers = collisionLayer,
+                    DatabaseIndex = dbIndex,
+                    Damager = damager
                 }
             );
+
+
+            // var explosion = ECB.Instantiate(0, explosionData.VfxPrefab);
+            // ECB.SetComponent(0, explosion, LocalTransform.FromPositionRotationScale(pos, quaternion.identity, 1f));
+            // ECB.SetComponent<DamageOnContact>(0, explosion, new DamageOnContact()
+            // {
+            //     Damage = (int)(explosionData.Damage * criticalDamagesMultiplier),
+            //     Tag = element,
+            // });
+            //
+            // if (dbIndex != -1)
+            // {
+            //     ECB.AddComponent(0, explosion, new SpellSource
+            //     {
+            //         CasterEntity = damager,
+            //         DatabaseIndex = dbIndex
+            //     });
+            // }.
+            //ECB.AddBuffer<HitEntityMemory>(0, explosion);
         }
 
         private void ApplyFeedbacks(Entity hitEntity)
