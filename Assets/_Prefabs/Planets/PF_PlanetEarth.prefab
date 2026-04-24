@@ -225,6 +225,122 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -3151667722902669358, guid: a129bedfaa6d94341b5f2705af804229, type: 3}
+--- !u!1 &9012050714116991471
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9104071421548591817}
+  - component: {fileID: 519790770116594475}
+  - component: {fileID: 3274517365507206500}
+  - component: {fileID: 8013281534166446343}
+  m_Layer: 0
+  m_Name: 'Atmo [OUTSIDE ECS]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &9104071421548591817
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9012050714116991471}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.56979567, y: -0.032355353, z: 0.046553247, w: 0.81982857}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 270.7614, y: 270.7614, z: 270.7614}
+  m_ConstrainProportionsScale: 1
+  m_Children: []
+  m_Father: {fileID: 8073100260919343806}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &519790770116594475
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9012050714116991471}
+  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &3274517365507206500
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9012050714116991471}
+  m_Enabled: 0
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a71f2eddf3eb2c34ba14896c179f87c1, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8013281534166446343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9012050714116991471}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf2d2a000b133f94eb6ec3efe15cd8f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VolumetricAtmoController
+  PlanetTransform: {fileID: 9104071421548591817}
+  Sun: {fileID: 0}
+  PlanetRadius: 101.79
+  AtmoRadiusMultiplier: 1.33
+  AutoScaleToAtmoRadius: 1
+  AtmoColor: {r: 0.35, g: 0.6, b: 1, a: 1}
+  AtmoTint: {r: 1, g: 1, b: 1, a: 1}
+  Density: 2.8
+  Falloff: 0.26
+  Intensity: 1
+  ScatteringPower: 0
+  OverrideSunColor: 0
+  SunColorOverride: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1001 &8611956261409824085
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -322,6 +438,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3530847006665648956}
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9104071421548591817}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f07a35293f4c5b049aa7de842a950424, type: 3}
       insertIndex: -1
