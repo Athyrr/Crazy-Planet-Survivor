@@ -7,5 +7,6 @@ namespace _System.ECS.Components.Entity
     /// </summary>
     public struct Destructible : IComponentData, IEnableableComponent
     {
+        public uint LayerMask;
     }
 }

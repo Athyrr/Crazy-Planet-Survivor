@@ -14,4 +14,6 @@ public struct DamageOnTick : IComponentData
     //public bool IsCritical;
     public float TotalCritChance;
     public float TotalCritMultiplier;
+    
+    public uint TargetLayers;
 }

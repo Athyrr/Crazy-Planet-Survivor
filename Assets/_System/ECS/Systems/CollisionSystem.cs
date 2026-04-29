@@ -219,6 +219,22 @@ public partial struct CollisionSystem : ISystem
 
             if (TryResolveDamagerVsTarget(entityA, entityB, out Entity damagerEntity, out Entity target))
             {
+                var damageData = DamageOnContactLookup[damagerEntity];
+                if (damageData.TargetLayers != 0)
+                {
+                    // uint targetBelongsTo = DestructibleLookup[target].LayerMask;
+                    uint targetBelongsTo = CollisionLayers.Everything;
+                    if (ColliderLookup.HasComponent(target))
+                    {
+                        targetBelongsTo = ColliderLookup[target].Value.Value.GetCollisionFilter().BelongsTo;
+                    }
+
+                    if ((damageData.TargetLayers & targetBelongsTo) == 0)
+                    {
+                        return;
+                    }
+                }
+
                 bool canDealDamage = true;
 
                 if (HitMemoryLookup.HasBuffer(damagerEntity))
@@ -252,10 +268,9 @@ public partial struct CollisionSystem : ISystem
 
                 if (canDealDamage)
                 {
+                    // todo let target receive damge even if invincible. Consume damage on Health system and avoid health loss instead
                     if (!InvincibleLookup.HasComponent(target))
                     {
-                        var damageData = DamageOnContactLookup[damagerEntity];
-
                         var random = Random.CreateFromIndex(Seed);
 
                         bool isCrit = random.NextFloat(0f, 1f) <= damageData.TotalCritChance;
@@ -386,8 +401,6 @@ public partial struct CollisionSystem : ISystem
                     if (ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
                         ExplodeOnContactLookup.IsComponentEnabled(damagerEntity))
                     {
-                        var damageData = DamageOnContactLookup[damagerEntity];
-
                         var random = Random.CreateFromIndex(Seed);
 
                         bool isCrit = random.NextFloat(0f, 1f) <= damageData.TotalCritChance;
@@ -395,7 +408,8 @@ public partial struct CollisionSystem : ISystem
                         if (isCrit)
                             criticalDamagesMultiplier = math.max(1.0f, damageData.TotalCritMultiplier);
 
-                        CreateExplosion(damagerEntity, explosion, criticalDamagesMultiplier, isCrit, ECB);
+                        CreateExplosion(damagerEntity, damageData.TargetLayers, explosion, criticalDamagesMultiplier,
+                            isCrit, ECB);
                     }
 
                     bool shouldDestroy = DestroyOnContactLookup.HasComponent(damagerEntity);
@@ -457,7 +471,8 @@ public partial struct CollisionSystem : ISystem
             }
         }
 
-        private void CreateExplosion(Entity damager, ExplodeOnContact explosionData, float criticalDamagesMultiplier,
+        private void CreateExplosion(Entity damager, uint targetLayers, ExplodeOnContact explosionData,
+            float criticalDamagesMultiplier,
             bool isCrit, EntityCommandBuffer.ParallelWriter ECB)
         {
             var requestEntity = ECB.CreateEntity(0);
@@ -467,24 +482,13 @@ public partial struct CollisionSystem : ISystem
             {
                 element = DamageOnContactLookup[damager].Tag | ESpellTag.Explosive;
             }
-            //
+
             int dbIndex = -1;
-            //Entity tempCasterEntity;
             if (SpellSourceLookup.TryGetComponent(damager, out var spellSource))
             {
-                //tempCasterEntity = spellSource.CasterEntity;
                 dbIndex = spellSource.DatabaseIndex;
             }
-
-
-            var collisionLayer = CollisionLayers.Everything;
-            if (ColliderLookup.TryGetComponent(damager, out var collider))
-            {
-                collisionLayer = collider.Value.Value.GetCollisionFilter().CollidesWith;
-            }
-
-
-
+            
             float3 pos = LocalTransformLookup[damager].Position;
 
             ECB.AddComponent(
@@ -497,30 +501,12 @@ public partial struct CollisionSystem : ISystem
                     VfxPrefab = explosionData.VfxPrefab,
                     IsCritical = isCrit,
                     Element = element,
-                    TargetLayers = collisionLayer,
+                    // TargetLayers = collisionLayer,
+                    TargetLayers = targetLayers,
                     DatabaseIndex = dbIndex,
                     Damager = damager
                 }
             );
-
-
-            // var explosion = ECB.Instantiate(0, explosionData.VfxPrefab);
-            // ECB.SetComponent(0, explosion, LocalTransform.FromPositionRotationScale(pos, quaternion.identity, 1f));
-            // ECB.SetComponent<DamageOnContact>(0, explosion, new DamageOnContact()
-            // {
-            //     Damage = (int)(explosionData.Damage * criticalDamagesMultiplier),
-            //     Tag = element,
-            // });
-            //
-            // if (dbIndex != -1)
-            // {
-            //     ECB.AddComponent(0, explosion, new SpellSource
-            //     {
-            //         CasterEntity = damager,
-            //         DatabaseIndex = dbIndex
-            //     });
-            // }.
-            //ECB.AddBuffer<HitEntityMemory>(0, explosion);
         }
 
         private void ApplyFeedbacks(Entity hitEntity)

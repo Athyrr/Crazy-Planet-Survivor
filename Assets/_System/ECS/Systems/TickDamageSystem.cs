@@ -86,7 +86,7 @@ public partial struct TickDamageSystem : ISystem
             CollisionWorld = collisionWorld,
 
             PlayerLookup = _playerLookup,
-            CpEntityLookup = _cpEntityLookup,
+            DestructibleLookup = _cpEntityLookup,
 
             FinalStatsLookup = _finalStatsLookup,
             DamageBufferLookup = _damageBufferLookup,
@@ -119,8 +119,8 @@ public partial struct TickDamageSystem : ISystem
         [ReadOnly] public CollisionWorld CollisionWorld;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        //todo rename
-        [ReadOnly] public ComponentLookup<Destructible> CpEntityLookup;
+
+        [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
 
         [ReadOnly] public ComponentLookup<FinalStats> FinalStatsLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
@@ -150,7 +150,7 @@ public partial struct TickDamageSystem : ISystem
             bool isPlayerCaster = PlayerLookup.HasComponent(caster);
             CollisionFilter filter = new CollisionFilter
             {
-                BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
+                // BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
                 CollidesWith =
                     (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) /*| CollisionLayers.Obstacle*/,
             };
@@ -163,7 +163,7 @@ public partial struct TickDamageSystem : ISystem
 
             foreach (var hit in hits)
             {
-                var isEntityHit = CpEntityLookup.HasComponent(hit.Entity);
+                var isEntityHit = DestructibleLookup.HasComponent(hit.Entity);
 
                 // Ignore entities that are neither player nor enemy
                 if (!isEntityHit && !PlayerLookup.HasComponent(hit.Entity))

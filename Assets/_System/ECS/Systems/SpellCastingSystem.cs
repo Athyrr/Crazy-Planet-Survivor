@@ -252,9 +252,10 @@ public partial struct SpellCastingSystem : ISystem
 
             float3 planetCenter = float3.zero; // todo use reel planet center from singleton
 
+            // todo mb store only CollidesWith
             var filter = new CollisionFilter
             {
-                BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
+                // BelongsTo = CollisionLayers.Spell
                 CollidesWith = (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) |
                                CollisionLayers.Obstacle,
             };
@@ -351,7 +352,7 @@ public partial struct SpellCastingSystem : ISystem
             }
 
             // Spawn loop
-            float spreadAngle = 15f;
+            float spreadAngle = 30f;
             float startAngle = -((finalProjectileCount - 1) * spreadAngle) / 2f;
 
             for (int i = 0; i < finalProjectileCount; i++)
@@ -445,7 +446,8 @@ public partial struct SpellCastingSystem : ISystem
                         Tag = totalTags,
                         AreaRadius = finalArea,
                         TotalCritChance = activeSpell.FinalCritChance,
-                        TotalCritMultiplier = activeSpell.FinalCritDamageMultiplier
+                        TotalCritMultiplier = activeSpell.FinalCritDamageMultiplier,
+                        TargetLayers = filter.CollidesWith
                     });
                 }
 
@@ -459,7 +461,8 @@ public partial struct SpellCastingSystem : ISystem
                         AreaRadius = finalArea,
                         Element = totalTags,
                         TotalCritChance = finalCritChance,
-                        TotalCritMultiplier = finalCritDamageMultiplier
+                        TotalCritMultiplier = finalCritDamageMultiplier,
+                        TargetLayers = filter.CollidesWith
                     });
                 }
 
@@ -508,12 +511,12 @@ public partial struct SpellCastingSystem : ISystem
                 }
 
                 // Collision 
-                if (ColliderLookup.HasComponent(spellPrefab))
-                {
-                    var col = ColliderLookup[spellPrefab];
-                    col.Value.Value.SetCollisionFilter(filter);
-                    ECB.SetComponent(chunkIndex, spellEntity, col);
-                }
+                // if (ColliderLookup.HasComponent(spellPrefab))
+                // {
+                //     var col = ColliderLookup[spellPrefab];
+                //     col.Value.Value.SetCollisionFilter(filter);
+                //     ECB.SetComponent(chunkIndex, spellEntity, col);
+                // }
 
                 // Enableable components (Upgrades)
 

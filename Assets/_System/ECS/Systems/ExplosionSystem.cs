@@ -23,8 +23,7 @@ public partial struct ExplosionSystem : ISystem
 
         _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
     }
-
-
+    
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
@@ -42,16 +41,8 @@ public partial struct ExplosionSystem : ISystem
             ECB = ecb.AsParallelWriter(),
             ColliderLookup = _colliderLookup
         };
-
-        //todo c'est pt jsp pk faut playback mais le playback dit qu'il faut pas
-
-        //state.Dependency = job.ScheduleParallel(state.Dependency);
-        //var dep = job.Schedule(state.Dependency);
-
-
-        //state.Dependency = dep;
-
-        //ecb.Playback(state.EntityManager);
+        
+        state.Dependency = job.ScheduleParallel(state.Dependency);
     }
 
     [BurstCompile]
@@ -68,44 +59,18 @@ public partial struct ExplosionSystem : ISystem
             {
                 var explosionEntity = ECB.Instantiate(chunkIndex, explosion.VfxPrefab);
 
-                var filter = new CollisionFilter
-                {
-                    //todo maybe need a belong to (if so pass the entire filter inside the request)
-                    CollidesWith = explosion.TargetLayers
-                };
-
-
-
-
-
-                //if (ColliderLookup.HasComponent(explosionEntity))
-                //{
-                    var col = ColliderLookup[explosionEntity];
-                    col.Value.Value.SetCollisionFilter(filter);
-                    //ColliderLookup[explosionEntity] = col;
-                    ECB.SetComponent(chunkIndex, explosionEntity, col);
-                //}
-
-
-
-                // ECB.SetComponent(chunkIndex, explosionTrigger, new CollisionFilter(
-                // {
-                //     CollidesWith = explosion.TargetLayers
-                // });
-
-                
                 ECB.SetComponent(chunkIndex, explosionEntity, new LocalTransform
                 {
                     Position = explosion.Position,
                     Rotation = quaternion.identity,
                     Scale = 1f,
                 });
-
-                // Configure the trigger for damage
+                
                 ECB.SetComponent(chunkIndex, explosionEntity, new DamageOnContact()
                 {
                     Damage = (int)(explosion.Damage),
                     Tag = explosion.Element,
+                    TargetLayers = explosion.TargetLayers
                 });
 
                 // Track damage back to the source spell

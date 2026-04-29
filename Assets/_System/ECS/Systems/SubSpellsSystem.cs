@@ -23,6 +23,7 @@ public partial struct SubSpellsSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<GameState>();
         state.RequireForUpdate<SubSpellsSpawner>();
 
@@ -95,13 +96,13 @@ public partial struct SubSpellsSystem : ISystem
 
                     ecb.AddComponent(childEntity, sourceData);
 
-                    // Collisions
-                    if (_colliderLookup.HasComponent(spawner.ValueRO.ChildEntityPrefab))
-                    {
-                        var collider = _colliderLookup[spawner.ValueRO.ChildEntityPrefab];
-                        collider.Value.Value.SetCollisionFilter(spawner.ValueRO.CollisionFilter);
-                        ecb.SetComponent(childEntity, collider);
-                    }
+                    // // Collisions
+                    // if (_colliderLookup.HasComponent(spawner.ValueRO.ChildEntityPrefab))
+                    // {
+                    //     var collider = _colliderLookup[spawner.ValueRO.ChildEntityPrefab];
+                    //     collider.Value.Value.SetCollisionFilter(spawner.ValueRO.CollisionFilter);
+                    //     ecb.SetComponent(childEntity, collider);
+                    // }
 
                     // Damages
                     if (hasDamage)
