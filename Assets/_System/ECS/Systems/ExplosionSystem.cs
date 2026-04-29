@@ -1,49 +1,47 @@
+using _System.ECS.Components.Entity;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
+using Unity.Physics.Authoring;
 using Unity.Transforms;
-using Unity.VisualScripting;
 
-[UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [UpdateAfter(typeof(CollisionSystem))]
 [BurstCompile]
 public partial struct ExplosionSystem : ISystem
 {
-    private ComponentLookup<Enemy> _enemyLookup;
+    private ComponentLookup<PhysicsCollider> _colliderLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
+        //state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
 
-        _enemyLookup = state.GetComponentLookup<Enemy>(true);
+        _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
     }
-
+    
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        if (!SystemAPI.TryGetSingleton(out GameState gameState))
+        if (!SystemAPI.TryGetSingleton(out GameState gameState) || gameState.State != EGameState.Running)
             return;
 
-        if (gameState.State != EGameState.Running)
-            return;
-
-        _enemyLookup.Update(ref state);
-
-        var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        //var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var ecbSingleton = SystemAPI.GetSingleton<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+
+        _colliderLookup.Update(ref state);
 
         var job = new ProcessExplosionsJob
         {
             ECB = ecb.AsParallelWriter(),
-            CollisionWorld = collisionWorld,
-            EnemyLookup = _enemyLookup
+            ColliderLookup = _colliderLookup
         };
-
+        
         state.Dependency = job.ScheduleParallel(state.Dependency);
     }
 
@@ -51,56 +49,43 @@ public partial struct ExplosionSystem : ISystem
     public partial struct ProcessExplosionsJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
-        [ReadOnly] public CollisionWorld CollisionWorld;
-        [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
+
+        [ReadOnly]
+        public ComponentLookup<PhysicsCollider> ColliderLookup;
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in ExplosionRequest explosion)
         {
             if (explosion.VfxPrefab != Entity.Null)
             {
-                var vfx = ECB.Instantiate(chunkIndex, explosion.VfxPrefab);
-                ECB.SetComponent(chunkIndex, vfx, new LocalTransform
+                var explosionEntity = ECB.Instantiate(chunkIndex, explosion.VfxPrefab);
+
+                ECB.SetComponent(chunkIndex, explosionEntity, new LocalTransform
                 {
                     Position = explosion.Position,
-                    // // todo scale vfx based on explosion visual
-                    Scale = explosion.Radius
+                    Rotation = quaternion.identity,
+                    Scale = 1f,
                 });
-            }
-
-            var hits = new NativeList<DistanceHit>(Allocator.Temp);
-            var filter = new CollisionFilter
-            {
-                BelongsTo = CollisionLayers.Raycast,
-                CollidesWith = explosion.TargetLayers
-            };
-
-            if (CollisionWorld.OverlapSphere(explosion.Position, explosion.Radius, ref hits, filter))
-            {
-                for (int i = 0; i < hits.Length; i++)
+                
+                ECB.SetComponent(chunkIndex, explosionEntity, new DamageOnContact()
                 {
-                    var hitEntity = hits[i].Entity;
+                    Damage = (int)(explosion.Damage),
+                    Tag = explosion.Element,
+                    TargetLayers = explosion.TargetLayers
+                });
 
-                    // todo Hande case where obstacles dont have damage bufffer + health
-
-                    if (hitEntity == Entity.Null)
-                        continue;
-
-                    if (EnemyLookup.HasComponent(hitEntity)) // todo handle collision with obstacles too
+                // Track damage back to the source spell
+                if (explosion.DatabaseIndex != -1)
+                {
+                    ECB.AddComponent(chunkIndex, explosionEntity, new SpellSource
                     {
-                        ECB.AppendToBuffer(chunkIndex, hitEntity, new DamageBufferElement
-                        {
-                            Damage = (int)explosion.Damage,
-                            Tag = explosion.Tags,
-                            IsCritical = explosion.IsCritical
-                        });
-
-                        // todo apply Knockback if needed
-                        // Explosion Request must store if knockback or not
-                    }
+                        CasterEntity = explosion.Damager,
+                        DatabaseIndex = explosion.DatabaseIndex
+                    });
                 }
+
+                ECB.AddBuffer<HitEntityMemory>(chunkIndex, explosionEntity);
             }
 
-            hits.Dispose();
             ECB.DestroyEntity(chunkIndex, entity);
         }
     }
@@ -112,12 +97,14 @@ public partial struct ExplosionSystem : ISystem
 public struct ExplosionRequest : IComponentData
 {
     public float3 Position;
-    public float Radius;
     public float Damage;
-    public ESpellTag Tags;
+    public ESpellTag Element;
     public bool IsCritical;
     public Entity VfxPrefab;
 
     public uint TargetLayers;
-    //public float KnockbackForce;
+    public int DatabaseIndex;
+
+    public Entity Damager;
+    public bool IsPlayer;
 }

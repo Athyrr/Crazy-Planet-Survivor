@@ -8,7 +8,7 @@ using Unity.Burst;
 using Unity.Jobs;
 
 /// <summary>
-/// System that handle damages on tick like aura spells or and not on collisions.
+/// System that handle damages on tick and not on collisions.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -16,7 +16,7 @@ public partial struct TickDamageSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Destructible> _cpEntityLookup;
-    private ComponentLookup<CoreStats> _statsLookup;
+    private ComponentLookup<FinalStats> _finalStatsLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFLagLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
@@ -35,7 +35,7 @@ public partial struct TickDamageSystem : ISystem
         // Cache lookups
         _playerLookup = state.GetComponentLookup<Player>(true);
         _cpEntityLookup = state.GetComponentLookup<Destructible>(true);
-        _statsLookup = state.GetComponentLookup<CoreStats>(true);
+        _finalStatsLookup = state.GetComponentLookup<FinalStats>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
         _destroyFLagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
@@ -73,12 +73,12 @@ public partial struct TickDamageSystem : ISystem
         // Update lookups
         _playerLookup.Update(ref state);
         _cpEntityLookup.Update(ref state);
-        _statsLookup.Update(ref state);
+        _finalStatsLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
         _destroyFLagLookup.Update(ref state);
         _activeSpellBufferLookup.Update(ref state);
 
-        var auraTickJob = new ProcessSpellTickDamageJob
+        var auraTickJob = new TickDamageJob
         {
             ECB = ecb.AsParallelWriter(),
             DeltaTime = SystemAPI.Time.DeltaTime,
@@ -88,7 +88,7 @@ public partial struct TickDamageSystem : ISystem
             PlayerLookup = _playerLookup,
             DestructibleLookup = _cpEntityLookup,
 
-            StatsLookup = _statsLookup,
+            FinalStatsLookup = _finalStatsLookup,
             DamageBufferLookup = _damageBufferLookup,
             DestroyFlagLookup = _destroyFLagLookup,
             
@@ -111,7 +111,7 @@ public partial struct TickDamageSystem : ISystem
     /// todo faire des withAll et withNone nan ? adam baeeeee grrrr roar
     /// </summary>
     [BurstCompile]
-    private partial struct ProcessSpellTickDamageJob : IJobEntity
+    private partial struct TickDamageJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
         public float DeltaTime;
@@ -119,9 +119,10 @@ public partial struct TickDamageSystem : ISystem
         [ReadOnly] public CollisionWorld CollisionWorld;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
+
         [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
 
-        [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
+        [ReadOnly] public ComponentLookup<FinalStats> FinalStatsLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
 
@@ -139,10 +140,9 @@ public partial struct TickDamageSystem : ISystem
             damageOnTick.ElapsedTime = 0f;
             var caster = damageOnTick.Caster;
 
-            if (!StatsLookup.HasComponent(caster))
+            if (!FinalStatsLookup.HasComponent(caster))
                 return;
-            
-            var casterStats = StatsLookup[caster];
+            var casterStats = FinalStatsLookup[caster];
 
             var hits = new NativeList<DistanceHit>(Allocator.Temp);
 
@@ -150,12 +150,12 @@ public partial struct TickDamageSystem : ISystem
             bool isPlayerCaster = PlayerLookup.HasComponent(caster);
             CollisionFilter filter = new CollisionFilter
             {
-                BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
+                // BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
                 CollidesWith =
                     (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) /*| CollisionLayers.Obstacle*/,
             };
 
-            float radius = damageOnTick.AreaRadius * math.max(1, casterStats.GlobalSpellAreaMultiplier);
+            float radius = damageOnTick.AreaRadius * math.max(1, casterStats.RangeMultiplier);
             float damage = damageOnTick.DamagePerTick; // todo scale tick damage based on stats
 
             // Detection

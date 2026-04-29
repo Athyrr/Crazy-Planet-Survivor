@@ -40,6 +40,8 @@ public partial struct CollisionSystem : ISystem
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
+    private ComponentLookup<PhysicsCollider> _colliderLookup;
+
     // private ActiveEffectsConfig _effectsConfig;
 
     [BurstCompile]
@@ -60,8 +62,8 @@ public partial struct CollisionSystem : ISystem
         _cpEntityLookup = state.GetComponentLookup<Destructible>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
 
-        _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(false);
-        _destroyOnContactLookup = state.GetComponentLookup<DestroyOnContact>(false);
+        _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
+        _destroyOnContactLookup = state.GetComponentLookup<DestroyOnContact>(true);
         _invincibleLookup = state.GetComponentLookup<Invincible>(true);
         _hitMemoryLookup = state.GetBufferLookup<HitEntityMemory>(false);
 
@@ -73,6 +75,8 @@ public partial struct CollisionSystem : ISystem
         _explodeLookup = state.GetComponentLookup<ExplodeOnContact>(true);
         _subSpellRootLookup = state.GetComponentLookup<SpellSource>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
+
+        _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
 
         // _effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
 
@@ -148,7 +152,9 @@ public partial struct CollisionSystem : ISystem
             KnockbackLookup = _knockbackLookup,
 
             SpellSourceLookup = _subSpellRootLookup,
-            DamageEventsWriter = _damageEventsQueue.AsParallelWriter()
+            DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
+
+            ColliderLookup = _colliderLookup
         };
 
         JobHandle triggerHandle =
@@ -178,9 +184,7 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
 
-        // [NativeDisableParallelForRestriction]
-        public ComponentLookup<DamageOnContact> DamageOnContactLookup;
-
+        [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
         [ReadOnly] public ComponentLookup<DestroyOnContact> DestroyOnContactLookup;
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
 
@@ -200,8 +204,9 @@ public partial struct CollisionSystem : ISystem
 
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
+        [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
 
-        private const double MultiHitDelay = 0.6f; // Delay before allowing another hit if collision stays.
+        private const double MultiHitDelay = 1f; // Delay before allowing another hit if collision stays.
 
         public void Execute(TriggerEvent triggerEvent)
         {
@@ -210,6 +215,22 @@ public partial struct CollisionSystem : ISystem
 
             if (TryResolveDamagerVsTarget(entityA, entityB, out Entity damagerEntity, out Entity target))
             {
+                var damageData = DamageOnContactLookup[damagerEntity];
+                if (damageData.TargetLayers != 0)
+                {
+                    // uint targetBelongsTo = DestructibleLookup[target].LayerMask;
+                    uint targetBelongsTo = CollisionLayers.Everything;
+                    if (ColliderLookup.HasComponent(target))
+                    {
+                        targetBelongsTo = ColliderLookup[target].Value.Value.GetCollisionFilter().BelongsTo;
+                    }
+
+                    if ((damageData.TargetLayers & targetBelongsTo) == 0)
+                    {
+                        return;
+                    }
+                }
+
                 bool canDealDamage = true;
 
                 if (HitMemoryLookup.HasBuffer(damagerEntity))
@@ -243,10 +264,9 @@ public partial struct CollisionSystem : ISystem
 
                 if (canDealDamage)
                 {
+                    // todo let target receive damge even if invincible. Consume damage on Health system and avoid health loss instead
                     if (!InvincibleLookup.HasComponent(target))
                     {
-                        var damageData = DamageOnContactLookup[damagerEntity];
-
                         var random = Random.CreateFromIndex(Seed);
 
                         bool isCrit = random.NextFloat(0f, 1f) <= damageData.TotalCritChance;
@@ -377,8 +397,6 @@ public partial struct CollisionSystem : ISystem
                     if (ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
                         ExplodeOnContactLookup.IsComponentEnabled(damagerEntity))
                     {
-                        var damageData = DamageOnContactLookup[damagerEntity];
-
                         var random = Random.CreateFromIndex(Seed);
 
                         bool isCrit = random.NextFloat(0f, 1f) <= damageData.TotalCritChance;
@@ -386,7 +404,8 @@ public partial struct CollisionSystem : ISystem
                         if (isCrit)
                             criticalDamagesMultiplier = math.max(1.0f, damageData.TotalCritMultiplier);
 
-                        CreateExplosion(damagerEntity, explosion, criticalDamagesMultiplier, isCrit);
+                        CreateExplosion(damagerEntity, damageData.TargetLayers, explosion, criticalDamagesMultiplier,
+                            isCrit, ECB);
                     }
 
                     bool shouldDestroy = DestroyOnContactLookup.HasComponent(damagerEntity);
@@ -397,7 +416,7 @@ public partial struct CollisionSystem : ISystem
                         if (bounce.RemainingBounces > 0)
                         {
                             if (TryFindNextTarget(damagerEntity, target, bounce.BounceRange, out Entity newTarget,
-                                    out float3 _))
+                                    out float3 newDirection))
                             {
                                 if (LinearMovementLookup.IsComponentEnabled(damagerEntity))
                                     ECB.SetComponentEnabled<LinearMovement>(0, damagerEntity, false);
@@ -413,9 +432,6 @@ public partial struct CollisionSystem : ISystem
                                 bounce.RemainingBounces--;
                                 BounceLookup[damagerEntity] = bounce;
                                 shouldDestroy = false;
-
-                                // if (bounce.RemainingBounces <= 0)
-                                //     shouldDestroy = true;
                             }
                             else
                             {
@@ -443,21 +459,19 @@ public partial struct CollisionSystem : ISystem
                         }
                     }
 
-                    if (shouldDestroy /*&& DestructibleLookup.HasComponent(damagerEntity)*/)
+                    if (shouldDestroy && DestructibleLookup.HasComponent(damagerEntity))
                     {
-                        // Ensure spell will not apply more damages this frame
                         ECB.SetComponentEnabled<DestroyEntityFlag>(0, damagerEntity, true);
-                        DamageOnContactLookup.SetComponentEnabled(damagerEntity, false);
                     }
                 }
             }
         }
 
-        private void CreateExplosion(Entity damager, ExplodeOnContact explosionData, float criticalDamagesMultiplier,
-            bool isCrit)
+        private void CreateExplosion(Entity damager, uint targetLayers, ExplodeOnContact explosionData,
+            float criticalDamagesMultiplier,
+            bool isCrit, EntityCommandBuffer.ParallelWriter ECB)
         {
             var requestEntity = ECB.CreateEntity(0);
-            float3 pos = LocalTransformLookup[damager].Position;
 
             ESpellTag element = ESpellTag.None;
             if (DamageOnContactLookup.HasComponent(damager))
@@ -465,18 +479,28 @@ public partial struct CollisionSystem : ISystem
                 element = DamageOnContactLookup[damager].Tag | ESpellTag.Explosive;
             }
 
+            int dbIndex = -1;
+            if (SpellSourceLookup.TryGetComponent(damager, out var spellSource))
+            {
+                dbIndex = spellSource.DatabaseIndex;
+            }
+            
+            float3 pos = LocalTransformLookup[damager].Position;
+
             ECB.AddComponent(
                 0,
                 requestEntity,
                 new ExplosionRequest()
                 {
                     Position = pos,
-                    Radius = explosionData.Radius,
                     Damage = explosionData.Damage * criticalDamagesMultiplier,
                     VfxPrefab = explosionData.VfxPrefab,
                     IsCritical = isCrit,
                     Tags = element,
-                    TargetLayers = CollisionLayers.Enemy,
+                    // TargetLayers = collisionLayer,
+                    TargetLayers = targetLayers,
+                    DatabaseIndex = dbIndex,
+                    Damager = damager
                 }
             );
         }
@@ -496,16 +520,20 @@ public partial struct CollisionSystem : ISystem
 
         private bool TryResolveDamagerVsTarget(Entity entityA, Entity entityB, out Entity damager, out Entity target)
         {
-            if (DamageOnContactLookup.HasComponent(entityA) && DamageOnContactLookup.IsComponentEnabled(entityA) &&
-                DestructibleLookup.HasComponent(entityB))
+            if (
+                DamageOnContactLookup.HasComponent(entityA)
+                && (DestructibleLookup.HasComponent(entityB))
+            )
             {
                 damager = entityA;
                 target = entityB;
                 return true;
             }
 
-            if (DamageOnContactLookup.HasComponent(entityB) && DamageOnContactLookup.IsComponentEnabled(entityB) &&
-                DestructibleLookup.HasComponent(entityA))
+            if (
+                DamageOnContactLookup.HasComponent(entityB)
+                && (DestructibleLookup.HasComponent(entityA))
+            )
             {
                 damager = entityB;
                 target = entityA;
