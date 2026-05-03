@@ -443,7 +443,7 @@ public partial struct SpellCastingSystem : ISystem
                     ECB.SetComponent(chunkIndex, spellEntity, new DamageOnContact
                     {
                         Damage = finalDamage,
-                        Tag = totalTags,
+                        Tags = totalTags,
                         AreaRadius = finalArea,
                         TotalCritChance = activeSpell.FinalCritChance,
                         TotalCritMultiplier = activeSpell.FinalCritDamageMultiplier,
@@ -459,7 +459,7 @@ public partial struct SpellCastingSystem : ISystem
                         TickRate = finalTickRate,
                         DamagePerTick = finalDamage,
                         AreaRadius = finalArea,
-                        Element = totalTags,
+                        Tags = totalTags,
                         TotalCritChance = finalCritChance,
                         TotalCritMultiplier = finalCritDamageMultiplier,
                         TargetLayers = filter.CollidesWith
@@ -493,7 +493,7 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         SubSpellsSpawner childSpawnerData = SubSpellsSpawnerLookup[spellPrefab];
                         childSpawnerData.ChildEntityPrefab = ChildSpellPrefabs[baseSpellData.ChildPrefabIndex].Prefab;
-                        childSpawnerData.DesiredSubSpellsCount = finalAmount; // Injecting Final Amount here 
+                        childSpawnerData.DesiredSubSpellsCount = finalAmount;
                         childSpawnerData.IsDirty = true;
                         childSpawnerData.CollisionFilter = filter;
 
@@ -509,17 +509,7 @@ public partial struct SpellCastingSystem : ISystem
                         }
                     }
                 }
-
-                // Collision 
-                // if (ColliderLookup.HasComponent(spellPrefab))
-                // {
-                //     var col = ColliderLookup[spellPrefab];
-                //     col.Value.Value.SetCollisionFilter(filter);
-                //     ECB.SetComponent(chunkIndex, spellEntity, col);
-                // }
-
-                // Enableable components (Upgrades)
-
+                
                 // Bounce
                 bool forceBounce = (totalTags & ESpellTag.Bouncing) != 0;
                 if ((activeSpell.FinalBounces > 0 || forceBounce) && BounceLookup.HasComponent(spellPrefab))

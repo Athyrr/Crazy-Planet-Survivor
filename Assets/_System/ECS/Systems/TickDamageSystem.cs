@@ -180,7 +180,7 @@ public partial struct TickDamageSystem : ISystem
                 ECB.AppendToBuffer(chunkIndex, hit.Entity, new DamageBufferElement
                 {
                     Damage = (int)damage,
-                    Tag = damageOnTick.Element,
+                    Tag = damageOnTick.Tags,
                 });
 
                 DamageEventsWriter.Enqueue(new SpellDamageEvent

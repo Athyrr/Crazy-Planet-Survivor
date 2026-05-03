@@ -157,7 +157,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 float tickRateMult = 1f + spell.LocalTickRateBonusMultiplier;
 
                 float bounceRangeMult =
-                    (1 + spell.LocalBounceRangeBonusMultiplier); 
+                    (1 + spell.LocalBounceRangeBonusMultiplier);
                 // todo add global bounce range multiplier if needed
 
                 float cdReductionMult = coreStats.GlobalCooldownReductionMultiplier +
@@ -289,7 +289,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
             damageOnTick.DamagePerTick = activeSpell.FinalDamage;
             damageOnTick.AreaRadius = activeSpell.FinalArea;
             damageOnTick.TickRate = activeSpell.FinalTickRate;
-            damageOnTick.Element |= activeSpell.AddedTags;
+            damageOnTick.Tags |= activeSpell.AddedTags;
             damageOnTick.TickRate = activeSpell.FinalTickRate;
             damageOnTick.TotalCritChance = activeSpell.FinalCritChance;
             damageOnTick.TotalCritMultiplier = activeSpell.FinalCritDamageMultiplier;
@@ -374,6 +374,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
                     {
                         var childDmg = DamageOnContactLookup[child];
                         childDmg.Damage = activeSpell.FinalDamage;
+                        childDmg.Tags |= activeSpell.AddedTags;
                         ECB.SetComponent(chunkIndex, child, childDmg);
                     }
 
@@ -382,6 +383,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
                         var childDmg = DamageOnTickLookup[child];
                         childDmg.DamagePerTick = activeSpell.FinalDamage;
                         childDmg.AreaRadius = activeSpell.FinalSize;
+                        childDmg.Tags |= activeSpell.AddedTags;
                         ECB.SetComponent(chunkIndex, child, childDmg);
                     }
                 }

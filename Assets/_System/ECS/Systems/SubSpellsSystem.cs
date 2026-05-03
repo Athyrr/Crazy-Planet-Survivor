@@ -96,14 +96,6 @@ public partial struct SubSpellsSystem : ISystem
 
                     ecb.AddComponent(childEntity, sourceData);
 
-                    // // Collisions
-                    // if (_colliderLookup.HasComponent(spawner.ValueRO.ChildEntityPrefab))
-                    // {
-                    //     var collider = _colliderLookup[spawner.ValueRO.ChildEntityPrefab];
-                    //     collider.Value.Value.SetCollisionFilter(spawner.ValueRO.CollisionFilter);
-                    //     ecb.SetComponent(childEntity, collider);
-                    // }
-
                     // Damages
                     if (hasDamage)
                         ecb.SetComponent(childEntity, parentDamage);
@@ -144,8 +136,7 @@ public partial struct SubSpellsSystem : ISystem
 
         [NativeDisableParallelForRestriction] public ComponentLookup<LocalTransform> TransformLookup;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity parentEntity,
-            in SubSpellsLayout_Circle circleLayout, DynamicBuffer<Child> children)
+        public void Execute(in SubSpellsLayout_Circle circleLayout, DynamicBuffer<Child> children)
         {
             if (children.IsEmpty)
                 return;
