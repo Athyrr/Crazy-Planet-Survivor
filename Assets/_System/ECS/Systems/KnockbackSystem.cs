@@ -52,7 +52,7 @@ public partial struct KnockbackSystem : ISystem
             Entity entity,
             ref LocalTransform transform,
             ref ActiveKnockback knockback,
-            ref FinalStats finalStats) 
+            ref FinalStats finalStats)
         {
             knockback.DurationLeft -= DeltaTime;
 
@@ -64,20 +64,27 @@ public partial struct KnockbackSystem : ISystem
 
             // Calculate the current knockback force based on the elapsed time
             float t = math.clamp(knockback.DurationLeft / knockback.MaxDuration, 0f, 1f);
-
             // Curve eases out
             float currentForce = knockback.InitialForce * (t * t);
 
-            float3 desiredPos = transform.Position + (knockback.Direction * currentForce * DeltaTime);
+            // Project on ground
+            float3 upDir = math.normalize(transform.Position - PlanetPos);
+            PlanetUtils.ProjectDirectionOnSurface(knockback.Direction, upDir, out float3 flatDirection);
+            // float3 flatDirection = knockback.Direction - math.dot(knockback.Direction, upDir) * upDir;
+            if (math.lengthsq(flatDirection) > 0.0001f)
+                flatDirection = math.normalize(flatDirection);
+            else
+                flatDirection = math.normalize(knockback.Direction);
 
+            float3 desiredPos = transform.Position + (flatDirection * currentForce * DeltaTime);
 
             // Handle obstacles 
 
             // PlanetUtils.SnapToSurfaceRaycast()
-            
+
             // Apply position
             transform.Position = desiredPos;
-            
+
             // Set speed to 0 to prevent movement
             finalStats.MoveSpeed = 0;
         }

@@ -19,6 +19,9 @@ public partial struct ApplyUpgradeSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<SpellsDatabase>();
+        state.RequireForUpdate<AmuletsDatabase>();
         state.RequireForUpdate<Player>();
         state.RequireForUpdate<GameState>();
         state.RequireForUpdate<UpgradesDatabase>();
@@ -112,7 +115,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                     ref needSpellUpdate);
             }
 
-            // SPECIFIC SPELL UPGRADE: STAT OR NEW TAG (Modif ActiveSpell Buffer)
+            // SPECIFIC SPELL UPGRADE: STAT OR NEW TAG (Modify ActiveSpell Buffer)
             else if (upgrade.UpgradeType == EUpgradeType.UpgradeSpell)
             {
                 // todo handle case where the upgrade adds a tag to the spell (ex: make fireball also apply burn or explode on impact).
@@ -195,7 +198,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         [NativeDisableParallelForRestriction] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [NativeDisableParallelForRestriction] public BufferLookup<SpellModifier> SpellModifierLookup;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity playerEntity, in ApplyAmuletRequest request,
+        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity playerEntity, in ApplyAmuletRequest request,
             ref CoreStats playerCoreStats, ref Health health)
         {
             // Remove request from player

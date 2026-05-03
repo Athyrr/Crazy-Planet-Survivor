@@ -1,6 +1,7 @@
 using _System.ECS.Components.Entity;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -47,6 +48,7 @@ public partial struct CollisionSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<Player>();
         state.RequireForUpdate<ActiveEffectsConfig>();
         state.RequireForUpdate<PhysicsStep>();
         state.RequireForUpdate<SimulationSingleton>();
@@ -119,6 +121,9 @@ public partial struct CollisionSystem : ISystem
         _explodeLookup.Update(ref state);
         _subSpellRootLookup.Update(ref state);
         _activeSpellBufferLookup.Update(ref state);
+        _colliderLookup.Update(ref state);
+
+        var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
         var triggerCollisionJob = new TriggerCollisionJob
         {
@@ -127,6 +132,8 @@ public partial struct CollisionSystem : ISystem
             ECB = ecb.AsParallelWriter(),
             CurrentTime = SystemAPI.Time.ElapsedTime,
             CollisionWorld = physicsWorld.CollisionWorld,
+
+            PlayerPosition = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO.Position,
 
             // EffectsConfig = _effectsConfig,
             EffectsConfig = effectsConfig,
@@ -178,6 +185,9 @@ public partial struct CollisionSystem : ISystem
         public EntityCommandBuffer.ParallelWriter ECB;
         public double CurrentTime;
         [ReadOnly] public CollisionWorld CollisionWorld;
+
+        [ReadOnly] public float3 PlayerPosition;
+
 
         [ReadOnly] public ActiveEffectsConfig EffectsConfig;
 
@@ -282,14 +292,14 @@ public partial struct CollisionSystem : ISystem
                             new DamageBufferElement
                             {
                                 Damage = damageDealt,
-                                Tag = damageData.Tag,
+                                Tag = damageData.Tags,
                                 IsCritical = isCrit,
                             }
                         );
 
                         // Active effects using tags
 
-                        if ((damageData.Tag & ESpellTag.Slow) != 0)
+                        if ((damageData.Tags & ESpellTag.Slow) != 0)
                         {
                             var slow = new SlowEffect
                             {
@@ -308,7 +318,7 @@ public partial struct CollisionSystem : ISystem
                             }
                         }
 
-                        if ((damageData.Tag & ESpellTag.Stun) != 0)
+                        if ((damageData.Tags & ESpellTag.Stun) != 0)
                         {
                             var stun = new StunEffect
                             {
@@ -326,17 +336,17 @@ public partial struct CollisionSystem : ISystem
                             }
                         }
 
-                        if ((damageData.Tag & ESpellTag.Knockback) != 0)
+                        if ((damageData.Tags & ESpellTag.Knockback) != 0)
                         {
                             float3 damagerPos = LocalTransformLookup[damagerEntity].Position;
                             float3 targetPos = LocalTransformLookup[target].Position;
 
                             // Normalize direction
-                            float3 pushDir = targetPos - damagerPos;
+                            float3 pushDir = targetPos - PlayerPosition;
                             float distSq = math.lengthsq(pushDir);
 
                             if (distSq > 0.001f)
-                                math.normalize(pushDir);
+                                pushDir = math.normalize(pushDir);
                             else
                                 pushDir = LocalTransformLookup[damagerEntity].Forward();
 
@@ -360,7 +370,7 @@ public partial struct CollisionSystem : ISystem
                             }
                         }
 
-                        if ((damageData.Tag & ESpellTag.Burn) != 0)
+                        if ((damageData.Tags & ESpellTag.Burn) != 0)
                         {
                             var burn = new BurnEffect
                             {
@@ -473,10 +483,10 @@ public partial struct CollisionSystem : ISystem
         {
             var requestEntity = ECB.CreateEntity(0);
 
-            ESpellTag element = ESpellTag.None;
+            ESpellTag tags = ESpellTag.None;
             if (DamageOnContactLookup.HasComponent(damager))
             {
-                element = DamageOnContactLookup[damager].Tag | ESpellTag.Explosive;
+                tags = DamageOnContactLookup[damager].Tags | ESpellTag.Explosive;
             }
 
             int dbIndex = -1;
@@ -484,7 +494,7 @@ public partial struct CollisionSystem : ISystem
             {
                 dbIndex = spellSource.DatabaseIndex;
             }
-            
+
             float3 pos = LocalTransformLookup[damager].Position;
 
             ECB.AddComponent(
@@ -496,7 +506,7 @@ public partial struct CollisionSystem : ISystem
                     Damage = explosionData.Damage * criticalDamagesMultiplier,
                     VfxPrefab = explosionData.VfxPrefab,
                     IsCritical = isCrit,
-                    Tags = element,
+                    Tags = tags,
                     // TargetLayers = collisionLayer,
                     TargetLayers = targetLayers,
                     DatabaseIndex = dbIndex,
@@ -590,7 +600,8 @@ public partial struct CollisionSystem : ISystem
             return found;
         }
 
-        private bool TryFindNextUnvisitedTarget(Entity projectile, Entity currentTarget, float range, out Entity newTarget,
+        private bool TryFindNextUnvisitedTarget(Entity projectile, Entity currentTarget, float range,
+            out Entity newTarget,
             out float3 direction)
         {
             float3 currentPos = LocalTransformLookup[projectile].Position;
