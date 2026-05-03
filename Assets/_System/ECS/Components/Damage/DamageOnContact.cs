@@ -3,7 +3,7 @@ using Unity.Entities;
 public struct DamageOnContact : IComponentData, IEnableableComponent
 {
     public float Damage;
-    public ESpellTag Tag;
+    public ESpellTag Tags;
 
     public float AreaRadius;
 

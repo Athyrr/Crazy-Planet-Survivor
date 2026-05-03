@@ -1,10 +1,7 @@
-using _System.ECS.Components.Entity;
 using Unity.Burst;
-using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
-using Unity.Physics.Authoring;
 using Unity.Transforms;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
@@ -12,36 +9,27 @@ using Unity.Transforms;
 [BurstCompile]
 public partial struct ExplosionSystem : ISystem
 {
-    private ComponentLookup<PhysicsCollider> _colliderLookup;
-
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        //state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
-
-        _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
     }
-    
+
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
         if (!SystemAPI.TryGetSingleton(out GameState gameState) || gameState.State != EGameState.Running)
             return;
 
-        //var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecbSingleton = SystemAPI.GetSingleton<EndFixedStepSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-
-        _colliderLookup.Update(ref state);
 
         var job = new ProcessExplosionsJob
         {
             ECB = ecb.AsParallelWriter(),
-            ColliderLookup = _colliderLookup
         };
-        
+
         state.Dependency = job.ScheduleParallel(state.Dependency);
     }
 
@@ -50,8 +38,6 @@ public partial struct ExplosionSystem : ISystem
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        [ReadOnly]
-        public ComponentLookup<PhysicsCollider> ColliderLookup;
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in ExplosionRequest explosion)
         {
@@ -63,13 +49,13 @@ public partial struct ExplosionSystem : ISystem
                 {
                     Position = explosion.Position,
                     Rotation = quaternion.identity,
-                    Scale = 1f,
+                    Scale = 1f, // Use Explosion Size Stat
                 });
-                
+
                 ECB.SetComponent(chunkIndex, explosionEntity, new DamageOnContact()
                 {
                     Damage = (int)(explosion.Damage),
-                    Tag = explosion.Element,
+                    Tags = explosion.Tags,
                     TargetLayers = explosion.TargetLayers
                 });
 
@@ -98,7 +84,7 @@ public struct ExplosionRequest : IComponentData
 {
     public float3 Position;
     public float Damage;
-    public ESpellTag Element;
+    public ESpellTag Tags;
     public bool IsCritical;
     public Entity VfxPrefab;
 

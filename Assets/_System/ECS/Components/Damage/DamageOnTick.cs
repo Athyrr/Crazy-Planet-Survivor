@@ -3,7 +3,7 @@ using Unity.Entities;
 public struct DamageOnTick : IComponentData
 {
     public float DamagePerTick;
-    public ESpellTag Element;
+    public ESpellTag Tags;
 
     public float TickRate;
     public float ElapsedTime;

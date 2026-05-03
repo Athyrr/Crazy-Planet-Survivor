@@ -157,7 +157,6 @@ public partial struct HealthSystem : ISystem
                         new ExplosionRequest()
                         {
                             Position = transform.Position,
-                            Radius = 1,
                             Damage = explosionData.Damage,
                             VfxPrefab = explosionData.VfxPrefab,
                             IsCritical = false,

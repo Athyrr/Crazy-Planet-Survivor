@@ -68,7 +68,8 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
         }
     }
 
-    private ActiveSpellWidgetItem GetOrCreateSpellWidgetItem(int dbIndex, SpellDataSO spellData, ActiveSpell activeSpell)
+    private ActiveSpellWidgetItem GetOrCreateSpellWidgetItem(int dbIndex, SpellDataSO spellData,
+        ActiveSpell activeSpell)
     {
         if (_indexToActiveSpellsMap.TryGetValue(dbIndex, out var spellWidgetItem))
             return spellWidgetItem;
@@ -76,12 +77,13 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
         if (dbIndex < 0 || dbIndex >= SpellsDatabase.Spells.Length)
             return null;
 
+        //todo  try setactive instead of instanciate (ram vs 0.5ms)
         var newSpellWidgetItem = Instantiate(spellWidgetItemPrefab, SpellsContainer);
         _indexToActiveSpellsMap.Add(dbIndex, newSpellWidgetItem);
 
         return newSpellWidgetItem;
     }
-    
+
     private void Clear()
     {
         if (!SpellsContainer)
