@@ -77,6 +77,7 @@ public partial struct UpgradeSelectionSystem : ISystem
         [ReadOnly] public BufferLookup<StatsUpgradePoolBufferElement> StatsUpgradePoolBufferLookup;
         [ReadOnly] public BufferLookup<SpellsUpgradePoolBufferElement> SpellsUpgradePoolBufferLookup;
 
+        // todo rework upgrade selection -> Allow new spell behavior even below %4 lvls
         public void Execute()
         {
             var random = Random.CreateFromIndex(Seed);
@@ -87,38 +88,39 @@ public partial struct UpgradeSelectionSystem : ISystem
             // Drop spell upgrades every 4 levels
             bool mustDropSpell = (experience.Level % 4) == 0;
 
-            var candiates = new NativeList<int>(Allocator.Temp);
+            var candidates = new NativeList<int>(Allocator.Temp);
 
             if (mustDropSpell)
             {
-                SetSpellCandiates(ref candiates);
+                SetSpellCandidates(ref candidates);
 
-                if (candiates.Length <= 0)
+                if (candidates.Length <= 0)
                     mustDropSpell = false;
             }
-
-            if (!mustDropSpell)
-                SetStatCanditates(ref candiates);
+            else
+            {
+                SetStatCandidates(ref candidates);
+            }
 
             // Clear previous selection
             ECB.SetBuffer<UpgradeSelectionBufferElement>(GameStateEntity);
 
             // Pick 3 upgrades from candidates
-            int countToPick = math.min(3, candiates.Length);
+            int countToPick = math.min(3, candidates.Length);
 
             for (int i = 0; i < countToPick; i++)
             {
                 // Pick random index from candidates
-                int indexInList = random.NextInt(0, candiates.Length);
-                int globalDbIndex = candiates[indexInList];
+                int indexInList = random.NextInt(0, candidates.Length);
+                int globalDbIndex = candidates[indexInList];
 
-                ECB.AppendToBuffer<UpgradeSelectionBufferElement>(GameStateEntity, new UpgradeSelectionBufferElement()
+                ECB.AppendToBuffer(GameStateEntity, new UpgradeSelectionBufferElement()
                 {
                     DatabaseIndex = globalDbIndex
                 });
 
                 // Avoid picking same upgrade again
-                candiates.RemoveAtSwapBack(indexInList);
+                candidates.RemoveAtSwapBack(indexInList);
             }
 
             // Add display upgrades flag 
@@ -126,19 +128,19 @@ public partial struct UpgradeSelectionSystem : ISystem
             // Remove player lvl up request
             ECB.RemoveComponent<PlayerLevelUpRequest>(PlayerEntity);
 
-            candiates.Dispose();
+            candidates.Dispose();
         }
 
-        private void SetStatCanditates(ref NativeList<int> candiates)
+        private void SetStatCandidates(ref NativeList<int> candidates)
         {
             if (!StatsUpgradePoolBufferLookup.TryGetBuffer(PlayerEntity, out var statsUpgradePool))
                 return;
 
             for (int i = 0; i < statsUpgradePool.Length; i++)
-                candiates.Add(statsUpgradePool[i].DatabaseIndex);
+                candidates.Add(statsUpgradePool[i].DatabaseIndex);
         }
 
-        private void SetSpellCandiates(ref NativeList<int> candiates)
+        private void SetSpellCandidates(ref NativeList<int> candidates)
         {
             if (!SpellsUpgradePoolBufferLookup.TryGetBuffer(PlayerEntity, out var spellsPool))
                 return;
@@ -166,28 +168,44 @@ public partial struct UpgradeSelectionSystem : ISystem
                 // if upgrade is spell upgrade
                 else if (upgradeData.UpgradeType == EUpgradeType.UpgradeSpell)
                 {
-                    // Valid only if player has the spell
-
                     // Target Spell ID
                     if (upgradeData.SpellID != ESpellID.None)
                     {
-                        // if player has this spell unlocked
-                        if (HasSpell(upgradeData.SpellID, activeSpells, ref spellBlobs))
-                            isValid = true;
+                        // if player has not this spell unlocked
+                        if (!HasSpell(upgradeData.SpellID, activeSpells, ref spellBlobs))
+                            continue;
+
+                        isValid = true;
+
+                        if (upgradeData.SpellTags != ESpellTag.None)
+                        {
+                            if (SpellHasTag(upgradeData.SpellID, upgradeData.SpellTags, activeSpells, ref spellBlobs))
+                                // if (HasSpellWithTag(upgradeData.SpellTags, activeSpells, ref spellBlobs))
+                            {
+                                isValid = false;
+                            }
+                        }
                     }
                     // Target tag 
                     else if (upgradeData.SpellTags != ESpellTag.None)
                     {
-                        if (HasSpellWithTag(upgradeData.SpellTags, activeSpells, ref spellBlobs))
+                        if (HasAnySpellWithTag(upgradeData.SpellTags, activeSpells, ref spellBlobs))
                             isValid = true;
                     }
                 }
 
                 if (isValid)
-                    candiates.Add(globalIndex);
+                    candidates.Add(globalIndex);
             }
         }
 
+        /// <summary>
+        /// Check if the player has the given spell
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="activeSpells"></param>
+        /// <param name="spellBlobs"></param>
+        /// <returns></returns>
         private bool HasSpell(ESpellID id, DynamicBuffer<ActiveSpell> activeSpells, ref BlobArray<SpellBlob> spellBlobs)
         {
             if (activeSpells.IsEmpty)
@@ -203,13 +221,46 @@ public partial struct UpgradeSelectionSystem : ISystem
             return false;
         }
 
-        private bool HasSpellWithTag(ESpellTag tag, DynamicBuffer<ActiveSpell> activeSpells,
+        /// <summary>
+        /// Check if a spell has a given tag.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="tag"></param>
+        /// <param name="activeSpells"></param>
+        /// <param name="spellBlobs"></param>
+        /// <returns></returns>
+        private bool SpellHasTag(ESpellID id, ESpellTag tag, DynamicBuffer<ActiveSpell> activeSpells,
             ref BlobArray<SpellBlob> spellBlobs)
         {
             for (int i = 0; i < activeSpells.Length; i++)
             {
                 SpellBlob spellBlob = spellBlobs[activeSpells[i].DatabaseIndex];
-                if ((spellBlob.Tag & tag) != 0)
+                if (spellBlob.ID == id)
+                {
+                    ESpellTag combinedTags = spellBlob.Tag | activeSpells[i].AddedTags;
+                    return (combinedTags & tag) != 0;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Check if the player has at least one spell with a given tag
+        /// </summary>
+        /// <param name="tag">The tag to check.</param>
+        /// <param name="activeSpells"></param>
+        /// <param name="spellBlobs"></param>
+        /// <returns></returns>
+        private bool HasAnySpellWithTag(ESpellTag tag, DynamicBuffer<ActiveSpell> activeSpells,
+            ref BlobArray<SpellBlob> spellBlobs)
+        {
+            for (int i = 0; i < activeSpells.Length; i++)
+            {
+                SpellBlob spellBlob = spellBlobs[activeSpells[i].DatabaseIndex];
+                ESpellTag combinedTags = spellBlob.Tag | activeSpells[i].AddedTags;
+
+                if ((combinedTags & tag) != 0)
                     return true;
             }
 
