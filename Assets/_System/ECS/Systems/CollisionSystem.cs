@@ -338,7 +338,7 @@ public partial struct CollisionSystem : ISystem
 
                         if ((damageData.Tags & ESpellTag.Knockback) != 0)
                         {
-                            float3 damagerPos = LocalTransformLookup[damagerEntity].Position;
+                            // float3 damagerPos = LocalTransformLookup[damagerEntity].Position;
                             float3 targetPos = LocalTransformLookup[target].Position;
 
                             // Normalize direction
