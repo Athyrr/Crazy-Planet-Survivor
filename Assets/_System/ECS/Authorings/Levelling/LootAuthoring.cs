@@ -20,7 +20,6 @@ public class LootAuthoring : MonoBehaviour
 
     #endregion
     
-    
     private class Baker : Baker<LootAuthoring>
     {
         public override void Bake(LootAuthoring authoring)

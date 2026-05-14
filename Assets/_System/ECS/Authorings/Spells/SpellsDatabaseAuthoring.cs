@@ -42,7 +42,6 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlob.BaseSpeed = spellSO.BaseSpeed;
                 spellBlob.Lifetime = spellSO.Lifetime;
                 spellBlob.BaseCastRange = spellSO.BaseCastRange;
-                spellBlob.BaseAreaOfEffect = spellSO.BaseAreaOfEffect;
                 spellBlob.BaseSpawnOffset = spellSO.BaseSpawnOffset;
                 spellBlob.BaseSize = spellSO.BaseSize;
 
@@ -61,7 +60,6 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 
                 // Children based spells
                 spellBlob.ChildrenSpawnRadius = spellSO.ChildrenSpawnRadius;
-                
                 
                 if (spellSO.SpellPrefab != null)
                 {

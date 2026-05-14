@@ -8,7 +8,6 @@ public enum ESpellStat
 
     // Spatial
     Speed,           
-    AreaOfEffect,     
     Range,
     Size,
 

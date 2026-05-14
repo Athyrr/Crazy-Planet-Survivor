@@ -117,11 +117,10 @@ public partial struct SpellActivationSystem : ISystem
                         Level = 1,
                         CurrentCooldown = 0f,
 
-                        // INPUTS
+                        // local
                         LocalDamageBonusMultiplier = 0f,
-                        LocalAreaBonusMultiplier = 0f,
                         LocalSizeBonusMultiplier = 0f,
-                        LocalSpeedBonusPercent = 0f,
+                        LocalSpeedBonusMultiplier = 0f,
                         LocalSpellDurationBonusMultiplier = 0f,
                         LocalCooldownReducBonusMultiplier = 0f,
                         LocalRangeBonusMultiplier = 0f,
@@ -137,9 +136,8 @@ public partial struct SpellActivationSystem : ISystem
 
                         AddedTags = ESpellTag.None,
 
-                        // OUTPUTS
+                        // final
                         FinalDamage = 0f,
-                        FinalArea = 0f,
                         FinalSize = 0f,
                         FinalSpeed = 0f,
                         FinalDuration = 0f,

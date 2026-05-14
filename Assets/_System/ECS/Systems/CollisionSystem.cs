@@ -1,14 +1,12 @@
 using _System.ECS.Components.Entity;
 using Unity.Burst;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Physics.Systems;
 using Unity.Transforms;
-using static HitFrameFeedbackSystem;
 
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
 [UpdateAfter(typeof(PhysicsSystemGroup))]
@@ -425,8 +423,10 @@ public partial struct CollisionSystem : ISystem
                         var bounce = BounceLookup[damagerEntity];
                         if (bounce.RemainingBounces > 0)
                         {
-                            if (TryFindNextTarget(damagerEntity, target, bounce.BounceRange, out Entity newTarget,
+                            if (TryFindNextUnvisitedTarget(damagerEntity, target, bounce.BounceRange, out Entity newTarget,
                                     out float3 newDirection))
+                            // if (TryFindNextTarget(damagerEntity, target, bounce.BounceRange, out Entity newTarget,
+                            //         out float3 newDirection))
                             {
                                 if (LinearMovementLookup.IsComponentEnabled(damagerEntity))
                                     ECB.SetComponentEnabled<LinearMovement>(0, damagerEntity, false);

@@ -290,10 +290,6 @@ public partial struct ApplyUpgradeSystem : ISystem
                 playerCoreStats.GlobalCooldownReductionMultiplier += value;
                 needSpellUpdate = true;
                 break;
-            case ECharacterStat.AreaSize:
-                playerCoreStats.GlobalSpellAreaMultiplier += value;
-                needSpellUpdate = true;
-                break;
             case ECharacterStat.SizeMultiplier:
                 playerCoreStats.GlobalSpellSizeMultiplier += value;
                 needSpellUpdate = true;
@@ -357,11 +353,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                 break;
 
             case ESpellStat.Speed:
-                spell.LocalSpeedBonusPercent += value;
-                break;
-
-            case ESpellStat.AreaOfEffect:
-                spell.LocalAreaBonusMultiplier += value;
+                spell.LocalSpeedBonusMultiplier += value;
                 break;
 
             case ESpellStat.Range:

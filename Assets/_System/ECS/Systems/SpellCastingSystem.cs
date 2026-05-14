@@ -214,7 +214,6 @@ public partial struct SpellCastingSystem : ISystem
 
             // Extract values directly
             float finalDamage = activeSpell.FinalDamage;
-            float finalArea = activeSpell.FinalArea;
             float finalSpeed = activeSpell.FinalSpeed;
             float finalRange = activeSpell.FinalRange;
             float finalDuration = activeSpell.FinalDuration;
@@ -407,7 +406,7 @@ public partial struct SpellCastingSystem : ISystem
                 {
                     float orbitRadius =
                         math.length(baseSpellData.BaseSpawnOffset) *
-                        finalArea; // todo Orbit radius scales with projectile size
+                        finalSize;
                     ECB.SetComponent(chunkIndex, spellEntity, new OrbitMovement
                     {
                         OrbitCenterEntity = request.Caster,
@@ -425,7 +424,7 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         Position = float3.zero,
                         Rotation = quaternion.identity,
-                        Scale = finalArea
+                        Scale = finalSize
                     });
                 }
 
@@ -444,7 +443,7 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         Damage = finalDamage,
                         Tags = totalTags,
-                        AreaRadius = finalArea,
+                        AreaRadius = finalSize,
                         TotalCritChance = activeSpell.FinalCritChance,
                         TotalCritMultiplier = activeSpell.FinalCritDamageMultiplier,
                         TargetLayers = filter.CollidesWith
@@ -458,7 +457,7 @@ public partial struct SpellCastingSystem : ISystem
                         Caster = request.Caster,
                         TickRate = finalTickRate,
                         DamagePerTick = finalDamage,
-                        AreaRadius = finalArea,
+                        AreaRadius = finalSize,
                         Tags = totalTags,
                         TotalCritChance = finalCritChance,
                         TotalCritMultiplier = finalCritDamageMultiplier,
@@ -540,11 +539,11 @@ public partial struct SpellCastingSystem : ISystem
                     ECB.SetComponentEnabled<ExplodeOnContact>(chunkIndex, spellEntity, true);
                     var explosion = ExplodeOnContactLookup[spellPrefab];
                     explosion.Damage += finalDamage * 0.5f; // todo explosion damage multiplier on stats
-                    explosion.Radius *= finalArea;
+                    explosion.Radius *= finalSize;
                     ECB.SetComponent(chunkIndex, spellEntity, explosion);
                 }
 
-                //todo Explose on death
+                //todo Explose on death or directly on prefab   
             }
 
             ECB.DestroyEntity(chunkIndex, requestEntity);

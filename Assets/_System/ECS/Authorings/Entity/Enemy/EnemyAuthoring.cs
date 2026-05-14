@@ -52,7 +52,6 @@ public class EnemyAuthoring : MonoBehaviour
 
                 GlobalDamageMultiplier = authoring.BaseStats.GlobalDamageMultiplier,
                 GlobalCooldownReductionMultiplier = authoring.BaseStats.GlobalCooldownReductionMultiplier,
-                GlobalSpellAreaMultiplier = authoring.BaseStats.GlobalSpellAreaMultiplier,
                 GlobalSpellSizeMultiplier = authoring.BaseStats.GlobalSpellSizeMultiplier,
                 GlobalSpellSpeedMultiplier = authoring.BaseStats.GlobalSpellSpeedMultiplier,
                 GlobalSpellDurationMultiplier = authoring.BaseStats.GlobalSpellDurationMultiplier,

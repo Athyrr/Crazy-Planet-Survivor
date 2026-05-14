@@ -14,7 +14,6 @@ public struct SpellBlob
     public float BaseSpeed;
     public float Lifetime;
     public float BaseCastRange;
-    public float BaseAreaOfEffect;
     public float3 BaseSpawnOffset;
     public float BaseSize;
     

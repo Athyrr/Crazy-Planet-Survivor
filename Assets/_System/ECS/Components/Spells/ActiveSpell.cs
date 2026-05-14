@@ -7,11 +7,10 @@ public struct ActiveSpell : IBufferElementData
     public int Level;
     public float CurrentCooldown;
 
-    // INPUTS : Local Bonus : 0.1 -> +10%
+    // Local Bonus : 0.1 -> +10%
     public float LocalDamageBonusMultiplier;
-    public float LocalAreaBonusMultiplier;
     public float LocalSizeBonusMultiplier;
-    public float LocalSpeedBonusPercent;
+    public float LocalSpeedBonusMultiplier;
     public float LocalSpellDurationBonusMultiplier;
     public float LocalCooldownReducBonusMultiplier;
     public float LocalRangeBonusMultiplier;
@@ -23,14 +22,16 @@ public struct ActiveSpell : IBufferElementData
 
     public float LocalBounceRangeBonusMultiplier;
 
+    public float LocalExplosionDamageBonusMultiplier;
+    public float LocalExplosionSizeBonusMultiplier;
+    
     public float LocalCritChanceBonusPercent;
     public float LocalCritDamageBonus;
 
     public ESpellTag AddedTags;
 
-    // OUTPUTS : Final values (cache)
+    // Final values (cache)
     public float FinalDamage;
-    public float FinalArea;
     public float FinalSize;
     public float FinalSpeed;
     public float FinalDuration;
@@ -44,6 +45,9 @@ public struct ActiveSpell : IBufferElementData
     public int FinalBounces;
 
     public float FinalBounceRange;
+
+    public float FinalExplosionDamageBonusMultiplier;
+    public float FinalExplosionSizeBonusMultiplier;
 
     public float FinalCritChance;
     public float FinalCritDamageMultiplier;

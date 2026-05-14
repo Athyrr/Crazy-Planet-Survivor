@@ -40,10 +40,7 @@ public struct CoreStats : IComponentData
 
     [Tooltip("Global cooldown multiplier (0 = 100% du cd, 0.1 = -10% on spell cd).")] [UIStat("Cooldown Reduc.", "{0:0%}")]
     public float GlobalCooldownReductionMultiplier;
-
-    [Tooltip("Area of effect multiplier (Explosions, Zones).")] [UIStat("Area Size", "{0:0%}")]
-    public float GlobalSpellAreaMultiplier;
-
+    
     [Tooltip("Spell Size multiplier (Projectiles).")] [UIStat("Proj. Size", "{0:0%}")]
     public float GlobalSpellSizeMultiplier;
 
@@ -61,7 +58,7 @@ public struct CoreStats : IComponentData
     [Tooltip("Number of projectiles added to all spells.")]
     [UIStat("Amount", "+{0}")]
     public int GlobalAmountBonus;
-
+    
     [Tooltip("Number of pierces added to all projectiles.")] [UIStat("Pierce", "+{0}")]
     public int GlobalPierceBonus;
 

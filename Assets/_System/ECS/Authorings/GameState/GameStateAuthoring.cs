@@ -1,3 +1,4 @@
+using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
@@ -29,6 +30,9 @@ public class GameStateAuthoring : MonoBehaviour
             
             // Store selected amulet
             AddComponent(entity, new EquippedAmulet() {DbIndex = -1});
+            
+            
+            // NativeHashMap<>
         }
     }
 }

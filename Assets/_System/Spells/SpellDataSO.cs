@@ -43,10 +43,7 @@ public class SpellDataSO : ScriptableObject
         "Distance from the caster where the spell spawns (e.g., Orbit Radius or Forward Offset)."
     )]
     public Vector3 BaseSpawnOffset = Vector3.zero;
-
-    [Tooltip("Radius of the area of effect (Explosion radius or Aura size).")]
-    public float BaseAreaOfEffect = 1f;
-
+    
     [Tooltip("Max distance the spell can travel or target (if applicable).")]
     public float BaseCastRange = 5f;
 

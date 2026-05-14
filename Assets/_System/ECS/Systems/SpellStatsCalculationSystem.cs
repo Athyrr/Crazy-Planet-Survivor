@@ -149,9 +149,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 // Multipliers
                 // Total = Base * ( 1 + Global(Player) + Local(Spell))
                 float dmgMult = coreStats.GlobalDamageMultiplier + spell.LocalDamageBonusMultiplier;
-                float areaMult = coreStats.GlobalSpellAreaMultiplier + spell.LocalAreaBonusMultiplier;
+                // todo add explosion dmg + explosion size stats 
                 float sizeMult = coreStats.GlobalSpellSizeMultiplier + spell.LocalSizeBonusMultiplier;
-                float speedMult = coreStats.GlobalSpellSpeedMultiplier + spell.LocalSpeedBonusPercent;
+                float speedMult = coreStats.GlobalSpellSpeedMultiplier + spell.LocalSpeedBonusMultiplier;
                 float durationMult = coreStats.GlobalSpellDurationMultiplier + spell.LocalSpellDurationBonusMultiplier;
                 float rangeMult = coreStats.GlobalCastRangeMultiplier + spell.LocalRangeBonusMultiplier;
                 float tickRateMult = 1f + spell.LocalTickRateBonusMultiplier;
@@ -186,9 +186,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
                                 else dmgMult *= mod.Value;
                                 break;
 
-                            case ESpellStat.AreaOfEffect:
-                                if (mod.Strategy == EModiferStrategy.Flat) areaMult += mod.Value;
-                                else areaMult *= (1f + mod.Value);
+                            case ESpellStat.Size:
+                                if (mod.Strategy == EModiferStrategy.Flat) sizeMult += mod.Value;
+                                else sizeMult *= (1f + mod.Value);
                                 break;
 
                             case ESpellStat.Speed:
@@ -228,7 +228,6 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 // Final values cache
                 spell.FinalDamage = baseSpellData.BaseDamage * dmgMult;
 
-                spell.FinalArea = math.max(0.1f, baseSpellData.BaseAreaOfEffect * areaMult);
                 spell.FinalSize = math.max(0.1f, baseSpellData.BaseSize * sizeMult);
                 spell.FinalSpeed = baseSpellData.BaseSpeed * speedMult;
                 spell.FinalDuration = math.max(0.1f, baseSpellData.Lifetime * durationMult);
@@ -287,7 +286,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 return;
 
             damageOnTick.DamagePerTick = activeSpell.FinalDamage;
-            damageOnTick.AreaRadius = activeSpell.FinalArea;
+            damageOnTick.AreaRadius = activeSpell.FinalSize;
             damageOnTick.TickRate = activeSpell.FinalTickRate;
             damageOnTick.Tags |= activeSpell.AddedTags;
             damageOnTick.TickRate = activeSpell.FinalTickRate;
@@ -346,11 +345,11 @@ public partial struct SpellStatsCalculationSystem : ISystem
             {
                 var orbit = OrbitLookup[parentEntity];
                 orbit.AngularSpeed = activeSpell.FinalSpeed;
-                orbit.Radius = activeSpell.FinalArea;
+                orbit.Radius = activeSpell.FinalRange;
                 if (math.lengthsq(orbit.RelativeOffset) > 0.001f)
-                    orbit.RelativeOffset = math.normalize(orbit.RelativeOffset) * activeSpell.FinalArea;
+                    orbit.RelativeOffset = math.normalize(orbit.RelativeOffset) * activeSpell.FinalRange;
                 else
-                    orbit.RelativeOffset = new float3(0, 0, activeSpell.FinalArea);
+                    orbit.RelativeOffset = new float3(0, 0, activeSpell.FinalRange);
 
                 ECB.SetComponent(chunkIndex, parentEntity, orbit);
             }
@@ -366,7 +365,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
                     if (TransformLookup.HasComponent(parentEntity))
                     {
                         var parentTransform = TransformLookup[parentEntity];
-                        parentTransform.Scale = activeSpell.FinalArea;
+                        parentTransform.Scale = activeSpell.FinalRange;
                         ECB.SetComponent(chunkIndex, parentEntity, parentTransform);
                     }
 

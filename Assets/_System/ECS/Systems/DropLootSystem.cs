@@ -40,7 +40,7 @@ public partial struct DropLootSystem : ISystem
         state.Dependency = dropExpJob.ScheduleParallel(state.Dependency);
     }
 
-
+// Split loot and exp orb dropping
     [WithAll(typeof(Loot), typeof(DestroyEntityFlag))]
     [WithNone(typeof(LootHasBeenDroppedTag))]
     private partial struct DropExpOrbJob : IJobEntity
@@ -49,14 +49,15 @@ public partial struct DropLootSystem : ISystem
         [ReadOnly] public DynamicBuffer<OrbDatabaseBufferElement> OrbDatabase;
         [ReadOnly] public DynamicBuffer<RessourcesDatabaseBufferElement> RessourcesDatabaseBufferElements;
         public uint Seed;
-        
+
         private Entity _instantiateEntity;
         private bool _entityFind;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in Loot loot)
+        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform,
+            in Loot loot)
         {
             var rand = Random.CreateFromIndex(Seed);
-            
+
             var dropChancePicked = rand.NextFloat();
             if (dropChancePicked > loot.DropChance)
             {
@@ -109,7 +110,7 @@ public partial struct DropLootSystem : ISystem
                     lootValue %= ressourceDb.Value;
                 }
             }
-            
+
             if (_entityFind)
             {
                 var offset = rand.NextFloat2Direction() * 3;

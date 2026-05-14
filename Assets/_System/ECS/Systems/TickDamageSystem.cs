@@ -1,4 +1,3 @@
-using _System.ECS.Components.Entity;
 using Unity.Collections;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -14,8 +13,6 @@ using Unity.Jobs;
 [BurstCompile]
 public partial struct TickDamageSystem : ISystem
 {
-    private ComponentLookup<Player> _playerLookup;
-    private ComponentLookup<Destructible> _cpEntityLookup;
     private ComponentLookup<FinalStats> _finalStatsLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFLagLookup;
@@ -33,8 +30,6 @@ public partial struct TickDamageSystem : ISystem
         _playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
 
         // Cache lookups
-        _playerLookup = state.GetComponentLookup<Player>(true);
-        _cpEntityLookup = state.GetComponentLookup<Destructible>(true);
         _finalStatsLookup = state.GetComponentLookup<FinalStats>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
         _destroyFLagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
@@ -71,8 +66,6 @@ public partial struct TickDamageSystem : ISystem
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
 
         // Update lookups
-        _playerLookup.Update(ref state);
-        _cpEntityLookup.Update(ref state);
         _finalStatsLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
         _destroyFLagLookup.Update(ref state);
@@ -85,13 +78,10 @@ public partial struct TickDamageSystem : ISystem
 
             CollisionWorld = collisionWorld,
 
-            PlayerLookup = _playerLookup,
-            DestructibleLookup = _cpEntityLookup,
-
             FinalStatsLookup = _finalStatsLookup,
             DamageBufferLookup = _damageBufferLookup,
             DestroyFlagLookup = _destroyFLagLookup,
-            
+
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter()
         };
         JobHandle tickHandle = auraTickJob.ScheduleParallel(state.Dependency);
@@ -118,17 +108,13 @@ public partial struct TickDamageSystem : ISystem
 
         [ReadOnly] public CollisionWorld CollisionWorld;
 
-        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-
-        [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
-
         [ReadOnly] public ComponentLookup<FinalStats> FinalStatsLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
 
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, Entity auraSpellEntity, ref DamageOnTick damageOnTick,
+        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity auraSpellEntity, ref DamageOnTick damageOnTick,
             in LocalToWorld worldPosition, in SpellSource spellSource)
         {
             damageOnTick.ElapsedTime += DeltaTime;
@@ -146,27 +132,21 @@ public partial struct TickDamageSystem : ISystem
 
             var hits = new NativeList<DistanceHit>(Allocator.Temp);
 
-            // Set detection filter
-            bool isPlayerCaster = PlayerLookup.HasComponent(caster);
-            CollisionFilter filter = new CollisionFilter
+            // Use bounding sphere from the component's AreaRadius for overlap detection
+            var filter = new CollisionFilter
             {
-                // BelongsTo = isPlayerCaster ? CollisionLayers.PlayerSpell : CollisionLayers.EnemySpell,
-                CollidesWith =
-                    (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) /*| CollisionLayers.Obstacle*/,
+                BelongsTo = CollisionLayers.Raycast,
+                CollidesWith = damageOnTick.TargetLayers
             };
 
-            float radius = damageOnTick.AreaRadius * math.max(1, casterStats.RangeMultiplier);
-            float damage = damageOnTick.DamagePerTick; // todo scale tick damage based on stats
+            CollisionWorld.OverlapSphere(worldPosition.Position, damageOnTick.AreaRadius, ref hits, filter);
 
-            // Detection
-            CollisionWorld.OverlapSphere(worldPosition.Position, radius, ref hits, filter);
+            float damage = damageOnTick.DamagePerTick; // todo scale tick damage based on stats
 
             foreach (var hit in hits)
             {
-                var isEntityHit = DestructibleLookup.HasComponent(hit.Entity);
-
-                // Ignore entities that are neither player nor enemy
-                if (!isEntityHit && !PlayerLookup.HasComponent(hit.Entity))
+                // Skip self
+                if (hit.Entity == auraSpellEntity)
                     continue;
 
                 // Ignore entities that cannot receive damage

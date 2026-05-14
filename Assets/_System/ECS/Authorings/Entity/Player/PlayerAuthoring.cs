@@ -96,7 +96,6 @@ public class PlayerAuthoring : MonoBehaviour
 
                 GlobalDamageMultiplier = baseStats.GlobalDamageMultiplier,
                 GlobalCooldownReductionMultiplier = baseStats.GlobalCooldownReductionMultiplier,
-                GlobalSpellAreaMultiplier = baseStats.GlobalSpellAreaMultiplier,
                 GlobalSpellSizeMultiplier = baseStats.GlobalSpellSizeMultiplier,
                 GlobalSpellSpeedMultiplier = baseStats.GlobalSpellSpeedMultiplier,
                 GlobalSpellDurationMultiplier = baseStats.GlobalSpellDurationMultiplier,
