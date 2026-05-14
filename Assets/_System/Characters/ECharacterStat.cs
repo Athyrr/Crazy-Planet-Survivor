@@ -11,7 +11,6 @@ public enum ECharacterStat
     Armor = 5,
     
     CooldownReduction = 13,
-    AreaSize = 14,
     SizeMultiplier = 20,
     
     CollectRange = 15,

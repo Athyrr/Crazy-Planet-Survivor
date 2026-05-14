@@ -1,4 +1,5 @@
 using System;
+using Unity.Collections;
 
 [AttributeUsage(AttributeTargets.Field)]
 public class UIStatAttribute : Attribute

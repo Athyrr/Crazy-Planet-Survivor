@@ -37,7 +37,7 @@ public class TabStatsUIView : UIViewBase
         foreach (Transform el in StatsContainer.transform)
             Destroy(el.gameObject);
 
-        Type type = typeof(CoreStats);
+        var type = typeof(CoreStats);
         var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public);
         foreach (var field in fields)
         {

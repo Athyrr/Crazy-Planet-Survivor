@@ -14,6 +14,8 @@ public class CharacterShopUIController : ShopUIControllerBase<CharacterSO, Chara
 
     private EntityQuery _gameStateQuery;
 
+    
+    
     protected override void Awake()
     {
         base.Awake();

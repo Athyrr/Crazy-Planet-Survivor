@@ -14,7 +14,7 @@ public class LobbyManager : MonoBehaviour
     [Tooltip("Camera used to zoom in on a specific planet.")]
     public CinemachineCamera PlanetFocusCamera;
 
-    [FormerlySerializedAs("CharacterSelectionUIController")] [Header("UI Controllers")] public CharacterShopUIController characterShopUIController;
+ [Header("UI Controllers")] public CharacterShopUIController characterShopUIController;
     public PlanetSelectionUIController PlanetSelectionUIController;
     public AmuletShopUIController amuletShopUIController;
 
@@ -100,8 +100,7 @@ public class LobbyManager : MonoBehaviour
             PlanetSelectionCamera.Priority = -1;
             PlanetFocusCamera.Priority = -10;
         }
-
-
+        
         switch (newState)
         {
             case EGameState.Lobby:

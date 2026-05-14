@@ -116,7 +116,6 @@ public class SummaryListView : UIViewBase
 
         CreateStatUI("Global Damage", $"{(stats.GlobalDamageMultiplier * 100f):0}%");
         CreateStatUI("Cooldown Time", $"{(stats.GlobalCooldownReductionMultiplier * 100f):0}%");
-        CreateStatUI("Area Size", $"{(stats.GlobalSpellAreaMultiplier * 100f):0}%");
         CreateStatUI("Spell Size", $"{(stats.GlobalSpellSizeMultiplier * 100f):0}%");
         CreateStatUI("Projectile Speed", $"{(stats.GlobalSpellSpeedMultiplier * 100f):0}%");
         CreateStatUI("Spell Duration", $"{(stats.GlobalSpellDurationMultiplier * 100f):0}%");
