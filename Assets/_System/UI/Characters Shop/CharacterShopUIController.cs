@@ -44,21 +44,19 @@ public class CharacterShopUIController : ShopUIControllerBase<CharacterSO, Chara
         if (_gameStateQuery.IsEmptyIgnoreFilter)
             return false;
 
-        // todo use buffer UnlockedCharacter (as Amulets)
-        // var gameStateEntity = _gameStateQuery.GetSingletonEntity();
-        // if (!_entityManager.HasBuffer<UnlockedCharacter>(gameStateEntity))
-        //     return false;
-        //
-        // var unlockedCharacters = _entityManager.GetBuffer<UnlockedCharacter>(gameStateEntity);
-        //
-        // foreach (UnlockedCharacter unlockedCharacter in unlockedCharacters)
-        // {
-        //     if (unlockedCharacter.DbIndex == index)
-        //         return true;
-        // }
+        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
+        if (!_entityManager.HasBuffer<UnlockedCharacter>(gameStateEntity))
+            return false;
 
-        // return false;
-        return true;
+        var unlockedCharacters = _entityManager.GetBuffer<UnlockedCharacter>(gameStateEntity);
+
+        foreach (var unlockedCharacter in unlockedCharacters)
+        {
+            if (unlockedCharacter.DbIndex == index)
+                return true;
+        }
+
+        return false;
     }
 
     protected override int GetStartingIndex()
@@ -73,6 +71,55 @@ public class CharacterShopUIController : ShopUIControllerBase<CharacterSO, Chara
         return 0;
     }
 
+    public void PurchaseOrEquipCharacter()
+    {
+        if (_isSelectedItemUnlocked)
+            SelectAndConfirm();
+        else
+            PurchaseCharacter();
+    }
+
+    private void PurchaseCharacter()
+    {
+        if (_gameStateQuery.IsEmpty)
+            return;
+
+        if (_selectedItemIndex < 0 || _selectedItemIndex >= Database.Characters.Length)
+            return;
+
+        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
+        var metaResources = _entityManager.GetBuffer<ResourceBufferElement>(gameStateEntity);
+        var cost = GetDataAtIndex(_selectedItemIndex).PurchaseCost;
+
+        if (!metaResources.HasEnough(cost))
+            return;
+
+        metaResources.DeductCost(cost);
+        metaResources.Save();
+
+        var unlockedBuffer = _entityManager.GetBuffer<UnlockedCharacter>(gameStateEntity);
+        unlockedBuffer.Add(new UnlockedCharacter { DbIndex = _selectedItemIndex });
+
+        _isSelectedItemUnlocked = true;
+
+        RefreshListView();
+        SelectItem(_selectedItemIndex);
+    }
+
+    private void SelectAndConfirm()
+    {
+        if (_selectedItemIndex == -1) return;
+
+        CloseViews();
+
+        var requestEntity = _entityManager.CreateEntity();
+        _entityManager.AddComponentData(requestEntity, new SelectCharacterRequest
+        {
+            CharacterIndex = _selectedItemIndex
+        });
+
+        GameManager.Instance.ChangeState(EGameState.Lobby);
+    }
 
     public void ConfirmSelection()
     {
@@ -90,6 +137,5 @@ public class CharacterShopUIController : ShopUIControllerBase<CharacterSO, Chara
         });
 
         GameManager.Instance.ChangeState(EGameState.Lobby);
-        //Debug.Log($"Select Character Index {index}");
     }
 }

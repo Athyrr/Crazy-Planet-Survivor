@@ -1,4 +1,3 @@
-using _System.ECS.Authorings.Resources;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Survivor/Amulets/Amulet", fileName = "AmuletSO")]
@@ -10,6 +9,8 @@ public class AmuletSO : ScriptableObject
     public string Description;  
     public GameObject UIPrefab;
     public Sprite Icon; 
+    
+    [Header("Cost")]
     public ResourceCost[] PurchaseCost;  
 
     [Header("Effects")]

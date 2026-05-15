@@ -15,14 +15,12 @@ public class CharacterSO : ScriptableObject
 
     [SerializeField] [Tooltip("The GameObject prefab that will be used for UI. Only renderer")]
     public GameObject UIPrefab;
-
-
+    
     [Header("Model")]
     [SerializeField]
     [Tooltip("The GameObject prefab that will be baked into an Entity. Must have Authoring components.")]
     public GameObject GamePrefab;
-
-
+    
     [Header("Upgrades")] [Tooltip("Character stats upgrades pool.")]
     public UpgradesDatabaseSO StatsUpgradesPool;
 
@@ -32,6 +30,9 @@ public class CharacterSO : ScriptableObject
 
     [Header("Spells")] [Tooltip("Character initial spells")]
     public SpellDataSO[] InitialSpells;
+
+    [Header("Cost")] [Tooltip("Resources required to purchase this character.")]
+    public ResourceCost[] PurchaseCost;
 
     [Header("Statistics")] [Tooltip("Character base stats")]
     public CoreStats coreStats;
