@@ -3,34 +3,36 @@ using Unity.Entities;
 using Unity.Transforms;
 using Unity.Collections;
 using Unity.Mathematics;
-using _System.ECS.Authorings.Ressources;
+using _System.ECS.Authorings.Resources;
+using UnityEngine;
 
 /// <summary>
 /// Manages the lifecycle of any ressources / xp orbs, handling both the detection of nearby orbs (attraction) 
 /// and the final collection when they reach the player. 
 /// Uses a throttled scanning approach to minimize performance impact.
+/// Orbs are identified by LootTag and differentiated by ExperienceOrb (XP) vs Resource (material) components.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
 public partial struct RessourceAttractionSystem : ISystem
 {
-    /// <summary> Cached lookup for world positions. </summary>
     [ReadOnly] private ComponentLookup<LocalTransform> _transformLookup;
-    /// <summary> Cached lookup for player stats (Collection Range/Speed). </summary>
     [ReadOnly] private ComponentLookup<CoreStats> _statsLookup;
-    /// <summary> Cached lookup for planet-specific data. </summary>
     [ReadOnly] private ComponentLookup<PlanetData> _planetLookup;
     [ReadOnly] private ComponentLookup<ExperienceOrb> _experienceOrbLookup;
+    [ReadOnly] private ComponentLookup<Resource> _resourceLookup;
 
     private EntityQuery _playerQuery;
 
     private float _timeSinceLastScan;
-    /// <summary> Frequency of the attraction scan (4 times per second). </summary>
-    private const float SCAN_INTERVAL = 0.25f;
+
+    private const float ScanInterval = 0.25f;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<GameState>();
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<Player>();
         state.RequireForUpdate<PlanetData>();
         state.RequireForUpdate<AttractionAnimationCurveConfig>();
@@ -39,8 +41,8 @@ public partial struct RessourceAttractionSystem : ISystem
         _statsLookup = state.GetComponentLookup<CoreStats>(isReadOnly: true);
         _planetLookup = state.GetComponentLookup<PlanetData>(isReadOnly: true);
         _experienceOrbLookup = state.GetComponentLookup<ExperienceOrb>(isReadOnly: true);
+        _resourceLookup = state.GetComponentLookup<Resource>(isReadOnly: true);
 
-        //_playerQuery = state.GetEntityQuery(typeof(Player));
         ComponentType playerComponentType = ComponentType.ReadOnly<Player>();
         _playerQuery = state.GetEntityQuery(playerComponentType);
     }
@@ -55,6 +57,7 @@ public partial struct RessourceAttractionSystem : ISystem
 
         _transformLookup.Update(ref state);
         _experienceOrbLookup.Update(ref state);
+        _resourceLookup.Update(ref state);
 
         if (_playerQuery.IsEmptyIgnoreFilter)
             return;
@@ -65,142 +68,171 @@ public partial struct RessourceAttractionSystem : ISystem
         if (!config.CurveBlobRef.IsCreated)
             return;
 
-        //float3 playerPosition = _playerQuery.GetSingleton<LocalTransform>().Position;
         var playerEntity = _playerQuery.GetSingletonEntity();
         var playerPosition = SystemAPI.GetComponent<LocalTransform>(playerEntity).Position;
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
+        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        var ecbParallel = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
+        var resourceBuffer = SystemAPI.GetBufferLookup<ResourceBufferElement>(isReadOnly: false);
+        var playerExperienceLookup = SystemAPI.GetComponentLookup<PlayerExperience>(isReadOnly: false);
 
-        // Animation and Collection
-        var moveAndcollectJob = new MoveAndCollectExpJob()
+        // Move collection runs first so orbs are collected before new attraction
+        // Single-threaded: directly modifies the Player's ResourceBuffer and PlayerExperience
+        var moveAndCollectJob = new MoveAndCollectLootJob
         {
             ECB = ecb,
             PlayerEntity = playerEntity,
             PlayerPosition = playerPosition,
             DeltaTime = deltaTime,
             CurveBlobRef = config.CurveBlobRef,
-            ExperienceOrbLookup = _experienceOrbLookup
+            ExperienceOrbLookup = _experienceOrbLookup,
+            ResourceLookup = _resourceLookup,
+            ResourceBuffer = resourceBuffer,
+            PlayerExperienceLookup = playerExperienceLookup,
         };
-        state.Dependency = moveAndcollectJob.ScheduleParallel(state.Dependency);
+        state.Dependency = moveAndCollectJob.Schedule(state.Dependency);
 
-        // Exp detection and Attraction 
+        // Attraction scan (throttled)
         _timeSinceLastScan += SystemAPI.Time.DeltaTime;
-        if (_timeSinceLastScan >= SCAN_INTERVAL)
+
+        if (!(_timeSinceLastScan >= ScanInterval))
+            return;
+
+        _timeSinceLastScan = 0;
+
+        _statsLookup.Update(ref state);
+        _planetLookup.Update(ref state);
+
+        ref var curveData = ref config.CurveBlobRef.Value;
+
+        var attractJob = new AttractLootJob
         {
-            _timeSinceLastScan = 0;
-
-            _statsLookup.Update(ref state);
-            _planetLookup.Update(ref state);
-
-            ref var curveData = ref config.CurveBlobRef.Value;
-
-            var attractJob = new AttractExpJob()
-            {
-                ECB = ecb,
-                PlayerEntity = playerEntity,
-                PlayerPosition = playerPosition,
-                StatsLookup = _statsLookup,
-                AnimDuration = curveData.Duration
-            };
-            state.Dependency = attractJob.ScheduleParallel(state.Dependency);
-        }
+            ECB = ecbParallel,
+            PlayerEntity = playerEntity,
+            PlayerPosition = playerPosition,
+            StatsLookup = _statsLookup,
+            AnimDuration = curveData.Duration,
+        };
+        state.Dependency = attractJob.ScheduleParallel(state.Dependency);
     }
 
     /// <summary>
-    /// Scans for static orbs within the player's collection range and attaches 
+    /// Scans for orbs within the player's collection range and attaches 
     /// a movement component to pull them toward the player.
     /// </summary>
     [BurstCompile]
+    [WithAll(typeof(LootTag))]
     [WithNone(typeof(AttractionAnimation))]
-    private partial struct AttractExpJob : IJobEntity
+    private partial struct AttractLootJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
         public Entity PlayerEntity;
-
         public float3 PlayerPosition;
 
         [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
         public float AnimDuration;
 
-        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in Resource resource)
+        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform)
         {
-            
             var playerStats = StatsLookup[PlayerEntity];
-            float finalCollectRange = playerStats.BasePickupRange * playerStats.PickupRangeMultiplier;
-            
-            // Check if within collection range
-            float distSq = math.distancesq(PlayerPosition, transform.Position);
+            var finalCollectRange = playerStats.BasePickupRange * playerStats.PickupRangeMultiplier;
+
+            var distSq = math.distancesq(PlayerPosition, transform.Position);
             if (distSq <= finalCollectRange * finalCollectRange)
             {
                 ECB.AddComponent(chunkIndex, entity, new AttractionAnimation
                 {
                     StartPosition = transform.Position,
                     ElapsedTime = 0f,
-                    Duration = AnimDuration
+                    Duration = AnimDuration,
                 });
             }
         }
     }
 
     /// <summary>
-    /// Checks if an attracting orb has reached the player. 
-    /// If so, it rewards experience and destroys the orb.
+    /// Moves attracted orbs toward the player along an animation curve.
+    /// On arrival, rewards XP or resources (determined by component type)
+    /// and marks the orb for destruction.
     /// </summary>
     [BurstCompile]
-    private partial struct MoveAndCollectExpJob : IJobEntity
+    [WithAll(typeof(LootTag))]
+    private partial struct MoveAndCollectLootJob : IJobEntity
     {
-        public EntityCommandBuffer.ParallelWriter ECB;
+        public EntityCommandBuffer ECB;
         public float DeltaTime;
         public Entity PlayerEntity;
         public float3 PlayerPosition;
-        
-        [ReadOnly] public ComponentLookup<ExperienceOrb> ExperienceOrbLookup;
-        [ReadOnly] public BlobAssetReference<AttractionAnimationCurveBlob> CurveBlobRef;
 
-        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref LocalTransform transform, ref AttractionAnimation anim, in Resource resource)
+        [ReadOnly] public ComponentLookup<ExperienceOrb> ExperienceOrbLookup;
+        [ReadOnly] public ComponentLookup<Resource> ResourceLookup;
+        [ReadOnly] public BlobAssetReference<AttractionAnimationCurveBlob> CurveBlobRef;
+        public BufferLookup<ResourceBufferElement> ResourceBuffer;
+        public ComponentLookup<PlayerExperience> PlayerExperienceLookup;
+
+        private void Execute(Entity entity, ref LocalTransform transform,
+            ref AttractionAnimation anim)
         {
             anim.ElapsedTime += DeltaTime;
-            float progress01 = math.clamp(anim.ElapsedTime / anim.Duration, 0f, 1f);
+            var progress01 = math.clamp(anim.ElapsedTime / anim.Duration, 0f, 1f);
 
-            // Animation curve sampling
             ref var animCurve = ref CurveBlobRef.Value;
 
-            // Determine sample indices
-            float sampleIndexFloat = progress01 * (animCurve.SampleCount - 1);
-            int indexLower = (int)math.floor(sampleIndexFloat);
-            int indexUpper = math.min(indexLower + 1, animCurve.SampleCount - 1);
-            float lerpFactor = sampleIndexFloat - indexLower;
+            var sampleIndexFloat = progress01 * (animCurve.SampleCount - 1);
+            var indexLower = (int)math.floor(sampleIndexFloat);
+            var indexUpper = math.min(indexLower + 1, animCurve.SampleCount - 1);
+            var lerpFactor = sampleIndexFloat - indexLower;
 
-            // Interpolate curve value
-            float curveValue = math.lerp(animCurve.Samples[indexLower], animCurve.Samples[indexUpper], lerpFactor);
+            var curveValue = math.lerp(animCurve.Samples[indexLower], animCurve.Samples[indexUpper], lerpFactor);
 
-            // Lerp position
             transform.Position = math.lerp(anim.StartPosition, PlayerPosition, curveValue);
 
-            // Collection 
-            if (progress01 >= 1f)
-            {
-                if (resource.Type == ERessourceType.Xp && ExperienceOrbLookup.HasComponent(entity))
-                {
-                    // Add experience to player
-                    ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedExperienceBufferElement
-                    {
-                        Value = ExperienceOrbLookup[entity].Value
-                    });
-                }
-                else
-                {
-                    ECB.AppendToBuffer(chunkIndex, PlayerEntity, new CollectedRessourcesBufferElement()
-                    {
-                        Type = resource.Type,
-                        Value = 1 // todo passing value here ? actually ressource.Value == 0
-                    });
-                }
+            if (!(progress01 >= 1f))
+                return;
 
-                // Destruction todo check why component doesn't have to be removed
-                ECB.SetComponentEnabled<DestroyEntityFlag>(chunkIndex, entity, true);
+            if (ExperienceOrbLookup.HasComponent(entity))
+            {
+                // Direct increment — no buffer event needed
+                if (PlayerExperienceLookup.TryGetComponent(PlayerEntity, out var exp))
+                {
+                    exp.Experience += ExperienceOrbLookup[entity].Value;
+                    PlayerExperienceLookup[PlayerEntity] = exp;
+                }
             }
+            else if (ResourceLookup.HasComponent(entity))
+            {
+                var resource = ResourceLookup[entity];
+                if (ResourceBuffer.HasBuffer(PlayerEntity))
+                {
+                    var buffer = ResourceBuffer[PlayerEntity];
+                    bool found = false;
+                    for (int i = 0; i < buffer.Length; i++)
+                    {
+                        if (buffer[i].Type == resource.Type)
+                        {
+                            buffer[i] = new ResourceBufferElement
+                            {
+                                Type = resource.Type,
+                                Value = buffer[i].Value + 1
+                            };
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        buffer.Add(new ResourceBufferElement
+                        {
+                            Type = resource.Type,
+                            Value = 1
+                        });
+                    }
+                }
+            }
+
+            ECB.SetComponentEnabled<DestroyEntityFlag>(entity, true);
         }
     }
 }

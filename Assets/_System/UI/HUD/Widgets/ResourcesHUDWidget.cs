@@ -1,25 +1,35 @@
-using System.Linq;
-using _System.ECS.Authorings.Ressources;
+using _System.Settings;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 public class ResourcesHUDWidget : MonoBehaviour
 {
     [Header("Reference")] [SerializeField] private ResourceWidgetItem resourceModel;
     [SerializeField] private Transform _container;
 
-    // todo: implement icon database @hyverno
-    [SerializeField] private EnumValues<ERessourceType, Sprite> _ressourcesss;
+    [SerializeField] private ResourceDatabaseSO _resourceDatabase;
 
-
-    private void Start()
+    private void OnEnable()
     {
-        var ressources = _ressourcesss.Where(el => el.Key != ERessourceType.Xp);
-        foreach ((var key, var sprite) in ressources)
+        Rebuild();
+    }
+
+    /// <summary>
+    /// Destroys existing resource items and recreates them from the database.
+    /// Each item will track the Player's ResourceBuffer via its Update loop.
+    /// Call this at run start to reset all displays to 0.
+    /// </summary>
+    public void Rebuild()
+    {
+        // Clear existing items
+        foreach (Transform child in _container)
+            Destroy(child.gameObject);
+
+        if (_resourceDatabase == null) return;
+
+        foreach (var resource in _resourceDatabase.Resources)
         {
-            var instance = Instantiate(_ressourceModel, _container.transform);
-            instance.Refresh((int)key, sprite);
+            var instance = Instantiate(resourceModel, _container.transform);
+            instance.Refresh(resource.Type, resource.Icon);
         }
     }
-    
 }

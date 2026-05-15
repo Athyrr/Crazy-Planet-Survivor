@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using _System.ECS.Authorings.Ressources;
+using _System.ECS.Authorings.Resources;
 using _System.ECS.Components.Entity;
 using Unity.Collections;
 using Unity.Entities;
@@ -151,7 +151,7 @@ public class PlayerAuthoring : MonoBehaviour
                 }
             }
 
-            DynamicBuffer<SpellsUpgradePoolBufferElement> spellsUpgradebuffer =
+            var upgradeBuffer =
                 AddBuffer<SpellsUpgradePoolBufferElement>(entity);
             if (data.SpellUpgradesPool != null)
             {
@@ -159,9 +159,9 @@ public class PlayerAuthoring : MonoBehaviour
                 {
                     if (localUpgrade == null)
                         continue;
-                    int globalIndex = gameUpgradesList.IndexOf(localUpgrade);
+                    var globalIndex = gameUpgradesList.IndexOf(localUpgrade);
                     if (globalIndex != -1)
-                        spellsUpgradebuffer.Add(new SpellsUpgradePoolBufferElement { DatabaseIndex = globalIndex });
+                        upgradeBuffer.Add(new SpellsUpgradePoolBufferElement { DatabaseIndex = globalIndex });
                     else
                         Debug.LogWarning(
                             $"Upgrade '{localUpgrade.name}' is in CharacterData but NOT in the Global Database.",
@@ -169,25 +169,16 @@ public class PlayerAuthoring : MonoBehaviour
                 }
             }
 
-            // Experience / Ressources 
-            AddBuffer<CollectedExperienceBufferElement>(entity);
+            // Experience
             AddComponent(entity, new PlayerExperience
             {
                 Experience = 0,
                 Level = 1,
                 NextLevelExperienceRequired = 500,
             });
-
-            AddBuffer<CollectedRessourcesBufferElement>(entity);
-            var resséourcesMap = new FixedList128Bytes<int>();
-
-            foreach (ERessourceType type in Enum.GetValues(typeof(ERessourceType)))
-                resséourcesMap.Add(0);
-
-            AddComponent(entity, new PlayerRessources
-            {
-                Ressources = resséourcesMap
-            });
+            
+            // Player resources earned during a run.
+            AddBuffer<ResourceBufferElement>(entity);
 
             // Invincibility 
             if (authoring.IsInvincible)

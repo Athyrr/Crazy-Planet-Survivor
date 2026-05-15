@@ -15,7 +15,7 @@ public class RunManager : MonoBehaviour
     private EntityManager _entityManager;
     private EntityQuery _playerHealthQuery;
     private EntityQuery _endRunQuery;
-    private EntityQuery _ressourcesQuery;
+    private EntityQuery _playerQuery;
     private EntityQuery _openUpgradesRequestQuery;
     private EntityQuery _gameStateQuery;
 
@@ -40,7 +40,7 @@ public class RunManager : MonoBehaviour
             _entityManager.CreateEntityQuery(typeof(GameState), typeof(OpenUpgradesSelectionViewRequest));
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _endRunQuery = _entityManager.CreateEntityQuery(typeof(EndRunRequest));
-        _ressourcesQuery = _entityManager.CreateEntityQuery(typeof(PlayerRessources));
+        _playerQuery = _entityManager.CreateEntityQuery(typeof(Player));
 
         InitPanels();
     }
@@ -63,21 +63,24 @@ public class RunManager : MonoBehaviour
         if (GameManager.Instance.GetGameState() != EGameState.Running)
             return;
 
-        if (!_endRunQuery.IsEmpty && !_ressourcesQuery.IsEmpty)
+        if (!_endRunQuery.IsEmpty && !_playerQuery.IsEmpty)
         {
             var endRunReqEntity = _endRunQuery.GetSingletonEntity();
-            var ressourcesReqEntity = _ressourcesQuery.GetSingletonEntity();
+            var playerEntity = _playerQuery.GetSingletonEntity();
 
             var endRunRequest = _entityManager.GetComponentData<EndRunRequest>(endRunReqEntity);
-            var ressourcesRequest = _entityManager.GetComponentData<PlayerRessources>(ressourcesReqEntity);
+            var playerResources = _entityManager.GetBuffer<ResourceBufferElement>(playerEntity);
 
             if (GameManager.Instance.GetGameState() != EGameState.GameOver)
                 GameManager.Instance.ChangeState(EGameState.GameOver);
 
-            gameOverUIController.OpenView(endRunRequest.State, ressourcesRequest);
+            var resourcesArray = new ResourceBufferElement[playerResources.Length];
+            for (int i = 0; i < playerResources.Length; i++)
+                resourcesArray[i] = playerResources[i];
+
+            gameOverUIController.OpenView(endRunRequest.State, resourcesArray);
 
             _entityManager.DestroyEntity(endRunReqEntity);
-            _entityManager.DestroyEntity(ressourcesReqEntity);
         }
     }
 

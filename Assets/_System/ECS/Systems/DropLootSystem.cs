@@ -12,8 +12,9 @@ public partial struct DropLootSystem : ISystem
 {
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<OrbDatabaseBufferElement>();
-        state.RequireForUpdate<RessourcesDatabaseBufferElement>();
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<ExpOrbDatabaseBufferElement>();
+        state.RequireForUpdate<ResourcesDatabaseBufferElement>();
     }
 
     public void OnUpdate(ref SystemState state)
@@ -27,104 +28,99 @@ public partial struct DropLootSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-        var orbsDatabase = SystemAPI.GetSingletonBuffer<OrbDatabaseBufferElement>(true);
-        var ressourcesDatabase = SystemAPI.GetSingletonBuffer<RessourcesDatabaseBufferElement>(true);
+        var expOrbDatabase = SystemAPI.GetSingletonBuffer<ExpOrbDatabaseBufferElement>(true);
+        var resourcesDatabase = SystemAPI.GetSingletonBuffer<ResourcesDatabaseBufferElement>(true);
 
-        var dropExpJob = new DropExpOrbJob
+        state.Dependency = new DropLootJob
         {
             ECB = ecb.AsParallelWriter(),
-            OrbDatabase = orbsDatabase,
-            RessourcesDatabaseBufferElements = ressourcesDatabase,
-            Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1
-        };
-        state.Dependency = dropExpJob.ScheduleParallel(state.Dependency);
+            ExpOrbDatabase = expOrbDatabase,
+            ResourcesDatabase = resourcesDatabase,
+        }.ScheduleParallel(state.Dependency);
     }
 
-// Split loot and exp orb dropping
-    [WithAll(typeof(Loot), typeof(DestroyEntityFlag))]
+    [WithAll(typeof(LootSource), typeof(DestroyEntityFlag))]
     [WithNone(typeof(LootHasBeenDroppedTag))]
-    private partial struct DropExpOrbJob : IJobEntity
+    private partial struct DropLootJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
-        [ReadOnly] public DynamicBuffer<OrbDatabaseBufferElement> OrbDatabase;
-        [ReadOnly] public DynamicBuffer<RessourcesDatabaseBufferElement> RessourcesDatabaseBufferElements;
-        public uint Seed;
-
-        private Entity _instantiateEntity;
-        private bool _entityFind;
+        [ReadOnly] public DynamicBuffer<ExpOrbDatabaseBufferElement> ExpOrbDatabase;
+        [ReadOnly] public DynamicBuffer<ResourcesDatabaseBufferElement> ResourcesDatabase;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform,
-            in Loot loot)
+            in LootSource loot)
         {
-            var rand = Random.CreateFromIndex(Seed);
+            var rand = Random.CreateFromIndex((uint)(chunkIndex * 7919 + entity.Index * 104729));
 
-            var dropChancePicked = rand.NextFloat();
-            if (dropChancePicked > loot.DropChance)
+            // Drop chance roll
+            if (rand.NextFloat() > loot.DropChance)
             {
                 ECB.AddComponent(chunkIndex, entity, new LootHasBeenDroppedTag());
                 return;
             }
 
-            int lootValue = loot.Value;
-
-            if (loot.Type == ERessourceType.Xp)
-            {
-                //@todo benchmark
-                for (int i = 0; i < OrbDatabase.Length; i++)
-                {
-                    OrbDatabaseBufferElement orbDb = OrbDatabase[i];
-
-                    if (orbDb.Value <= 0)
-                        continue;
-
-                    int numToDrop = lootValue / orbDb.Value;
-
-                    if (numToDrop > 0)
-                    {
-                        for (int j = 0; j < numToDrop; j++)
-                        {
-                            _instantiateEntity = ECB.Instantiate(chunkIndex, orbDb.Prefab);
-                            _entityFind = true;
-                            break;
-                        }
-
-                        lootValue %= orbDb.Value;
-                    }
-                }
-            }
+            if (loot.IsExperience)
+                DropExpOrbs(chunkIndex, loot.Value, transform.Position, ref rand);
             else
+                DropResources(chunkIndex, loot.Type, loot.Value, transform.Position, ref rand);
+
+            ECB.AddComponent<LootHasBeenDroppedTag>(chunkIndex, entity);
+        }
+
+        private void DropExpOrbs(int chunkIndex, int lootValue, float3 origin, ref Random rand)
+        {
+            for (int i = 0; i < ExpOrbDatabase.Length; i++)
             {
-                RessourcesDatabaseBufferElement ressourceDb = RessourcesDatabaseBufferElements[(int)loot.Type];
+                var entry = ExpOrbDatabase[i];
+                if (entry.Value <= 0)
+                    continue;
 
-                int numToDrop = lootValue / ressourceDb.Value;
+                int numToDrop = lootValue / entry.Value;
+                if (numToDrop <= 0)
+                    continue;
 
-                if (numToDrop > 0)
+                for (int j = 0; j < numToDrop; j++)
                 {
-                    for (int j = 0; j < numToDrop; j++)
-                    {
-                        _instantiateEntity = ECB.Instantiate(chunkIndex, ressourceDb.Prefab);
-                        _entityFind = true;
-                        break;
-                    }
+                    var expEntity = ECB.Instantiate(chunkIndex, entry.Prefab);
+                    var offset = rand.NextFloat2Direction() * 3;
+                    ECB.SetComponent(chunkIndex, expEntity, LocalTransform.FromPositionRotationScale(
+                        origin + new float3(offset.x, 0, offset.y),
+                        quaternion.identity,
+                        1f
+                    ));
+                }
 
-                    lootValue %= ressourceDb.Value;
+                lootValue %= entry.Value;
+            }
+        }
+
+        private void DropResources(int chunkIndex, EResourceType type, int lootValue, float3 origin, ref Random rand)
+        {
+            // Find the prefab matching this resource type from the database
+            Entity prefab = Entity.Null;
+            for (int i = 0; i < ResourcesDatabase.Length; i++)
+            {
+                if (ResourcesDatabase[i].Type == type)
+                {
+                    prefab = ResourcesDatabase[i].Prefab;
+                    break;
                 }
             }
 
-            if (_entityFind)
-            {
-                var offset = rand.NextFloat2Direction() * 3;
-                var spawnPos = transform.Position + new float3(offset.x, 0, offset.y);
-                ECB.SetComponent(chunkIndex, _instantiateEntity, new LocalTransform()
-                {
-                    Position = spawnPos,
-                    Rotation = quaternion.identity,
-                    Scale = 1,
-                });
-            }
+            if (prefab == Entity.Null)
+                return;
 
-            _entityFind = false;
-            ECB.AddComponent<LootHasBeenDroppedTag>(chunkIndex, entity);
+            // Each resource orb is worth exactly 1 → instantiate lootValue orbs
+            for (int j = 0; j < lootValue; j++)
+            {
+                Entity spawned = ECB.Instantiate(chunkIndex, prefab);
+                var offset = rand.NextFloat2Direction() * 3;
+                ECB.SetComponent(chunkIndex, spawned, LocalTransform.FromPositionRotationScale(
+                    origin + new float3(offset.x, 0, offset.y),
+                    quaternion.identity,
+                    1f
+                ));
+            }
         }
     }
 }

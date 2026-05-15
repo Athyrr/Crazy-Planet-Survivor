@@ -1,4 +1,3 @@
-using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
@@ -23,16 +22,16 @@ public class GameStateAuthoring : MonoBehaviour
             });
 
             // Store playable characters 
-            // AddBuffer<UnlockedCharacter>(entity);
+            AddBuffer<UnlockedCharacter>(entity);
 
             // Store wearable amulets
             AddBuffer<UnlockedAmulet>(entity);
-            
+
             // Store selected amulet
-            AddComponent(entity, new EquippedAmulet() {DbIndex = -1});
-            
-            
-            // NativeHashMap<>
+            AddComponent(entity, new EquippedAmulet() { DbIndex = -1 });
+
+            // Player runtime resources  
+            AddBuffer<ResourceBufferElement>(entity);
         }
     }
 }

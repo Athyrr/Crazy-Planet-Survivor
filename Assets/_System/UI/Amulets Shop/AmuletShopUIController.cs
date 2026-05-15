@@ -1,8 +1,5 @@
-using System;
-using System.Linq;
-using _System.ECS.Authorings.Ressources;
-using UnityEngine;
 using Unity.Entities;
+using UnityEngine;
 
 public class AmuletShopUIController : ShopUIControllerBase<AmuletSO, AmuletShopListView, AmuletShopDetailView, AmuletViewItem>
 {
@@ -19,7 +16,7 @@ public class AmuletShopUIController : ShopUIControllerBase<AmuletSO, AmuletShopL
     protected override void Start()
     {
         base.Start();
-        
+
         RefreshListView();
     }
 
@@ -30,8 +27,8 @@ public class AmuletShopUIController : ShopUIControllerBase<AmuletSO, AmuletShopL
     {
         ListView.Clear();
         // log item count 
-        Debug.Log( "amuelt count"+ GetItemsCount());
-        
+        Debug.Log("amulet count" + GetItemsCount());
+
         for (int i = 0; i < GetItemsCount(); i++)
         {
             var data = GetDataAtIndex(i);
@@ -71,20 +68,24 @@ public class AmuletShopUIController : ShopUIControllerBase<AmuletSO, AmuletShopL
 
     private void PurchaseAmulet()
     {
+        if (_gameStateQuery.IsEmpty)
+            return;
+
         if (_selectedItemIndex < 0 || _selectedItemIndex >= Database.Amulets.Length)
             return;
 
-        if (!CanBuyAmulet(out var cost))
+        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
+        var metaResources = _entityManager.GetBuffer<ResourceBufferElement>(gameStateEntity);
+        var cost = GetDataAtIndex(_selectedItemIndex).PurchaseCost;
+
+        if (!metaResources.HasEnough(cost))
             return;
 
-        BuyAmulet(cost);
+        metaResources.DeductCost(cost);
+        metaResources.Save(); // todo maybe save only when Application Quit ? 
 
-        if (!_gameStateQuery.IsEmpty)
-        {
-            var gameStateEntity = _gameStateQuery.GetSingletonEntity();
-            var unlockedBuffer = _entityManager.GetBuffer<UnlockedAmulet>(gameStateEntity);
-            unlockedBuffer.Add(new UnlockedAmulet { DbIndex = _selectedItemIndex });
-        }
+        var unlockedBuffer = _entityManager.GetBuffer<UnlockedAmulet>(gameStateEntity);
+        unlockedBuffer.Add(new UnlockedAmulet { DbIndex = _selectedItemIndex });
 
         _isSelectedItemUnlocked = true;
 
@@ -101,41 +102,6 @@ public class AmuletShopUIController : ShopUIControllerBase<AmuletSO, AmuletShopL
         _entityManager.SetComponentData(gameStateEntity, new EquippedAmulet() { DbIndex = _selectedItemIndex });
 
         BackToLobby();
-    }
-
-    private void BuyAmulet(int[] cost)
-    {
-        var ressources = SaveManager.GetCurrentSaveAs<Save>().ressources.Ressources;
-
-        foreach (var el in cost.ToList())
-        {
-            if (el != 0)
-                ressources[el] -= GetDataAtIndex(_selectedItemIndex).RessourcesPrice[(ERessourceType)el];
-        }
-    }
-
-    private bool CanBuyAmulet(out int[] cost)
-    {
-        var resources = SaveManager.GetCurrentSaveAs<Save>().ressources.Ressources;
-
-        cost = new int[Enum.GetNames(typeof(ERessourceType)).Length];
-        var res = true;
-
-        foreach (var el in GetDataAtIndex(_selectedItemIndex).RessourcesPrice.ToList())
-        {
-            var idx = (int)el.Key;
-            if (resources[idx] >= el.Value)
-            {
-                cost[(idx)] = idx;
-            }
-            else
-            {
-                res = false;
-                break;
-            }
-        }
-
-        return res;
     }
 
 

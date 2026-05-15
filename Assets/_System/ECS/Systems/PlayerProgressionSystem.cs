@@ -1,16 +1,15 @@
 using Unity.Burst;
 using Unity.Entities;
-using UnityEngine;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(RessourceAttractionSystem))]
 [BurstCompile]
 public partial struct PlayerProgressionSystem : ISystem
 {
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<PlayerExperience>();
-        state.RequireForUpdate<PlayerRessources>();
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
     }
 
     [BurstCompile]
@@ -28,11 +27,9 @@ public partial struct PlayerProgressionSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
 
-        var gainExpJob = new GainExperienceJob() { ECB = ecb, };
-        var gainRessourceJob = new GainRessourceJob() { ECB = ecb, };
-        
+        var gainExpJob = new GainExperienceJob { ECB = ecb };
+
         state.Dependency = gainExpJob.ScheduleParallel(state.Dependency);
-        state.Dependency = gainRessourceJob.ScheduleParallel(state.Dependency);
     }
 
     [BurstCompile]
@@ -40,41 +37,19 @@ public partial struct PlayerProgressionSystem : ISystem
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        public void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, ref PlayerExperience experience, ref DynamicBuffer<CollectedExperienceBufferElement> expBuffer)
+        private void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, ref PlayerExperience experience)
         {
-            foreach (var exp in expBuffer)
-            {
-                experience.Experience += exp.Value;
-            }
-            expBuffer.Clear();
+            if (experience.Experience < experience.NextLevelExperienceRequired)
+                return;
 
-            if (experience.Experience >= experience.NextLevelExperienceRequired)
-            {
-                experience.Experience -= experience.NextLevelExperienceRequired;
-                experience.Level++;
+            experience.Experience -= experience.NextLevelExperienceRequired;
+            experience.Level++;
 
-                //float nextLevelExperience = (experience.NextLevelExperienceRequired + (experience.NextLevelExperienceRequired * experience.Level * 0.5f)) + 1000;
-                float nextLevelExperience = experience.Level * 500 + (experience.NextLevelExperienceRequired * 0.5f) + 1000;
-                experience.NextLevelExperienceRequired = (int)nextLevelExperience;
+            float nextLevelExperience =
+                experience.Level * 500 + (experience.NextLevelExperienceRequired * 0.5f) + 1000;
+            experience.NextLevelExperienceRequired = (int)nextLevelExperience;
 
-                ECB.AddComponent(chunkIndex, entity, new PlayerLevelUpRequest() { });
-            }
-        }
-    }
-    
-    [BurstCompile]
-    private partial struct GainRessourceJob : IJobEntity
-    {
-        public EntityCommandBuffer.ParallelWriter ECB;
-
-        public void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, ref PlayerRessources ressources, ref DynamicBuffer<CollectedRessourcesBufferElement> ressourcesBuffer)
-        {
-            foreach (var ressource in ressourcesBuffer)
-            {
-                Debug.Log($"Gained {ressource.Value} of {ressource.Type}");
-                ressources.Ressources[(int)ressource.Type] += ressource.Value;
-            }
-            ressourcesBuffer.Clear();
+            ECB.AddComponent(chunkIndex, entity, new PlayerLevelUpRequest());
         }
     }
 }

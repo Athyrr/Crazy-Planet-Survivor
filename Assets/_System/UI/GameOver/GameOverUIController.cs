@@ -17,40 +17,49 @@ public class GameOverUIController : UIControllerBase
     [Header("Summary View")]
     public SummaryListView runSummaryListView;
 
+    private EntityManager _entityManager;
+    private EntityQuery _gameStateQuery;
 
-    public void OpenView(EEndRunState endState, PlayerRessources ressources)
+
+    private void Awake()
+    {
+        _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+        _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
+    }
+
+    public void OpenView(EEndRunState endState, ResourceBufferElement[] resources)
     {
         gameObject.SetActive(true);
         GameOverView.SetActive(true);
         runSummaryListView.gameObject.SetActive(false);
 
-        StateUpdate(endState, ressources);
+        StateUpdate(endState, resources);
 
         SetTextAlpha(0f);
 
         StartCoroutine(PlaySequenceCoroutine());
     }
 
-    private void StateUpdate(EEndRunState state, PlayerRessources ressources)
+    private void StateUpdate(EEndRunState state, ResourceBufferElement[] resources)
     {
         switch (state)
         {
             case EEndRunState.Success:
                 GameOverText.text = "YOUPI";
                 GameOverText.color = Color.yellow;
-                KeepPersistantRessources(ressources);
+                KeepPersistantRessources(resources);
                 break;
 
             case EEndRunState.Death:
                 GameOverText.text = "YOU DIED (nulos)";
                 GameOverText.color = Color.red;
-                KeepPersistantRessources(ressources); // todo remove here
+                KeepPersistantRessources(resources); // todo remove here
                 break;
 
             case EEndRunState.Timeout:
                 GameOverText.text = "TIME OUT";
                 GameOverText.color = Color.gray;
-                KeepPersistantRessources(ressources);
+                KeepPersistantRessources(resources);
                 break;
 
             default:
@@ -60,14 +69,24 @@ public class GameOverUIController : UIControllerBase
         }
     }
 
-    private void KeepPersistantRessources(PlayerRessources ressources)
+    private void KeepPersistantRessources(ResourceBufferElement[] runResources)
     {
-        var saveRessources = SaveManager.GetCurrentSaveAs<Save>().ressources;
+        if (_gameStateQuery.IsEmpty)
+        {
+            Debug.LogWarning("GameState entity not found, cannot persist resources.");
+            return;
+        }
 
-        for (int i = 0; i < Enum.GetNames(typeof(ERessourceType)).Length; i++)
-            saveRessources.Ressources[i] += ressources.Ressources[i];
-        
-        SaveManager.ManualSave();
+        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
+        var metaResources = _entityManager.GetBuffer<ResourceBufferElement>(gameStateEntity);
+
+        foreach (var res in runResources)
+        {
+            if (res.Value > 0)
+                metaResources.AddOrDeduct(res.Type, res.Value);
+        }
+
+        metaResources.Save();
     }
 
     private void SetTextAlpha(float alpha)
