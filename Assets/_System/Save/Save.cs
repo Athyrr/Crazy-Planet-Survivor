@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using _System.ECS.Authorings.Ressources;
+using _System.ECS.Authorings.Resources;
 
 [Serializable]
 public class Save
@@ -59,14 +59,14 @@ public class SaveClass_Ressources
 
     public SaveClass_Ressources()
     {
-        Ressources = new int[Enum.GetNames(typeof(ERessourceType)).Length];
+        Ressources = new int[Enum.GetNames(typeof(EResourceType)).Length];
     }
 
     #endregion
 
     #region Members
     
-    public int[] Ressources; // id == ERessourceType
+    public int[] Ressources; // id == EResourceType
 
     #endregion
 }

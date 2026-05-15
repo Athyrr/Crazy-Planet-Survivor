@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 
 public class ResourcesHUDWidget : MonoBehaviour
 {
-    [Header("Reference")] [SerializeField] private RessourceWidgetItem _ressourceModel;
+    [Header("Reference")] [SerializeField] private ResourceWidgetItem resourceModel;
     [SerializeField] private Transform _container;
 
     // todo: implement icon database @hyverno

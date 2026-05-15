@@ -1,4 +1,3 @@
-using _System.ECS.Authorings.Ressources;
 using _System.Settings;
 using TMPro;
 using UnityEngine;
@@ -12,11 +11,9 @@ public class AmuletViewItem : UIViewItemBase
     [SerializeField] private Image _icon;
     [SerializeField] private Image _border;
 
-    [SerializeField]
-    private EnumValues<ERessourceType, Sprite>
-        _ressourcesSprite; // todo @hyverno move in icon database with CPBaseSettings
+    [SerializeField] private ResourceDatabaseSO _resourceDatabase;
 
-    [SerializeField] private RessourceWidgetItem _ressourceComponent; // same
+    [SerializeField] private ResourceWidgetItem resourceComponent;
     [SerializeField] private GameObject _ressourceComponentParent;
 
     private AmuletShopUIController _controller;

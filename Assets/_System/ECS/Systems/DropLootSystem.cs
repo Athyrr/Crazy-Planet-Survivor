@@ -1,4 +1,4 @@
-using _System.ECS.Authorings.Ressources;
+using _System.ECS.Authorings.Resources;
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Transforms;

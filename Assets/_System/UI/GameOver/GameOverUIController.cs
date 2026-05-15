@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
-using _System.ECS.Authorings.Ressources;
+using System.Collections.Generic;
+using _System.ECS.Authorings.Resources;
+using Unity.Entities;
 using UnityEngine;
 using TMPro;
 
