@@ -3,22 +3,27 @@ using UnityEngine;
 
 public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
 {
-    [Header("Preview Container")] public Transform AmuletPreviewContainer;
+    [Header("Preview")] 
+    public Transform AmuletPreviewContainer;
     public GameObject DefaultAmulet;
 
-    [Header("Cost Container")] public Transform CostContainer;
-    public ResourceWidgetItem CostItemPrefab;
+    [Header("Overlapped Detail Containers")]
+    public GameObject CostContainer;  
+    public GameObject InfoContainer;
 
-    [Header("Effects Container")] public Transform EffectsContainer;
+    [Header("Cost Display (locked)")]
+    public ResourceWidgetItem CostItemPrefab;
+    public ResourceDatabaseSO ResourceDatabase;
+
+    [Header("Description Display (unlocked)")]
+    public TMP_Text DescriptionText;
     public TMP_Text EffectsText;
 
-    [Header("Database")] public ResourceDatabaseSO ResourceDatabase;
+    [Header("Detail Texts")] 
+    public TMP_Text AmuletNameText;
 
-    [Header("Detail Texts")] public TMP_Text AmuletNameText;
-    public TMP_Text AmuletDescriptionText;
-
-    [Header("Default Strings")] public string DefaultName = "Locked";
-    public string DefaultDescription = "";
+    [Header("Default Strings")]
+    public string DefaultName = "???";
 
     public void Refresh(AmuletSO data, bool isUnlocked)
     {
@@ -38,28 +43,31 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
 
     private void ShowLocked(AmuletSO data)
     {
-        // Silhouette preview
-        if (DefaultAmulet != null && AmuletPreviewContainer != null)
+        if (DefaultAmulet != null)
             Instantiate(DefaultAmulet, AmuletPreviewContainer);
 
         if (AmuletNameText != null) AmuletNameText.text = DefaultName;
-        if (AmuletDescriptionText != null) AmuletDescriptionText.text = DefaultDescription;
 
-        // Cost breakdown
+        // Cost container active and info container hidden
+        if (CostContainer != null) CostContainer.SetActive(true);
+        if (InfoContainer != null) InfoContainer.SetActive(false);
+
         ShowCost(data.PurchaseCost);
     }
 
     private void ShowUnlocked(AmuletSO data)
     {
-        // Real amulet preview
-        if (data.UIPrefab != null && AmuletPreviewContainer != null)
+        if (data.UIPrefab != null)
             Instantiate(data.UIPrefab, AmuletPreviewContainer);
 
         if (AmuletNameText != null) AmuletNameText.text = data.DisplayName;
-        if (AmuletDescriptionText != null) AmuletDescriptionText.text = data.Description;
 
-        // Effects
-        ShowEffects(data.Modifiers);
+        // Info container active and cost container hidden
+        if (InfoContainer != null) InfoContainer.SetActive(true);
+        if (CostContainer != null) CostContainer.SetActive(false);
+
+        if (DescriptionText != null) DescriptionText.text = data.Description;
+        if (EffectsText != null) EffectsText.text = FormatEffects(data.Modifiers);
     }
 
     private void ShowCost(ResourceCost[] costs)
@@ -70,30 +78,25 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         if (costs == null || costs.Length == 0)
             return;
 
+        var parent = CostContainer.transform;
         foreach (var cost in costs)
         {
             var resource = ResourceDatabase.GetResource(cost.Type);
-            var instance = Instantiate(CostItemPrefab, CostContainer);
+            var instance = Instantiate(CostItemPrefab, parent);
             instance.Refresh(cost.Type, resource != null ? resource.Icon : null, cost.Amount);
         }
     }
 
-    private void ShowEffects(AmuletModifier[] modifiers)
+    private static string FormatEffects(AmuletModifier[] modifiers)
     {
-        if (EffectsContainer == null || EffectsText == null)
-            return;
-
         if (modifiers == null || modifiers.Length == 0)
-        {
-            EffectsText.text = string.Empty;
-            return;
-        }
+            return string.Empty;
 
         var sb = new System.Text.StringBuilder();
         foreach (var mod in modifiers)
             sb.AppendLine(FormatModifier(mod));
 
-        EffectsText.text = sb.ToString().TrimEnd('\n', '\r');
+        return sb.ToString().TrimEnd('\n', '\r');
     }
 
     private static string FormatModifier(AmuletModifier mod)
@@ -110,14 +113,23 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         else
             target = mod.UpgradeType.ToString();
 
-        string prefix = mod.Strategy switch
-        {
-            EModiferStrategy.Flat => "+",
-            EModiferStrategy.Multiply => "x",
-            _ => ""
-        };
+        string formattedValue;
+        bool isFlatBonus = mod.CharacterStat is ECharacterStat.PierceCount or ECharacterStat.BounceCount;
 
-        return $"{prefix}{mod.Value} {target}";
+        if (isFlatBonus)
+        {
+            // Integer bonuses: +2, -1
+            formattedValue = $"{(int)mod.Value:+0;-0;0}";
+        }
+        else
+        {
+            // Percentage bonuses: +50%, -10%
+            formattedValue = $"{mod.Value:+0%;-0%;0}";
+        }
+
+        // Set color green for positive, red for negative
+        string color = mod.Value >= 0 ? "#4ADE80" : "#F87171";
+        return $"<color={color}>{formattedValue}</color> {target}";
     }
 
     public void Clear()
@@ -132,15 +144,12 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         // Clear cost items
         if (CostContainer != null)
         {
-            foreach (Transform child in CostContainer)
+            foreach (Transform child in CostContainer.transform)
                 Destroy(child.gameObject);
         }
 
-        // Clear effects
-        if (EffectsContainer != null)
-        {
-            foreach (Transform child in EffectsContainer)
-                Destroy(child.gameObject);
-        }
+        // Reset visibility
+        if (CostContainer != null) CostContainer.SetActive(false);
+        if (InfoContainer != null) InfoContainer.SetActive(false);
     }
 }

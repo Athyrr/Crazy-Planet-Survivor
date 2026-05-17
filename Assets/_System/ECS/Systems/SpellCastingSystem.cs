@@ -42,6 +42,7 @@ public partial struct SpellCastingSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<SpellPrefab>();
         state.RequireForUpdate<ActiveSpell>();
         state.RequireForUpdate<SpellsDatabase>();

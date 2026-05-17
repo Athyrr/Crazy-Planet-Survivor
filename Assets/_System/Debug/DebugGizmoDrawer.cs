@@ -105,7 +105,7 @@ public class DebugGizmoDrawer : MonoBehaviour
             var stats = _playerQuery.GetSingleton<CoreStats>();
             var transform = _playerQuery.GetSingleton<LocalTransform>();
 
-            DrawWireDisk(transform.Position, transform.Up(), stats.BasePickupRange * stats.PickupRangeMultiplier);
+            DrawWireDisk(transform.Position, transform.Up(), stats.BasePickupRange * (1f + stats.PickupRange));
         }
     }
 

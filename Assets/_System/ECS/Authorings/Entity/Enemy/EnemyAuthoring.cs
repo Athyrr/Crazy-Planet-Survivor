@@ -46,23 +46,23 @@ public class EnemyAuthoring : MonoBehaviour
                 BasePickupRange = authoring.BaseStats.BasePickupRange,
 
                 HealthRecovery = authoring.BaseStats.HealthRecovery,
-                DamageReductionMultiplier = authoring.BaseStats.DamageReductionMultiplier,
-                MoveSpeedMultiplier = authoring.BaseStats.MoveSpeedMultiplier,
-                PickupRangeMultiplier = authoring.BaseStats.PickupRangeMultiplier,
+                Armor = authoring.BaseStats.Armor,
+                MoveSpeed = authoring.BaseStats.MoveSpeed,
+                PickupRange = authoring.BaseStats.PickupRange,
 
-                GlobalDamageMultiplier = authoring.BaseStats.GlobalDamageMultiplier,
-                GlobalCooldownReductionMultiplier = authoring.BaseStats.GlobalCooldownReductionMultiplier,
-                GlobalSpellSizeMultiplier = authoring.BaseStats.GlobalSpellSizeMultiplier,
-                GlobalSpellSpeedMultiplier = authoring.BaseStats.GlobalSpellSpeedMultiplier,
-                GlobalSpellDurationMultiplier = authoring.BaseStats.GlobalSpellDurationMultiplier,
-                GlobalCastRangeMultiplier = authoring.BaseStats.GlobalCastRangeMultiplier,
+                Damage = authoring.BaseStats.Damage,
+                AttackSpeed = authoring.BaseStats.AttackSpeed,
+                SpellSize = authoring.BaseStats.SpellSize,
+                SpellSpeed = authoring.BaseStats.SpellSpeed,
+                SpellDuration = authoring.BaseStats.SpellDuration,
+                CastRange = authoring.BaseStats.CastRange,
 
-                GlobalAmountBonus = authoring.BaseStats.GlobalAmountBonus,
-                GlobalPierceBonus = authoring.BaseStats.GlobalPierceBonus,
-                GlobalBounceBonus = authoring.BaseStats.GlobalBounceBonus,
+                Amount = authoring.BaseStats.Amount,
+                Pierce = authoring.BaseStats.Pierce,
+                Bounce = authoring.BaseStats.Bounce,
 
                 CritChance = authoring.BaseStats.CritChance,
-                CritDamageMultiplier = authoring.BaseStats.CritDamageMultiplier,
+                CritDamage = authoring.BaseStats.CritDamage,
             });
 
             AddComponent(entity, new FinalStats());

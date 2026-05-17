@@ -151,9 +151,9 @@ public partial struct ActiveEffectsSystem : ISystem
             }
 
             // Set Final Stats
-            finalStats.MoveSpeed = coreStats.BaseMoveSpeed * (coreStats.MoveSpeedMultiplier + speedMultBonus);
-            finalStats.GlobalDamageMultiplier = coreStats.GlobalDamageMultiplier * dmgMultBonus;
-            finalStats.RangeMultiplier = coreStats.BasePickupRange * coreStats.PickupRangeMultiplier;
+            finalStats.MoveSpeed = coreStats.BaseMoveSpeed * (1f + coreStats.MoveSpeed + speedMultBonus);
+            finalStats.Damage = coreStats.Damage * dmgMultBonus;
+            finalStats.RangeMultiplier = coreStats.BasePickupRange * (1f + coreStats.PickupRange);
             // todo armor multiplier mais azy faut faire un calcul bizarre je pense un peu à la soulstone
         }
     }

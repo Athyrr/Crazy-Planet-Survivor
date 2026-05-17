@@ -147,30 +147,31 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 ESpellTag currentTags = baseSpellData.Tag | spell.AddedTags;
 
                 // Multipliers
-                // Total = Base * ( 1 + Global(Player) + Local(Spell))
-                float dmgMult = coreStats.GlobalDamageMultiplier + spell.LocalDamageBonusMultiplier;
+                // Total = 1 + Global(Player) + Local(Spell)  (all stored as deltas, neutral = 0)
+                float dmgMult = 1f + coreStats.Damage + spell.LocalDamageBonusMultiplier;
                 // todo add explosion dmg + explosion size stats 
-                float sizeMult = coreStats.GlobalSpellSizeMultiplier + spell.LocalSizeBonusMultiplier;
-                float speedMult = coreStats.GlobalSpellSpeedMultiplier + spell.LocalSpeedBonusMultiplier;
-                float durationMult = coreStats.GlobalSpellDurationMultiplier + spell.LocalSpellDurationBonusMultiplier;
-                float rangeMult = coreStats.GlobalCastRangeMultiplier + spell.LocalRangeBonusMultiplier;
+                float sizeMult = 1f + coreStats.SpellSize + spell.LocalSizeBonusMultiplier;
+                float speedMult = 1f + coreStats.SpellSpeed + spell.LocalSpeedBonusMultiplier;
+                float durationMult = 1f + coreStats.SpellDuration + spell.LocalSpellDurationBonusMultiplier;
+                float rangeMult = 1f + coreStats.CastRange + spell.LocalRangeBonusMultiplier;
                 float tickRateMult = 1f + spell.LocalTickRateBonusMultiplier;
 
                 float bounceRangeMult =
                     (1 + spell.LocalBounceRangeBonusMultiplier);
                 // todo add global bounce range multiplier if needed
 
-                float cdReductionMult = coreStats.GlobalCooldownReductionMultiplier +
+                // AttackSpeed is already a delta (0 = normal), no +1 needed here
+                float cdReductionMult = coreStats.AttackSpeed +
                                         spell.LocalCooldownReducBonusMultiplier;
 
                 // Additives
-                int amountAdd = coreStats.GlobalAmountBonus + spell.LocalAmountBonus;
-                int bounceAdd = coreStats.GlobalBounceBonus + spell.LocalBounceBonus;
-                int pierceAdd = coreStats.GlobalPierceBonus + spell.LocalPierceBonus;
+                int amountAdd = coreStats.Amount + spell.LocalAmountBonus;
+                int bounceAdd = coreStats.Bounce + spell.LocalBounceBonus;
+                int pierceAdd = coreStats.Pierce + spell.LocalPierceBonus;
 
                 // Crit
                 float critChanceAdd = coreStats.CritChance + spell.LocalCritChanceBonusPercent;
-                float critDmgAdd = coreStats.CritDamageMultiplier + spell.LocalCritDamageBonus;
+                float critDmgAdd = 1f + coreStats.CritDamage + spell.LocalCritDamageBonus;
 
                 // Spell modifier buffer
                 for (int j = 0; j < spellModifiers.Length; j++)
@@ -238,7 +239,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 if (baseSpellData.BaseCooldown <= 0)
                     spell.FinalCooldown = 0f;
                 else
-                    spell.FinalCooldown = math.max(0.1f, baseSpellData.BaseCooldown * (1 - cdReductionMult));
+                    spell.FinalCooldown = math.max(0.1f, baseSpellData.BaseCooldown * (1f - cdReductionMult));
 
                 spell.FinalAmount = math.max(1, baseSpellData.BaseAmount + amountAdd);
                 spell.FinalBounces = baseSpellData.Bounces + bounceAdd;

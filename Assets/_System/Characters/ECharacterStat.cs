@@ -10,7 +10,7 @@ public enum ECharacterStat
     Damage = 4,
     Armor = 5,
     
-    CooldownReduction = 13,
+    AttackSpeed = 13,
     SizeMultiplier = 20,
     
     CollectRange = 15,

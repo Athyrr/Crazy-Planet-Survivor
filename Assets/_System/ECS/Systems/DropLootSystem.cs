@@ -6,15 +6,20 @@ using Unity.Collections;
 using Unity.Mathematics;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(HealthSystem))]
 [UpdateBefore(typeof(EntityDestructionSystem))]
 [BurstCompile]
 public partial struct DropLootSystem : ISystem
 {
+    private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
+
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<ExpOrbDatabaseBufferElement>();
         state.RequireForUpdate<ResourcesDatabaseBufferElement>();
+
+        _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(isReadOnly: true);
     }
 
     public void OnUpdate(ref SystemState state)
@@ -24,6 +29,8 @@ public partial struct DropLootSystem : ISystem
 
         if (gameState.State != EGameState.Running)
             return;
+
+        _destroyFlagLookup.Update(ref state);
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
@@ -36,20 +43,27 @@ public partial struct DropLootSystem : ISystem
             ECB = ecb.AsParallelWriter(),
             ExpOrbDatabase = expOrbDatabase,
             ResourcesDatabase = resourcesDatabase,
+            DestroyFlagLookup = _destroyFlagLookup,
         }.ScheduleParallel(state.Dependency);
     }
 
-    [WithAll(typeof(LootSource), typeof(DestroyEntityFlag))]
+    [WithAll(typeof(LootSource))]
     [WithNone(typeof(LootHasBeenDroppedTag))]
     private partial struct DropLootJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
+
         [ReadOnly] public DynamicBuffer<ExpOrbDatabaseBufferElement> ExpOrbDatabase;
         [ReadOnly] public DynamicBuffer<ResourcesDatabaseBufferElement> ResourcesDatabase;
+        [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform,
             in LootSource loot)
         {
+            // Only process entities that are flagged for destruction (just died)
+            if (!DestroyFlagLookup.IsComponentEnabled(entity))
+                return;
+
             var rand = Random.CreateFromIndex((uint)(chunkIndex * 7919 + entity.Index * 104729));
 
             // Drop chance roll

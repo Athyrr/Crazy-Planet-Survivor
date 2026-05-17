@@ -29,7 +29,7 @@ public struct StunEffect : IComponentData, IEnableableComponent
 public struct FinalStats : IComponentData
 {
     public float MoveSpeed;
-    public float GlobalDamageMultiplier;
+    public float Damage;
     public float ArmorMultiplier;
     public float RangeMultiplier;
 }

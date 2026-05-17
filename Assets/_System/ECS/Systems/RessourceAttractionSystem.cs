@@ -136,7 +136,7 @@ public partial struct RessourceAttractionSystem : ISystem
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform)
         {
             var playerStats = StatsLookup[PlayerEntity];
-            var finalCollectRange = playerStats.BasePickupRange * playerStats.PickupRangeMultiplier;
+            var finalCollectRange = playerStats.BasePickupRange * (1f + playerStats.PickupRange);
 
             var distSq = math.distancesq(PlayerPosition, transform.Position);
             if (distSq <= finalCollectRange * finalCollectRange)

@@ -108,29 +108,29 @@ public class SummaryListView : UIViewBase
         CreateStatUI("Health Regen", $"{stats.HealthRecovery:0.0}/s");
         CreateStatUI("Armor", stats.BaseArmor.ToString("0"));
 
-        float finalSpeed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
+        float finalSpeed = stats.BaseMoveSpeed * (1f + stats.MoveSpeed);
         CreateStatUI("Move Speed", finalSpeed.ToString("0.0"));
 
-        float finalPickup = stats.BasePickupRange * stats.PickupRangeMultiplier;
+        float finalPickup = stats.BasePickupRange * (1f + stats.PickupRange);
         CreateStatUI("Pickup Range", finalPickup.ToString("0.0"));
 
-        CreateStatUI("Global Damage", $"{(stats.GlobalDamageMultiplier * 100f):0}%");
-        CreateStatUI("Cooldown Time", $"{(stats.GlobalCooldownReductionMultiplier * 100f):0}%");
-        CreateStatUI("Spell Size", $"{(stats.GlobalSpellSizeMultiplier * 100f):0}%");
-        CreateStatUI("Projectile Speed", $"{(stats.GlobalSpellSpeedMultiplier * 100f):0}%");
-        CreateStatUI("Spell Duration", $"{(stats.GlobalSpellDurationMultiplier * 100f):0}%");
+        CreateStatUI("Damage", $"{(stats.Damage):+0%;-0%;0}");
+        CreateStatUI("Attack Sp.", $"{(stats.AttackSpeed):+0%;-0%;0}");
+        CreateStatUI("Spell Size", $"{(stats.SpellSize):+0%;-0%;0}");
+        CreateStatUI("Spell Sp.", $"{(stats.SpellSpeed):+0%;-0%;0}");
+        CreateStatUI("Spell Duration", $"{(stats.SpellDuration):+0%;-0%;0}");
 
-        if (stats.GlobalAmountBonus > 0)
-            CreateStatUI("Bonus Projectiles", $"+{stats.GlobalAmountBonus}");
+        if (stats.Amount > 0)
+            CreateStatUI("Amount", $"+{stats.Amount}");
 
-        if (stats.GlobalPierceBonus > 0)
-            CreateStatUI("Bonus Pierces", $"+{stats.GlobalPierceBonus}");
+        if (stats.Pierce > 0)
+            CreateStatUI("Pierce", $"+{stats.Pierce}");
 
-        if (stats.GlobalBounceBonus > 0)
-            CreateStatUI("Bonus Bounces", $"+{stats.GlobalBounceBonus}");
+        if (stats.Bounce > 0)
+            CreateStatUI("Bounce", $"+{stats.Bounce}");
 
-        CreateStatUI("Crit Chance", $"{(stats.CritChance * 100f):0.0}%");
-        CreateStatUI("Crit Damage", $"x{stats.CritDamageMultiplier:0.0}");
+        CreateStatUI("Crit Chance", $"{(stats.CritChance):+0%;-0%;0}");
+        CreateStatUI("Crit Damage", $"{(stats.CritDamage):+0%;-0%;0}");
     }
 
     private void CreateSpellUI(ref SpellBlob spellData, ActiveSpell activeSpell)

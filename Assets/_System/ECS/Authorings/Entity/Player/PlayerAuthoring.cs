@@ -90,23 +90,23 @@ public class PlayerAuthoring : MonoBehaviour
 
                 MaxHealth = baseStats.MaxHealth,
                 HealthRecovery = baseStats.HealthRecovery,
-                DamageReductionMultiplier = baseStats.DamageReductionMultiplier,
-                MoveSpeedMultiplier = baseStats.MoveSpeedMultiplier,
-                PickupRangeMultiplier = baseStats.PickupRangeMultiplier,
+                Armor = baseStats.Armor,
+                MoveSpeed = baseStats.MoveSpeed,
+                PickupRange = baseStats.PickupRange,
 
-                GlobalDamageMultiplier = baseStats.GlobalDamageMultiplier,
-                GlobalCooldownReductionMultiplier = baseStats.GlobalCooldownReductionMultiplier,
-                GlobalSpellSizeMultiplier = baseStats.GlobalSpellSizeMultiplier,
-                GlobalSpellSpeedMultiplier = baseStats.GlobalSpellSpeedMultiplier,
-                GlobalSpellDurationMultiplier = baseStats.GlobalSpellDurationMultiplier,
-                GlobalCastRangeMultiplier = baseStats.GlobalCastRangeMultiplier,
+                Damage = baseStats.Damage,
+                AttackSpeed = baseStats.AttackSpeed,
+                SpellSize = baseStats.SpellSize,
+                SpellSpeed = baseStats.SpellSpeed,
+                SpellDuration = baseStats.SpellDuration,
+                CastRange = baseStats.CastRange,
 
-                GlobalAmountBonus = baseStats.GlobalAmountBonus,
-                GlobalPierceBonus = baseStats.GlobalPierceBonus,
-                GlobalBounceBonus = baseStats.GlobalBounceBonus,
+                Amount = baseStats.Amount,
+                Pierce = baseStats.Pierce,
+                Bounce = baseStats.Bounce,
 
                 CritChance = baseStats.CritChance,
-                CritDamageMultiplier = baseStats.CritDamageMultiplier,
+                CritDamage = baseStats.CritDamage,
             });
 
             // Spells buffer

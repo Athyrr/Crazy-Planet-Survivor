@@ -73,7 +73,12 @@ public class TabStatsUIView : UIViewBase
             string displayName = meta.Attribute.DisplayName;
             string format = meta.Attribute.Format;
 
-            string formattedValue = string.Format(format, fieldValue);
+            // For float fields, adjust value relative to neutral (delta from neutral)
+            object displayValue = fieldValue;
+            if (meta.Field.FieldType == typeof(float))
+                displayValue = ((float)fieldValue) - meta.Attribute.NeutralValue;
+
+            string formattedValue = string.Format(format, displayValue);
             UpdateStat(displayName, formattedValue);
         }
     }

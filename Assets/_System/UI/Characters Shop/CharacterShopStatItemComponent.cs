@@ -12,7 +12,14 @@ public class CharacterShopStatItemComponent : StatTabViewItem
     public void Init(string name, string value)
     {
         LabelText.text = FormatName(name);
-        ValueText.text = value;
+
+        // Set color
+        if (value.StartsWith("+"))
+            ValueText.text = $"<color=#4ADE80>{value}</color>"; // green bonus
+        else if (value.StartsWith("-"))
+            ValueText.text = $"<color=#F87171>{value}</color>"; // red malus
+        else
+            ValueText.text = value;
     }
 
     /// <summary>

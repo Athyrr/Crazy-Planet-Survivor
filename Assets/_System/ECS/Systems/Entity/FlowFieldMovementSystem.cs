@@ -135,7 +135,7 @@ public partial struct FlowFieldMovementSystem : ISystem
             if (StatsLookup.HasComponent(entity))
             {
                 var stats = StatsLookup[entity];
-                speed = stats.BaseMoveSpeed * stats.MoveSpeedMultiplier;
+                speed = stats.BaseMoveSpeed * (1f + stats.MoveSpeed);
             }
 
             // --- Stop distance ---

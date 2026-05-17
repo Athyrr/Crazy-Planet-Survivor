@@ -274,32 +274,32 @@ public partial struct ApplyUpgradeSystem : ISystem
                 playerCoreStats.MaxHealth += value;
                 break;
             case ECharacterStat.Armor:
-                playerCoreStats.DamageReductionMultiplier += value;
+                playerCoreStats.Armor += value;
                 break;
             case ECharacterStat.Speed:
-                playerCoreStats.MoveSpeedMultiplier += value;
+                playerCoreStats.MoveSpeed += value;
                 break;
             case ECharacterStat.CollectRange:
-                playerCoreStats.PickupRangeMultiplier += value;
+                playerCoreStats.PickupRange += value;
                 break;
             case ECharacterStat.Damage:
-                playerCoreStats.GlobalDamageMultiplier += value;
+                playerCoreStats.Damage += value;
                 needSpellUpdate = true;
                 break;
-            case ECharacterStat.CooldownReduction:
-                playerCoreStats.GlobalCooldownReductionMultiplier += value;
+            case ECharacterStat.AttackSpeed:
+                playerCoreStats.AttackSpeed += value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.SizeMultiplier:
-                playerCoreStats.GlobalSpellSizeMultiplier += value;
+                playerCoreStats.SpellSize += value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.BounceCount:
-                playerCoreStats.GlobalBounceBonus += (int)value;
+                playerCoreStats.Bounce += (int)value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.PierceCount:
-                playerCoreStats.GlobalPierceBonus += (int)value;
+                playerCoreStats.Pierce += (int)value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.CritChance:
@@ -307,11 +307,11 @@ public partial struct ApplyUpgradeSystem : ISystem
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.CritDamage:
-                playerCoreStats.CritDamageMultiplier += value;
+                playerCoreStats.CritDamage += value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.SpellSpeed:
-                playerCoreStats.GlobalSpellSpeedMultiplier += value;
+                playerCoreStats.SpellSpeed += value;
                 needSpellUpdate = true;
                 break;
             // case ECharacterStat.BurnDamage:
