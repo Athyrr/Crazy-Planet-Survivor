@@ -78,7 +78,7 @@ public class UpgradeViewItem : MonoBehaviour
                 {
                     string val = data.ModifierStrategy == EModiferStrategy.Flat
                         ? $"+{data.Value}"
-                        : $"+{(data.Value * 100 - 100):F0}%";
+                        : $"+{(data.Value * 100):F0}%";
                     StatValueText.text = $"<color=green>{val}</color>";
                 }
 
@@ -144,7 +144,7 @@ public class UpgradeViewItem : MonoBehaviour
     {
         if (isPercentage)
         {
-            float pct = (value - 1.0f) * 100f;
+            float pct = value * 100f;
             return (pct > 0 ? "+" : "") + $"{pct:F0}%";
         }
         else
