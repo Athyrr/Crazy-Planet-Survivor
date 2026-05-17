@@ -21,7 +21,6 @@ MonoBehaviour:
   SpellUpgradesPool: {fileID: 11400000, guid: 58171efd1d1c66b428a33360e869d815, type: 2}
   InitialSpells:
   - {fileID: 11400000, guid: a13ca1f0a33c36a46bac651b45432abc, type: 2}
-  - {fileID: 11400000, guid: cd05c33d42552764aab5856b7fbbaaa6, type: 2}
   PurchaseCost:
   - Type: 1
     Amount: 2
@@ -29,19 +28,19 @@ MonoBehaviour:
     MaxHealth: 1500
     HealthRecovery: 2
     BaseArmor: 10
-    DamageReductionMultiplier: 0
+    Armor: 0
     BaseMoveSpeed: 12
-    MoveSpeedMultiplier: 1
+    MoveSpeed: 0
     BasePickupRange: 10
-    PickupRangeMultiplier: 1
-    GlobalDamageMultiplier: 1.15
-    GlobalCooldownReductionMultiplier: 0
-    GlobalSpellSizeMultiplier: 1
-    GlobalSpellSpeedMultiplier: 1
-    GlobalSpellDurationMultiplier: 1
-    GlobalCastRangeMultiplier: 1
-    GlobalAmountBonus: 0
-    GlobalPierceBonus: 0
-    GlobalBounceBonus: 0
+    PickupRange: 0
+    Damage: 0.15
+    AttackSpeed: 0
+    SpellSize: 0
+    SpellSpeed: 0
+    SpellDuration: 0
+    CastRange: 0
+    Amount: 0
+    Pierce: 0
+    Bounce: 0
     CritChance: 0.1
-    CritDamageMultiplier: 1.5
+    CritDamage: 0.5
