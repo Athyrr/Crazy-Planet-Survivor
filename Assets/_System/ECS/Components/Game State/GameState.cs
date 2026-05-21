@@ -19,4 +19,5 @@ public enum EGameState
     UpgradeSelection,
     Loading,
     AmuletShop,
+    MetaProgression,
 }

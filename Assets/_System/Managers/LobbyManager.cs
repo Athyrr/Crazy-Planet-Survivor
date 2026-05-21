@@ -17,11 +17,13 @@ public class LobbyManager : MonoBehaviour
  [Header("UI Controllers")] public CharacterShopUIController characterShopUIController;
     public PlanetSelectionUIController PlanetSelectionUIController;
     public AmuletShopUIController amuletShopUIController;
+    public MetaProgressionController metaProgressionController;
 
     private EntityManager _entityManager;
     private EntityQuery _openCharacterSelectionViewQuery;
     private EntityQuery _openPlanetSelectionViewQuery;
     private EntityQuery _openAmuletShopViewQuery;
+    private EntityQuery _openMetaProgressionViewQuery;
 
     private void OnEnable()
     {
@@ -46,9 +48,10 @@ public class LobbyManager : MonoBehaviour
     {
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
-        _openCharacterSelectionViewQuery = _entityManager.CreateEntityQuery(typeof(OpenCharactersViewRequest));
+        _openCharacterSelectionViewQuery = _entityManager.CreateEntityQuery(typeof(OpenCharactersShopRequest));
         _openPlanetSelectionViewQuery = _entityManager.CreateEntityQuery(typeof(OpenPlanetSelectionViewRequest));
-        _openAmuletShopViewQuery = _entityManager.CreateEntityQuery(typeof(OpenAmuletShopViewRequest));
+        _openAmuletShopViewQuery = _entityManager.CreateEntityQuery(typeof(OpenAmuletShopRequest));
+        _openMetaProgressionViewQuery = _entityManager.CreateEntityQuery(typeof(OpenMetaProgressionShopRequest));
     }
 
     private void Update()
@@ -80,6 +83,13 @@ public class LobbyManager : MonoBehaviour
             GameManager.Instance.ChangeState(EGameState.AmuletShop);
             _entityManager.DestroyEntity(_openAmuletShopViewQuery);
         }
+
+        // Check meta progression shop view request
+        if (!_openMetaProgressionViewQuery.IsEmpty)
+        {
+            GameManager.Instance.ChangeState(EGameState.MetaProgression);
+            _entityManager.DestroyEntity(_openMetaProgressionViewQuery);
+        }
     }
 
     private void HandleStateChange(EGameState newState)
@@ -89,6 +99,7 @@ public class LobbyManager : MonoBehaviour
 
         characterShopUIController.gameObject.SetActive(false);
         amuletShopUIController.gameObject.SetActive(false);
+        if (metaProgressionController != null) metaProgressionController.gameObject.SetActive(false);
 
         bool isGalaxyMode = (newState == EGameState.PlanetSelection);
         if (isGalaxyMode)
@@ -114,6 +125,9 @@ public class LobbyManager : MonoBehaviour
             case EGameState.AmuletShop:
                 OpenAmuletShopView();
                 break;
+            case EGameState.MetaProgression:
+                OpenMetaProgressionView();
+                break;
         }
     }
 
@@ -136,6 +150,15 @@ public class LobbyManager : MonoBehaviour
     {
         amuletShopUIController.gameObject.SetActive(true);
         amuletShopUIController.OpenView();
+    }
+
+    private void OpenMetaProgressionView()
+    {
+        if (metaProgressionController != null)
+        {
+            metaProgressionController.gameObject.SetActive(true);
+            metaProgressionController.OpenView();
+        }
     }
 
     private void HandlePlanetFocus(EPlanetID planetID, Transform planetTransform, Vector3 focusOffset)

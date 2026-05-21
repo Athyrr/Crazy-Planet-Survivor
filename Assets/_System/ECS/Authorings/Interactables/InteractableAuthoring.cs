@@ -4,10 +4,10 @@ using UnityEngine;
 public class InteractableAuthoring : MonoBehaviour
 {
     [SerializeField]
-    private EInteractionType InteractionType;
+    private EInteractionType _interactionType;
 
     [SerializeField]
-    private float InteractionRadius;
+    private float _interactionRadius;
 
     private class Baker : Baker<InteractableAuthoring>
     {
@@ -17,8 +17,8 @@ public class InteractableAuthoring : MonoBehaviour
 
             AddComponent(entity, new Interactable
             {
-                InteractionType = authoring.InteractionType,
-                Radius = authoring.InteractionRadius
+                InteractionType = authoring._interactionType,
+                Radius = authoring._interactionRadius
             });
 
             AddComponent<InteractableInRangeTag>(entity);
@@ -29,6 +29,6 @@ public class InteractableAuthoring : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, InteractionRadius);
+        Gizmos.DrawWireSphere(transform.position, _interactionRadius);
     }
 }

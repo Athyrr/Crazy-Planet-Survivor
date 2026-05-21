@@ -1,7 +1,10 @@
+using System;
+using NUnit.Framework.Internal;
 using Unity.Mathematics;
 using Unity.Transforms;
 using Unity.Entities;
 using Unity.Burst;
+using UnityEngine;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -10,6 +13,7 @@ public partial struct LobbyInteractionSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<Interactable>();
     }
 
@@ -31,16 +35,21 @@ public partial struct LobbyInteractionSystem : ISystem
 
         var playerTransform = SystemAPI.GetComponent<LocalTransform>(playerEntity);
 
-        bool isInteractPressed = false;
+        var isInteractPressed = false;
         if (!SystemAPI.TryGetSingleton<InputData>(out InputData input))
             return;
 
+
         isInteractPressed = input.IsInteractPressed;
+
+        if (isInteractPressed)
+            Debug.Log("Inputs triggered ECS");
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-        foreach (var (interactable, transform, interactableEntity) in SystemAPI.Query<RefRO<Interactable>, RefRO<LocalTransform>>().WithEntityAccess())
+        foreach (var (interactable, transform, interactableEntity) in SystemAPI
+                     .Query<RefRO<Interactable>, RefRO<LocalTransform>>().WithEntityAccess())
         {
             var interactableRadius = interactable.ValueRO.Radius;
             float distSq = math.distancesq(playerTransform.Position, transform.ValueRO.Position);
@@ -69,17 +78,16 @@ public partial struct LobbyInteractionSystem : ISystem
         switch (interactionType)
         {
             case EInteractionType.PlanetSelection:
-                // Load planets map + select + Launch
                 ecb.AddComponent<OpenPlanetSelectionViewRequest>(eventEntity);
                 break;
-            case EInteractionType.Shop:
-                //ecb.AddComponent<UI_DisplayShopMenuRequest>(eventEntity);
+            case EInteractionType.MetaProgression:
+                ecb.AddComponent<OpenMetaProgressionShopRequest>(eventEntity);
                 break;
             case EInteractionType.CharacterSelection:
-                ecb.AddComponent<OpenCharactersViewRequest>(eventEntity);
+                ecb.AddComponent<OpenCharactersShopRequest>(eventEntity);
                 break;
             case EInteractionType.AmuletShop:
-                ecb.AddComponent<OpenAmuletShopViewRequest>(eventEntity);
+                ecb.AddComponent<OpenAmuletShopRequest>(eventEntity);
                 break;
         }
     }

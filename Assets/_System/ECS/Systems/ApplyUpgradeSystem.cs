@@ -82,7 +82,13 @@ public partial struct ApplyUpgradeSystem : ISystem
         };
         var applyAmuletJobHandle = applyAmuletJob.ScheduleParallel(state.Dependency);
 
-        state.Dependency = JobHandle.CombineDependencies(applyUpgradeJobHandle, applyAmuletJobHandle);
+        var applyMetaJob = new ApplyMetaProgressionJob
+        {
+            ECB = ecbAmulet.AsParallelWriter(),
+        };
+        var applyMetaJobHandle = applyMetaJob.ScheduleParallel(state.Dependency);
+
+        state.Dependency = JobHandle.CombineDependencies(applyUpgradeJobHandle, applyAmuletJobHandle, applyMetaJobHandle);
     }
 
     [BurstCompile]
@@ -262,6 +268,46 @@ public partial struct ApplyUpgradeSystem : ISystem
             {
                 ECB.AddComponent<SpellStatsCalculationRequest>(chunkIndex, playerEntity);
             }
+        }
+    }
+
+    [BurstCompile]
+    private partial struct ApplyMetaProgressionJob : IJobEntity
+    {
+        public EntityCommandBuffer.ParallelWriter ECB;
+
+        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity playerEntity, in ApplyMetaProgressionRequest request,
+            ref CoreStats playerCoreStats)
+        {
+            // Remove request from player
+            ECB.RemoveComponent<ApplyMetaProgressionRequest>(chunkIndex, playerEntity);
+
+            // Survival
+            if (request.MaxHealthBonus != 0f)
+                playerCoreStats.MaxHealth += request.MaxHealthBonus;
+
+            // Movement
+            if (request.MoveSpeedBonus != 0f)
+                playerCoreStats.MoveSpeed += request.MoveSpeedBonus;
+            if (request.PickupRangeBonus != 0f)
+                playerCoreStats.PickupRange += request.PickupRangeBonus;
+
+            // Offensive
+            if (request.DamageBonus != 0f)            playerCoreStats.Damage += request.DamageBonus;
+            if (request.AttackSpeedBonus != 0f)        playerCoreStats.AttackSpeed += request.AttackSpeedBonus;
+            if (request.SpellSizeBonus != 0f)          playerCoreStats.SpellSize += request.SpellSizeBonus;
+            if (request.SpellSpeedBonus != 0f)         playerCoreStats.SpellSpeed += request.SpellSpeedBonus;
+            if (request.SpellDurationBonus != 0f)      playerCoreStats.SpellDuration += request.SpellDurationBonus;
+            if (request.CastRangeBonus != 0f)          playerCoreStats.CastRange += request.CastRangeBonus;
+
+            // Flat
+            if (request.AmountBonus != 0)   playerCoreStats.Amount += request.AmountBonus;
+            if (request.PierceBonus != 0)   playerCoreStats.Pierce += request.PierceBonus;
+            if (request.BounceBonus != 0)   playerCoreStats.Bounce += request.BounceBonus;
+
+            // Critical
+            if (request.CritChanceBonus != 0f) playerCoreStats.CritChance += request.CritChanceBonus;
+            if (request.CritDamageBonus != 0f) playerCoreStats.CritDamage += request.CritDamageBonus;
         }
     }
 

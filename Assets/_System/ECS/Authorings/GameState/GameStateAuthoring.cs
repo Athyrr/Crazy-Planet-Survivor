@@ -32,6 +32,9 @@ public class GameStateAuthoring : MonoBehaviour
 
             // Player runtime resources  
             AddBuffer<ResourceBufferElement>(entity);
+
+            // Meta-progression permanent upgrades
+            AddBuffer<MetaProgressionLevelElement>(entity);
         }
     }
 }

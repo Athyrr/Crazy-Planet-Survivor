@@ -26,7 +26,7 @@ public class PlayerController : MonoBehaviour
         _inputQuery = world.EntityManager.CreateEntityQuery(typeof(InputData));
     }
 
-    void OnEnable()
+    private void OnEnable()
     {
         _gameInputs.Player.Move.performed += HandleMoveInput;
         _gameInputs.Player.Move.canceled += HandleMoveInput;
@@ -37,7 +37,7 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Enable();
     }
 
-    void OnDisable()
+   private void OnDisable()
     {
         _gameInputs.Player.Move.performed -= HandleMoveInput;
         _gameInputs.Player.Move.canceled -= HandleMoveInput;
@@ -47,7 +47,7 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Disable();
     }
 
-    void Update()
+    private void Update()
     {
         InjectInputDirectionToECS(_inputDirection);
     }
@@ -90,6 +90,8 @@ public class PlayerController : MonoBehaviour
     {
         if (ctx.canceled)
             _isInteractPressed = true;
+
+        Debug.Log(("Interact pressed"));
     }
 
     private void HandleTabInput(CallbackContext ctx)
@@ -97,6 +99,6 @@ public class PlayerController : MonoBehaviour
         if (ctx.canceled)
             _isTabPressed = true;
         
-        Debug.Log(("Tavbbb"));
+        Debug.Log(("Tab pressed"));
     }
 }

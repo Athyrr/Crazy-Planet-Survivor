@@ -6,9 +6,9 @@ public enum EInteractionType
     PlanetSelection,
 
     /// <summary>
-    /// Purchase new equipment and accessories, and upgrade them.
+    /// Unlock and upgrade permanent passives.
     /// </summary>
-    Shop,
+    MetaProgression,
 
     /// <summary>
     /// Choose the character to run with.

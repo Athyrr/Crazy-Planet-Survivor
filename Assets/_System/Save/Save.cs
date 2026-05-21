@@ -10,6 +10,7 @@ public class Save
     public bool newSave = true;
     // public SaveClass_GameScore gameScore = new();
     public SaveClass_Ressources ressources = new();
+    public SaveClass_MetaUpgrades metaUpgrades = new();
     #endregion
 }
 
@@ -67,6 +68,25 @@ public class SaveClass_Ressources
     #region Members
     
     public int[] Ressources; // id == EResourceType
+
+    #endregion
+}
+
+#endregion
+
+#region Meta Upgrades
+
+[Serializable]
+public class SaveClass_MetaUpgrades
+{
+    #region Members
+
+    /// <summary>
+    /// Stores (stat_name, level) pairs for each purchased meta upgrade.
+    /// Empty = no upgrades purchased.
+    /// </summary>
+    public string[] StatNames = System.Array.Empty<string>();
+    public int[] Levels = System.Array.Empty<int>();
 
     #endregion
 }
