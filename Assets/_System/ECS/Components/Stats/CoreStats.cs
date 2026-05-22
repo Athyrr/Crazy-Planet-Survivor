@@ -8,30 +8,32 @@ using UnityEngine.Scripting;
 [System.Serializable]
 public struct CoreStats : IComponentData
 {
-    [Header("Survival")] [Tooltip("Max Health points.")] [UIStat("Max Health.", "{0}")]
+    [Header("Survival")]
+    [Tooltip("Max Health points.")]
+    [UIStat("Max Health.", "{0}")] //todo
     public float MaxHealth;
 
     [Tooltip("Health points recovered per second.")] [UIStat("Regen/s", "{0:0.0}/s")]
     public float HealthRecovery;
 
-    [Tooltip("Base armor (native to the character).")]
+    [Tooltip("Base armor (native to the character).")] //todo
     public float BaseArmor;
 
     [Tooltip("Flat damage reduction in % (0 = none, 0.2 = 20% less damage taken).")] [UIStat("Armor", "{0:+0%;-0%;0}")]
     public float Armor;
 
-
-    [Header("Movement")] [Tooltip("Base movement speed in units/second.")]
+    [Header("Movement")]
+    [Tooltip("Base movement speed in units/second.")] //todo
     public float BaseMoveSpeed;
 
     [Tooltip("Speed bonus (0 = 100%, 0.1 = +10%).")] [UIStat("Move Sp.", "{0:+0%;-0%;0}")]
     public float MoveSpeed;
 
-    [Tooltip("Base pickup range.")] public float BasePickupRange;
+    [Tooltip("Base pickup range.")]
+    public float BasePickupRange;
 
     [Tooltip("Pickup range bonus.")] [UIStat("Pickup Range", "{0:+0%;-0%;0}")]
     public float PickupRange;
-
 
     [Header("Offensive Global Multipliers")]
     [Tooltip("Damage bonus (0 = normal, 0.5 = +50%).")]
@@ -53,7 +55,6 @@ public struct CoreStats : IComponentData
 
     [Tooltip("Cast range bonus (for targeted spells).")] [UIStat("Cast Range", "{0:+0%;-0%;0}")]
     public float CastRange;
-
 
     [Header("Offensive Global Bonuses")]
     [Tooltip("Number of projectiles added to all spells.")]

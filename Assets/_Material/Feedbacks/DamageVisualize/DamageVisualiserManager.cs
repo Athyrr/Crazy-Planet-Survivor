@@ -1,10 +1,10 @@
-using UnityEngine;
 using System.Collections.Generic;
 using EasyButtons;
 using PrimeTween;
-using Random = UnityEngine.Random;
 using Unity.Entities;
 using UnityEditor;
+using UnityEngine;
+using Random = UnityEngine.Random;
 
 [ExecuteAlways]
 public class DamageFeedbackManager : MonoBehaviour
@@ -57,9 +57,14 @@ public class DamageFeedbackManager : MonoBehaviour
         public Color Color;
     }
 
-    [SerializeField] public ComputeShader computeShader;
-    [SerializeField] public Material displayMaterial;
-    [SerializeField] public Mesh quadMesh;
+    [SerializeField]
+    public ComputeShader computeShader;
+
+    [SerializeField]
+    public Material displayMaterial;
+
+    [SerializeField]
+    public Mesh quadMesh;
 
     private ComputeBuffer _damageBuffer;
     private List<DamageData> _activeDamages = new List<DamageData>();
@@ -76,7 +81,6 @@ public class DamageFeedbackManager : MonoBehaviour
         InitBuffer();
     }
 
-
     private void InitBuffer()
     {
         if (_damageBuffer == null)
@@ -91,16 +95,19 @@ public class DamageFeedbackManager : MonoBehaviour
     {
         InitBuffer();
 
-        if (_activeDamages.Count >= _maxNumbers) _activeDamages.RemoveAt(0);
+        if (_activeDamages.Count >= _maxNumbers)
+            _activeDamages.RemoveAt(0);
 
-        _activeDamages.Add(new DamageData
-        {
-            Position = pos,
-            Value = (float)val,
-            StartTime = GetCurrentTime(),
-            DigitCount = val.ToString().Length,
-            Color = color
-        });
+        _activeDamages.Add(
+            new DamageData
+            {
+                Position = pos,
+                Value = (float)val,
+                StartTime = GetCurrentTime(),
+                DigitCount = val.ToString().Length,
+                Color = color,
+            }
+        );
 
         _damageBuffer.SetData(_activeDamages.ToArray());
     }
@@ -117,13 +124,16 @@ public class DamageFeedbackManager : MonoBehaviour
             if (!EditorApplication.isPlaying)
             {
                 _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-                _damageFeedbackQuery = _entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
+                _damageFeedbackQuery = _entityManager.CreateEntityQuery(
+                    typeof(DamageFeedbackRequest)
+                );
             }
 
             if (!_damageFeedbackQuery.IsEmpty)
             {
-                var requests =
-                    _damageFeedbackQuery.ToComponentDataArray<DamageFeedbackRequest>(Unity.Collections.Allocator.Temp);
+                var requests = _damageFeedbackQuery.ToComponentDataArray<DamageFeedbackRequest>(
+                    Unity.Collections.Allocator.Temp
+                );
                 var entities = _damageFeedbackQuery.ToEntityArray(Unity.Collections.Allocator.Temp);
 
                 for (int i = 0; i < entities.Length; i++)
@@ -134,13 +144,15 @@ public class DamageFeedbackManager : MonoBehaviour
 
                     if (req.IsCritical)
                         color = CriticalDamageColor;
-
                     else if (req.IsBurn)
                         color = BurnDamageColor;
 
-                    AddDamage(req.Amount,
-                        (Vector3)req.Transform.Position + (Vector3)req.Transform.Up() * (1.5f * Random.Range(1, 3f)),
-                        color);
+                    AddDamage(
+                        req.Amount,
+                        (Vector3)req.Transform.Position
+                            + (Vector3)req.Transform.Up() * (1.5f * Random.Range(1, 3f)),
+                        color
+                    );
 
                     _entityManager.DestroyEntity(entities[i]);
                 }
@@ -149,7 +161,6 @@ public class DamageFeedbackManager : MonoBehaviour
                 entities.Dispose();
             }
         }
-
 
         if (_damageBuffer == null || computeShader == null || displayMaterial == null)
             return;
@@ -167,14 +178,19 @@ public class DamageFeedbackManager : MonoBehaviour
         displayMaterial.SetBuffer("_DamageBuffer", _damageBuffer);
         displayMaterial.SetFloat("_CurrentTime", currentTime);
 
-        Graphics.DrawMeshInstancedProcedural(quadMesh, 0, displayMaterial,
-            new Bounds(Vector3.zero, Vector3.one * 1000), _activeDamages.Count);
+        Graphics.DrawMeshInstancedProcedural(
+            quadMesh,
+            0,
+            displayMaterial,
+            new Bounds(Vector3.zero, Vector3.one * 1000),
+            _activeDamages.Count
+        );
     }
 
     private void OnDestroy()
     {
         ReleaseBuffer();
-        _damageFeedbackQuery.Dispose();
+        //_damageFeedbackQuery.Dispose();
         _damageBuffer?.Release();
     }
 
@@ -192,7 +208,8 @@ public class DamageFeedbackManager : MonoBehaviour
     {
         var color = Color.white;
 
-        Sequence.Create(cycles: 10, Sequence.SequenceCycleMode.Yoyo)
+        Sequence
+            .Create(cycles: 10, Sequence.SequenceCycleMode.Yoyo)
             .ChainCallback(() => AddDamage(Random.Range(10, 999999), transform.position, color))
             .ChainDelay(0.1f)
             .ChainCallback(() => AddDamage(Random.Range(10, 9999), transform.position, color))
