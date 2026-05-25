@@ -1,8 +1,4 @@
-using System;
 using System.Collections.Generic;
-using _System.ECS.Authorings.Resources;
-using _System.ECS.Components.Entity;
-using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
@@ -108,6 +104,8 @@ public class PlayerAuthoring : MonoBehaviour
                 CritChance = baseStats.CritChance,
                 CritDamage = baseStats.CritDamage,
             });
+
+            AddComponent<FinalStats>(entity);
 
             // Spells buffer
             AddBuffer<SpellModifier>(entity);

@@ -1,21 +1,24 @@
-using Unity.Collections;
-using Unity.Mathematics;
-using Unity.Transforms;
-using Unity.Entities;
-using Unity.Physics;
 using Unity.Burst;
+using Unity.Collections;
+using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
+using Unity.Physics;
+using Unity.Transforms;
 
 /// <summary>
-/// System that handle damages on tick and not on collisions.
+/// System that handles tick damage (aura/zone spells).
+/// Uses OverlapSphere for entry detection (on tick) + distance check for exit (every frame).
+/// Tracked via TickDamageTarget buffer per zone entity. Damage applied via ECB for thread safety.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
 public partial struct TickDamageSystem : ISystem
 {
     private ComponentLookup<FinalStats> _finalStatsLookup;
+    private ComponentLookup<LocalToWorld> _transformLookup;
+    private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
-    private ComponentLookup<DestroyEntityFlag> _destroyFLagLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
 
     private EntityQuery _playerQuery;
@@ -29,12 +32,12 @@ public partial struct TickDamageSystem : ISystem
 
         _playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
 
-        // Cache lookups
         _finalStatsLookup = state.GetComponentLookup<FinalStats>(true);
+        _transformLookup = state.GetComponentLookup<LocalToWorld>(true);
+        _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
-        _destroyFLagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
-        
+
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
 
@@ -47,117 +50,159 @@ public partial struct TickDamageSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        // Get game state
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
             return;
 
         if (_playerQuery.IsEmpty)
             return;
 
-        // Only run when game is running
         if (gameState.State != EGameState.Running)
             return;
 
-        // Setup ECB    
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-
-        // Get collision world
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
 
-        // Update lookups
         _finalStatsLookup.Update(ref state);
+        _transformLookup.Update(ref state);
+        _destroyFlagLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
-        _destroyFLagLookup.Update(ref state);
         _activeSpellBufferLookup.Update(ref state);
 
-        var auraTickJob = new TickDamageJob
+        // Tick damage processing — entry detection via OverlapSphere,
+        // exit detection via distance check, damage via ECB
+        var processTickJob = new ProcessTickDamageJob
         {
             ECB = ecb.AsParallelWriter(),
             DeltaTime = SystemAPI.Time.DeltaTime,
-
             CollisionWorld = collisionWorld,
 
             FinalStatsLookup = _finalStatsLookup,
+            TransformLookup = _transformLookup,
+            DestroyFlagLookup = _destroyFlagLookup,
             DamageBufferLookup = _damageBufferLookup,
-            DestroyFlagLookup = _destroyFLagLookup,
 
-            DamageEventsWriter = _damageEventsQueue.AsParallelWriter()
+            DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
         };
-        JobHandle tickHandle = auraTickJob.ScheduleParallel(state.Dependency);
+        JobHandle processHandle = processTickJob.ScheduleParallel(state.Dependency);
 
+        // Track total damage dealt into ActiveSpell buffer
         var trackJob = new TrackTickDamageJob
         {
             DamageEventsQueue = _damageEventsQueue,
             ActiveSpellLookup = _activeSpellBufferLookup,
-            PlayerEntity = SystemAPI.GetSingletonEntity<Player>()
+            PlayerEntity = SystemAPI.GetSingletonEntity<Player>(),
         };
-
-        state.Dependency = trackJob.Schedule(tickHandle);
+        state.Dependency = trackJob.Schedule(processHandle);
     }
 
     /// <summary>
-    /// @todo summary for all jobs in game
-    /// todo faire des withAll et withNone nan ? adam baeeeee grrrr roar
+    /// Iterates zone entities (DamageOnTick + TickDamageTarget buffer).
+    /// Entry: OverlapSphere on tick to find new targets.
+    /// Exit: distance check every frame.
+    /// Damage: applied via ECB (thread-safe).
     /// </summary>
     [BurstCompile]
-    private partial struct TickDamageJob : IJobEntity
+    private partial struct ProcessTickDamageJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
-        public float DeltaTime;
-
+        [ReadOnly] public float DeltaTime;
         [ReadOnly] public CollisionWorld CollisionWorld;
 
         [ReadOnly] public ComponentLookup<FinalStats> FinalStatsLookup;
-        [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
+        [ReadOnly] public ComponentLookup<LocalToWorld> TransformLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
+        [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
 
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
 
-        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity auraSpellEntity, ref DamageOnTick damageOnTick,
-            in LocalToWorld worldPosition, in SpellSource spellSource)
+        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity zoneEntity,
+            ref DamageOnTick damageOnTick, in LocalToWorld zoneTransform,
+            ref DynamicBuffer<TickDamageTarget> targets, in SpellSource spellSource)
         {
-            damageOnTick.ElapsedTime += DeltaTime;
+            if (!FinalStatsLookup.HasComponent(damageOnTick.Caster))
+                return;
 
-            // Wait for next tick
+            float3 zonePos = zoneTransform.Position;
+            float areaRadius = damageOnTick.AreaRadius;
+
+            // Exit detection, remove out-of-range / destroyed targets
+            for (int i = targets.Length - 1; i >= 0; i--)
+            {
+                Entity target = targets[i].Value;
+
+                if (DestroyFlagLookup.HasComponent(target) && DestroyFlagLookup.IsComponentEnabled(target))
+                {
+                    targets.RemoveAt(i);
+                    continue;
+                }
+
+                bool outOfRange = true;
+                if (TransformLookup.HasComponent(target))
+                {
+                    float dist = math.distance(zonePos, TransformLookup[target].Position);
+                    outOfRange = dist > areaRadius;
+                }
+
+                if (outOfRange)
+                    targets.RemoveAt(i);
+            }
+
+            // Tick timer
+            damageOnTick.ElapsedTime += DeltaTime;
             if (damageOnTick.ElapsedTime < damageOnTick.TickRate)
                 return;
 
             damageOnTick.ElapsedTime = 0f;
-            var caster = damageOnTick.Caster;
 
-            if (!FinalStatsLookup.HasComponent(caster))
-                return;
-            var casterStats = FinalStatsLookup[caster];
-
-            var hits = new NativeList<DistanceHit>(Allocator.Temp);
-
-            // Use bounding sphere from the component's AreaRadius for overlap detection
+            // Find new targets via OverlapSphere
             var filter = new CollisionFilter
             {
                 BelongsTo = CollisionLayers.Raycast,
                 CollidesWith = damageOnTick.TargetLayers
             };
 
-            CollisionWorld.OverlapSphere(worldPosition.Position, damageOnTick.AreaRadius, ref hits, filter);
+            var hits = new NativeList<DistanceHit>(16, Allocator.Temp);
+            CollisionWorld.OverlapSphere(zonePos, areaRadius, ref hits, filter);
 
-            float damage = damageOnTick.DamagePerTick; // todo scale tick damage based on stats
-
-            foreach (var hit in hits)
+            for (int j = 0; j < hits.Length; j++)
             {
-                // Skip self
-                if (hit.Entity == auraSpellEntity)
+                Entity hitEntity = hits[j].Entity;
+                if (hitEntity == zoneEntity)
                     continue;
 
-                // Ignore entities that cannot receive damage
-                if (!DamageBufferLookup.HasBuffer(hit.Entity))
+                // Only track entities that can receive damage
+                if (!DamageBufferLookup.HasBuffer(hitEntity))
                     continue;
 
-                // Ignore destroyed entities
-                if (DestroyFlagLookup.HasComponent(hit.Entity) && DestroyFlagLookup.IsComponentEnabled(hit.Entity))
+                if (DestroyFlagLookup.HasComponent(hitEntity) && DestroyFlagLookup.IsComponentEnabled(hitEntity))
                     continue;
 
-                ECB.AppendToBuffer(chunkIndex, hit.Entity, new DamageBufferElement
+                // Deduplicate against existing tracked targets
+                bool alreadyTracked = false;
+                for (int k = 0; k < targets.Length; k++)
+                {
+                    if (targets[k].Value == hitEntity)
+                    {
+                        alreadyTracked = true;
+                        break;
+                    }
+                }
+
+                if (!alreadyTracked)
+                    targets.Add(new TickDamageTarget { Value = hitEntity });
+            }
+
+            hits.Dispose();
+
+            //  Apply tick damage to all tracked targets 
+            float damage = damageOnTick.DamagePerTick;
+
+            for (int i = 0; i < targets.Length; i++)
+            {
+                Entity target = targets[i].Value;
+
+                ECB.AppendToBuffer(chunkIndex, target, new DamageBufferElement
                 {
                     Damage = (int)damage,
                     Tag = damageOnTick.Tags,
@@ -166,14 +211,15 @@ public partial struct TickDamageSystem : ISystem
                 DamageEventsWriter.Enqueue(new SpellDamageEvent
                 {
                     DatabaseIndex = spellSource.DatabaseIndex,
-                    DamageAmount = (int)damage
+                    DamageAmount = (int)damage,
                 });
             }
-
-            hits.Dispose();
         }
     }
 
+    /// <summary>
+    /// Drains damage event queue and accumulates total damage dealt into ActiveSpell buffer.
+    /// </summary>
     [BurstCompile]
     private struct TrackTickDamageJob : IJob
     {
@@ -186,7 +232,7 @@ public partial struct TickDamageSystem : ISystem
             var sums = new NativeHashMap<int, int>(16, Allocator.Temp);
             while (DamageEventsQueue.TryDequeue(out var evt))
             {
-                if (sums.ContainsKey(evt.DatabaseIndex)) 
+                if (sums.ContainsKey(evt.DatabaseIndex))
                     sums[evt.DatabaseIndex] += evt.DamageAmount;
                 else
                     sums.Add(evt.DatabaseIndex, evt.DamageAmount);

@@ -453,6 +453,7 @@ public partial struct SpellCastingSystem : ISystem
 
                 if (DamageOnTickLookup.HasComponent(spellPrefab))
                 {
+                    ECB.AddBuffer<TickDamageTarget>(chunkIndex, spellEntity);
                     ECB.SetComponent(chunkIndex, spellEntity, new DamageOnTick
                     {
                         Caster = request.Caster,

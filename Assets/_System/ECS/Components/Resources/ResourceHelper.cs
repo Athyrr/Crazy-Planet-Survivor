@@ -12,7 +12,7 @@ public static class ResourceHelper
     /// </summary>
     public static void AddOrDeduct(this DynamicBuffer<ResourceBufferElement> buffer, EResourceType type, int amount)
     {
-        for (int i = 0; i < buffer.Length; i++)
+        for (var i = 0; i < buffer.Length; i++)
         {
             if (buffer[i].Type == type)
             {
@@ -33,11 +33,12 @@ public static class ResourceHelper
     /// </summary>
     public static int GetAmount(this DynamicBuffer<ResourceBufferElement> buffer, EResourceType type)
     {
-        for (int i = 0; i < buffer.Length; i++)
+        for (var i = 0; i < buffer.Length; i++)
         {
             if (buffer[i].Type == type)
                 return buffer[i].Value;
         }
+
         return 0;
     }
 
@@ -55,6 +56,7 @@ public static class ResourceHelper
             if (buffer.GetAmount(cost.Type) < cost.Amount)
                 return false;
         }
+
         return true;
     }
 

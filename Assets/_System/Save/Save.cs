@@ -88,6 +88,8 @@ public class SaveClass_MetaUpgrades
     public string[] StatNames = System.Array.Empty<string>();
     public int[] Levels = System.Array.Empty<int>();
 
+    // todo check for other way to serialize. Maybe serializable dictionnary or a struct.
+    
     #endregion
 }
 

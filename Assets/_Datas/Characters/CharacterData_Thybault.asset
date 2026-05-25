@@ -21,7 +21,15 @@ MonoBehaviour:
   SpellUpgradesPool: {fileID: 11400000, guid: 3b3afd668e44913458431834eafc4ca5, type: 2}
   InitialSpells:
   - {fileID: 11400000, guid: e5827aa156f6bff45ac808a6424db3cb, type: 2}
-  PurchaseCost: []
+  PurchaseCost:
+  - Type: 0
+    Amount: 0
+  - Type: 1
+    Amount: 0
+  - Type: 2
+    Amount: 0
+  - Type: 3
+    Amount: 0
   coreStats:
     MaxHealth: 500
     HealthRecovery: 2

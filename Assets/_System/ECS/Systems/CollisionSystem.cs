@@ -1,4 +1,3 @@
-using _System.ECS.Components.Entity;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
