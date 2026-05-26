@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using PrimeTween;
 using TMPro;
 using UnityEngine;
 
@@ -16,7 +17,7 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
 
     [Header("Overlapped Detail Containers")]
     public GameObject CostContainer;
-    public GameObject InfoContainer; 
+    public GameObject InfoContainer;
 
     [Header("Cost Display (locked)")]
     public ResourceWidgetItem CostItemPrefab;
@@ -30,11 +31,42 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
     [Header("Default Strings")]
     public string DefaultName = "???";
 
+    [Header("NFC Purchase VFX")]
+    public GameObject UnlockVfxPrefab;
+    public Vector3 VfxLocalOffset = new Vector3(0f, 0f, 1.5f);
+    public float VfxLifetime = 3f;
+    public float SpawnDelay = 1.05f;
+    public Vector3 AnimScale = new Vector3(1f, 1f, 1f);
+
+    public void PlayUnlockVfx()
+    {
+        if (UnlockVfxPrefab == null || CharacterPreviewContainer == null)
+            return;
+
+        var vfx = Instantiate(UnlockVfxPrefab, CharacterPreviewContainer);
+        vfx.transform.localPosition = VfxLocalOffset;
+        vfx.transform.localRotation = Quaternion.identity;
+        vfx.transform.localScale = AnimScale;
+        SetLayerRecursive(vfx, CharacterPreviewContainer.gameObject.layer);
+
+        vfx.GetComponent<ParticleSystem>().Play();
+
+        if (VfxLifetime > 0f)
+            Destroy(vfx, VfxLifetime);
+    }
+
+    private static void SetLayerRecursive(GameObject go, int layer)
+    {
+        go.layer = layer;
+        foreach (Transform child in go.transform)
+            SetLayerRecursive(child.gameObject, layer);
+    }
+
     public void Refresh(CharacterSO data, bool isUnlocked)
     {
         Clear();
 
-        if (data == null)
+        if (data == null || CharacterPreviewContainer == null)
             return;
 
         if (!isUnlocked)
@@ -56,8 +88,10 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
             CharacterNameText.text = DefaultName;
 
         // Cost container visible, info hidden
-        if (CostContainer != null) CostContainer.SetActive(true);
-        if (InfoContainer != null) InfoContainer.SetActive(false);
+        if (CostContainer != null)
+            CostContainer.SetActive(true);
+        if (InfoContainer != null)
+            InfoContainer.SetActive(false);
 
         ShowCost(data.PurchaseCost);
     }
@@ -65,15 +99,26 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
     private void ShowUnlocked(CharacterSO data)
     {
         // Real preview
-        if (data.UIPrefab != null && CharacterPreviewContainer != null)
-            Instantiate(data.UIPrefab, CharacterPreviewContainer);
+        Tween.Delay(
+            duration: SpawnDelay,
+            () =>
+            {
+                if (data.UIPrefab != null)
+                    Instantiate(data.UIPrefab, CharacterPreviewContainer);
+            }
+        );
+
+        // if (data.UIPrefab != null && CharacterPreviewContainer != null)
+        //     Instantiate(data.UIPrefab, CharacterPreviewContainer);
 
         if (CharacterNameText != null)
             CharacterNameText.text = data.DisplayName.ToUpper();
 
         // Info container visible, cost hidden
-        if (InfoContainer != null) InfoContainer.SetActive(true);
-        if (CostContainer != null) CostContainer.SetActive(false);
+        if (InfoContainer != null)
+            InfoContainer.SetActive(true);
+        if (CostContainer != null)
+            CostContainer.SetActive(false);
 
         if (CharacterDescriptionText != null)
             CharacterDescriptionText.text = data.Description;
@@ -176,7 +221,9 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
         }
 
         // Reset visibility
-        if (CostContainer != null) CostContainer.SetActive(false);
-        if (InfoContainer != null) InfoContainer.SetActive(false);
+        if (CostContainer != null)
+            CostContainer.SetActive(false);
+        if (InfoContainer != null)
+            InfoContainer.SetActive(false);
     }
 }

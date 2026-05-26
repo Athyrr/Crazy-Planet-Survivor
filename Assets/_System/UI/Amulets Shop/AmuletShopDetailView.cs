@@ -1,14 +1,15 @@
+using PrimeTween;
 using TMPro;
 using UnityEngine;
 
 public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
 {
-    [Header("Preview")] 
+    [Header("Preview")]
     public Transform AmuletPreviewContainer;
     public GameObject DefaultAmulet;
 
     [Header("Overlapped Detail Containers")]
-    public GameObject CostContainer;  
+    public GameObject CostContainer;
     public GameObject InfoContainer;
 
     [Header("Cost Display (locked)")]
@@ -19,11 +20,42 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
     public TMP_Text DescriptionText;
     public TMP_Text EffectsText;
 
-    [Header("Detail Texts")] 
+    [Header("Detail Texts")]
     public TMP_Text AmuletNameText;
 
     [Header("Default Strings")]
     public string DefaultName = "???";
+
+    [Header("NFC Purchase VFX")]
+    public GameObject UnlockVfxPrefab;
+    public Vector3 VfxLocalOffset = new Vector3(0f, 0f, 1.5f);
+    public float VfxLifetime = 3f;
+    public float SpawnDelay = 1.05f;
+    public Vector3 AnimScale = new Vector3(200f, 200f, 200f);
+
+    public void PlayUnlockVfx()
+    {
+        if (UnlockVfxPrefab == null || AmuletPreviewContainer == null)
+            return;
+
+        var vfx = Instantiate(UnlockVfxPrefab, AmuletPreviewContainer);
+        vfx.transform.localPosition = VfxLocalOffset;
+        vfx.transform.localRotation = Quaternion.identity;
+        vfx.transform.localScale = AnimScale;
+        SetLayerRecursive(vfx, AmuletPreviewContainer.gameObject.layer);
+
+        vfx.GetComponent<ParticleSystem>().Play();
+
+        if (VfxLifetime > 0f)
+            Destroy(vfx, VfxLifetime);
+    }
+
+    private static void SetLayerRecursive(GameObject go, int layer)
+    {
+        go.layer = layer;
+        foreach (Transform child in go.transform)
+            SetLayerRecursive(child.gameObject, layer);
+    }
 
     public void Refresh(AmuletSO data, bool isUnlocked)
     {
@@ -46,28 +78,45 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         if (DefaultAmulet != null)
             Instantiate(DefaultAmulet, AmuletPreviewContainer);
 
-        if (AmuletNameText != null) AmuletNameText.text = DefaultName;
+        if (AmuletNameText != null)
+            AmuletNameText.text = DefaultName;
 
         // Cost container active and info container hidden
-        if (CostContainer != null) CostContainer.SetActive(true);
-        if (InfoContainer != null) InfoContainer.SetActive(false);
+        if (CostContainer != null)
+            CostContainer.SetActive(true);
+        if (InfoContainer != null)
+            InfoContainer.SetActive(false);
 
         ShowCost(data.PurchaseCost);
     }
 
     private void ShowUnlocked(AmuletSO data)
     {
-        if (data.UIPrefab != null)
-            Instantiate(data.UIPrefab, AmuletPreviewContainer);
+        Tween.Delay(
+            duration: SpawnDelay,
+            () =>
+            {
+                if (data.UIPrefab != null)
+                    Instantiate(data.UIPrefab, AmuletPreviewContainer);
+            }
+        );
 
-        if (AmuletNameText != null) AmuletNameText.text = data.DisplayName;
+        // if (data.UIPrefab != null)
+        //     Instantiate(data.UIPrefab, AmuletPreviewContainer);
+
+        if (AmuletNameText != null)
+            AmuletNameText.text = data.DisplayName;
 
         // Info container active and cost container hidden
-        if (InfoContainer != null) InfoContainer.SetActive(true);
-        if (CostContainer != null) CostContainer.SetActive(false);
+        if (InfoContainer != null)
+            InfoContainer.SetActive(true);
+        if (CostContainer != null)
+            CostContainer.SetActive(false);
 
-        if (DescriptionText != null) DescriptionText.text = data.Description;
-        if (EffectsText != null) EffectsText.text = FormatEffects(data.Modifiers);
+        if (DescriptionText != null)
+            DescriptionText.text = data.Description;
+        if (EffectsText != null)
+            EffectsText.text = FormatEffects(data.Modifiers);
     }
 
     private void ShowCost(ResourceCost[] costs)
@@ -114,7 +163,8 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
             target = mod.UpgradeType.ToString();
 
         string formattedValue;
-        bool isFlatBonus = mod.CharacterStat is ECharacterStat.PierceCount or ECharacterStat.BounceCount;
+        bool isFlatBonus =
+            mod.CharacterStat is ECharacterStat.PierceCount or ECharacterStat.BounceCount;
 
         if (isFlatBonus)
         {
@@ -149,7 +199,9 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         }
 
         // Reset visibility
-        if (CostContainer != null) CostContainer.SetActive(false);
-        if (InfoContainer != null) InfoContainer.SetActive(false);
+        if (CostContainer != null)
+            CostContainer.SetActive(false);
+        if (InfoContainer != null)
+            InfoContainer.SetActive(false);
     }
 }
