@@ -459,12 +459,23 @@ public partial struct SpellCastingSystem : ISystem
                 if (DamageOnTickLookup.HasComponent(spellPrefab))
                 {
                     ECB.AddBuffer<TickDamageTarget>(chunkIndex, spellEntity);
+                    float prefabRadius = DamageOnTickLookup[spellPrefab].AreaRadius;
+                    if (prefabRadius <= 0f) prefabRadius = 1f;
+
                     ECB.SetComponent(chunkIndex, spellEntity, new DamageOnTick
                     {
                         Caster = request.Caster,
                         TickRate = finalTickRate,
                         DamagePerTick = finalDamage,
-                        AreaRadius = finalSize,
+                        AreaRadius = finalSize * prefabRadius,
+                        PrefabRadius = prefabRadius,
+
+                        Shape = DamageOnTickLookup[spellPrefab].Shape,
+                        HalfAngle = DamageOnTickLookup[spellPrefab].HalfAngle,
+                        SweepStart = DamageOnTickLookup[spellPrefab].SweepStart,
+                        SweepEnd = DamageOnTickLookup[spellPrefab].SweepEnd,
+                        RingThickness = DamageOnTickLookup[spellPrefab].RingThickness,
+
                         Tags = totalTags,
                         TotalCritChance = finalCritChance,
                         TotalCritMultiplier = finalCritDamageMultiplier,

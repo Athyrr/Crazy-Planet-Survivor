@@ -124,9 +124,15 @@ public partial struct TickDamageSystem : ISystem
                 return;
 
             float3 zonePos = zoneTransform.Position;
+            quaternion zoneRot = zoneTransform.Rotation;
             float areaRadius = damageOnTick.AreaRadius;
 
-            // Exit detection, remove out-of-range / destroyed targets
+            // For Ring shapes, expand the query radius to cover the full ring band
+            float queryRadius = areaRadius;
+            if (damageOnTick.Shape == EAttackAreaShape.Ring)
+                queryRadius = areaRadius + damageOnTick.RingThickness * 0.5f;
+
+            // Exit detection — remove targets outside shape or destroyed
             for (int i = targets.Length - 1; i >= 0; i--)
             {
                 Entity target = targets[i].Value;
@@ -140,8 +146,17 @@ public partial struct TickDamageSystem : ISystem
                 bool outOfRange = true;
                 if (TransformLookup.HasComponent(target))
                 {
-                    float dist = math.distance(zonePos, TransformLookup[target].Position);
-                    outOfRange = dist > areaRadius;
+                    float3 targetPos = TransformLookup[target].Position;
+
+                    if (damageOnTick.Shape == EAttackAreaShape.Circle)
+                    {
+                        outOfRange = math.distance(zonePos, targetPos) > areaRadius;
+                    }
+                    else
+                    {
+                        // Cone/Ring: use shape check for exit
+                        outOfRange = !IsInShape(zonePos, zoneRot, damageOnTick, targetPos);
+                    }
                 }
 
                 if (outOfRange)
@@ -163,7 +178,7 @@ public partial struct TickDamageSystem : ISystem
             };
 
             var hits = new NativeList<DistanceHit>(16, Allocator.Temp);
-            CollisionWorld.OverlapSphere(zonePos, areaRadius, ref hits, filter);
+            CollisionWorld.OverlapSphere(zonePos, queryRadius, ref hits, filter);
 
             for (int j = 0; j < hits.Length; j++)
             {
@@ -177,6 +192,14 @@ public partial struct TickDamageSystem : ISystem
 
                 if (DestroyFlagLookup.HasComponent(hitEntity) && DestroyFlagLookup.IsComponentEnabled(hitEntity))
                     continue;
+
+                // Shape filtering (for Cone/Ring, already within OverlapSphere radius)
+                if (damageOnTick.Shape != EAttackAreaShape.Circle)
+                {
+                    float3 hitPos = TransformLookup[hitEntity].Position;
+                    if (!IsInShape(zonePos, zoneRot, damageOnTick, hitPos))
+                        continue;
+                }
 
                 // Deduplicate against existing tracked targets
                 bool alreadyTracked = false;
@@ -215,10 +238,40 @@ public partial struct TickDamageSystem : ISystem
                 });
             }
         }
+
+        /// <summary>Shape-based filtering for non-Circle tick zones.</summary>
+        private static bool IsInShape(float3 position, quaternion rotation,
+            in DamageOnTick damageOnTick, float3 hitPosition)
+        {
+            switch (damageOnTick.Shape)
+            {
+                case EAttackAreaShape.Circle:
+                    return true; // Already handled by OverlapSphere radius
+
+                case EAttackAreaShape.Cone:
+                {
+                    float3 forward = math.forward(rotation);
+                    float3 toHit = math.normalize(hitPosition - position);
+                    float cosAngle = math.dot(forward, toHit);
+                    return cosAngle >= math.cos(damageOnTick.HalfAngle);
+                }
+
+                case EAttackAreaShape.Ring:
+                {
+                    float dist = math.distance(position, hitPosition);
+                    float halfThickness = damageOnTick.RingThickness * 0.5f;
+                    float distFromRing = math.abs(dist - damageOnTick.AreaRadius);
+                    return distFromRing <= halfThickness;
+                }
+
+                default:
+                    return false;
+            }
+        }
     }
 
     /// <summary>
-    /// Drains damage event queue and accumulates total damage dealt into ActiveSpell buffer.
+    /// Retrieves damage event queue and accumulates total damage dealt into ActiveSpell buffer.
     /// </summary>
     [BurstCompile]
     private struct TrackTickDamageJob : IJob
