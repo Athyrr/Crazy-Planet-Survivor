@@ -5691,7 +5691,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4094682867943329831, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: SpawnDelay
-      value: 1.06
+      value: 0.001
       objectReference: {fileID: 0}
     - target: {fileID: 4094682867943329831, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: AnimScale.x
@@ -5712,10 +5712,10 @@ PrefabInstance:
     - target: {fileID: 4094682867943329831, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: UnlockVfxPrefab
       value: 
-      objectReference: {fileID: 2620967146060258612, guid: 147b5c6ddc637e74d976ff01a3bca190, type: 3}
+      objectReference: {fileID: 1937373113512653880, guid: b697b4daf46dc214bbfdba9d8645f39b, type: 3}
     - target: {fileID: 4094682867943329831, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: VfxLocalOffset.y
-      value: -0.5
+      value: -0.9
       objectReference: {fileID: 0}
     - target: {fileID: 4094682867943329831, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: VfxLocalOffset.z
@@ -6176,12 +6176,28 @@ PrefabInstance:
       value: 1.06
       objectReference: {fileID: 0}
     - target: {fileID: 3360265049651993615, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
+      propertyPath: AnimScale.x
+      value: 21
+      objectReference: {fileID: 0}
+    - target: {fileID: 3360265049651993615, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
+      propertyPath: AnimScale.y
+      value: 21
+      objectReference: {fileID: 0}
+    - target: {fileID: 3360265049651993615, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
+      propertyPath: AnimScale.z
+      value: 21
+      objectReference: {fileID: 0}
+    - target: {fileID: 3360265049651993615, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
+      propertyPath: VfxLifetime
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3360265049651993615, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
       propertyPath: UnlockVfxPrefab
       value: 
-      objectReference: {fileID: 2620967146060258612, guid: 147b5c6ddc637e74d976ff01a3bca190, type: 3}
+      objectReference: {fileID: 1705468657739804387, guid: 692691b39f962144f80e651b84f9f2d2, type: 3}
     - target: {fileID: 3360265049651993615, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
       propertyPath: VfxLocalOffset.y
-      value: -150
+      value: -11
       objectReference: {fileID: 0}
     - target: {fileID: 3360265049651993615, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
       propertyPath: VfxLocalOffset.z

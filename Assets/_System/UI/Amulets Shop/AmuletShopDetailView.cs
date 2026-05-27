@@ -1,5 +1,6 @@
 using PrimeTween;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
@@ -10,6 +11,7 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
 
     [Header("Overlapped Detail Containers")]
     public GameObject CostContainer;
+
     public GameObject InfoContainer;
 
     [Header("Cost Display (locked)")]
@@ -18,6 +20,7 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
 
     [Header("Description Display (unlocked)")]
     public TMP_Text DescriptionText;
+
     public TMP_Text EffectsText;
 
     [Header("Detail Texts")]
@@ -29,7 +32,7 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
     [Header("NFC Purchase VFX")]
     public GameObject UnlockVfxPrefab;
     public Vector3 VfxLocalOffset = new Vector3(0f, 0f, 1.5f);
-    public float VfxLifetime = 3f;
+    public float VfxLifetime = 8f;
     public float SpawnDelay = 1.05f;
     public Vector3 AnimScale = new Vector3(200f, 200f, 200f);
 
@@ -38,9 +41,10 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         if (UnlockVfxPrefab == null || AmuletPreviewContainer == null)
             return;
 
-        var vfx = Instantiate(UnlockVfxPrefab, AmuletPreviewContainer);
-        vfx.transform.localPosition = VfxLocalOffset;
-        vfx.transform.localRotation = Quaternion.identity;
+        var vfx = Instantiate(UnlockVfxPrefab);
+        vfx.transform.localPosition = AmuletPreviewContainer.transform.position + VfxLocalOffset;
+        vfx.transform.localRotation =
+            AmuletPreviewContainer.transform.rotation * Quaternion.identity;
         vfx.transform.localScale = AnimScale;
         SetLayerRecursive(vfx, AmuletPreviewContainer.gameObject.layer);
 
@@ -92,10 +96,23 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
 
     private void ShowUnlocked(AmuletSO data)
     {
+        if (DefaultAmulet != null)
+            Instantiate(DefaultAmulet, AmuletPreviewContainer);
+
         Tween.Delay(
             duration: SpawnDelay,
             () =>
             {
+                if (DefaultAmulet != null)
+                {
+                    foreach (Transform child in AmuletPreviewContainer.transform)
+                    {
+                        if (child.gameObject != UnlockVfxPrefab.gameObject)
+                        {
+                            Destroy(child.gameObject);
+                        }
+                    }
+                }
                 if (data.UIPrefab != null)
                     Instantiate(data.UIPrefab, AmuletPreviewContainer);
             }
