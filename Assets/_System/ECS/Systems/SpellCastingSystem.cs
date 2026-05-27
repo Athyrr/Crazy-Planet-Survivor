@@ -26,6 +26,7 @@ public partial struct SpellCastingSystem : ISystem
 
     private ComponentLookup<DamageOnContact> _damageOnContactLookup;
     private ComponentLookup<DamageOnTick> _damageOnTickLookup;
+    private ComponentLookup<AreaAttack> _areaAttackLookup;
 
     private ComponentLookup<LinearMovement> _linearMovementLookup;
     private ComponentLookup<OrbitMovement> _orbitMovementLookup;
@@ -60,6 +61,7 @@ public partial struct SpellCastingSystem : ISystem
         _selfRotateLookup = SystemAPI.GetComponentLookup<SelfRotate>(true);
         _damageOnContactLookup = SystemAPI.GetComponentLookup<DamageOnContact>(true);
         _damageOnTickLookup = SystemAPI.GetComponentLookup<DamageOnTick>(true);
+        _areaAttackLookup = SystemAPI.GetComponentLookup<AreaAttack>(true);
         _linearMovementLookup = SystemAPI.GetComponentLookup<LinearMovement>(true);
         _orbitMovementLookup = SystemAPI.GetComponentLookup<OrbitMovement>(true);
         _followMovementLookup = SystemAPI.GetComponentLookup<FollowTargetMovement>(true);
@@ -89,6 +91,7 @@ public partial struct SpellCastingSystem : ISystem
         _selfRotateLookup.Update(ref state);
         _damageOnContactLookup.Update(ref state);
         _damageOnTickLookup.Update(ref state);
+        _areaAttackLookup.Update(ref state);
         _linearMovementLookup.Update(ref state);
         _orbitMovementLookup.Update(ref state);
         _followMovementLookup.Update(ref state);
@@ -127,6 +130,7 @@ public partial struct SpellCastingSystem : ISystem
             SelfRotateLookup = _selfRotateLookup,
             DamageOnContactLookup = _damageOnContactLookup,
             DamageOnTickLookup = _damageOnTickLookup,
+            AreaAttackLookup = _areaAttackLookup,
             LinearMovementLookup = _linearMovementLookup,
             OrbitMovementLookup = _orbitMovementLookup,
             FollowMovementLookup = _followMovementLookup,
@@ -163,6 +167,7 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<SelfRotate> SelfRotateLookup;
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
         [ReadOnly] public ComponentLookup<DamageOnTick> DamageOnTickLookup;
+        [ReadOnly] public ComponentLookup<AreaAttack> AreaAttackLookup;
         [ReadOnly] public ComponentLookup<LinearMovement> LinearMovementLookup;
         [ReadOnly] public ComponentLookup<OrbitMovement> OrbitMovementLookup;
         [ReadOnly] public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
@@ -335,7 +340,7 @@ public partial struct SpellCastingSystem : ISystem
 
             if (!isAttached)
             {
-                if (targetFound && isProjectile)
+                if (targetFound && (isProjectile || AreaAttackLookup.HasComponent(spellPrefab))) // todo store variable
                 {
                     float3 toTarget = targetPosition - baseSpawnPos;
                     if (math.lengthsq(toTarget) > math.EPSILON)
@@ -467,6 +472,34 @@ public partial struct SpellCastingSystem : ISystem
                     });
                 }
 
+                // Area Attack
+                if (AreaAttackLookup.HasComponent(spellPrefab))
+                {
+                    ECB.SetComponent(chunkIndex, spellEntity, new AreaAttack
+                    {
+                        Shape = AreaAttackLookup[spellPrefab].Shape,
+
+                        RadiusStart = finalSize * AreaAttackLookup[spellPrefab].RadiusStart,
+                        RadiusEnd = finalSize * AreaAttackLookup[spellPrefab].RadiusEnd,
+
+                        HalfAngle = AreaAttackLookup[spellPrefab].HalfAngle,
+                        SweepStart = AreaAttackLookup[spellPrefab].SweepStart,
+                        SweepEnd = AreaAttackLookup[spellPrefab].SweepEnd,
+
+                        RingThickness = AreaAttackLookup[spellPrefab].RingThickness,
+
+                        ActivationDelay = AreaAttackLookup[spellPrefab].ActivationDelay,
+                        ActiveDuration = AreaAttackLookup[spellPrefab].ActiveDuration,
+
+                        Damage = finalDamage,
+                        CritChance = activeSpell.FinalCritChance,
+                        CritMultiplier = activeSpell.FinalCritDamageMultiplier,
+                        Caster = request.Caster,
+                        TargetLayers = filter.CollidesWith,
+                        Tags = totalTags,
+                    });
+                }
+
                 // Lifetime
                 if (LifetimeLookup.HasComponent(spellPrefab))
                 {
@@ -510,7 +543,7 @@ public partial struct SpellCastingSystem : ISystem
                         }
                     }
                 }
-                
+
                 // Bounce
                 bool forceBounce = (totalTags & ESpellTag.Bouncing) != 0;
                 if ((activeSpell.FinalBounces > 0 || forceBounce) && BounceLookup.HasComponent(spellPrefab))

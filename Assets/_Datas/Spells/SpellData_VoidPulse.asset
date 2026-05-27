@@ -10,27 +10,27 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
-  m_Name: SpellData_Fireball
+  m_Name: SpellData_VoidPulse
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 1
-  Icon: {fileID: 1555579377, guid: 4e1d115e8afe1c74cb4527dc970b8362, type: 3}
-  DisplayName: Fireball
+  ID: 14
+  Icon: {fileID: 21300000, guid: 74ed7bf73e1e447438851d4bd949ba83, type: 3}
+  DisplayName: Void Pulse
   Description: 
-  SpellPrefab: {fileID: 486797506737824905, guid: 41fa62722a0249648b1dbdd9ff513461, type: 3}
+  SpellPrefab: {fileID: 4973290158019754163, guid: 4a6409731da12644f87c99473fd2d753, type: 3}
   Rarity: 0
-  Tags: 2
-  BaseDamage: 65
-  BaseCooldown: 0.7
-  BaseSpeed: 18
+  Tags: 3146241
+  BaseDamage: 30
+  BaseCooldown: 3
+  BaseSpeed: 0
   BaseSpawnOffset: {x: 0, y: 0, z: 0}
-  BaseCastRange: 20
-  BaseSize: 1
-  TargetingMode: 0
-  Lifetime: 2
+  BaseCastRange: 0
+  BaseSize: 3
+  TargetingMode: 1
+  Lifetime: 1
   Bounces: 0
   BounceRange: 0
   Pierces: 0
-  TickRate: -1
-  ChildPrefab: {fileID: 0}
+  TickRate: 1
+  ChildPrefab: {fileID: 4819856803883335328, guid: b956ff6962694a44c85938fb550fe8ca, type: 3}
   BaseAmount: 1
-  ChildrenSpawnRadius: 1
+  ChildrenSpawnRadius: 0
