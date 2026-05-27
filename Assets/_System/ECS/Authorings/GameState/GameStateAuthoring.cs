@@ -16,13 +16,15 @@ public class GameStateAuthoring : MonoBehaviour
             AddBuffer<UpgradeSelectionBufferElement>(entity);
 
             // Store selected character
+            const int defaultCharacterIndex = 0;
             AddComponent(entity, new SelectedCharacter
             {
-                DbIndex = 0,
+                DbIndex = defaultCharacterIndex,
             });
 
-            // Store playable characters 
-            AddBuffer<UnlockedCharacter>(entity);
+            // Store playable characters
+            var unlockedCharacters = AddBuffer<UnlockedCharacter>(entity);
+            unlockedCharacters.Add(new UnlockedCharacter { DbIndex = defaultCharacterIndex });
 
             // Store wearable amulets
             AddBuffer<UnlockedAmulet>(entity);

@@ -46,7 +46,7 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
         ListView.OpenView();
         DetailView.OpenView();
 
-        // RefreshListView();
+        RefreshListView();
 
         int startIdx = GetStartingIndex();
         FocusItem(startIdx);
