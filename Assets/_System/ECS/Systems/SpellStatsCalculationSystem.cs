@@ -265,15 +265,15 @@ public partial struct SpellStatsCalculationSystem : ISystem
     {
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
 
-        public void Execute(ref DamageOnTick damageOnTick, ref LocalTransform transform, in SpellSource spellSource)
+        private void Execute(ref DamageOnTick damageOnTick, ref LocalTransform transform, in SpellSource spellSource)
         {
             if (!ActiveSpellLookup.TryGetBuffer(spellSource.CasterEntity, out var activeSpells))
                 return;
 
             ActiveSpell activeSpell = default;
-            bool found = false;
+            var found = false;
 
-            for (int i = 0; i < activeSpells.Length; i++)
+            for (var i = 0; i < activeSpells.Length; i++)
             {
                 if (activeSpells[i].DatabaseIndex == spellSource.DatabaseIndex)
                 {
@@ -287,14 +287,15 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 return;
 
             damageOnTick.DamagePerTick = activeSpell.FinalDamage;
-            damageOnTick.AreaRadius = activeSpell.FinalSize;
+            var baseRadius = damageOnTick.PrefabRadius > 0f ? damageOnTick.PrefabRadius : 1f;
+            damageOnTick.AreaRadius = activeSpell.FinalSize * baseRadius;
             damageOnTick.TickRate = activeSpell.FinalTickRate;
             damageOnTick.Tags |= activeSpell.AddedTags;
             damageOnTick.TickRate = activeSpell.FinalTickRate;
             damageOnTick.TotalCritChance = activeSpell.FinalCritChance;
             damageOnTick.TotalCritMultiplier = activeSpell.FinalCritDamageMultiplier;
 
-            // transform.Scale = activeSpell.FinalArea;
+            transform.Scale = activeSpell.FinalSize;
         }
     }
 
@@ -311,7 +312,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [ReadOnly] public BufferLookup<Child> ChildLookup;
 
-        public void Execute(
+        private void Execute(
             [ChunkIndexInQuery] int chunkIndex,
             Entity parentEntity,
             ref SubSpellsSpawner spawner,
@@ -382,7 +383,8 @@ public partial struct SpellStatsCalculationSystem : ISystem
                     {
                         var childDmg = DamageOnTickLookup[child];
                         childDmg.DamagePerTick = activeSpell.FinalDamage;
-                        childDmg.AreaRadius = activeSpell.FinalSize;
+                        float childBaseRadius = childDmg.PrefabRadius > 0f ? childDmg.PrefabRadius : 1f;
+                        childDmg.AreaRadius = activeSpell.FinalSize * childBaseRadius;
                         childDmg.Tags |= activeSpell.AddedTags;
                         ECB.SetComponent(chunkIndex, child, childDmg);
                     }

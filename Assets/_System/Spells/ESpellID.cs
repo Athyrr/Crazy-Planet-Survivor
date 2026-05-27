@@ -20,7 +20,8 @@ public enum ESpellID : byte
     // Enemy Spells
     Enemy_Projectile = 12,
 
-    VoidSlash = 13
+    VoidSlash = 13,
+    VoidPulse = 14
 }
 
 /// <summary>

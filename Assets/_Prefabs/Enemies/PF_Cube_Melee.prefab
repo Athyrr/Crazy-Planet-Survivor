@@ -290,22 +290,22 @@ MonoBehaviour:
     MaxHealth: 120
     HealthRecovery: 0
     BaseArmor: 0
-    DamageReductionMultiplier: 0
+    Armor: 0
     BaseMoveSpeed: 5
-    MoveSpeedMultiplier: 1
+    MoveSpeed: 0
     BasePickupRange: 0
-    PickupRangeMultiplier: 1
-    GlobalDamageMultiplier: 1
-    GlobalCooldownReductionMultiplier: 0
-    GlobalSpellSizeMultiplier: 1
-    GlobalSpellSpeedMultiplier: 1
-    GlobalSpellDurationMultiplier: 1
-    GlobalCastRangeMultiplier: 1
-    GlobalAmountBonus: 0
-    GlobalPierceBonus: 0
-    GlobalBounceBonus: 0
+    PickupRange: 0
+    Damage: 0
+    AttackSpeed: 0
+    SpellSize: 0
+    SpellSpeed: 0
+    SpellDuration: 0
+    CastRange: 0
+    Amount: 0
+    Pierce: 0
+    Bounce: 0
     CritChance: 0
-    CritDamageMultiplier: 0
+    CritDamage: 0
   InitialSpells: []
 --- !u!114 &7077652745905088192
 MonoBehaviour:
@@ -368,7 +368,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4960229139857780973}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 05265eb629ba62142b63f6dffe26b3de, type: 3}
   m_Name: 
