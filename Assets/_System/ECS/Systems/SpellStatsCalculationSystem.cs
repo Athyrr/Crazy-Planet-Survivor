@@ -245,7 +245,11 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 spell.FinalBounces = baseSpellData.Bounces + bounceAdd;
                 spell.FinalPierces = baseSpellData.Pierces + pierceAdd;
 
-                spell.FinalRange = math.max(1f, baseSpellData.BaseCastRange * rangeMult);
+                // Melee/CaC spells extend their cast range with size upgrades.
+                float effectiveRangeMult = baseSpellData.SizeScalesRange
+                    ? rangeMult * sizeMult
+                    : rangeMult;
+                spell.FinalRange = math.max(1f, baseSpellData.BaseCastRange * effectiveRangeMult);
                 spell.FinalBounceRange = math.max(1, baseSpellData.BounceRange * bounceRangeMult);
 
                 spell.FinalCritChance = math.clamp(critChanceAdd, 0f, 1f);

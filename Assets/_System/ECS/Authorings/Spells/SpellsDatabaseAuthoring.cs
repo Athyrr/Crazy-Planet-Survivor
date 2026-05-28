@@ -42,6 +42,7 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlob.BaseSpeed = spellSO.BaseSpeed;
                 spellBlob.Lifetime = spellSO.Lifetime;
                 spellBlob.BaseCastRange = spellSO.BaseCastRange;
+                spellBlob.SizeScalesRange = spellSO.SizeScalesRange;
                 spellBlob.BaseSpawnOffset = spellSO.BaseSpawnOffset;
                 spellBlob.BaseSize = spellSO.BaseSize;
 

@@ -47,6 +47,9 @@ public class SpellDataSO : ScriptableObject
     [Tooltip("Max distance the spell can travel or target (if applicable).")]
     public float BaseCastRange = 5f;
 
+    [Tooltip("If true, Size upgrades also extend the cast range (used for melee/CaC spells like VoidSlash).")]
+    public bool SizeScalesRange = false;
+
     [Tooltip("Visual size of the spell (affect the scale of the spell).")]
     public float BaseSize = 1f;
 

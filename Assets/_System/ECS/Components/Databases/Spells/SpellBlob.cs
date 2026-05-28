@@ -14,6 +14,7 @@ public struct SpellBlob
     public float BaseSpeed;
     public float Lifetime;
     public float BaseCastRange;
+    public bool SizeScalesRange;
     public float3 BaseSpawnOffset;
     public float BaseSize;
     

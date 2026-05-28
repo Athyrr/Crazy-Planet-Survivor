@@ -275,7 +275,7 @@ public partial struct SpellCastingSystem : ISystem
 
                 case ESpellTargetingMode.CastForward:
                     targetPosition = casterTransform.Position +
-                                     (casterTransform.Forward() * baseSpellData.BaseCastRange);
+                                     (casterTransform.Forward() * finalRange);
                     targetFound = true;
                     break;
 
@@ -283,7 +283,7 @@ public partial struct SpellCastingSystem : ISystem
                     PointDistanceInput input = new PointDistanceInput
                     {
                         Position = casterTransform.Position,
-                        MaxDistance = baseSpellData.BaseCastRange,
+                        MaxDistance = finalRange,
                         Filter = new CollisionFilter
                         {
                             BelongsTo = CollisionLayers.Raycast,
@@ -319,7 +319,7 @@ public partial struct SpellCastingSystem : ISystem
                             ref random,
                             casterTransform.Position,
                             planetCenter,
-                            baseSpellData.BaseCastRange,
+                            finalRange,
                             ref groundFilter,
                             out var p,
                             out var n))

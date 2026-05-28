@@ -9,6 +9,7 @@ using UnityEngine;
 public class GameManager : MonoBehaviour
 {
     public delegate void GameStateChanged(EGameState newState);
+
     public event GameStateChanged OnGameStateChanged;
 
     public Action<EPlanetID> OnPlanetSelected;
@@ -30,36 +31,44 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
         Instance = this;
         DontDestroyOnLoad(this.gameObject);
     }
-    
-    private IEnumerator Start()
-    {
-        _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-        _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
-        _planetScenesBufferQuery = _entityManager.CreateEntityQuery(typeof(PlanetSceneRefBufferElement));
 
+
+    private void Start()
+    {
+        StartCoroutine(WaitForSceneBufferCoroutine());
+    }
+    
+    private IEnumerator WaitForSceneBufferCoroutine()
+    {
         // todo valide this temp fix @Athyrr @hyverno 
-        float timeout = 1f;
-        while (_planetScenesBufferQuery.IsEmpty && timeout > 0)
+        // float timeout = 1f;
+        while (_planetScenesBufferQuery.IsEmpty)
         {
-            yield return null; 
-            timeout -= Time.deltaTime;
+            Debug.LogError("[GameManager] wait load _planetScenesBuffer !");
+            yield return null;
+            // timeout -= Time.deltaTime;
         }
 
         if (_planetScenesBufferQuery.IsEmpty)
         {
-            Debug.LogError("[GameManager] wait load _planetScenesBuffer !");
             yield break;
         }
 
         InternalLoadScene(EPlanetID.Lobby, EGameState.Lobby, sendStartRequest: false);
+        yield return null;
     }
 
     private void OnEnable()
     {
         OnGameStateChanged += HandleInternalStateChange;
+        
+        _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+        _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
+        _planetScenesBufferQuery = _entityManager.CreateEntityQuery(typeof(PlanetSceneRefBufferElement));
     }
 
     private void OnDisable()
@@ -110,7 +119,7 @@ public class GameManager : MonoBehaviour
         if (_planetScenesBufferQuery.IsEmpty)
         {
             Debug.Log($"[GameManager] _planetScenesBufferQuery is empty");
-            
+
             return false;
         }
 
@@ -125,6 +134,7 @@ public class GameManager : MonoBehaviour
                 return true;
             }
         }
+
         return false;
     }
 
@@ -133,7 +143,8 @@ public class GameManager : MonoBehaviour
         // Unload
         if (_currentSceneEntity != Entity.Null)
         {
-            SceneSystem.UnloadScene(World.DefaultGameObjectInjectionWorld.Unmanaged, _currentSceneEntity, SceneSystem.UnloadParameters.DestroyMetaEntities);
+            SceneSystem.UnloadScene(World.DefaultGameObjectInjectionWorld.Unmanaged, _currentSceneEntity,
+                SceneSystem.UnloadParameters.DestroyMetaEntities);
             _currentSceneEntity = Entity.Null;
             yield return null;
         }
@@ -170,7 +181,7 @@ public class GameManager : MonoBehaviour
 
         // Update state
         ChangeState(targetState);
-        
+
         var planetData = _entityManager.CreateEntityQuery(typeof(PlanetData)).GetSingleton<PlanetData>();
         OnPlanetSelected?.Invoke(planetData.PlanetID);
 
