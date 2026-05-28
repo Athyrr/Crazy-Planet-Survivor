@@ -5,13 +5,11 @@ using PrimeTween;
 using Unity.Entities;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
 
 public class UpgradeSelectionView : UIViewBase
 {
     public event Action<int> OnUpgradeSelected;
-
-    [Header("Interaction")] public Camera UICamera;
-    public LayerMask UI3DLayer;
 
     [Header("References")] public Transform UpgradesContainer;
     public UpgradeViewItem UpgradePrefab;
@@ -52,17 +50,18 @@ public class UpgradeSelectionView : UIViewBase
         _inputs.UI.Disable();
     }
 
-    private void Update()
-    {
-        if (!_canInteract)
-            return;
-
-        HandleHoverAndClick();
-    }
-
     public void ClearSelection()
     {
         StopAllCoroutines();
+
+        foreach (var item in _spawnedUpgradeItems)
+        {
+            if (item == null)
+                continue;
+            item.PointerEntered -= HandleItemPointerEntered;
+            item.PointerExited -= HandleItemPointerExited;
+            item.PointerClicked -= HandleItemPointerClicked;
+        }
 
         foreach (Transform child in UpgradesContainer)
             Destroy(child.gameObject);
@@ -156,6 +155,9 @@ public class UpgradeSelectionView : UIViewBase
             cardsTransforms.Add(upgradeViewItem.transform);
 
             upgradeViewItem.SetData(ref upgradeData, indice);
+            upgradeViewItem.PointerEntered += HandleItemPointerEntered;
+            upgradeViewItem.PointerExited += HandleItemPointerExited;
+            upgradeViewItem.PointerClicked += HandleItemPointerClicked;
 
             upgradeViewItem.transform.localScale = Vector3.zero;
         }
@@ -165,72 +167,32 @@ public class UpgradeSelectionView : UIViewBase
     }
 
 
-    private void HandleHoverAndClick()
+    private void HandleItemPointerEntered(UpgradeViewItem item)
     {
-        if (UICamera == null)
-            return;
-
         if (!_canInteract)
             return;
 
-        Vector2 pointerPos = Vector2.zero;
-        bool isClicked = false;
-        bool hasPointer = false;
+        int idx = _spawnedUpgradeItems.IndexOf(item);
+        if (idx >= 0)
+            SetFocusedIndex(idx);
+    }
 
-        // Prefer an active touch over the mouse — on mobile/tablet, Unity often
-        // exposes both, and the synthetic mouse would otherwise eat the touch.
-        if (Touchscreen.current != null)
-        {
-            for (int i = 0; i < Touchscreen.current.touches.Count; i++)
-            {
-                var touch = Touchscreen.current.touches[i];
-                var phase = touch.phase.ReadValue();
-                if (phase == UnityEngine.InputSystem.TouchPhase.None ||
-                    phase == UnityEngine.InputSystem.TouchPhase.Canceled)
-                    continue;
-
-                pointerPos = touch.position.ReadValue();
-                hasPointer = true;
-                // Treat both the initial tap and a release-over-card as a confirm.
-                if (phase == UnityEngine.InputSystem.TouchPhase.Began ||
-                    phase == UnityEngine.InputSystem.TouchPhase.Ended)
-                    isClicked = true;
-                break;
-            }
-        }
-
-        if (!hasPointer && Mouse.current != null)
-        {
-            pointerPos = Mouse.current.position.ReadValue();
-            isClicked = Mouse.current.leftButton.wasPressedThisFrame;
-            hasPointer = true;
-        }
-
-        if (!hasPointer)
+    private void HandleItemPointerExited(UpgradeViewItem item)
+    {
+        if (!_canInteract || _currentHoveredCard != item)
             return;
 
-        Ray ray = UICamera.ScreenPointToRay(pointerPos);
-        UpgradeViewItem hitCard = null;
+        _currentHoveredCard.SetHovered(false);
+        _currentHoveredCard = null;
+        _focusedIndex = -1;
+    }
 
-        if (Physics.Raycast(ray, out RaycastHit hitInfo, 1000f, UI3DLayer))
-            hitCard = hitInfo.collider.GetComponentInParent<UpgradeViewItem>();
+    private void HandleItemPointerClicked(UpgradeViewItem item)
+    {
+        if (!_canInteract)
+            return;
 
-        if (hitCard != _currentHoveredCard)
-        {
-            if (_currentHoveredCard != null)
-                _currentHoveredCard.SetHovered(false);
-
-            if (hitCard != null)
-            {
-                hitCard.SetHovered(true);
-                _focusedIndex = _spawnedUpgradeItems.IndexOf(hitCard);
-            }
-
-            _currentHoveredCard = hitCard;
-        }
-
-        if (isClicked && _currentHoveredCard != null)
-            ConfirmSelection(_currentHoveredCard);
+        ConfirmSelection(item);
     }
 
     private void OnNavigate(InputAction.CallbackContext ctx)
