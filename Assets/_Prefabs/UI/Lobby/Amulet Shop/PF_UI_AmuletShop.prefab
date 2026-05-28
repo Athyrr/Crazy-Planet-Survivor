@@ -752,7 +752,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -34.820007}
+  m_AnchoredPosition: {x: 0, y: -34.82007}
   m_SizeDelta: {x: 0, y: -69.64}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &6613217684097594991
@@ -1075,6 +1075,11 @@ MonoBehaviour:
   EffectsText: {fileID: 1008205527450119107}
   AmuletNameText: {fileID: 3973757895058707583}
   DefaultName: Locked
+  UnlockVfxPrefab: {fileID: 1705468657739804387, guid: 692691b39f962144f80e651b84f9f2d2, type: 3}
+  VfxLocalOffset: {x: 0, y: -11, z: 0}
+  VfxLifetime: 5
+  SpawnDelay: 1.06
+  AnimScale: {x: 21, y: 21, z: 21}
 --- !u!1 &9012525983366388410
 GameObject:
   m_ObjectHideFlags: 0
@@ -2074,6 +2079,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 1094772355534346980}
     m_Modifications:
     - target: {fileID: 606973306246309545, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
+      propertyPath: m_SpriteState.m_SelectedSprite
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 606973306246309545, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
       objectReference: {fileID: 8037101515032699205}
@@ -2099,7 +2108,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2559481691422181212, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
       propertyPath: m_AnchorMax.x
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2559481691422181212, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
       propertyPath: m_AnchorMax.y
@@ -2107,7 +2116,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2559481691422181212, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
       propertyPath: m_AnchorMin.x
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2559481691422181212, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
       propertyPath: m_AnchorMin.y
@@ -2151,7 +2160,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2559481691422181212, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -400
+      value: 50
       objectReference: {fileID: 0}
     - target: {fileID: 2559481691422181212, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -2397,6 +2406,10 @@ PrefabInstance:
     - target: {fileID: 5807296619678415717, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
       propertyPath: m_Name
       value: Button - Action
+      objectReference: {fileID: 0}
+    - target: {fileID: 6970214425271919516, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
+      propertyPath: m_text
+      value: Purchase
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

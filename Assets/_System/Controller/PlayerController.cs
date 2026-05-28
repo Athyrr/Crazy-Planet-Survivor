@@ -98,7 +98,10 @@ public class PlayerController : MonoBehaviour
     {
         if (ctx.canceled)
             _isTabPressed = true;
-        
+
         Debug.Log(("Tab pressed"));
     }
+
+    /// <summary>Queues a one-frame Interact pulse (touch button, scripted triggers).</summary>
+    public void RequestInteract() => _isInteractPressed = true;
 }

@@ -26,8 +26,31 @@ public class UpgradeSelectionView : UIViewBase
 
     private List<UpgradeViewItem> _spawnedUpgradeItems = new List<UpgradeViewItem>();
     private UpgradeViewItem _currentHoveredCard;
+    private int _focusedIndex = -1;
     private bool _canInteract = false;
+    private bool _navAxisActive = false;
     private Coroutine _animationCoroutine;
+    private GameInputs _inputs;
+
+    private void OnEnable()
+    {
+        if (_inputs == null)
+            _inputs = new GameInputs();
+
+        _inputs.UI.Navigate.performed += OnNavigate;
+        _inputs.UI.Submit.performed += OnSubmit;
+        _inputs.UI.Enable();
+    }
+
+    private void OnDisable()
+    {
+        if (_inputs == null)
+            return;
+
+        _inputs.UI.Navigate.performed -= OnNavigate;
+        _inputs.UI.Submit.performed -= OnSubmit;
+        _inputs.UI.Disable();
+    }
 
     private void Update()
     {
@@ -46,6 +69,8 @@ public class UpgradeSelectionView : UIViewBase
 
         _spawnedUpgradeItems.Clear();
         _currentHoveredCard = null;
+        _focusedIndex = -1;
+        _navAxisActive = false;
     }
 
     private void ApplyLayout(List<Transform> cards)
@@ -87,6 +112,9 @@ public class UpgradeSelectionView : UIViewBase
 
         _canInteract = true;
         _animationCoroutine = null;
+
+        if (_focusedIndex < 0 && _spawnedUpgradeItems.Count > 0)
+            SetFocusedIndex(_spawnedUpgradeItems.Count / 2);
     }
 
     private IEnumerator AnimateSingleCardPop(Transform target)
@@ -172,18 +200,75 @@ public class UpgradeSelectionView : UIViewBase
                 _currentHoveredCard.SetHovered(false);
 
             if (hitCard != null)
+            {
                 hitCard.SetHovered(true);
+                _focusedIndex = _spawnedUpgradeItems.IndexOf(hitCard);
+            }
 
             _currentHoveredCard = hitCard;
         }
 
         if (isClicked && _currentHoveredCard != null)
-        {
-            int selectedDbIndex = _currentHoveredCard.DbIndex;
-            _canInteract = false;
+            ConfirmSelection(_currentHoveredCard);
+    }
 
-            Tween.Scale(_currentHoveredCard.transform, endValue: 1.2f, duration: 0.2f)
-                .OnComplete(() => OnUpgradeSelected?.Invoke(selectedDbIndex));
+    private void OnNavigate(InputAction.CallbackContext ctx)
+    {
+        if (!_canInteract || _spawnedUpgradeItems.Count == 0)
+            return;
+
+        Vector2 v = ctx.ReadValue<Vector2>();
+        float absX = Mathf.Abs(v.x);
+
+        // Debounce so a held stick/key only steps once per actuation.
+        if (absX < 0.3f)
+        {
+            _navAxisActive = false;
+            return;
         }
+        if (_navAxisActive)
+            return;
+        _navAxisActive = true;
+
+        int step = v.x > 0 ? 1 : -1;
+        int n = _spawnedUpgradeItems.Count;
+        int start = _focusedIndex < 0 ? 0 : _focusedIndex;
+        int next = ((start + step) % n + n) % n;
+        SetFocusedIndex(next);
+    }
+
+    private void OnSubmit(InputAction.CallbackContext ctx)
+    {
+        if (!_canInteract || _currentHoveredCard == null)
+            return;
+
+        ConfirmSelection(_currentHoveredCard);
+    }
+
+    private void SetFocusedIndex(int idx)
+    {
+        if (idx < 0 || idx >= _spawnedUpgradeItems.Count)
+            return;
+
+        _focusedIndex = idx;
+        UpgradeViewItem card = _spawnedUpgradeItems[idx];
+
+        if (_currentHoveredCard == card)
+            return;
+
+        if (_currentHoveredCard != null)
+            _currentHoveredCard.SetHovered(false);
+
+        card.SetHovered(true);
+        _currentHoveredCard = card;
+    }
+
+    private void ConfirmSelection(UpgradeViewItem card)
+    {
+        int selectedDbIndex = card.DbIndex;
+        _canInteract = false;
+
+        Tween.Scale(card.transform, endValue: 1.2f, duration: 0.2f)
+            .OnComplete(() => OnUpgradeSelected?.Invoke(selectedDbIndex));
     }
 }
