@@ -175,18 +175,39 @@ public class UpgradeSelectionView : UIViewBase
 
         Vector2 pointerPos = Vector2.zero;
         bool isClicked = false;
+        bool hasPointer = false;
 
-        if (Mouse.current != null)
+        // Prefer an active touch over the mouse — on mobile/tablet, Unity often
+        // exposes both, and the synthetic mouse would otherwise eat the touch.
+        if (Touchscreen.current != null)
+        {
+            for (int i = 0; i < Touchscreen.current.touches.Count; i++)
+            {
+                var touch = Touchscreen.current.touches[i];
+                var phase = touch.phase.ReadValue();
+                if (phase == UnityEngine.InputSystem.TouchPhase.None ||
+                    phase == UnityEngine.InputSystem.TouchPhase.Canceled)
+                    continue;
+
+                pointerPos = touch.position.ReadValue();
+                hasPointer = true;
+                // Treat both the initial tap and a release-over-card as a confirm.
+                if (phase == UnityEngine.InputSystem.TouchPhase.Began ||
+                    phase == UnityEngine.InputSystem.TouchPhase.Ended)
+                    isClicked = true;
+                break;
+            }
+        }
+
+        if (!hasPointer && Mouse.current != null)
         {
             pointerPos = Mouse.current.position.ReadValue();
             isClicked = Mouse.current.leftButton.wasPressedThisFrame;
+            hasPointer = true;
         }
-        else if (Touchscreen.current != null && Touchscreen.current.touches.Count > 0)
-        {
-            var touch = Touchscreen.current.touches[0];
-            pointerPos = touch.position.ReadValue();
-            isClicked = touch.phase.ReadValue() == UnityEngine.InputSystem.TouchPhase.Began;
-        }
+
+        if (!hasPointer)
+            return;
 
         Ray ray = UICamera.ScreenPointToRay(pointerPos);
         UpgradeViewItem hitCard = null;
