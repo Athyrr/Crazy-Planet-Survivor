@@ -17,6 +17,11 @@ public class GameManager : MonoBehaviour
     public GameObject LoadingPanel;
     [SerializeField] private float _minLoadingTime = 1.0f;
 
+    [Header("Performance")]
+    [Tooltip("Frames per second cap for the whole app. 60 for smooth mobile play. " +
+             "Limited by the device screen's max refresh rate.")]
+    [SerializeField] private int TargetFrameRate = 60;
+
     public static GameManager Instance { get; private set; }
 
     private EntityManager _entityManager;
@@ -34,6 +39,7 @@ public class GameManager : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(this.gameObject);
+        Application.targetFrameRate = TargetFrameRate;
     }
 
 

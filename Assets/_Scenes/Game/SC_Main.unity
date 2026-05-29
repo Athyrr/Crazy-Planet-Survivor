@@ -399,6 +399,14 @@ MonoBehaviour:
   PlanetSelectionUIController: {fileID: 1154809228}
   amuletShopUIController: {fileID: 1143203180}
   metaProgressionController: {fileID: 3735974512835731479}
+  _galaxy: {fileID: 498845685}
+  _galaxyPlacements:
+  - PlanetID: 3
+    GalaxyPosition: {x: 4727, y: -9252, z: -1329}
+    GalaxyRotation: {x: -20.4, y: 0, z: 6.5}
+  - PlanetID: 4
+    GalaxyPosition: {x: 4727, y: -9252, z: -1329}
+    GalaxyRotation: {x: -20.4, y: 0, z: 6.5}
 --- !u!1001 &421524026
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -671,6 +679,11 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!1 &498845685 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 682971318369080299, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+  m_PrefabInstance: {fileID: 685410021970099145}
+  m_PrefabAsset: {fileID: 0}
 --- !u!224 &632464768 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4408138108673131992, guid: c9ef23c0b86fa3e409246fa41bf021c4, type: 3}
@@ -991,6 +1004,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   LoadingPanel: {fileID: 801197982}
   _minLoadingTime: 1.5
+  TargetFrameRate: 60
 --- !u!4 &854452524
 Transform:
   m_ObjectHideFlags: 0
@@ -4047,10 +4061,10 @@ MonoBehaviour:
   TargetOffset: {x: 0, y: 0, z: 0}
   TrackerSettings:
     BindingMode: 3
-    PositionDamping: {x: 0, y: 0, z: 0}
+    PositionDamping: {x: 1, y: 1, z: 1}
     AngularDampingMode: 1
     RotationDamping: {x: 0, y: 0, z: 0}
-    QuaternionDamping: 0
+    QuaternionDamping: 0.2
   OrbitStyle: 0
   Radius: 85.00002
   Orbits:
@@ -4253,9 +4267,17 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_UI_PlanetSelection
       objectReference: {fileID: 0}
-    - target: {fileID: 366621661023058013, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
-      propertyPath: m_IsActive
-      value: 1
+    - target: {fileID: 376679043464644700, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3107
+      objectReference: {fileID: 0}
+    - target: {fileID: 376679043464644700, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -10969
+      objectReference: {fileID: 0}
+    - target: {fileID: 376679043464644700, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4388
       objectReference: {fileID: 0}
     - target: {fileID: 4731708443538085709, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
       propertyPath: m_Pivot.x
@@ -4336,6 +4358,22 @@ PrefabInstance:
     - target: {fileID: 4731708443538085709, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6281730873742736396, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8039238835876084195, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: -148.83002
+      objectReference: {fileID: 0}
+    - target: {fileID: 8039238835876084195, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 154.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 9165457164202338734, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

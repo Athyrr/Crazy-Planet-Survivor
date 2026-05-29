@@ -34,17 +34,20 @@ namespace NfcPoc
 
             if (_nfcAdapter == null)
                 Debug.LogWarning("[NFC] NFC not available on this device.");
+            else
+                Debug.Log("[NFC] NFC adapter found");
 #endif
         }
 
         public void StartReading()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
-            if (_nfcAdapter == null || IsReading) return;
+            if (_nfcAdapter == null || IsReading)
+                return;
 
             _callback = new NfcReaderCallback(
-                tag  => _manager.EnqueueOnMainThread(() => OnTagDetected?.Invoke(tag)),
-                err  => _manager.EnqueueOnMainThread(() => OnError?.Invoke(err))
+                tag => _manager.EnqueueOnMainThread(() => OnTagDetected?.Invoke(tag)),
+                err => _manager.EnqueueOnMainThread(() => OnError?.Invoke(err))
             );
 
             _nfcAdapter.Call("enableReaderMode", _activity, _callback, ReaderFlags, null);
@@ -55,7 +58,8 @@ namespace NfcPoc
         public void StopReading()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
-            if (!IsReading) return;
+            if (!IsReading)
+                return;
             _nfcAdapter?.Call("disableReaderMode", _activity);
             IsReading = false;
 #endif
@@ -66,13 +70,13 @@ namespace NfcPoc
     internal sealed class NfcReaderCallback : AndroidJavaProxy
     {
         private readonly Action<NfcTagData> _onDetected;
-        private readonly Action<string>     _onError;
+        private readonly Action<string> _onError;
 
         public NfcReaderCallback(Action<NfcTagData> onDetected, Action<string> onError)
             : base("android.nfc.NfcAdapter$ReaderCallback")
         {
             _onDetected = onDetected;
-            _onError    = onError;
+            _onError = onError;
         }
 
         // Called by Android on a background thread
@@ -95,25 +99,27 @@ namespace NfcPoc
             var list = new List<NdefRecord>();
 
             using var ndefClass = new AndroidJavaClass("android.nfc.tech.Ndef");
-            using var ndefTech  = ndefClass.CallStatic<AndroidJavaObject>("get", tag);
-            if (ndefTech == null) return list;
+            using var ndefTech = ndefClass.CallStatic<AndroidJavaObject>("get", tag);
+            if (ndefTech == null)
+                return list;
 
             try
             {
                 ndefTech.Call("connect");
 
                 using var ndefMsg = ndefTech.Call<AndroidJavaObject>("getNdefMessage");
-                if (ndefMsg == null) return list;
+                if (ndefMsg == null)
+                    return list;
 
                 var rawRecords = ndefMsg.Call<AndroidJavaObject[]>("getRecords");
                 foreach (var rec in rawRecords)
                 {
                     using (rec)
                     {
-                        byte[] typeBytes    = rec.Call<byte[]>("getType");
+                        byte[] typeBytes = rec.Call<byte[]>("getType");
                         byte[] payloadBytes = rec.Call<byte[]>("getPayload");
 
-                        string type    = Encoding.UTF8.GetString(typeBytes);
+                        string type = Encoding.UTF8.GetString(typeBytes);
                         string payload = DecodeNdefPayload(payloadBytes);
                         list.Add(new NdefRecord(type, payload));
                     }
@@ -121,7 +127,13 @@ namespace NfcPoc
             }
             finally
             {
-                try { ndefTech.Call("close"); } catch { /* ignore close errors */ }
+                try
+                {
+                    ndefTech.Call("close");
+                }
+                catch
+                { /* ignore close errors */
+                }
             }
 
             return list;
@@ -130,9 +142,10 @@ namespace NfcPoc
         // NDEF well-known text records have a 1-byte status + language bytes prefix
         private static string DecodeNdefPayload(byte[] bytes)
         {
-            if (bytes == null || bytes.Length == 0) return string.Empty;
+            if (bytes == null || bytes.Length == 0)
+                return string.Empty;
             int langLen = bytes[0] & 0x3F;
-            int offset  = 1 + langLen;
+            int offset = 1 + langLen;
             if (offset < bytes.Length)
                 return Encoding.UTF8.GetString(bytes, offset, bytes.Length - offset);
             return Encoding.UTF8.GetString(bytes);
