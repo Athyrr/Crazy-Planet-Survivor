@@ -17080,7 +17080,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &8462075292509363978
 Transform:
   m_ObjectHideFlags: 0
@@ -29593,14 +29593,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AreaAttackAuthoring
   Shape: 1
-  RadiusStart: 2
-  RadiusEnd: 2
+  RadiusStart: 1.7
+  RadiusEnd: 1.7
   HalfAngle: 45
-  SweepStart: -73.4
-  SweepEnd: 110
+  SweepStart: -160
+  SweepEnd: 90
   RingThickness: 0
   ActivationDelay: 0
-  ActiveDuration: 0.5
+  ActiveDuration: 0.2
 --- !u!114 &1824063731932232182
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -29733,7 +29733,7 @@ ParticleSystem:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-  moveWithTransform: 0
+  moveWithTransform: 1
   moveWithCustomTransform: {fileID: 0}
   scalingMode: 0
   randomSeed: 0

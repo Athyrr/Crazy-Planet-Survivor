@@ -1,13 +1,23 @@
+using System;
 using UnityEngine;
 using TMPro;
 using UnityEngine.EventSystems;
 using Vector3 = UnityEngine.Vector3;
 
 /// <summary>
-/// Represents an upgrade card displayed when the player is leveling up. 
+/// Represents an upgrade card displayed when the player is leveling up.
 /// </summary>
-public class UpgradeViewItem : MonoBehaviour
+public class UpgradeViewItem : MonoBehaviour,
+    IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
+    public event Action<UpgradeViewItem> PointerEntered;
+    public event Action<UpgradeViewItem> PointerExited;
+    public event Action<UpgradeViewItem> PointerClicked;
+
+    void IPointerEnterHandler.OnPointerEnter(PointerEventData _) => PointerEntered?.Invoke(this);
+    void IPointerExitHandler.OnPointerExit(PointerEventData _) => PointerExited?.Invoke(this);
+    void IPointerClickHandler.OnPointerClick(PointerEventData _) => PointerClicked?.Invoke(this);
+
     [Header("3D Visuals")]
     public SpriteRenderer Icon;
     public TextMeshPro TitleText;
