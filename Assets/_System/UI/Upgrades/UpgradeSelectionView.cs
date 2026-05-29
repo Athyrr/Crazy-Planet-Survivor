@@ -209,9 +209,9 @@ public class UpgradeSelectionView : UIViewBase
             _navAxisActive = false;
             return;
         }
+
         if (_navAxisActive)
-            return;
-        _navAxisActive = true;
+            _navAxisActive = true;
 
         int step = v.x > 0 ? 1 : -1;
         int n = _spawnedUpgradeItems.Count;

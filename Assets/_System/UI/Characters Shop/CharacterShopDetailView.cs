@@ -1,6 +1,5 @@
 using System;
 using System.Reflection;
-using PrimeTween;
 using TMPro;
 using UnityEngine;
 
@@ -10,29 +9,32 @@ using UnityEngine;
 /// </summary>
 public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
 {
-    [Header("Preview")]
-    public Transform CharacterPreviewContainer;
+    [Header("Preview")] public Transform CharacterPreviewContainer;
     public GameObject DefaultCharacter;
     public TMP_Text CharacterNameText;
 
     [Header("Overlapped Detail Containers")]
+    [Tooltip("Locked-state panel, toggled on when the character is locked. Assign the 'Locked View' object (the parent of the Cost Container), NOT the inner cost container.")]
+    public GameObject LockedView;
+
+    [Tooltip("Container with the layout group where cost item widgets are spawned (inside Locked View).")]
     public GameObject CostContainer;
+
+    [Tooltip("Unlocked-state panel, toggled on when the character is unlocked.")]
     public GameObject InfoContainer;
 
-    [Header("Cost Display (locked)")]
-    public ResourceWidgetItem CostItemPrefab;
+    [Header("Cost Display (locked)")] public ResourceWidgetItem CostItemPrefab;
     public ResourceDatabaseSO ResourceDatabase;
 
     [Header("Description Display (unlocked)")]
     public TMP_Text CharacterDescriptionText;
+
     public Transform CharacterStatsContainer;
     public CharacterShopStatItemComponent CharacterShopStatItemPrefab;
 
-    [Header("Default Strings")]
-    public string DefaultName = "???";
+    [Header("Default Strings")] public string DefaultName = "???";
 
-    [Header("NFC Purchase VFX")]
-    public GameObject UnlockVfxPrefab;
+    [Header("NFC Purchase VFX")] public GameObject UnlockVfxPrefab;
     public Vector3 VfxLocalOffset = new Vector3(0f, 0f, 1.5f);
     public float VfxLifetime = 3f;
     public float SpawnDelay = 1.05f;
@@ -80,16 +82,20 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
 
     private void ShowLocked(CharacterSO data)
     {
-        // Silhouette preview
+        // Preview
         if (DefaultCharacter != null && CharacterPreviewContainer != null)
-            Instantiate(DefaultCharacter, CharacterPreviewContainer);
+        {
+            var previewObj = Instantiate(DefaultCharacter, CharacterPreviewContainer);
+            previewObj.transform.position = CharacterPreviewContainer.position;
+        }
 
         if (CharacterNameText != null)
             CharacterNameText.text = DefaultName;
 
-        // Cost container visible, info hidden
-        if (CostContainer != null)
-            CostContainer.SetActive(true);
+        // Locked panel visible, info hidden
+        var lockedView = ResolveLockedView();
+        if (lockedView != null)
+            lockedView.SetActive(true);
         if (InfoContainer != null)
             InfoContainer.SetActive(false);
 
@@ -98,27 +104,22 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
 
     private void ShowUnlocked(CharacterSO data)
     {
-        // Real preview
-        Tween.Delay(
-            duration: SpawnDelay,
-            () =>
-            {
-                if (data.UIPrefab != null)
-                    Instantiate(data.UIPrefab, CharacterPreviewContainer);
-            }
-        );
-
-        // if (data.UIPrefab != null && CharacterPreviewContainer != null)
-        //     Instantiate(data.UIPrefab, CharacterPreviewContainer);
+        // Preview
+        if (data.UIPrefab != null && CharacterPreviewContainer != null)
+        {
+            var previewObj = Instantiate(data.UIPrefab, CharacterPreviewContainer);
+            previewObj.transform.position = CharacterPreviewContainer.position;
+        }
 
         if (CharacterNameText != null)
             CharacterNameText.text = data.DisplayName.ToUpper();
 
-        // Info container visible, cost hidden
+        // Info container visible, locked panel hidden
         if (InfoContainer != null)
             InfoContainer.SetActive(true);
-        if (CostContainer != null)
-            CostContainer.SetActive(false);
+        var lockedView = ResolveLockedView();
+        if (lockedView != null)
+            lockedView.SetActive(false);
 
         if (CharacterDescriptionText != null)
             CharacterDescriptionText.text = data.Description;
@@ -221,9 +222,26 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
         }
 
         // Reset visibility
-        if (CostContainer != null)
-            CostContainer.SetActive(false);
+        var lockedView = ResolveLockedView();
+        if (lockedView != null)
+            lockedView.SetActive(false);
         if (InfoContainer != null)
             InfoContainer.SetActive(false);
+    }
+
+    /// <summary>
+    /// The panel to toggle for the locked state. Uses the explicit <see cref="LockedView"/>
+    /// when assigned, otherwise falls back to the cost container's parent (the cost container
+    /// is nested inside the locked-view panel), so visibility works even if LockedView is unset.
+    /// </summary>
+    private GameObject ResolveLockedView()
+    {
+        if (LockedView != null)
+            return LockedView;
+
+        if (CostContainer != null && CostContainer.transform.parent != null)
+            return CostContainer.transform.parent.gameObject;
+
+        return CostContainer;
     }
 }

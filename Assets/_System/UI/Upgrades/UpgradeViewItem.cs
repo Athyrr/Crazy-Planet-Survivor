@@ -82,13 +82,12 @@ public class UpgradeViewItem : MonoBehaviour,
         {
             case EUpgradeType.PlayerStat:
                 if (StatLabelText)
-                    StatLabelText.text = data.CharacterStat.ToString();
+                    StatLabelText.text = StatsFormatUtils.Humanize(data.CharacterStat.ToString());
 
                 if (StatValueText)
                 {
-                    string val = data.ModifierStrategy == EModiferStrategy.Flat
-                        ? $"+{data.Value}"
-                        : $"+{(data.Value * 100):F0}%";
+                    bool isFlat = data.ModifierStrategy == EModiferStrategy.Flat;
+                    string val = StatsFormatUtils.SignedValue(data.Value, !isFlat);
                     StatValueText.text = $"<color=green>{val}</color>";
                 }
 
@@ -151,17 +150,7 @@ public class UpgradeViewItem : MonoBehaviour,
     }
 
     private string FormatSpellValue(float value, bool isPercentage)
-    {
-        if (isPercentage)
-        {
-            float pct = value * 100f;
-            return (pct > 0 ? "+" : "") + $"{pct:F0}%";
-        }
-        else
-        {
-            return (value > 0 ? "+" : "") + value.ToString();
-        }
-    }
+        => StatsFormatUtils.SignedValue(value, isPercentage);
 
     private bool IsSpellStatPercentage(ESpellStat stat)
     {

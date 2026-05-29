@@ -10,6 +10,10 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
     public GameObject DefaultAmulet;
 
     [Header("Overlapped Detail Containers")]
+    [Tooltip("Locked-state panel, toggled on when the amulet is locked. Assign the 'Locked View' object (the parent of the Cost Container), NOT the inner cost container.")]
+    public GameObject LockedView;
+
+    [Tooltip("Container with the layout group where cost item widgets are spawned (inside Locked View).")]
     public GameObject CostContainer;
 
     public GameObject InfoContainer;
@@ -85,7 +89,10 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         if (AmuletNameText != null)
             AmuletNameText.text = DefaultName;
 
-        // Cost container active and info container hidden
+        // Locked panel visible (cost + purchase), info container hidden.
+        var lockedView = ResolveLockedView();
+        if (lockedView != null)
+            lockedView.SetActive(true);
         if (CostContainer != null)
             CostContainer.SetActive(true);
         if (InfoContainer != null)
@@ -124,11 +131,12 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         if (AmuletNameText != null)
             AmuletNameText.text = data.DisplayName;
 
-        // Info container active and cost container hidden
+        // Info container active and locked panel hidden
         if (InfoContainer != null)
             InfoContainer.SetActive(true);
-        if (CostContainer != null)
-            CostContainer.SetActive(false);
+        var lockedView = ResolveLockedView();
+        if (lockedView != null)
+            lockedView.SetActive(false);
 
         if (DescriptionText != null)
             DescriptionText.text = data.Description;
@@ -216,9 +224,26 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         }
 
         // Reset visibility
-        if (CostContainer != null)
-            CostContainer.SetActive(false);
+        var lockedView = ResolveLockedView();
+        if (lockedView != null)
+            lockedView.SetActive(false);
         if (InfoContainer != null)
             InfoContainer.SetActive(false);
+    }
+
+    /// <summary>
+    /// The panel to toggle for the locked state. Uses the explicit <see cref="LockedView"/>
+    /// when assigned, otherwise falls back to the cost container's parent (the cost container
+    /// is nested inside the locked-view panel), so visibility works even if LockedView is unset.
+    /// </summary>
+    private GameObject ResolveLockedView()
+    {
+        if (LockedView != null)
+            return LockedView;
+
+        if (CostContainer != null && CostContainer.transform.parent != null)
+            return CostContainer.transform.parent.gameObject;
+
+        return CostContainer;
     }
 }

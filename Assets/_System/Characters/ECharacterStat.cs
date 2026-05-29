@@ -28,4 +28,6 @@ public enum ECharacterStat
     SlowStrength = 24,
     SlowDuration = 25,
     StunDuration = 26,
+    
+    HealthRegen = 27
 }

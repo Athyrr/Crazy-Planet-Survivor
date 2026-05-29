@@ -36,7 +36,7 @@ public class CharacterShopViewItem : UIViewItemBase
         _isUnlocked = isUnlocked;
 
         Button.onClick.RemoveAllListeners();
-        Button.onClick.AddListener(() => _controller.SelectItem(_index));
+        Button.onClick.AddListener(() => _controller.FocusItem(_index));
 
         Refresh();
     }
@@ -57,7 +57,7 @@ public class CharacterShopViewItem : UIViewItemBase
 
     public override void OnPointerClick(PointerEventData eventData)
     {
-        _controller.SelectItem(_index);
+        _controller.FocusItem(_index);
     }
 
     public override void SetFocus(bool isFocused)

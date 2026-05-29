@@ -41,7 +41,7 @@ public class AmuletViewItem : UIViewItemBase
         _ressourceComponentParent.SetActive(!isUnlocked);
         
         _amuletButton.onClick.RemoveAllListeners();
-        _amuletButton.onClick.AddListener(() => _controller.SelectItem(_databaseIndex));
+        _amuletButton.onClick.AddListener(() => _controller.FocusItem(_databaseIndex));
 
         _border.material = new Material(_border.material);
         RefreshColor();
@@ -59,7 +59,7 @@ public class AmuletViewItem : UIViewItemBase
 
     public override void OnPointerClick(PointerEventData eventData)
     {
-        _controller.SelectItem(_databaseIndex);
+        _controller.FocusItem(_databaseIndex);
     }
 
     public override void SetFocus(bool isFocused)

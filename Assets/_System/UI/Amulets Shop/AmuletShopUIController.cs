@@ -32,8 +32,6 @@ public class AmuletShopUIController
     protected override void RefreshListView()
     {
         ListView.Clear();
-        // log item count
-        Debug.Log("amulet count" + GetItemsCount());
 
         for (int i = 0; i < GetItemsCount(); i++)
         {
@@ -52,13 +50,54 @@ public class AmuletShopUIController
         RefreshActionButton();
     }
 
+    protected override bool CanAffordSelected(int index)
+    {
+        if (_gameStateQuery.IsEmpty)
+            return false;
+        if (Database == null || index < 0 || index >= Database.Amulets.Length)
+            return false;
+
+        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
+        if (!_entityManager.HasBuffer<ResourceBufferElement>(gameStateEntity))
+            return false;
+
+        var resources = _entityManager.GetBuffer<ResourceBufferElement>(gameStateEntity);
+        return resources.HasEnough(GetDataAtIndex(index).PurchaseCost);
+    }
+
+    protected override void CommitFocusedSelection()
+    {
+        // The focused (unlocked) amulet becomes the equipped one. A locked focus keeps the
+        // last equipped amulet (EquippedAmulet is left untouched).
+        if (_gameStateQuery.IsEmpty)
+            return;
+        if (!IsAmuletUnlocked(_focusedItemIndex))
+            return;
+
+        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
+
+        // Skip if it is already equipped.
+        if (_entityManager.HasComponent<EquippedAmulet>(gameStateEntity) &&
+            _entityManager.GetComponentData<EquippedAmulet>(gameStateEntity).DbIndex == _focusedItemIndex)
+            return;
+
+        _entityManager.SetComponentData(
+            gameStateEntity,
+            new EquippedAmulet { DbIndex = _focusedItemIndex }
+        );
+    }
+
     protected override int GetStartingIndex()
     {
         if (!_gameStateQuery.IsEmpty)
         {
             var entity = _gameStateQuery.GetSingletonEntity();
             if (_entityManager.HasComponent<EquippedAmulet>(entity))
-                return _entityManager.GetComponentData<EquippedAmulet>(entity).DbIndex;
+            {
+                int equipped = _entityManager.GetComponentData<EquippedAmulet>(entity).DbIndex;
+                if (equipped >= 0)
+                    return equipped;
+            }
         }
 
         return 0;
@@ -95,14 +134,20 @@ public class AmuletShopUIController
 
         _isSelectedItemUnlocked = true;
 
+        int purchasedIndex = _selectedItemIndex;
         RefreshListView();
-        SelectItem(_selectedItemIndex);
+
+        // Focus the just-purchased amulet (force a refresh to its now-unlocked state).
+        _focusedItemIndex = -1;
+        FocusItem(purchasedIndex);
     }
 
     #region NFC
 
     private void OnEnable()
     {
+        EnableShopInput();
+
         NfcManager.OnTagDetected += HandleTagDetected;
 
         if (NfcManager.Instance.IsReading)
@@ -121,6 +166,8 @@ public class AmuletShopUIController
 
     private void OnDisable()
     {
+        HandleShopClosed();
+
         NfcManager.OnTagDetected -= HandleTagDetected;
 
         if (NfcManager.Instance.IsReading)

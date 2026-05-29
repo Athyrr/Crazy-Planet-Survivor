@@ -31,6 +31,9 @@ public class HealthHUDWidget : MonoBehaviour
         if (_playerQuery.IsEmpty)
             return;
 
+        // On s'en fou c'est du feedback
+        _playerQuery.CompleteDependency();
+
         Health playerHealth = _playerQuery.GetSingleton<Health>();
         var playerStats = _playerQuery.GetSingleton<CoreStats>();
 

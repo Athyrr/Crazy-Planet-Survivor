@@ -45,6 +45,44 @@ public class CharacterShopUIController
         RefreshActionButton();
     }
 
+    protected override bool CanAffordSelected(int index)
+    {
+        if (_gameStateQuery.IsEmpty)
+            return false;
+        if (Database == null || index < 0 || index >= Database.Characters.Length)
+            return false;
+
+        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
+        if (!_entityManager.HasBuffer<ResourceBufferElement>(gameStateEntity))
+            return false;
+
+        var resources = _entityManager.GetBuffer<ResourceBufferElement>(gameStateEntity);
+        return resources.HasEnough(GetDataAtIndex(index).PurchaseCost);
+    }
+
+    protected override void CommitFocusedSelection()
+    {
+        // Choosing a character: the focused (unlocked) character becomes the played one.
+        // A locked focus changes nothing.
+        if (_gameStateQuery.IsEmpty)
+            return;
+        if (!IsCharacterUnlocked(_focusedItemIndex))
+            return;
+
+        var entity = _gameStateQuery.GetSingletonEntity();
+
+        // Skip if it is already the selected character (avoids a needless respawn).
+        if (_entityManager.HasComponent<SelectedCharacter>(entity) &&
+            _entityManager.GetComponentData<SelectedCharacter>(entity).DbIndex == _focusedItemIndex)
+            return;
+
+        var requestEntity = _entityManager.CreateEntity();
+        _entityManager.AddComponentData(
+            requestEntity,
+            new SelectCharacterRequest { CharacterIndex = _focusedItemIndex }
+        );
+    }
+
     private bool IsCharacterUnlocked(int index)
     {
         if (_gameStateQuery.IsEmptyIgnoreFilter)
@@ -108,8 +146,13 @@ public class CharacterShopUIController
 
         _isSelectedItemUnlocked = true;
 
+        int purchasedIndex = _selectedItemIndex;
         RefreshListView();
-        SelectItem(_selectedItemIndex);
+
+        // Focus the just-purchased character (force a refresh so the panel flips to its
+        // now-unlocked state and it becomes the staged choice).
+        _focusedItemIndex = -1;
+        FocusItem(purchasedIndex);
     }
 
     private void SelectAndConfirm()
@@ -151,6 +194,8 @@ public class CharacterShopUIController
 
     private void OnEnable()
     {
+        EnableShopInput();
+
         NfcManager.OnTagDetected += HandleTagDetected;
 
         if (NfcManager.Instance.IsReading)
@@ -169,6 +214,8 @@ public class CharacterShopUIController
 
     private void OnDisable()
     {
+        HandleShopClosed();
+
         NfcManager.OnTagDetected -= HandleTagDetected;
 
         if (NfcManager.Instance.IsReading)

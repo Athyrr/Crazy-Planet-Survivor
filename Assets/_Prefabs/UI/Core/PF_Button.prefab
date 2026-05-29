@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5417354941174627718}
   - component: {fileID: 6970214425271919516}
   m_Layer: 3
-  m_Name: Text - Select
+  m_Name: Text - Purchase
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -65,9 +65,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Back
-
-'
+  m_text: Purchase
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -261,8 +259,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: CharacterShopUIController, Assembly-CSharp
-        m_MethodName: BackToLobby
+        m_TargetAssemblyTypeName: AmuletShopUIController, Assembly-CSharp
+        m_MethodName: PurchaseOrEquipAmulet
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

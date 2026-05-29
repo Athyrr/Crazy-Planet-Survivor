@@ -14,17 +14,17 @@ public abstract class ShopListViewBase<TItem> : UIViewBase where TItem : UIViewI
         foreach (Transform child in Container)
             Destroy(child.gameObject);
     }
-    protected override void Start()
-    {
-        base.Start();
-    }
 
     public virtual void Clear()
     {
         foreach (var item in _activeItems)
         {
+            if (item == null)
+                continue;
+
             item.gameObject.SetActive(false);
         }
+
         _activeItems.Clear();
     }
 

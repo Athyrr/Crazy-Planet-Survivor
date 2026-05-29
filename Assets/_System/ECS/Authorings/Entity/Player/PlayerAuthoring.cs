@@ -70,6 +70,7 @@ public class PlayerAuthoring : MonoBehaviour
             AddComponent(entity, new Player());
             AddComponent(entity, new InputData { Value = new float2(0, 0) });
             AddComponent(entity, new Health { Value = (int)baseStats.MaxHealth });
+            AddComponent(entity, new HealthRegen { TickInterval = 1f });
 
             AddComponent(entity, new LinearMovement { Direction = float3.zero, Speed = baseStats.BaseMoveSpeed });
             if (authoring.UseSnappedMovement)

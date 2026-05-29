@@ -17,7 +17,7 @@ public class PlayerController : MonoBehaviour
         _gameInputs = new GameInputs();
 
         if (_runManager == null)
-            _runManager = FindFirstObjectByType<RunManager>();
+            _runManager = FindAnyObjectByType<RunManager>();
     }
 
     private void Start()
@@ -37,7 +37,7 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Enable();
     }
 
-   private void OnDisable()
+    private void OnDisable()
     {
         _gameInputs.Player.Move.performed -= HandleMoveInput;
         _gameInputs.Player.Move.canceled -= HandleMoveInput;
