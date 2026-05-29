@@ -1,6 +1,7 @@
 using static UnityEngine.InputSystem.InputAction;
 using Unity.Entities;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
@@ -8,6 +9,9 @@ public class PlayerController : MonoBehaviour
     private GameInputs _gameInputs;
     private EntityQuery _inputQuery;
     private Vector2 _inputDirection = Vector2.zero;
+    
+    private Vector2 _virtualDirection = Vector2.zero;
+    private bool _hasVirtualInput = false;
 
     private bool _isInteractPressed = false;
     private bool _isTabPressed = false;
@@ -49,13 +53,14 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        InjectInputDirectionToECS(_inputDirection);
+        Vector2 direction = _hasVirtualInput ? _virtualDirection : _inputDirection;
+        InjectInputDirectionToECS(direction);
     }
 
     private void HandleMoveInput(CallbackContext ctx)
     {
-        if (ctx.canceled)
-            _inputDirection = Vector2.zero;
+        if (ctx.control?.device is Touchscreen)
+            return;
 
         _inputDirection = ctx.ReadValue<Vector2>();
     }
@@ -102,6 +107,17 @@ public class PlayerController : MonoBehaviour
         Debug.Log(("Tab pressed"));
     }
 
-    /// <summary>Queues a one-frame Interact pulse (touch button, scripted triggers).</summary>
     public void RequestInteract() => _isInteractPressed = true;
+    
+    public void SetVirtualMoveInput(Vector2 direction)
+    {
+        _virtualDirection = direction;
+        _hasVirtualInput = true;
+    }
+
+    public void ClearVirtualMoveInput()
+    {
+        _virtualDirection = Vector2.zero;
+        _hasVirtualInput = false;
+    }
 }
