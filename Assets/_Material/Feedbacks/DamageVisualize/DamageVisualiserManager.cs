@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using EasyButtons;
 using PrimeTween;
 using Unity.Entities;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -121,6 +123,7 @@ public class DamageFeedbackManager : MonoBehaviour
     {
         if (World.DefaultGameObjectInjectionWorld != null)
         {
+#if UNITY_EDITOR
             if (!EditorApplication.isPlaying)
             {
                 _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -128,6 +131,7 @@ public class DamageFeedbackManager : MonoBehaviour
                     typeof(DamageFeedbackRequest)
                 );
             }
+#endif
 
             if (!_damageFeedbackQuery.IsEmpty)
             {

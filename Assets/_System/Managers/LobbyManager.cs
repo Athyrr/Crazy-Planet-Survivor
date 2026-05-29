@@ -25,6 +25,37 @@ public class LobbyManager : MonoBehaviour
     private EntityQuery _openAmuletShopViewQuery;
     private EntityQuery _openMetaProgressionViewQuery;
 
+    [Header("Galaxy 3D UI Controller")]
+    [SerializeField]
+    private GameObject _galaxy;
+
+    [System.Serializable]
+    private struct GalaxyPlanetPlacement
+    {
+        public EPlanetID PlanetID;
+
+        [Tooltip("Local position the galaxy is moved to when a run starts on this planet.")]
+        public Vector3 GalaxyPosition;
+
+        [Tooltip("Local rotation (euler angles) the galaxy is set to when a run starts on this planet.")]
+        public Vector3 GalaxyRotation;
+    }
+
+    [Tooltip("Per-planet galaxy placement applied when a run starts. " +
+             "Each entry stores the galaxy local position & rotation for the selected planet.")]
+    [SerializeField]
+    private GalaxyPlanetPlacement[] _galaxyPlacements;
+
+    // Galaxy "home" transform captured before the first run, restored when returning to the lobby.
+    private Vector3 _galaxyHomePosition;
+    private Vector3 _galaxyHomeRotation;
+    private bool _galaxyHomeCaptured;
+
+    // Planet selected for the current/last run, deactivated on run start and reactivated on return.
+    private EPlanetID _selectedPlanetID = EPlanetID.None;
+    private Transform _selectedPlanetTransform;
+    private GameObject _deactivatedPlanet;
+
     private void OnEnable()
     {
         if (GameManager.Instance != null)
@@ -115,6 +146,10 @@ public class LobbyManager : MonoBehaviour
         switch (newState)
         {
             case EGameState.Lobby:
+                RestoreRunGalaxyState();
+                break;
+            case EGameState.Running:
+                BeginRunGalaxyState();
                 break;
             case EGameState.CharacterSelection:
                 OpenCharacterSelectionView();
@@ -165,6 +200,9 @@ public class LobbyManager : MonoBehaviour
     {
         if (planetID != EPlanetID.None && planetTransform != null)
         {
+            _selectedPlanetID = planetID;
+            _selectedPlanetTransform = planetTransform;
+
             PlanetFocusCamera.Follow = planetTransform;
             PlanetFocusCamera.LookAt = planetTransform;
 
@@ -178,11 +216,85 @@ public class LobbyManager : MonoBehaviour
         }
         else
         {
+            _selectedPlanetID = EPlanetID.None;
+            _selectedPlanetTransform = null;
+
             PlanetFocusCamera.Priority = 0;
             PlanetFocusCamera.Follow = null;
             PlanetFocusCamera.LookAt = null;
         }
 
         //todo hide other planets when focus and show details UI
+    }
+
+    /// <summary>
+    /// Called when a run starts (state becomes Running). Deactivates the selected planet and
+    /// moves the galaxy to the placement configured for that planet.
+    /// </summary>
+    private void BeginRunGalaxyState()
+    {
+        // Capture the galaxy's home transform once, so we can restore it after the run.
+        if (_galaxy != null && !_galaxyHomeCaptured)
+        {
+            _galaxyHomePosition = _galaxy.transform.localPosition;
+            _galaxyHomeRotation = _galaxy.transform.localEulerAngles;
+            _galaxyHomeCaptured = true;
+        }
+
+        // Deactivate the planet that was selected for this run.
+        if (_selectedPlanetTransform != null)
+        {
+            _deactivatedPlanet = _selectedPlanetTransform.gameObject;
+            _deactivatedPlanet.SetActive(false);
+        }
+
+        // Move the galaxy to the placement configured for the selected planet.
+        if (_galaxy != null && TryGetGalaxyPlacement(_selectedPlanetID, out var placement))
+        {
+            _galaxy.transform.localPosition = placement.GalaxyPosition;
+            _galaxy.transform.localEulerAngles = placement.GalaxyRotation;
+        }
+    }
+
+    /// <summary>
+    /// Called when returning to the lobby (state becomes Lobby). Restores the galaxy's home
+    /// transform and reactivates the planet that was deactivated when the run started.
+    /// </summary>
+    private void RestoreRunGalaxyState()
+    {
+        // Restore the galaxy to its home transform.
+        if (_galaxy != null && _galaxyHomeCaptured)
+        {
+            _galaxy.transform.localPosition = _galaxyHomePosition;
+            _galaxy.transform.localEulerAngles = _galaxyHomeRotation;
+        }
+
+        // Reactivate the planet we deactivated when the run started.
+        if (_deactivatedPlanet != null)
+        {
+            _deactivatedPlanet.SetActive(true);
+            _deactivatedPlanet = null;
+        }
+
+        _selectedPlanetID = EPlanetID.None;
+        _selectedPlanetTransform = null;
+    }
+
+    private bool TryGetGalaxyPlacement(EPlanetID planetID, out GalaxyPlanetPlacement placement)
+    {
+        if (_galaxyPlacements != null)
+        {
+            foreach (var entry in _galaxyPlacements)
+            {
+                if (entry.PlanetID == planetID)
+                {
+                    placement = entry;
+                    return true;
+                }
+            }
+        }
+
+        placement = default;
+        return false;
     }
 }
