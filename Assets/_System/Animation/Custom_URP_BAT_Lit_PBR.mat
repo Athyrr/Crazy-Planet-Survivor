@@ -25,11 +25,15 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BATMap:
-        m_Texture: {fileID: 2800000, guid: 1137888ce424e684d92b850c1168c6a2, type: 3}
+        m_Texture: {fileID: 2800000, guid: 1b299cfcef3b0704a9aab56d2e7734dd, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BATMap2:
+        m_Texture: {fileID: 2800000, guid: ccf4d038190df9646adeb3b1a74becc9, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BaseMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: 1b299cfcef3b0704a9aab56d2e7734dd, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _EmissionMap:
@@ -47,17 +51,26 @@ Material:
     m_Ints: []
     m_Floats:
     - _AlphaClip: 0
+    - _BATBlend: 1
+    - _BATBlendFrame: 0
     - _BATBoneCount: 43
     - _BATColumns: 22
+    - _BATColumns2: 21
     - _BATFrame: 0
     - _BATFrameRows: 30
+    - _BATFrameRows2: 21
     - _BATFrames: 29
+    - _BATFrames2: 20
+    - _BATManualTime: 0
     - _BATPlaneGridX: 3
     - _BATPlaneGridY: 1
     - _BATPlaneHeight: 60
+    - _BATPlaneHeight2: 63
     - _BATPlaneRows: 1
     - _BATPlaneWidth: 22
+    - _BATPlaneWidth2: 21
     - _BAT_FPS: 30
+    - _BAT_FPS_Blend: 30
     - _Bat_OnOff: 1
     - _Cutoff: 0.5
     - _NormalScale: 1

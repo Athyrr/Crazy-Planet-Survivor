@@ -454,22 +454,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b50c77c6ddb18b45b813b4bd0e156c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BatMatrixBaker
-  clip: {fileID: 8993902097722301239, guid: 94cd94bce71dbab4497b72654f37caf4, type: 3}
+  clip: {fileID: 0}
+  clips:
+  - {fileID: 8993902097722301239, guid: 94cd94bce71dbab4497b72654f37caf4, type: 3}
+  - {fileID: 8993902097722301239, guid: cd5866ef5dc5f664d8f1d0a9b9bd57f5, type: 3}
   animator: {fileID: 4187178333582269642}
   smr: {fileID: 5235575211305050448}
   materialToChange: {fileID: 2100000, guid: aa082e719ca6d824baad3bfdae000074, type: 2}
   sampleRate: 30
   outputMeshFilter: {fileID: 8304788483631445623}
-  layout:
-    columns: 21
-    rowBlocks: 3
-    frameRows: 21
-    planeWidth: 21
-    planeHeight: 63
-    planeGridX: 3
-    planeGridY: 1
-    totalWidth: 63
-    totalHeight: 63
+  createSOForEachClip: 1
 --- !u!33 &8304788483631445623
 MeshFilter:
   m_ObjectHideFlags: 0

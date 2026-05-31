@@ -32,6 +32,18 @@ Shader "Custom/URP/BAT_Lit_PBR"
         _BATPlaneGridY("BAT Plane Grid Y", Float) = 1
         
         _BATBoneCount("BAT Bone Count", Float) = 1
+
+        [Space(10)]
+        _BATMap2("BAT Map 2 (crossfade target)", 2D) = "black" {}
+        _BATFrames2("BAT Frames 2", Float) = 1
+        _BATFrameRows2("BAT Frame Rows 2", Float) = 1
+        _BATPlaneHeight2("BAT Plane Height 2", Float) = 1
+        _BATPlaneWidth2("BAT Plane Width 2", Float) = 1
+        _BATColumns2("BAT Columns", Float) = 1
+        _BATBlend("BAT Blend Amount", Range(0,1)) = 0
+        _BATBlendFrame("BAT Blend Frame Offset", Float) = 0
+        _BAT_FPS_Blend("BAT FPS Blend", Float) = 30
+        [HideInInspector] _BATManualTime("BAT Manual Time", Float) = 0
     }
 
     SubShader
@@ -48,9 +60,12 @@ Shader "Custom/URP/BAT_Lit_PBR"
         
         TEXTURE2D(_BATMap);
         SAMPLER(sampler_BATMap);
+        TEXTURE2D(_BATMap2);
+        SAMPLER(sampler_BATMap2);
         
         CBUFFER_START(UnityPerMaterial)
             float4 _BATMap_TexelSize;
+            float4 _BATMap2_TexelSize;
         
             float4 _BaseColor;
             float4 _BaseMap_ST;
@@ -70,6 +85,16 @@ Shader "Custom/URP/BAT_Lit_PBR"
             uint _BATPlaneGridY;
             
             float _BATBoneCount;
+            float _BATManualTime;
+
+            uint _BATFrames2;
+            uint _BATColumns2;
+            uint _BATFrameRows2;
+            uint _BATPlaneHeight2;
+            uint _BATPlaneWidth2;
+            float _BATBlend;
+            uint _BATBlendFrame;
+            half _BAT_FPS_Blend;
         CBUFFER_END
         
         struct BoneRows
@@ -81,7 +106,9 @@ Shader "Custom/URP/BAT_Lit_PBR"
         
         float Frame()
         {
-            return (_BATFrame + _Time.y*_BAT_FPS)%_BATFrames;
+            if (_BATManualTime > 0.5)
+                return fmod(_BATFrame, (float)_BATFrames);
+            return fmod(_BATFrame + _Time.y * _BAT_FPS, (float)_BATFrames);
         }
 
         float2 GetBATUV(uint boneIndex, float frameIdx, uint planeIndex)
@@ -122,6 +149,51 @@ Shader "Custom/URP/BAT_Lit_PBR"
             return o;
         }
 
+        float FrameBlend()
+        {
+            if (_BATManualTime > 0.5)
+                return fmod(_BATBlendFrame, (float)_BATFrames2);
+            return fmod(_BATBlendFrame + _Time.y * _BAT_FPS_Blend, (float)_BATFrames2);
+        }
+
+        float2 GetBATUV2(uint boneIndex, float frameIdx, uint planeIndex)
+        {
+            uint columns     = _BATColumns2;
+            uint frameRows   = _BATFrameRows2;
+            uint planeHeight = _BATPlaneHeight2;
+            uint planeWidth = _BATPlaneWidth2;
+            uint planeGridX  = _BATPlaneGridX;
+
+            uint rowBlock = boneIndex / columns;
+            uint col      = boneIndex - rowBlock * columns;
+
+            uint planeX = planeIndex % planeGridX;
+            uint planeY = planeIndex / planeGridX;
+
+            uint x = planeX * planeWidth + col;
+            float y = (float)(planeY * planeHeight + rowBlock * frameRows) + frameIdx;
+
+            float texWidth  = _BATMap2_TexelSize.z;
+            float texHeight = _BATMap2_TexelSize.w;
+
+            return (float2((float)x, y) + 0.5) / float2(texWidth, texHeight);
+        }
+
+        BoneRows SampleBoneRows2(uint boneIndex, float frameIdx)
+        {
+            BoneRows o;
+
+            float2 uv0 = GetBATUV2(boneIndex, frameIdx, 0);
+            float2 uv1 = GetBATUV2(boneIndex, frameIdx, 1);
+            float2 uv2 = GetBATUV2(boneIndex, frameIdx, 2);
+
+            o.r0 = SAMPLE_TEXTURE2D_LOD(_BATMap2, sampler_BATMap2, uv0, 0);
+            o.r1 = SAMPLE_TEXTURE2D_LOD(_BATMap2, sampler_BATMap2, uv1, 0);
+            o.r2 = SAMPLE_TEXTURE2D_LOD(_BATMap2, sampler_BATMap2, uv2, 0);
+
+            return o;
+        }
+
         float3 MulPointBAT(BoneRows m, float3 p)
         {
             float4 v = float4(p, 1.0);
@@ -141,17 +213,38 @@ Shader "Custom/URP/BAT_Lit_PBR"
             );
         }
         
-        void Bat(float3 positionOS,float3 normalOS, float3 tangentOS, uint4 boneIndices, float4 boneWeights, float frameIdx, out float3 position, out float3 normal, out float3 tangent)
+        BoneRows BlendBoneRows(BoneRows a, BoneRows b, float t)
+        {
+            BoneRows o;
+            o.r0 = lerp(a.r0, b.r0, t);
+            o.r1 = lerp(a.r1, b.r1, t);
+            o.r2 = lerp(a.r2, b.r2, t);
+            return o;
+        }
+
+        void Bat(float3 positionOS, float3 normalOS, float3 tangentOS, uint4 boneIndices, float4 boneWeights,
+            float frameIdx, out float3 position, out float3 normal, out float3 tangent)
         {
             tangent = 0;
             normal = 0;
             position = 0;
+
+            float blend = _BATBlend;
+            float frameIdx2 = FrameBlend();
+
             [unroll] for (int i = 0; i < 4; i++)
             {
                 float w = boneWeights[i];
                 if (w <= 0.0001) continue;
 
                 BoneRows m = SampleBoneRows(boneIndices[i], frameIdx);
+
+                if (blend > 0.001)
+                {
+                    BoneRows m2 = SampleBoneRows2(boneIndices[i], frameIdx2);
+                    m = BlendBoneRows(m, m2, blend);
+                }
+
                 position += MulPointBAT(m, positionOS) * w;
                 normal += MulVectorBAT(m, normalOS) * w;
                 tangent += MulVectorBAT(m, tangentOS) * w;
@@ -161,16 +254,28 @@ Shader "Custom/URP/BAT_Lit_PBR"
             tangent = normalize(tangent);
         }
         
-        void BatShadow(float3 positionOS,float3 normalOS,uint4 boneIndices, float4 boneWeights, float frameIdx, out float3 position, out float3 normal)
+        void BatShadow(float3 positionOS, float3 normalOS, uint4 boneIndices, float4 boneWeights,
+            float frameIdx, out float3 position, out float3 normal)
         {
             normal = 0;
             position = 0;
+
+            float blend = _BATBlend;
+            float frameIdx2 = FrameBlend();
+
             [unroll] for (int i = 0; i < 4; i++)
             {
                 float w = boneWeights[i];
                 if (w <= 0.0001) continue;
 
                 BoneRows m = SampleBoneRows(boneIndices[i], frameIdx);
+
+                if (blend > 0.001)
+                {
+                    BoneRows m2 = SampleBoneRows2(boneIndices[i], frameIdx2);
+                    m = BlendBoneRows(m, m2, blend);
+                }
+
                 position += MulPointBAT(m, positionOS) * w;
                 normal += MulVectorBAT(m, normalOS) * w;
             }

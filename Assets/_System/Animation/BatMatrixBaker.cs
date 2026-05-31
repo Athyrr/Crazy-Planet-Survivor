@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.IO;
 using EasyButtons;
 using UnityEditor;
@@ -9,42 +10,102 @@ using UnityEngine.Playables;
 
 public class BatMatrixBaker : MonoBehaviour
 {
+    [Obsolete("Use clips instead")]
     public AnimationClip clip;
+    public List<AnimationClip> clips = new List<AnimationClip>();
     public Animator animator;
     public SkinnedMeshRenderer smr;
     public Material materialToChange;
     public int sampleRate = 30;
     public MeshFilter outputMeshFilter;
+    public bool createSOForEachClip = true;
 
-    public BatLayout layout;
-
-    private Vector2Int _xy;
+    [Serializable]
+    public struct BatLayout
+    {
+        public int columns;
+        public int rowBlocks;
+        public int frameRows;
+        public int planeWidth;
+        public int planeHeight;
+        public int planeGridX;
+        public int planeGridY;
+        public int totalWidth;
+        public int totalHeight;
+    }
 
     [Button]
-    [ContextMenu("Bake BAT Matrix")]
-    public void BakeBatMatrix()
+    [ContextMenu("Bake All Clips")]
+    public void BakeAllClips()
+    {
+        MigrateClip();
+        if (!ValidateSetup()) return;
+
+        for (int i = 0; i < clips.Count; i++)
+        {
+            var clip = clips[i];
+            if (clip == null) continue;
+
+            BakeSingleClip(clip, i);
+        }
+
+        AssetDatabase.Refresh();
+        Debug.Log($"Baked {clips.Count} clip(s) to BAT.");
+    }
+
+    [Button]
+    [ContextMenu("Bake Single (clip 0)")]
+    public void BakeSingleClipLegacy()
+    {
+        MigrateClip();
+        if (clips == null || clips.Count == 0 || clips[0] == null) return;
+        if (!ValidateSetup()) return;
+
+        BakeSingleClip(clips[0], 0);
+        AssetDatabase.Refresh();
+    }
+
+    private void MigrateClip()
+    {
+        if ((clips == null || clips.Count == 0) && clip != null)
+        {
+            clips = new List<AnimationClip> { clip };
+            clip = null;
+        }
+
+        if ((clips == null || clips.Count == 0) && animator != null && animator.runtimeAnimatorController != null)
+        {
+            clips = new List<AnimationClip>(animator.runtimeAnimatorController.animationClips);
+        }
+    }
+
+    private bool ValidateSetup()
     {
         if (!smr) smr = GetComponentInChildren<SkinnedMeshRenderer>();
         if (!animator) animator = GetComponentInChildren<Animator>();
         if (!animator) animator = GetComponentInParent<Animator>();
-        if (!clip) clip = animator.runtimeAnimatorController.animationClips[0];
 
         if (!outputMeshFilter)
         {
             Debug.LogError("Missing outputMeshFilter");
-            return;
+            return false;
         }
         if (!materialToChange)
         {
             Debug.LogError("Missing materialToChange");
-            return;
+            return false;
         }
-        if (!smr || !animator || !clip)
+        if (!smr || !animator)
         {
-            Debug.LogError("Missing animation references");
-            return;
+            Debug.LogError("Missing skinned mesh renderer or animator");
+            return false;
         }
-        
+
+        return true;
+    }
+
+    private void BakeSingleClip(AnimationClip clip, int clipIndex)
+    {
         var graph = PlayableGraph.Create("BAT Bake");
         try
         {
@@ -62,20 +123,16 @@ public class BatMatrixBaker : MonoBehaviour
             var frames = Mathf.CeilToInt(clip.length * sampleRate);
             var frameRows = frames + 1;
 
-            layout = ComputeBestLayout(bones.Length, frameRows, 3);
+            var layout = ComputeBestLayout(bones.Length, frameRows, 3);
 
-            _xy = new Vector2Int(layout.totalWidth, layout.totalHeight);
-            
             var occupied = new bool[layout.totalWidth * layout.totalHeight];
 
             void CheckWrite(int idx)
             {
                 if (idx < 0 || idx >= occupied.Length)
                     Debug.LogError($"BAT index out of range: {idx}");
-
                 if (occupied[idx])
                     Debug.LogError($"BAT collision at pixel {idx}");
-
                 occupied[idx] = true;
             }
 
@@ -89,10 +146,10 @@ public class BatMatrixBaker : MonoBehaviour
 
             var colors = new Color[layout.totalWidth * layout.totalHeight];
             var meshWorldToLocal = outputMeshFilter.transform.worldToLocalMatrix;
-            
+
             for (int frameIndex = 0; frameIndex < frames; frameIndex++)
             {
-                float t = (float) frameIndex / sampleRate;
+                float t = (float)frameIndex / sampleRate;
                 playable.SetTime(t);
                 graph.Evaluate(0f);
 
@@ -103,9 +160,9 @@ public class BatMatrixBaker : MonoBehaviour
                         bones[boneIndex].localToWorldMatrix *
                         bindPoses[boneIndex];
 
-                    int p0 = GetPixelIndex(boneIndex, frameIndex, 0);
-                    int p1 = GetPixelIndex(boneIndex, frameIndex, 1);
-                    int p2 = GetPixelIndex(boneIndex, frameIndex, 2);
+                    int p0 = GetPixelIndex(boneIndex, frameIndex, 0, layout);
+                    int p1 = GetPixelIndex(boneIndex, frameIndex, 1, layout);
+                    int p2 = GetPixelIndex(boneIndex, frameIndex, 2, layout);
                     CheckWrite(p0);
                     CheckWrite(p1);
                     CheckWrite(p2);
@@ -116,16 +173,15 @@ public class BatMatrixBaker : MonoBehaviour
                 }
             }
 
-            // duplicate first frame at end for looping
             for (int boneIndex = 0; boneIndex < bones.Length; boneIndex++)
             {
-                int src0 = GetPixelIndex(boneIndex, 0, 0);
-                int src1 = GetPixelIndex(boneIndex, 0, 1);
-                int src2 = GetPixelIndex(boneIndex, 0, 2);
+                int src0 = GetPixelIndex(boneIndex, 0, 0, layout);
+                int src1 = GetPixelIndex(boneIndex, 0, 1, layout);
+                int src2 = GetPixelIndex(boneIndex, 0, 2, layout);
 
-                int dst0 = GetPixelIndex(boneIndex, frames, 0);
-                int dst1 = GetPixelIndex(boneIndex, frames, 1);
-                int dst2 = GetPixelIndex(boneIndex, frames, 2);
+                int dst0 = GetPixelIndex(boneIndex, frames, 0, layout);
+                int dst1 = GetPixelIndex(boneIndex, frames, 1, layout);
+                int dst2 = GetPixelIndex(boneIndex, frames, 2, layout);
 
                 colors[dst0] = colors[src0];
                 colors[dst1] = colors[src1];
@@ -135,32 +191,84 @@ public class BatMatrixBaker : MonoBehaviour
             tex.SetPixels(colors);
             tex.Apply();
 
-            var asset = SaveTexture(tex, smr.name + "_BATMatrix.png");
+            string clipName = string.IsNullOrEmpty(clip.name) ? $"Clip{clipIndex}" : clip.name;
+            var asset = SaveTexture(tex, $"{smr.name}_{clipName}_BATMatrix.exr", clipIndex);
+
+            if (createSOForEachClip && asset)
+            {
+                CreateAnimationDataSO(asset, clipName, clip.length, layout, bones.Length);
+            }
 
             if (materialToChange && asset)
             {
-                materialToChange.SetFloat("_BATFrames", frames);
-                materialToChange.SetFloat("_BATFrameRows", layout.frameRows);
-                materialToChange.SetFloat("_BATColumns", layout.columns);
-                materialToChange.SetFloat("_BATBoneCount", bones.Length);
-
-                materialToChange.SetFloat("_BATPlaneWidth", layout.planeWidth);
-                materialToChange.SetFloat("_BATPlaneHeight", layout.planeHeight);
-                materialToChange.SetFloat("_BATPlaneGridX", layout.planeGridX);
-                materialToChange.SetFloat("_BATPlaneGridY", layout.planeGridY);
-
-                materialToChange.SetTexture("_BATMap", asset);
+                ApplyToMaterial(asset, layout, bones.Length, clipIndex);
+                outputMeshFilter.sharedMesh = smr.sharedMesh;
             }
-
-            outputMeshFilter.sharedMesh = smr.sharedMesh;
         }
         finally
         {
-            if(graph.IsValid()) graph.Destroy();
+            if (graph.IsValid()) graph.Destroy();
         }
     }
 
-    private int GetPixelIndex(int boneIndex, int frameIndex, int plane)
+    private void ApplyToMaterial(Texture2D tex, BatLayout layout, int boneCount, int layer)
+    {
+        switch (layer)
+        {
+            case 0:
+                materialToChange.SetFloat("_BATFrames2", layout.frameRows - 1);
+                materialToChange.SetFloat("_BATFrameRows2", layout.frameRows);
+                materialToChange.SetFloat("_BATPlaneWidth2", layout.planeWidth);
+                materialToChange.SetFloat("_BATPlaneHeight2", layout.planeHeight);
+                materialToChange.SetFloat("_BATColumns2", layout.columns);
+                materialToChange.SetTexture("_BATMap2", tex);
+
+            break;
+            
+            default:
+                materialToChange.SetFloat("_BATFrames", layout.frameRows - 1);
+                materialToChange.SetFloat("_BATFrameRows", layout.frameRows);
+                materialToChange.SetFloat("_BATPlaneWidth", layout.planeWidth);
+                materialToChange.SetFloat("_BATPlaneHeight", layout.planeHeight);
+                materialToChange.SetFloat("_BATColumns", layout.columns);
+                materialToChange.SetTexture("_BATMap", tex);
+
+            break;
+        }
+        
+        materialToChange.SetFloat("_BATBoneCount", boneCount);
+        materialToChange.SetFloat("_BATPlaneGridX", layout.planeGridX);
+        materialToChange.SetFloat("_BATPlaneGridY", layout.planeGridY);
+    }
+
+    private void CreateAnimationDataSO(Texture2D tex, string clipName, float clipLength, BatLayout layout, int boneCount)
+    {
+        var path = AssetDatabase.GetAssetPath(tex);
+        var dir = Path.GetDirectoryName(path);
+        var soPath = Path.Combine(dir, $"{smr.name}_{clipName}_BATData.asset");
+
+        soPath = AssetDatabase.GenerateUniqueAssetPath(soPath);
+
+        var data = ScriptableObject.CreateInstance<BATAnimationData>();
+        data.clipName = clipName;
+        data.batMap = tex;
+        data.boneCount = boneCount;
+        data.columns = layout.columns;
+        data.frameRows = layout.frameRows;
+        data.frames = layout.frameRows - 1;
+        data.planeWidth = layout.planeWidth;
+        data.planeHeight = layout.planeHeight;
+        data.planeGridX = layout.planeGridX;
+        data.planeGridY = layout.planeGridY;
+        data.fps = sampleRate;
+
+        AssetDatabase.CreateAsset(data, soPath);
+        AssetDatabase.SaveAssets();
+
+        Debug.Log($"Created BATAnimationData at: {soPath}", data);
+    }
+
+    private int GetPixelIndex(int boneIndex, int frameIndex, int plane, BatLayout layout)
     {
         int col = boneIndex % layout.columns;
         int rowBlock = boneIndex / layout.columns;
@@ -172,24 +280,6 @@ public class BatMatrixBaker : MonoBehaviour
         int y = planeY * layout.planeHeight + rowBlock * layout.frameRows + frameIndex;
 
         return y * layout.totalWidth + x;
-    }
-
-    [Serializable]
-    public struct BatLayout
-    {
-        public int columns;
-        public int rowBlocks;
-
-        public int frameRows;
-
-        public int planeWidth;
-        public int planeHeight;
-
-        public int planeGridX;
-        public int planeGridY;
-
-        public int totalWidth;
-        public int totalHeight;
     }
 
     private static BatLayout ComputeBestLayout(int boneCount, int frameRows, int planes = 3)
@@ -215,7 +305,6 @@ public class BatMatrixBaker : MonoBehaviour
         int bestWaste = int.MaxValue;
         long bestArea = long.MaxValue;
 
-        // Grilles possibles pour 3 plans
         Span<Vector2Int> grids = stackalloc Vector2Int[]
         {
             new Vector2Int(1, 3),
@@ -271,22 +360,25 @@ public class BatMatrixBaker : MonoBehaviour
         return best;
     }
 
-    private Texture2D SaveTexture(Texture2D tex, string defaultName)
+    private Texture2D SaveTexture(Texture2D tex, string defaultName, int clipIndex)
     {
-
         var t = materialToChange.GetTexture("_BATMap");
         string path;
-        if (t)
+
+        if (clipIndex == 0 && t)
             path = AssetDatabase.GetAssetPath(t);
         else
         {
+            var dir = "Assets/_System/Animation/Character";
+            if (t) dir = Path.GetDirectoryName(AssetDatabase.GetAssetPath(t));
             path = EditorUtility.SaveFilePanelInProject(
                 "Save BAT texture",
-                defaultName.Replace(".png", ".exr"),
+                defaultName.Replace(".exr", ""),
                 "exr",
-                "Choose where to save the baked BAT texture");
+                "Choose where to save the baked BAT texture",
+                dir);
         }
-        
+
         if (string.IsNullOrEmpty(path))
             return null;
 
