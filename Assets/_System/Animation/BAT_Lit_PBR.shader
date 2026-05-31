@@ -40,7 +40,7 @@ Shader "Custom/URP/BAT_Lit_PBR"
         _BATPlaneHeight2("BAT Plane Height 2", Float) = 1
         _BATPlaneWidth2("BAT Plane Width 2", Float) = 1
         _BATColumns2("BAT Columns", Float) = 1
-        _BATBlend("BAT Blend Amount", Range(0,1)) = 0
+//        _BATBlend("BAT Blend Amount", Range(0,1)) = 0
         _BATBlendFrame("BAT Blend Frame Offset", Float) = 0
         _BAT_FPS_Blend("BAT FPS Blend", Float) = 30
         [HideInInspector] _BATManualTime("BAT Manual Time", Float) = 0
@@ -92,10 +92,11 @@ Shader "Custom/URP/BAT_Lit_PBR"
             uint _BATFrameRows2;
             uint _BATPlaneHeight2;
             uint _BATPlaneWidth2;
-            float _BATBlend;
             uint _BATBlendFrame;
             half _BAT_FPS_Blend;
         CBUFFER_END
+        
+        float _BATBlend;
         
         struct BoneRows
         {
@@ -314,6 +315,7 @@ Shader "Custom/URP/BAT_Lit_PBR"
             #pragma shader_feature_fragment _ PROBE_VOLUMES_L1 PROBE_VOLUMES_L2
             
             #pragma shader_feature_vertex _ _BAT
+            #pragma multi_compile _ DOTS_INSTANCING_ON
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -507,6 +509,7 @@ Shader "Custom/URP/BAT_Lit_PBR"
             #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
             
             #pragma shader_feature_vertex _ _BAT
+            #pragma multi_compile _ DOTS_INSTANCING_ON
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 
