@@ -213,6 +213,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4901e60ee339d854aaded797f59efda2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 43418072}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 4901e60ee339d854aaded797f59efda2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 43418074}
   m_SourcePrefab: {fileID: 100100000, guid: 4901e60ee339d854aaded797f59efda2, type: 3}
 --- !u!1 &43418071 stripped
 GameObject:
@@ -238,7 +241,7 @@ MonoBehaviour:
     z: -15.933464
   m_PrimitiveSize:
     x: 82.441605
-    y: 34.670494
+    y: 32.75032
     z: 96.17424
   m_PrimitiveOrientation:
     Value:
@@ -251,7 +254,7 @@ MonoBehaviour:
     Radius: 41.220802
     Axis: 2
   m_Cylinder:
-    Height: 34.670494
+    Height: 32.75032
     Radius: 48.08712
     Axis: 1
   m_CylinderSideCount: 20
@@ -362,6 +365,29 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
+--- !u!23 &43418073 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7918335002988649766, guid: 4901e60ee339d854aaded797f59efda2, type: 3}
+  m_PrefabInstance: {fileID: 43418070}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &43418074
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 43418071}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5075d250c6a932b44900fd1ab8740d9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlanetDataAuthoring
+  _planetID: 0
+  _autoCalculate: 1
+  _planetRenderer: {fileID: 43418073}
+  _manualRadius: 10
+  _manualCenterOffset: {x: 0, y: 0, z: 0}
+  _runDuration: 60
 --- !u!4 &50658614 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6125264536514319929, guid: 26fdc8e161635784b9e138ff0c5557f2, type: 3}
