@@ -65,7 +65,7 @@ public partial struct HealthRegenSystem : ISystem
             in LocalTransform transform)
         {
             // Skip dead entities and those without a regen stat.
-            if (health.Value <= 0 || stats.HealthRecovery <= 0f)
+            if (health.Value <= 0 || stats.HealthRegen <= 0f)
                 return;
 
             int maxHealth = (int)stats.MaxHealth;
@@ -85,7 +85,7 @@ public partial struct HealthRegenSystem : ISystem
                 return;
 
             // Heal proportionally to the elapsed time, banking the fractional remainder.
-            regen.Carryover += stats.HealthRecovery * regen.Timer;
+            regen.Carryover += stats.HealthRegen * regen.Timer;
             regen.Timer = 0f;
 
             int wholeHeal = (int)regen.Carryover;

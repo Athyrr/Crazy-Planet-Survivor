@@ -15,7 +15,7 @@ public struct CoreStats : IComponentData
 
     [Tooltip("Health points recovered per second.")]
     [UIStat("Regen/s", "{0:0.0}/s")]
-    public float HealthRecovery;
+    public float HealthRegen;
 
     [Tooltip("Base armor (native to the character).")] //todo
     public float BaseArmor;

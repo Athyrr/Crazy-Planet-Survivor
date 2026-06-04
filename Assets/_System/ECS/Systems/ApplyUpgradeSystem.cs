@@ -88,7 +88,8 @@ public partial struct ApplyUpgradeSystem : ISystem
         };
         var applyMetaJobHandle = applyMetaJob.ScheduleParallel(state.Dependency);
 
-        state.Dependency = JobHandle.CombineDependencies(applyUpgradeJobHandle, applyAmuletJobHandle, applyMetaJobHandle);
+        state.Dependency =
+            JobHandle.CombineDependencies(applyUpgradeJobHandle, applyAmuletJobHandle, applyMetaJobHandle);
     }
 
     [BurstCompile]
@@ -276,7 +277,8 @@ public partial struct ApplyUpgradeSystem : ISystem
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity playerEntity, in ApplyMetaProgressionRequest request,
+        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity playerEntity,
+            in ApplyMetaProgressionRequest request,
             ref CoreStats playerCoreStats)
         {
             // Remove request from player
@@ -293,17 +295,17 @@ public partial struct ApplyUpgradeSystem : ISystem
                 playerCoreStats.PickupRange += request.PickupRangeBonus;
 
             // Offensive
-            if (request.DamageBonus != 0f)            playerCoreStats.Damage += request.DamageBonus;
-            if (request.AttackSpeedBonus != 0f)        playerCoreStats.AttackSpeed += request.AttackSpeedBonus;
-            if (request.SpellSizeBonus != 0f)          playerCoreStats.SpellSize += request.SpellSizeBonus;
-            if (request.SpellSpeedBonus != 0f)         playerCoreStats.SpellSpeed += request.SpellSpeedBonus;
-            if (request.SpellDurationBonus != 0f)      playerCoreStats.SpellDuration += request.SpellDurationBonus;
-            if (request.CastRangeBonus != 0f)          playerCoreStats.CastRange += request.CastRangeBonus;
+            if (request.DamageBonus != 0f) playerCoreStats.Damage += request.DamageBonus;
+            if (request.AttackSpeedBonus != 0f) playerCoreStats.AttackSpeed += request.AttackSpeedBonus;
+            if (request.SpellSizeBonus != 0f) playerCoreStats.SpellSize += request.SpellSizeBonus;
+            if (request.SpellSpeedBonus != 0f) playerCoreStats.SpellSpeed += request.SpellSpeedBonus;
+            if (request.SpellDurationBonus != 0f) playerCoreStats.SpellDuration += request.SpellDurationBonus;
+            if (request.CastRangeBonus != 0f) playerCoreStats.CastRange += request.CastRangeBonus;
 
             // Flat
-            if (request.AmountBonus != 0)   playerCoreStats.Amount += request.AmountBonus;
-            if (request.PierceBonus != 0)   playerCoreStats.Pierce += request.PierceBonus;
-            if (request.BounceBonus != 0)   playerCoreStats.Bounce += request.BounceBonus;
+            if (request.AmountBonus != 0) playerCoreStats.Amount += request.AmountBonus;
+            if (request.PierceBonus != 0) playerCoreStats.Pierce += request.PierceBonus;
+            if (request.BounceBonus != 0) playerCoreStats.Bounce += request.BounceBonus;
 
             // Critical
             if (request.CritChanceBonus != 0f) playerCoreStats.CritChance += request.CritChanceBonus;
@@ -360,6 +362,10 @@ public partial struct ApplyUpgradeSystem : ISystem
                 playerCoreStats.SpellSpeed += value;
                 needSpellUpdate = true;
                 break;
+            case ECharacterStat.HealthRegen:
+                playerCoreStats.HealthRegen += value;
+                break;
+
             // case ECharacterStat.BurnDamage:
             //     playerCoreStats.GlobalBurnDamageMultiplier += value;
             //     needSpellUpdate = true;

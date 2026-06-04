@@ -22,13 +22,9 @@ public partial struct LobbyInteractionSystem : ISystem
     {
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
             return;
-
-        //@todo
-        //if (gameState.State != EGameState.Lobby)
-        //    return;
-
-        //if (!SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity))
-        //    return;
+        
+        if (gameState.State != EGameState.Lobby)
+            return;
 
         if (!SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity))
             return;
