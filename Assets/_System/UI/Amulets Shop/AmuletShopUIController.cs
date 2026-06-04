@@ -12,6 +12,11 @@ public class AmuletShopUIController
 
     private EntityQuery _gameStateQuery;
 
+    // One-shot flag: set right before a purchase-triggered refresh so the detail view plays the
+    // delayed unlock reveal. Consumed (reset) in RefreshDetailView so plain selection switches
+    // don't animate.
+    private bool _animateNextUnlock;
+
     protected override void Awake()
     {
         base.Awake();
@@ -46,7 +51,11 @@ public class AmuletShopUIController
     protected override void RefreshDetailView(AmuletSO data, int index)
     {
         _isSelectedItemUnlocked = IsAmuletUnlocked(index);
-        DetailView.Refresh(data, _isSelectedItemUnlocked);
+
+        bool animateUnlock = _animateNextUnlock;
+        _animateNextUnlock = false;
+
+        DetailView.Refresh(data, _isSelectedItemUnlocked, animateUnlock);
         RefreshActionButton();
     }
 
@@ -129,17 +138,29 @@ public class AmuletShopUIController
         metaResources.DeductCost(cost);
         metaResources.Save(); // todo maybe save only when Application Quit ?
 
+        GrantAmulet(_selectedItemIndex);
+    }
+
+    /// <summary>
+    /// Adds the amulet at <paramref name="index"/> to the unlocked set, rebuilds the list, and
+    /// plays the full unlock reveal (delayed appearance + base-character reshow + VFX). Shared by
+    /// both currency and NFC purchases so every buy looks the same.
+    /// </summary>
+    private void GrantAmulet(int index)
+    {
+        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
         var unlockedBuffer = _entityManager.GetBuffer<UnlockedAmulet>(gameStateEntity);
-        unlockedBuffer.Add(new UnlockedAmulet { DbIndex = _selectedItemIndex });
+        unlockedBuffer.Add(new UnlockedAmulet { DbIndex = index });
 
-        _isSelectedItemUnlocked = true;
-
-        int purchasedIndex = _selectedItemIndex;
         RefreshListView();
 
-        // Focus the just-purchased amulet (force a refresh to its now-unlocked state).
+        // Force a refresh to the now-unlocked state, focusing the just-bought amulet, and flag the
+        // detail view to play the reveal animation on that refresh.
+        _animateNextUnlock = true;
         _focusedItemIndex = -1;
-        FocusItem(purchasedIndex);
+        FocusItem(index);
+
+        DetailView.PlayUnlockVfx();
     }
 
     #region NFC
@@ -190,18 +211,10 @@ public class AmuletShopUIController
         if (IsAmuletUnlocked(index))
         {
             SelectItem(index);
-            //DetailView.PlayUnlockVfx();
             return;
         }
 
-        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
-
-        var unlockedBuffer = _entityManager.GetBuffer<UnlockedAmulet>(gameStateEntity);
-        unlockedBuffer.Add(new UnlockedAmulet { DbIndex = index });
-
-        RefreshListView();
-        SelectItem(index);
-        DetailView.PlayUnlockVfx();
+        GrantAmulet(index);
     }
 
     private int FindAmuletIndexByName(string amuletName)

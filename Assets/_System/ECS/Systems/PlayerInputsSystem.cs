@@ -64,9 +64,8 @@ public partial struct PlayerInputSystem : ISystem
             cameraRight = math.normalize(cameraRight);
             cameraForward = math.normalize(cameraForward);
 
-            // Camera related direction
-            float3 worldDirection = cameraRight * input.x + cameraForward * input.y;
-            return math.normalize(worldDirection);
+            // Camera related direction — magnitude preserved from input
+            return cameraRight * input.x + cameraForward * input.y;
         }
         else
         {
@@ -79,9 +78,8 @@ public partial struct PlayerInputSystem : ISystem
             worldRight = math.normalize(worldRight);
             worldForward = math.normalize(worldForward);
 
-            // World related direction
-            float3 direction = worldRight * input.x + worldForward * input.y;
-            return math.normalize(direction);
+            // World related direction — magnitude preserved from input
+            return worldRight * input.x + worldForward * input.y;
         }
     }
 }

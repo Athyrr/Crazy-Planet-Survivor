@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using EasyButtons;
 using PrimeTween;
 using Unity.Entities;
-using UnityEditor;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using Random = UnityEngine.Random;
 
 [ExecuteAlways]
@@ -129,6 +131,7 @@ public class FloatingNumberFeedbackManager : MonoBehaviour
         if (world == null)
             return;
 
+#if UNITY_EDITOR
         if (!EditorApplication.isPlaying && world != _lastWorld)
         {
             _entityManager = world.EntityManager;
@@ -137,6 +140,7 @@ public class FloatingNumberFeedbackManager : MonoBehaviour
             _healFeedbackQuery = _entityManager.CreateEntityQuery(typeof(HealFeedbackRequest));
             _lastWorld = world;
         }
+#endif
 
         // Process damage feedback
         if (!_damageFeedbackQuery.IsEmpty)

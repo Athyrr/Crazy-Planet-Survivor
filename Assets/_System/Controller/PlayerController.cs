@@ -1,5 +1,7 @@
+using _System.Settings;
 using static UnityEngine.InputSystem.InputAction;
 using Unity.Entities;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -15,6 +17,8 @@ public class PlayerController : MonoBehaviour
 
     private bool _isInteractPressed = false;
     private bool _isTabPressed = false;
+
+    private Vector2 _previewLerpValue =  Vector2.zero;
 
     private void Awake()
     {
@@ -54,7 +58,14 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         Vector2 direction = _hasVirtualInput ? _virtualDirection : _inputDirection;
-        InjectInputDirectionToECS(direction);
+        Vector2 lerpValue = new Vector2(
+            math.lerp(_previewLerpValue.x, direction.x, Time.deltaTime * CpBasePlayerSettings.PlayerMovementMitigationSpeed), 
+            math.lerp(_previewLerpValue.y, direction.y, Time.deltaTime * CpBasePlayerSettings.PlayerMovementMitigationSpeed));
+        
+        InjectInputDirectionToECS(lerpValue);
+        Shader.SetGlobalFloat("_BATBlend", lerpValue.magnitude);
+        
+        _previewLerpValue = lerpValue;
     }
 
     private void HandleMoveInput(CallbackContext ctx)

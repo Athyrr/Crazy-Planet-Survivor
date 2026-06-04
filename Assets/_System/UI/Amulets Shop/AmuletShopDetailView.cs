@@ -65,7 +65,13 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
             SetLayerRecursive(child.gameObject, layer);
     }
 
-    public void Refresh(AmuletSO data, bool isUnlocked)
+    /// <summary>
+    /// Refreshes the detail view. <paramref name="animateUnlock"/> should only be true when the
+    /// amulet was just purchased: it plays the delayed reveal (base character shown first, then
+    /// the amulet after <see cref="SpawnDelay"/>). On plain selection switches it must be false so
+    /// the amulet appears immediately with no base-character reshow.
+    /// </summary>
+    public void Refresh(AmuletSO data, bool isUnlocked, bool animateUnlock = false)
     {
         Clear();
 
@@ -78,7 +84,7 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
             return;
         }
 
-        ShowUnlocked(data);
+        ShowUnlocked(data, animateUnlock);
     }
 
     private void ShowLocked(AmuletSO data)
@@ -101,32 +107,40 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         ShowCost(data.PurchaseCost);
     }
 
-    private void ShowUnlocked(AmuletSO data)
+    private void ShowUnlocked(AmuletSO data, bool animateUnlock)
     {
-        if (DefaultAmulet != null)
-            Instantiate(DefaultAmulet, AmuletPreviewContainer);
+        if (animateUnlock)
+        {
+            // Purchase reveal: show the base character first, then swap in the amulet after a delay.
+            if (DefaultAmulet != null)
+                Instantiate(DefaultAmulet, AmuletPreviewContainer);
 
-        Tween.Delay(
-            duration: SpawnDelay,
-            () =>
-            {
-                if (DefaultAmulet != null)
+            Tween.Delay(
+                duration: SpawnDelay,
+                () =>
                 {
-                    foreach (Transform child in AmuletPreviewContainer.transform)
+                    if (DefaultAmulet != null)
                     {
-                        if (child.gameObject != UnlockVfxPrefab.gameObject)
+                        foreach (Transform child in AmuletPreviewContainer.transform)
                         {
-                            Destroy(child.gameObject);
+                            if (UnlockVfxPrefab == null
+                                || child.gameObject != UnlockVfxPrefab.gameObject)
+                            {
+                                Destroy(child.gameObject);
+                            }
                         }
                     }
+                    if (data.UIPrefab != null)
+                        Instantiate(data.UIPrefab, AmuletPreviewContainer);
                 }
-                if (data.UIPrefab != null)
-                    Instantiate(data.UIPrefab, AmuletPreviewContainer);
-            }
-        );
-
-        // if (data.UIPrefab != null)
-        //     Instantiate(data.UIPrefab, AmuletPreviewContainer);
+            );
+        }
+        else
+        {
+            // Plain selection switch: show the amulet immediately, no base-character reshow.
+            if (data.UIPrefab != null)
+                Instantiate(data.UIPrefab, AmuletPreviewContainer);
+        }
 
         if (AmuletNameText != null)
             AmuletNameText.text = data.DisplayName;
