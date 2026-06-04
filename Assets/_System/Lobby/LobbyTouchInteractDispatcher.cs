@@ -1,29 +1,27 @@
+using Unity.Collections;
 using Unity.Entities;
-using Unity.Physics;
+using Unity.Mathematics;
+using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using Ray = UnityEngine.Ray;
-using RaycastHit = Unity.Physics.RaycastHit;
 
 /// <summary>
-/// Routes a UI.Click tap into the ECS world: raycasts the gameplay camera against the
-/// PhysicsWorld and, if the hit entity carries <see cref="Interactable"/>, spawns the
-/// matching Open*Request event entity. Bypasses the in-range tag — tapping a building
-/// from anywhere opens it.
+/// Allows click/interact on <see cref="Interactable"/> clickable entities.
+/// The nearest hit spawns the matching Open*Request event entity, so tapping a building from anywhere opens it.
 /// </summary>
 public class LobbyTouchInteractDispatcher : MonoBehaviour
 {
-    [Header("Setup")]
-    [Tooltip("Camera used to project the pointer ray. Falls back to Camera.main when null.")]
+    [Header("Setup")] [Tooltip("Camera used to project the pointer ray. Falls back to Camera.main when null.")]
     public Camera GameplayCamera;
 
-    [Tooltip("Max ray distance in world units.")]
-    public float MaxRayDistance = 1000f;
+    [Tooltip("World-space radius of the clickable sphere around each building. " +
+             "Leave <= 0 to use each interactable's own interaction Radius.")]
+    public float ClickRadiusWorld = 0f;
 
     private GameInputs _inputs;
     private EntityManager _entityManager;
-    private EntityQuery _physicsWorldQuery;
+    private EntityQuery _interactableQuery;
     private bool _initialized;
 
     private void OnEnable()
@@ -54,23 +52,28 @@ public class LobbyTouchInteractDispatcher : MonoBehaviour
             return;
 
         _entityManager = world.EntityManager;
-        _physicsWorldQuery = _entityManager.CreateEntityQuery(typeof(PhysicsWorldSingleton));
+        _interactableQuery = _entityManager.CreateEntityQuery(
+            ComponentType.ReadOnly<Interactable>(),
+            ComponentType.ReadOnly<LocalTransform>());
         _initialized = true;
     }
 
     private void OnClick(InputAction.CallbackContext ctx)
     {
-        // UI.Click is PassThrough Button — performed fires on both press and release.
+        // UI.Click performed fires on both press and release.
         if (!ctx.ReadValueAsButton())
             return;
 
-        // Skip taps the EventSystem already consumed (HUD buttons, upgrade cards, etc.)
-        // so a tap on the on-screen Interact button doesn't double-fire.
+        // Skip taps the EventSystem already consumed (HUD buttons, upgrade cards, etc.).
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
             return;
 
+        // Buildings are only clickable in the lobby
+        if (GameManager.Instance == null || GameManager.Instance.GetGameState() != EGameState.Lobby)
+            return;
+
         EnsureInit();
-        if (!_initialized || _physicsWorldQuery.IsEmpty)
+        if (!_initialized || _interactableQuery.IsEmpty)
             return;
 
         Camera cam = GameplayCamera != null ? GameplayCamera : Camera.main;
@@ -79,24 +82,58 @@ public class LobbyTouchInteractDispatcher : MonoBehaviour
 
         Vector2 pointerPos = _inputs.UI.Point.ReadValue<Vector2>();
         Ray ray = cam.ScreenPointToRay(pointerPos);
+        float3 origin = ray.origin;
+        float3 dir = math.normalize((float3)ray.direction);
 
-        var raycastInput = new RaycastInput
+        var entities = _interactableQuery.ToEntityArray(Allocator.Temp);
+        var interactables = _interactableQuery.ToComponentDataArray<Interactable>(Allocator.Temp);
+        var transforms = _interactableQuery.ToComponentDataArray<LocalTransform>(Allocator.Temp);
+
+        int bestIndex = -1;
+        float bestT = float.MaxValue;
+
+        for (int i = 0; i < entities.Length; i++)
         {
-            Start = ray.origin,
-            End = ray.origin + ray.direction * MaxRayDistance,
-            Filter = CollisionFilter.Default,
-        };
+            float radius = ClickRadiusWorld > 0f ? ClickRadiusWorld : interactables[i].Radius;
+            if (radius <= 0f)
+                continue;
 
-        var physicsWorld = _physicsWorldQuery.GetSingleton<PhysicsWorldSingleton>();
-        if (!physicsWorld.CastRay(raycastInput, out RaycastHit hit))
-            return;
+            if (RayIntersectsSphere(origin, dir, transforms[i].Position, radius, out float t) && t < bestT)
+            {
+                bestT = t;
+                bestIndex = i;
+            }
+        }
 
-        Entity hitEntity = hit.Entity;
-        if (!_entityManager.HasComponent<Interactable>(hitEntity))
-            return;
+        if (bestIndex >= 0)
+            CreateInteractRequest(interactables[bestIndex].InteractionType);
 
-        var interactable = _entityManager.GetComponentData<Interactable>(hitEntity);
-        CreateInteractRequest(interactable.InteractionType);
+        entities.Dispose();
+        interactables.Dispose();
+        transforms.Dispose();
+    }
+
+    /// <summary>Ray (normalized dir) vs sphere. Returns the nearest non-negative hit distance.</summary>
+    private static bool RayIntersectsSphere(float3 origin, float3 dir, float3 center, float radius, out float t)
+    {
+        t = 0f;
+        float3 m = origin - center;
+        float b = math.dot(m, dir);
+        float c = math.dot(m, m) - radius * radius;
+
+        // Ray starts outside the sphere and points away from it.
+        if (c > 0f && b > 0f)
+            return false;
+
+        float discriminant = b * b - c;
+        if (discriminant < 0f)
+            return false;
+
+        t = -b - math.sqrt(discriminant);
+        if (t < 0f)
+            t = 0f; // origin is inside the sphere
+
+        return true;
     }
 
     private void CreateInteractRequest(EInteractionType type)
