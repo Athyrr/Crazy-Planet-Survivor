@@ -16,10 +16,16 @@ public partial class CameraTargetUpdaterSystem : SystemBase
     private CinemachineOrbitalFollow _cameraTargetFollow;
     private bool _initialized;
 
+    // Player entity the rig is currently following. The camera rig persists across scene
+    // reloads, so a new run / respawn must re-seed the orientation rather than carry over
+    // the previous run's drifted 'up' vector.
+    private Entity _lastPlayerEntity;
+
     protected override void OnCreate()
     {
         RequireForUpdate<Player>();
         _initialized = false;
+        _lastPlayerEntity = Entity.Null;
     }
 
     protected override void OnUpdate()
@@ -33,21 +39,28 @@ public partial class CameraTargetUpdaterSystem : SystemBase
 
         // Retrieve Player position from ECS
         Entity playerEntity = SystemAPI.GetSingletonEntity<Player>();
+
+        // A new run / respawn produces a fresh player entity. Since the camera rig persists,
+        // re-seed the orientation this frame instead of inheriting the previous run's drifted up.
+        bool playerChanged = playerEntity != _lastPlayerEntity;
+        _lastPlayerEntity = playerEntity;
+
         LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
 
         float3 playerPos = playerTransform.Position;
         float distSq = math.lengthsq(playerPos);
         float dist = math.sqrt(distSq);
-        
+
         // Calculate direction towards the planet center (Gravity/Down direction)
         float3 toCenter = dist > math.EPSILON ? -playerPos / dist : new float3(0, -1, 0);
 
         // The target transform stays at the planet center (0,0,0) to act as a pivot
-        _cameraTargetTransform.position = Vector3.zero; 
-        
+        _cameraTargetTransform.position = Vector3.zero;
+
         // Parallel Transport: Use the current Up vector as a hint to maintain consistent orientation.
         // This prevents the camera from snapping or spinning wildly when passing through the planet's poles.
-        Vector3 currentUp = _cameraTargetTransform.up;
+        // On (re)spawn, seed from world up so every lobby/run entry reproduces the initial spawn POV.
+        Vector3 currentUp = playerChanged ? Vector3.up : _cameraTargetTransform.up;
         if (math.abs(math.dot(toCenter, (float3)currentUp)) > 0.99f) currentUp = math.rotate(playerTransform.Rotation, new float3(0, 0, 1));
 
         _cameraTargetTransform.rotation = Quaternion.LookRotation(toCenter, currentUp);

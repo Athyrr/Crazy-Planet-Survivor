@@ -620,10 +620,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 781f0eddf4c4db54fb7982c8644fee8a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractPromptHUDWidget
-  Button: {fileID: 1343192448}
-  PromptRoot: {fileID: 0}
-  _playerController: {fileID: 0}
-  _initialized: 0
 --- !u!224 &458331208 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1094772355534346980, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
@@ -4456,7 +4452,7 @@ MonoBehaviour:
     PositionDamping: {x: 1, y: 1, z: 1}
     AngularDampingMode: 1
     RotationDamping: {x: 0, y: 0, z: 0}
-    QuaternionDamping: 0.5
+    QuaternionDamping: 1.5
   OrbitStyle: 0
   Radius: 85.00002
   Orbits:

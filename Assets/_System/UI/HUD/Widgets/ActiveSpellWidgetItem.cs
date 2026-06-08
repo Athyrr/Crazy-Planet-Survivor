@@ -31,14 +31,15 @@ public class ActiveSpellWidgetItem : UIViewItemBase
     public void RefreshCooldown(float current, float final)
     {
         bool onCooldown = current > 0f && final > 0f;
-        float ratio = onCooldown ? Mathf.Clamp01(current / final) : 0f;
+
+        float remainingRatio = onCooldown ? Mathf.Clamp01(current / final) : 0f;
 
         if (CooldownOverlay)
         {
             if (CooldownOverlay.gameObject.activeSelf != onCooldown)
                 CooldownOverlay.gameObject.SetActive(onCooldown);
 
-            CooldownOverlay.fillAmount = 1 - ratio;
+            CooldownOverlay.fillAmount = remainingRatio;
         }
 
         if (CooldownText)

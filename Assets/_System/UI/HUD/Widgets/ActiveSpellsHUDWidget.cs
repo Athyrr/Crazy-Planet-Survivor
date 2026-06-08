@@ -22,6 +22,8 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
     private Dictionary<int, ActiveSpellWidgetItem> _indexToActiveSpellsMap = new();
     private readonly List<int> _staleSpellKeys = new();
 
+    private Entity _lastPlayerEntity = Entity.Null;
+
     private void Start()
     {
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -32,9 +34,22 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
     private void Update()
     {
         if (_playerQuery.IsEmptyIgnoreFilter)
+        {
+            if (_indexToActiveSpellsMap.Count > 0)
+                Clear();
+            _lastPlayerEntity = Entity.Null;
             return;
+        }
 
         var playerEntity = _playerQuery.GetSingletonEntity();
+
+        // New run / respawn: the player entity changed, rebuild the HUD from scratch.
+        if (playerEntity != _lastPlayerEntity)
+        {
+            Clear();
+            _lastPlayerEntity = playerEntity;
+        }
+
         var activeSpellsBuffer = _entityManager.GetBuffer<ActiveSpell>(playerEntity);
 
         var gameStateEntity = _gameStateQuery.GetSingletonEntity();
@@ -61,7 +76,7 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
 
     private void RefreshSpells(DynamicBuffer<ActiveSpell> activeSpells)
     {
-         for (int i = 0; i < activeSpells.Length; i++)
+        for (int i = 0; i < activeSpells.Length; i++)
         {
             var activeSpell = activeSpells[i];
             int dbIndex = activeSpell.DatabaseIndex;
@@ -117,7 +132,6 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
     private ActiveSpellWidgetItem GetOrCreateSpellWidgetItem(int dbIndex, SpellDataSO spellData,
         ActiveSpell activeSpell)
     {
-        // Reuse the existing widget unless it was destroyed (Unity-null) — then rebuild it.
         if (_indexToActiveSpellsMap.TryGetValue(dbIndex, out var spellWidgetItem))
         {
             if (spellWidgetItem != null)
