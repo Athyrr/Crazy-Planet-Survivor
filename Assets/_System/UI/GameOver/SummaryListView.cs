@@ -105,7 +105,7 @@ public class SummaryListView : UIViewBase
 
         float finalHealth = stats.MaxHealth;
         CreateStatUI("Max Health", finalHealth.ToString("0"));
-        CreateStatUI("Health Regen", $"{stats.HealthRecovery:0.0}/s");
+        CreateStatUI("Health Regen", $"{stats.HealthRegen:0.0}/s");
         CreateStatUI("Armor", stats.BaseArmor.ToString("0"));
 
         float finalSpeed = stats.BaseMoveSpeed * (1f + stats.MoveSpeed);

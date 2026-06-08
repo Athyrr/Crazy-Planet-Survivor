@@ -67,6 +67,8 @@ MonoBehaviour:
   _resourceDatabase: {fileID: 11400000, guid: 428825b34955ef547b2aa6531ffc3186, type: 2}
   _purchaseButton: {fileID: 0}
   _purchaseButtonText: {fileID: 0}
+  _purchaseFocusHighlight: {fileID: 0}
+  _purchaseFocusScale: 1.1
   _maxedContainer: {fileID: 0}
   _maxedText: {fileID: 0}
   _normalPipColor: {r: 1, g: 1, b: 1, a: 1}
@@ -831,6 +833,7 @@ MonoBehaviour:
   _resourceDatabase: {fileID: 11400000, guid: 428825b34955ef547b2aa6531ffc3186, type: 2}
   _gridContainer: {fileID: 8393954919236637916}
   _gridItemPrefab: {fileID: 1730921223030411141, guid: a20ebc2640559294a9cb47de6f0a0529, type: 3}
+  _gridColumns: 0
   _detailView: {fileID: 2138453174893194093}
   _mainView: {fileID: 8639006279902519718}
 --- !u!1 &9113602491637672401
@@ -3750,6 +3753,10 @@ PrefabInstance:
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
       value: MetaProgressionController, Assembly-CSharp
       objectReference: {fileID: 0}
+    - target: {fileID: 749148127949488184, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
+      propertyPath: m_Name
+      value: Text - back
+      objectReference: {fileID: 0}
     - target: {fileID: 2559481691422181212, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -3833,6 +3840,10 @@ PrefabInstance:
     - target: {fileID: 5807296619678415717, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
       propertyPath: m_Name
       value: Button - Back
+      objectReference: {fileID: 0}
+    - target: {fileID: 6970214425271919516, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
+      propertyPath: m_text
+      value: Back
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

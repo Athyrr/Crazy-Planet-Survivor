@@ -203,7 +203,9 @@ public class UpgradeSelectionView : UIViewBase
         Vector2 v = ctx.ReadValue<Vector2>();
         float absX = Mathf.Abs(v.x);
 
-        // Debounce so a held stick/key only steps once per actuation.
+        // Edge-triggered debounce: a held stick/key steps once, then must return
+        // near center before it can step again (otherwise a single push cycles
+        // through several cards and lands back where it started).
         if (absX < 0.3f)
         {
             _navAxisActive = false;
@@ -211,7 +213,8 @@ public class UpgradeSelectionView : UIViewBase
         }
 
         if (_navAxisActive)
-            _navAxisActive = true;
+            return;
+        _navAxisActive = true;
 
         int step = v.x > 0 ? 1 : -1;
         int n = _spawnedUpgradeItems.Count;

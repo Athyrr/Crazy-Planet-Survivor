@@ -1,7 +1,4 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using _System.ECS.Authorings.Resources;
 using Unity.Entities;
 using UnityEngine;
 using TMPro;
@@ -19,14 +16,19 @@ public class GameOverUIController : UIControllerBase
 
     private EntityManager _entityManager;
     private EntityQuery _gameStateQuery;
-
-
+    
     private void Awake()
     {
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
     }
 
+    private void OnEnable()
+    {
+        //if gameinput is null, create instance
+        
+    }
+    
     public void OpenView(EEndRunState endState, ResourceBufferElement[] resources)
     {
         gameObject.SetActive(true);

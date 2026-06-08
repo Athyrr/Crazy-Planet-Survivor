@@ -6,10 +6,6 @@ using UnityEngine.InputSystem;
 /// On-screen virtual joystick for touch / mobile. Reports a normalized [-1,1] direction
 /// that <see cref="PlayerController"/> reads as movement input (via SetVirtualMoveInput).
 /// Shown only on touch-capable platforms by default; inert on desktop/console.
-///
-/// Setup: place this on a UI object that has a raycast-target Graphic (e.g. an Image) acting
-/// as the joystick <see cref="Background"/>, with a child Image as the <see cref="Handle"/>.
-/// Both should use a centered pivot/anchor. Drop it on the HUD Canvas.
 /// </summary>
 [RequireComponent(typeof(RectTransform))]
 public class VirtualJoystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
@@ -21,9 +17,7 @@ public class VirtualJoystick : MonoBehaviour, IPointerDownHandler, IDragHandler,
     [Tooltip("The draggable knob; moves within the Background. Optional (visual only).")]
     public RectTransform Handle;
 
-    [Header("Tuning")]
-    [Range(0f, 0.9f)]
-    [Tooltip("Inputs below this magnitude are treated as zero.")]
+    [Header("Tuning")] [Range(0f, 0.9f)] [Tooltip("Inputs below this magnitude are treated as zero.")]
     public float DeadZone = 0.1f;
 
     [Header("Behaviour")]
@@ -103,7 +97,7 @@ public class VirtualJoystick : MonoBehaviour, IPointerDownHandler, IDragHandler,
     private void PushToController(Vector2 direction, bool released = false)
     {
         if (_controller == null)
-            _controller = FindFirstObjectByType<PlayerController>();
+            _controller = FindAnyObjectByType<PlayerController>();
 
         if (_controller == null)
             return;

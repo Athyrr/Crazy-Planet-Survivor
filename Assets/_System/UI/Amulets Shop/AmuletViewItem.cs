@@ -19,16 +19,12 @@ public class AmuletViewItem : UIViewItemBase
     private AmuletShopUIController _controller;
     private int _databaseIndex;
     private bool _isUnlocked;
+    private bool _isHovered;
     private bool _isFocused;
     private bool _isSelected;
 
     private static readonly int BackgroundColorShaderProperty = Shader.PropertyToID("_BackgroundColor");
     private static readonly int OutlineColorShaderProperty = Shader.PropertyToID("_OutlineColor");
-
-    private void OnDisable()
-    {
-        _amuletButton.onClick.RemoveAllListeners();
-    }
 
     public void Init(AmuletShopUIController controller, int index, AmuletSO amuletData, bool isUnlocked)
     {
@@ -39,27 +35,44 @@ public class AmuletViewItem : UIViewItemBase
         _label.text = amuletData.DisplayName;
         _icon.sprite = amuletData.Icon;
         _ressourceComponentParent.SetActive(!isUnlocked);
-        
-        _amuletButton.onClick.RemoveAllListeners();
-        _amuletButton.onClick.AddListener(() => _controller.FocusItem(_databaseIndex));
+
+        // The item receives pointer events directly (OnPointerEnter/Exit/Click); the button is kept
+        // only as a raycast target, so it must not also trigger focus on click (would double-fire).
+        if (_amuletButton != null)
+            _amuletButton.onClick.RemoveAllListeners();
 
         _border.material = new Material(_border.material);
+
+        _isHovered = false;
+        _isFocused = false;
+        _isSelected = false;
         RefreshColor();
     }
 
+    // Pointer hover (PC): highlight only — does not show details.
     public override void OnPointerEnter(PointerEventData eventData)
     {
-        Debug.Log("OnPointerEnter");
-        // print if controller is null
-        if (_controller == null)
-            Debug.Log("Controller is null");
-        
-        _controller.FocusItem(_databaseIndex);
+        if (_controller != null)
+            _controller.HoverItem(_databaseIndex);
     }
 
+    public override void OnPointerExit(PointerEventData eventData)
+    {
+        if (_controller != null)
+            _controller.UnhoverItem(_databaseIndex);
+    }
+
+    // Click (PC): focus the item and show its details.
     public override void OnPointerClick(PointerEventData eventData)
     {
-        _controller.FocusItem(_databaseIndex);
+        if (_controller != null)
+            _controller.FocusItem(_databaseIndex);
+    }
+
+    public override void SetHovered(bool isHovered)
+    {
+        _isHovered = isHovered;
+        RefreshColor();
     }
 
     public override void SetFocus(bool isFocused)
@@ -76,37 +89,27 @@ public class AmuletViewItem : UIViewItemBase
 
     private void RefreshColor()
     {
-        _label.color = GetCurrentOutlineColor(true);
         _icon.enabled = _isUnlocked;
 
         // todo @hyverno set background with rarity when integrate (BackgroundColorShaderProperty)
 
-        Color targetColor = GetCurrentOutlineColor();
+        _label.color = GetTextColor();
+
+        Color targetColor = GetBorderColor();
         if (_border.material != null)
             _border.material.SetColor(OutlineColorShaderProperty, targetColor);
-
-        // _border.color = GetCurrentOutlineColor();
-
-        Debug.Log(CpBaseUISettings.ComplementaryColor);
     }
 
-    private Color GetCurrentOutlineColor(bool isText = false)
+    private bool IsHighlighted => _isFocused || _isHovered;
+
+    private Color GetBorderColor()
+        => CpBaseUISettings.GetItemOutlineColor(_isSelected, IsHighlighted, _isUnlocked);
+
+    private Color GetTextColor()
     {
-        if (_isFocused)
-        {
-            if (isText)
-                return CpBaseUISettings.ComplementaryColor;
-            if (_isUnlocked)
-                return CpBaseUISettings.MainColor;
+        if (_isSelected || IsHighlighted)
+            return CpBaseUISettings.ComplementaryColor;
 
-            return CpBaseUISettings.SecondColor;
-        }
-
-        if (isText)
-            return CpBaseUISettings.ComplementaryColorOver;
-        if (_isUnlocked)
-            return CpBaseUISettings.MainColorOver;
-
-        return CpBaseUISettings.SecondColorOver;
+        return CpBaseUISettings.ComplementaryColorOver;
     }
 }

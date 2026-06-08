@@ -45,7 +45,7 @@ public class EnemyAuthoring : MonoBehaviour
                 BaseMoveSpeed = authoring.BaseStats.BaseMoveSpeed,
                 BasePickupRange = authoring.BaseStats.BasePickupRange,
 
-                HealthRecovery = authoring.BaseStats.HealthRecovery,
+                HealthRegen = authoring.BaseStats.HealthRegen,
                 Armor = authoring.BaseStats.Armor,
                 MoveSpeed = authoring.BaseStats.MoveSpeed,
                 PickupRange = authoring.BaseStats.PickupRange,

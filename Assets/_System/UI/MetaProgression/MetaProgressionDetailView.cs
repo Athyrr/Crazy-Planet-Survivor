@@ -34,6 +34,12 @@ public class MetaProgressionDetailView : MonoBehaviour
     [SerializeField] private Button _purchaseButton;
     [SerializeField] private TMP_Text _purchaseButtonText;
 
+    [Tooltip("Optional highlight (frame/glow) shown when the purchase button is focused via controller.")]
+    [SerializeField] private GameObject _purchaseFocusHighlight;
+
+    [Tooltip("Scale applied to the purchase button while it is focused (controller feedback).")]
+    [SerializeField] private float _purchaseFocusScale = 1.1f;
+
     [Header("Maxed Out")]
     [SerializeField] private GameObject _maxedContainer;
     [SerializeField] private TMP_Text _maxedText;
@@ -172,6 +178,25 @@ public class MetaProgressionDetailView : MonoBehaviour
             return $"{(int)value:+0;-0;0}";
         else
             return $"{value:+0%;-0%;0}";
+    }
+
+    /// <summary>
+    /// Highlights the purchase button when an upgrade is committed via controller (so the player
+    /// sees what the next Interact will buy). Uses an optional frame plus a subtle scale so it
+    /// works even without a wired highlight. No-op while the button is hidden (maxed upgrade).
+    /// </summary>
+    public void SetPurchaseFocused(bool focused)
+    {
+        if (_purchaseButton == null)
+            return;
+
+        bool canShow = focused && _purchaseButton.gameObject.activeSelf;
+
+        if (_purchaseFocusHighlight != null)
+            _purchaseFocusHighlight.SetActive(canShow);
+
+        _purchaseButton.transform.localScale =
+            canShow ? Vector3.one * _purchaseFocusScale : Vector3.one;
     }
 
     public void Clear()

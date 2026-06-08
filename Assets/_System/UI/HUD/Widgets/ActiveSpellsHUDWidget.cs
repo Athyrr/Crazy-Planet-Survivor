@@ -20,6 +20,7 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
     private EntityQuery _gameStateQuery;
 
     private Dictionary<int, ActiveSpellWidgetItem> _indexToActiveSpellsMap = new();
+    private readonly List<int> _staleSpellKeys = new();
 
     private void Start()
     {
@@ -43,6 +44,11 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
         RefreshAmulet(amulet);
     }
 
+    private void OnDisable()
+    {
+        Clear();
+    }
+
     private void RefreshAmulet(EquippedAmulet amulet)
     {
         if (!AmuletsDatabase || !AmuletIcon)
@@ -55,24 +61,70 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
 
     private void RefreshSpells(DynamicBuffer<ActiveSpell> activeSpells)
     {
-        Clear();
-
-        for (int i = 0; i < activeSpells.Length; i++)
+         for (int i = 0; i < activeSpells.Length; i++)
         {
             var activeSpell = activeSpells[i];
             int dbIndex = activeSpell.DatabaseIndex;
+            if (dbIndex < 0 || dbIndex >= SpellsDatabase.Spells.Length)
+                continue;
+
             var spellData = SpellsDatabase.Spells[dbIndex];
 
             var spellWidgetItem = GetOrCreateSpellWidgetItem(dbIndex, spellData, activeSpell);
+            if (spellWidgetItem == null)
+                continue;
+
             spellWidgetItem.Refresh(spellData, dbIndex, activeSpell.Level);
+            spellWidgetItem.RefreshCooldown(activeSpell.CurrentCooldown, activeSpell.FinalCooldown);
+        }
+
+        RemoveStaleSpells(activeSpells);
+    }
+
+    /// <summary>Destroys widgets whose spell is no longer in the buffer (e.g. on a new run).</summary>
+    private void RemoveStaleSpells(DynamicBuffer<ActiveSpell> activeSpells)
+    {
+        if (_indexToActiveSpellsMap.Count == activeSpells.Length)
+            return;
+
+        _staleSpellKeys.Clear();
+        foreach (var key in _indexToActiveSpellsMap.Keys)
+        {
+            bool present = false;
+            for (int i = 0; i < activeSpells.Length; i++)
+            {
+                if (activeSpells[i].DatabaseIndex == key)
+                {
+                    present = true;
+                    break;
+                }
+            }
+
+            if (!present)
+                _staleSpellKeys.Add(key);
+        }
+
+        for (int i = 0; i < _staleSpellKeys.Count; i++)
+        {
+            int key = _staleSpellKeys[i];
+            if (_indexToActiveSpellsMap.TryGetValue(key, out var item) && item != null)
+                Destroy(item.gameObject);
+
+            _indexToActiveSpellsMap.Remove(key);
         }
     }
 
     private ActiveSpellWidgetItem GetOrCreateSpellWidgetItem(int dbIndex, SpellDataSO spellData,
         ActiveSpell activeSpell)
     {
+        // Reuse the existing widget unless it was destroyed (Unity-null) — then rebuild it.
         if (_indexToActiveSpellsMap.TryGetValue(dbIndex, out var spellWidgetItem))
-            return spellWidgetItem;
+        {
+            if (spellWidgetItem != null)
+                return spellWidgetItem;
+
+            _indexToActiveSpellsMap.Remove(dbIndex);
+        }
 
         if (dbIndex < 0 || dbIndex >= SpellsDatabase.Spells.Length)
             return null;

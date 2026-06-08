@@ -5,7 +5,7 @@ namespace _System.Settings
     [CreateAssetMenu(fileName = "UISettings", menuName = "CPSettings/UISettings")]
     public class CpBaseUISettings: CPCustomSettings<CpBaseUISettings>
     {
-        [Header("Projet Setting")] 
+        [Header("Project Setting")] 
         [SerializeField] private Color _mainColor = Color.dodgerBlue;
         [SerializeField] private Color _mainColorOver;
         
@@ -16,7 +16,19 @@ namespace _System.Settings
         [SerializeField] private Color _complementaryColorOver;
 
         [SerializeField, Range(0, 1)] private float _offElementOpacity;
-        
+
+        [Header("Item Outline")]
+        [Tooltip("Outline color of a shop list item when its purchase is committed (selected).")]
+        [SerializeField] private Color _itemOutlineSelected = new Color(1f, 0.545f, 0f, 1f);
+        [Tooltip("Outline color when the item is hovered/focused and available (unlocked / affordable).")]
+        [SerializeField] private Color _itemOutlineHighlight = new Color(0.7547f, 0.6731f, 0.4592f, 1f);
+        [Tooltip("Outline color when the item is hovered/focused but locked (not unlocked / can't afford).")]
+        [SerializeField] private Color _itemOutlineHighlightLocked = new Color(1f, 0.1373f, 0f, 1f);
+        [Tooltip("Outline color when the item is idle and available.")]
+        [SerializeField] private Color _itemOutlineIdle = new Color(1f, 0.7412f, 0f, 1f);
+        [Tooltip("Outline color when the item is idle and locked.")]
+        [SerializeField] private Color _itemOutlineIdleLocked = new Color(0.9623f, 0.3788f, 0.286f, 1f);
+
         #region Accessor
 
         public static Color MainColor => I._mainColor;
@@ -29,6 +41,26 @@ namespace _System.Settings
         public static Color ComplementaryColorOver => I._complementaryColorOver;
 
         public static float OffElementOpacity => I._offElementOpacity;
+
+        public static Color ItemOutlineSelected => I._itemOutlineSelected;
+        public static Color ItemOutlineHighlight => I._itemOutlineHighlight;
+        public static Color ItemOutlineHighlightLocked => I._itemOutlineHighlightLocked;
+        public static Color ItemOutlineIdle => I._itemOutlineIdle;
+        public static Color ItemOutlineIdleLocked => I._itemOutlineIdleLocked;
+
+        /// <summary>
+        /// Resolves the outline color for a shop list item from its interaction + content state,
+        /// mirroring the amulet item's border logic. Priority: selected &gt; highlighted &gt; idle,
+        /// each split by availability (unlocked / affordable).
+        /// </summary>
+        public static Color GetItemOutlineColor(bool isSelected, bool isHighlighted, bool isAvailable)
+        {
+            if (isSelected)
+                return I._itemOutlineSelected;
+            if (isHighlighted)
+                return isAvailable ? I._itemOutlineHighlight : I._itemOutlineHighlightLocked;
+            return isAvailable ? I._itemOutlineIdle : I._itemOutlineIdleLocked;
+        }
 
         #endregion
     }

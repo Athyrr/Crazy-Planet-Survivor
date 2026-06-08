@@ -1,5 +1,3 @@
-using System;
-using System.Text;
 using NfcPoc;
 using Unity.Entities;
 using UnityEngine;
@@ -7,8 +5,7 @@ using UnityEngine;
 public class AmuletShopUIController
     : ShopUIControllerBase<AmuletSO, AmuletShopListView, AmuletShopDetailView, AmuletViewItem>
 {
-    [Header("Database")]
-    public AmuletsDatabaseSO Database;
+    [Header("Database")] public AmuletsDatabaseSO Database;
 
     private EntityQuery _gameStateQuery;
 
@@ -17,10 +14,30 @@ public class AmuletShopUIController
     // don't animate.
     private bool _animateNextUnlock;
 
+    protected override EGameState ShopState => EGameState.AmuletShop;
+
     protected override void Awake()
     {
         base.Awake();
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
+    }
+
+    /// <summary>Controller confirm while committed: buy the locked item.</summary>
+    protected override void ExecutePurchase(int index)
+    {
+        _selectedItemIndex = index;
+        PurchaseAmulet();
+
+        // The item is now unlocked (or the buy failed) — release the purchase focus either way.
+        _committedItemIndex = -1;
+        SetPurchaseFocused(false);
+    }
+
+    /// <summary>Controller confirm on an already-owned amulet: equip it and leave.</summary>
+    protected override void ConfirmUnlockedItem(int index)
+    {
+        _selectedItemIndex = index;
+        EquipAmulet();
     }
 
     protected override void Start()
@@ -128,6 +145,10 @@ public class AmuletShopUIController
         if (_selectedItemIndex < 0 || _selectedItemIndex >= Database.Amulets.Length)
             return;
 
+        // Already owned — nothing to buy
+        if (IsAmuletUnlocked(_selectedItemIndex))
+            return;
+
         var gameStateEntity = _gameStateQuery.GetSingletonEntity();
         var metaResources = _entityManager.GetBuffer<ResourceBufferElement>(gameStateEntity);
         var cost = GetDataAtIndex(_selectedItemIndex).PurchaseCost;
@@ -224,6 +245,7 @@ public class AmuletShopUIController
             if (Database.Amulets[i].DisplayName == amuletName)
                 return i;
         }
+
         return -1;
     }
 

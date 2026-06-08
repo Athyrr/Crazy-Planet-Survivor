@@ -27,9 +27,18 @@ public class TabStatsUIView : UIViewBase
 
     private readonly List<StatFieldMeta> _cachedStatFields = new List<StatFieldMeta>();
 
-    protected override void Start()
+    private bool _initialized;
+
+    private void Awake()
     {
-        base.Start();
+        EnsureInitialized();
+    }
+    
+    private void EnsureInitialized()
+    {
+        if (_initialized)
+            return;
+        _initialized = true;
 
         PanelRect.anchoredPosition = OffScreenPosition;
         StatsContainer.gameObject.SetActive(false);
@@ -51,6 +60,8 @@ public class TabStatsUIView : UIViewBase
 
     public override void OpenView()
     {
+        EnsureInitialized();
+
         IsOpen = true;
         gameObject.SetActive(true);
         StatsContainer.gameObject.SetActive(true);
@@ -67,6 +78,8 @@ public class TabStatsUIView : UIViewBase
 
     public void RefreshData(CoreStats coreStats)
     {
+        EnsureInitialized();
+
         foreach (var meta in _cachedStatFields)
         {
             var fieldValue = meta.Field.GetValue(coreStats);

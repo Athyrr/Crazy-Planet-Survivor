@@ -23,10 +23,30 @@ public class CharacterShopUIController
 
     private EntityQuery _gameStateQuery;
 
+    protected override EGameState ShopState => EGameState.CharacterSelection;
+
     protected override void Awake()
     {
         base.Awake();
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
+    }
+
+    /// <summary>Controller confirm while committed: buy the locked character.</summary>
+    protected override void ExecutePurchase(int index)
+    {
+        _selectedItemIndex = index;
+        PurchaseCharacter();
+
+        // The character is now unlocked (or the buy failed) — release the purchase focus either way.
+        _committedItemIndex = -1;
+        SetPurchaseFocused(false);
+    }
+
+    /// <summary>Controller confirm on an already-owned character: select it and leave.</summary>
+    protected override void ConfirmUnlockedItem(int index)
+    {
+        _selectedItemIndex = index;
+        SelectAndConfirm();
     }
 
     protected override int GetItemsCount() => Database != null ? Database.Characters.Length : 0;
@@ -131,6 +151,10 @@ public class CharacterShopUIController
         if (_selectedItemIndex < 0 || _selectedItemIndex >= Database.Characters.Length)
             return;
 
+        // Already owned — nothing to buy (guards against a stale commit + button click).
+        if (IsCharacterUnlocked(_selectedItemIndex))
+            return;
+
         var gameStateEntity = _gameStateQuery.GetSingletonEntity();
         var metaResources = _entityManager.GetBuffer<ResourceBufferElement>(gameStateEntity);
         var cost = GetDataAtIndex(_selectedItemIndex).PurchaseCost;
@@ -162,30 +186,17 @@ public class CharacterShopUIController
 
         CloseViews();
 
-        var requestEntity = _entityManager.CreateEntity();
-        _entityManager.AddComponentData(
-            requestEntity,
-            new SelectCharacterRequest { CharacterIndex = _selectedItemIndex }
-        );
-
+        // CommitFocusedSelection() sends the SelectCharacterRequest when the shop closes (OnDisable),
+        // so just leave to the lobby — creating one here too would queue a duplicate.
         GameManager.Instance.ChangeState(EGameState.Lobby);
     }
 
     public void ConfirmSelection()
     {
-        ConfirmSelection(_selectedItemIndex);
-    }
-
-    private void ConfirmSelection(int index)
-    {
         CloseViews();
 
-        var requestEntity = _entityManager.CreateEntity();
-        _entityManager.AddComponentData(
-            requestEntity,
-            new SelectCharacterRequest { CharacterIndex = index }
-        );
-
+        // CommitFocusedSelection() sends the SelectCharacterRequest when the shop closes (OnDisable),
+        // so just leave to the lobby — creating one here too would queue a duplicate.
         GameManager.Instance.ChangeState(EGameState.Lobby);
     }
 

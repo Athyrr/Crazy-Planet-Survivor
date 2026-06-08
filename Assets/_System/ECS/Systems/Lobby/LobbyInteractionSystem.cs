@@ -10,6 +10,10 @@ using UnityEngine;
 [BurstCompile]
 public partial struct LobbyInteractionSystem : ISystem
 {
+    // Tracks lobby state across frames so an interact press that arrives on the same frame the
+    // lobby is (re)entered — e.g. the one that confirmed/closed a shop — can be ignored.
+    private bool _wasInLobby;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -24,7 +28,14 @@ public partial struct LobbyInteractionSystem : ISystem
             return;
         
         if (gameState.State != EGameState.Lobby)
+        {
+            _wasInLobby = false;
             return;
+        }
+
+        // True only on the first frame after (re)entering the lobby.
+        var justEnteredLobby = !_wasInLobby;
+        _wasInLobby = true;
 
         if (!SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity))
             return;
@@ -36,7 +47,10 @@ public partial struct LobbyInteractionSystem : ISystem
             return;
 
 
-        isInteractPressed = input.IsInteractPressed;
+        // Ignore the interact press on the frame we just (re)entered the lobby — that press is the
+        // one that confirmed/closed a shop (shops confirm with Player.Interact), so it must not
+        // instantly re-open the building the player is still standing on.
+        isInteractPressed = input.IsInteractPressed && !justEnteredLobby;
 
         if (isInteractPressed)
             Debug.Log("Inputs triggered ECS");

@@ -17,10 +17,13 @@ public class GameManager : MonoBehaviour
     public GameObject LoadingPanel;
     [SerializeField] private float _minLoadingTime = 1.0f;
 
+    [SerializeField] private Canvas _joystickCanvas;
+
     [Header("Performance")]
     [Tooltip("Frames per second cap for the whole app. 60 for smooth mobile play. " +
              "Limited by the device screen's max refresh rate.")]
-    [SerializeField] private int TargetFrameRate = 60;
+    [SerializeField]
+    private int TargetFrameRate = 60;
 
     public static GameManager Instance { get; private set; }
 
@@ -47,10 +50,10 @@ public class GameManager : MonoBehaviour
     {
         StartCoroutine(WaitForSceneBufferCoroutine());
     }
-    
+
     private IEnumerator WaitForSceneBufferCoroutine()
     {
-        // todo valide this temp fix @Athyrr @hyverno 
+        // todo valide this temp fix
         // float timeout = 1f;
         while (_planetScenesBufferQuery.IsEmpty)
         {
@@ -71,7 +74,7 @@ public class GameManager : MonoBehaviour
     private void OnEnable()
     {
         OnGameStateChanged += HandleInternalStateChange;
-        
+
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _planetScenesBufferQuery = _entityManager.CreateEntityQuery(typeof(PlanetSceneRefBufferElement));
@@ -223,5 +226,8 @@ public class GameManager : MonoBehaviour
     {
         if (LoadingPanel != null)
             LoadingPanel.SetActive(newState == EGameState.Loading);
+
+        if (_joystickCanvas != null)
+            _joystickCanvas.gameObject.SetActive(newState == EGameState.Running || newState == EGameState.Lobby);
     }
 }

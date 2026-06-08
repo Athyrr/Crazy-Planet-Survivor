@@ -16,7 +16,6 @@ public class PlayerController : MonoBehaviour
     private bool _hasVirtualInput = false;
 
     private bool _isInteractPressed = false;
-    private bool _isTabPressed = false;
 
     private Vector2 _previewLerpValue =  Vector2.zero;
 
@@ -39,8 +38,7 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Player.Move.performed += HandleMoveInput;
         _gameInputs.Player.Move.canceled += HandleMoveInput;
         _gameInputs.Player.Pause.started += HandlePauseInput;
-        _gameInputs.Player.Interact.canceled += HandleInteractInput;
-        _gameInputs.Player.StatsView.canceled += HandleTabInput;
+        _gameInputs.Player.Interact.performed += HandleInteractInput;
 
         _gameInputs.Enable();
     }
@@ -50,7 +48,7 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Player.Move.performed -= HandleMoveInput;
         _gameInputs.Player.Move.canceled -= HandleMoveInput;
         _gameInputs.Player.Pause.started -= HandlePauseInput;
-        _gameInputs.Player.Interact.canceled -= HandleInteractInput;
+        _gameInputs.Player.Interact.performed -= HandleInteractInput;
 
         _gameInputs.Disable();
     }
@@ -88,12 +86,10 @@ public class PlayerController : MonoBehaviour
             new InputData
             {
                 Value = direction,
-                IsInteractPressed = _isInteractPressed,
-                IsTabPressed = _isTabPressed
+                IsInteractPressed = _isInteractPressed
             });
 
         _isInteractPressed = false;
-        _isTabPressed = false;
     }
 
     private void HandlePauseInput(CallbackContext ctx)
@@ -104,18 +100,7 @@ public class PlayerController : MonoBehaviour
 
     private void HandleInteractInput(CallbackContext ctx)
     {
-        if (ctx.canceled)
-            _isInteractPressed = true;
-
-        Debug.Log(("Interact pressed"));
-    }
-
-    private void HandleTabInput(CallbackContext ctx)
-    {
-        if (ctx.canceled)
-            _isTabPressed = true;
-
-        Debug.Log(("Tab pressed"));
+        _isInteractPressed = true;
     }
 
     public void RequestInteract() => _isInteractPressed = true;

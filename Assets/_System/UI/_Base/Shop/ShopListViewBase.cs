@@ -45,6 +45,13 @@ public abstract class ShopListViewBase<TItem> : UIViewBase where TItem : UIViewI
         return newItem;
     }
 
+    /// <summary>Pointer hover highlight (PC). Pass -1 to clear hover on every item.</summary>
+    public void SetHovered(int index)
+    {
+        for (int i = 0; i < _activeItems.Count; i++)
+            _activeItems[i].SetHovered(i == index);
+    }
+
     public void SetFocused(int index)
     {
         for (int i = 0; i < _activeItems.Count; i++)

@@ -1,15 +1,16 @@
-using System;
-using System.Runtime.CompilerServices;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
-public class PlanetComponent : MonoBehaviour
+/// <summary> A selectable planet in the planet-selection view. /// </summary>
+[RequireComponent(typeof(Collider))]
+public class PlanetComponent : MonoBehaviour,
+    IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
     public EPlanetID PlanetID;
-    
+
     public Vector3 FocusOffset;
 
-    [Header("Animation")]
-    public bool AllowRotate = false;
+    [Header("Animation")] public bool AllowRotate = false;
     public float IdleSpeed = 10f;
     public float SelectedSpeed = 50f;
     public float HoverScaleMult = 1.3f;
@@ -34,8 +35,14 @@ public class PlanetComponent : MonoBehaviour
 
     private void OnEnable()
     {
+        if (_controller == null)
+            _controller = FindFirstObjectByType<PlanetSelectionUIController>();
+
         if (_controller != null)
+        {
             _controller.OnPlanetSelected += HandleSelectionChanged;
+            _controller.OnPlanetHovered += HandleHoverChanged;
+        }
 
         _baseScale = transform.localScale;
         _targetScale = _baseScale;
@@ -45,12 +52,21 @@ public class PlanetComponent : MonoBehaviour
     private void OnDisable()
     {
         if (_controller != null)
+        {
             _controller.OnPlanetSelected -= HandleSelectionChanged;
+            _controller.OnPlanetHovered -= HandleHoverChanged;
+        }
     }
 
     private void HandleSelectionChanged(EPlanetID planetID, Transform planetTransform, Vector3 focusOffset)
     {
         _isSelected = planetID == PlanetID;
+        UpdateVisual();
+    }
+
+    private void HandleHoverChanged(EPlanetID planetID)
+    {
+        _isHovered = planetID == PlanetID;
         UpdateVisual();
     }
 
@@ -77,34 +93,38 @@ public class PlanetComponent : MonoBehaviour
     {
         if (AllowRotate)
             transform.Rotate(transform.up * Time.deltaTime * _currentSpeed);
-        
+
         Vector3 current = transform.localScale;
         if ((current - _targetScale).sqrMagnitude > 0.0001f)
             transform.localScale = Vector3.Lerp(current, _targetScale, Time.deltaTime * ScaleSpeed);
         else
-            transform.localScale = _targetScale; // snap final pour éviter la dérive
+            transform.localScale = _targetScale;
     }
 
-    private void OnMouseEnter()
+    public void OnPointerEnter(PointerEventData eventData)
     {
-        if (GameManager.Instance.GetGameState() != EGameState.PlanetSelection)
+        if (!IsSelecting())
             return;
 
-        _isHovered = true;
-        UpdateVisual();
+        _controller?.HoverPlanet(PlanetID);
     }
 
-    private void OnMouseExit()
+    public void OnPointerExit(PointerEventData eventData)
     {
-        _isHovered = false;
-        UpdateVisual();
-    }
-
-    private void OnMouseDown()
-    {
-        if (GameManager.Instance.GetGameState() != EGameState.PlanetSelection)
+        if (!IsSelecting())
             return;
 
-        _controller.SelectPlanet(PlanetID, transform, FocusOffset);
+        _controller?.ClearHover(PlanetID);
     }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (!IsSelecting())
+            return;
+
+        _controller?.ClickPlanet(this);
+    }
+
+    private static bool IsSelecting() =>
+        GameManager.Instance != null && GameManager.Instance.GetGameState() == EGameState.PlanetSelection;
 }

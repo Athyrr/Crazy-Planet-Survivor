@@ -86,7 +86,7 @@ public class PlayerAuthoring : MonoBehaviour
                 BasePickupRange = baseStats.BasePickupRange,
 
                 MaxHealth = baseStats.MaxHealth,
-                HealthRecovery = baseStats.HealthRecovery,
+                HealthRegen = baseStats.HealthRegen,
                 Armor = baseStats.Armor,
                 MoveSpeed = baseStats.MoveSpeed,
                 PickupRange = baseStats.PickupRange,

@@ -10,6 +10,7 @@ public partial struct CharacterSelectionSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<CharactersDatabase>();
     }
 
@@ -83,7 +84,7 @@ public partial struct CharacterSelectionSystem : ISystem
             if (SystemAPI.TryGetSingletonEntity<Player>(out var currentPlayer))
             {
                 var transform = SystemAPI.GetComponent<LocalTransform>(currentPlayer);
-
+                state.EntityManager.DestroyEntity(currentPlayer);
 
                 var forcePositionEntity = state.EntityManager.CreateEntity();
                 state.EntityManager.AddComponentData(forcePositionEntity, new ForceSpawnPosition
@@ -92,7 +93,6 @@ public partial struct CharacterSelectionSystem : ISystem
                     Rotation = transform.Rotation
                 });
 
-                state.EntityManager.DestroyEntity(currentPlayer);
             }
         }
 

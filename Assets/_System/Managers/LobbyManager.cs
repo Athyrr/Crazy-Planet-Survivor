@@ -1,20 +1,16 @@
 using Unity.Cinemachine;
 using Unity.Entities;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class LobbyManager : MonoBehaviour
 {
-    [Header("Cameras")] [Tooltip("Camera used to follow the player.")]
-    public CinemachineCamera GameCamera;
-
     [Tooltip("Camera used for the planet selection view (Galaxy).")]
     public CinemachineCamera PlanetSelectionCamera;
 
     [Tooltip("Camera used to zoom in on a specific planet.")]
     public CinemachineCamera PlanetFocusCamera;
 
- [Header("UI Controllers")] public CharacterShopUIController characterShopUIController;
+    [Header("UI Controllers")] public CharacterShopUIController characterShopUIController;
     public PlanetSelectionUIController PlanetSelectionUIController;
     public AmuletShopUIController amuletShopUIController;
     public MetaProgressionController metaProgressionController;
@@ -25,8 +21,7 @@ public class LobbyManager : MonoBehaviour
     private EntityQuery _openAmuletShopViewQuery;
     private EntityQuery _openMetaProgressionViewQuery;
 
-    [Header("Galaxy 3D UI Controller")]
-    [SerializeField]
+    [Header("Galaxy 3D UI Controller")] [SerializeField]
     private GameObject _galaxy;
 
     [System.Serializable]
@@ -142,7 +137,7 @@ public class LobbyManager : MonoBehaviour
             PlanetSelectionCamera.Priority = -1;
             PlanetFocusCamera.Priority = -10;
         }
-        
+
         switch (newState)
         {
             case EGameState.Lobby:

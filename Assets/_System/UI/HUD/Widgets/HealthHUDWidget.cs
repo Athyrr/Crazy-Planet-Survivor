@@ -5,7 +5,10 @@ using Unity.Entities;
 
 public class HealthHUDWidget : MonoBehaviour
 {
-    [Header("UI References")] public TMP_Text HealthText;
+    [Header("UI References")]
+    public Slider HealthSlider;
+
+    public TMP_Text HealthText;
     public Image HealthImage;
 
     private Material _healthMaterial;
@@ -23,7 +26,8 @@ public class HealthHUDWidget : MonoBehaviour
             ComponentType.ReadOnly<CoreStats>()
         );
 
-        _healthMaterial = HealthImage.material;
+        if (HealthImage != null)
+            _healthMaterial = HealthImage.material;
     }
 
     private void Update()
@@ -37,10 +41,20 @@ public class HealthHUDWidget : MonoBehaviour
         Health playerHealth = _playerQuery.GetSingleton<Health>();
         var playerStats = _playerQuery.GetSingleton<CoreStats>();
 
-        int maxHealth = Mathf.FloorToInt(playerStats.MaxHealth);
-        float ratio = Mathf.Clamp01(playerHealth.Value / maxHealth);
+        int maxHealth = Mathf.Max(1, Mathf.FloorToInt(playerStats.MaxHealth));
+        int current = Mathf.Clamp(playerHealth.Value, 0, maxHealth);
+        float ratio = (float)current / maxHealth;
 
-        _healthMaterial.SetFloat("_Value", ratio);
-        HealthText.text = $"{playerHealth.Value} / {maxHealth}";
+        if (HealthSlider != null)
+        {
+            HealthSlider.maxValue = maxHealth;
+            HealthSlider.value = current;
+        }
+
+        if (_healthMaterial != null)
+            _healthMaterial.SetFloat("_Value", ratio);
+
+        if (HealthText != null)
+            HealthText.text = $"{current} / {maxHealth}";
     }
 }

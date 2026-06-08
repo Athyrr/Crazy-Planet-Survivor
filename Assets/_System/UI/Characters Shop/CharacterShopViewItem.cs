@@ -1,10 +1,11 @@
+using _System.Settings;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
-/// Represents a UI charatcer button in Character Slectiuon UI.
+/// Represents a UI character button in the Character Selection UI.
 /// </summary>
 public class CharacterShopViewItem : UIViewItemBase
 {
@@ -12,20 +13,21 @@ public class CharacterShopViewItem : UIViewItemBase
     public TMP_Text Text;
     public Button Button;
 
+    [Tooltip("Optional border image using the element-outline material (like the amulet item). " +
+             "Its _OutlineColor is driven by the shared CpBaseUISettings item-outline colors. " +
+             "Leave empty to fall back to tinting the label only.")]
+    [SerializeField] private Image _border;
+
+    private static readonly int OutlineColorShaderProperty = Shader.PropertyToID("_OutlineColor");
+
     private CharacterShopUIController _controller;
     private CharacterSO _data;
     private int _index;
     private bool _isUnlocked;
 
-    private void OnEnable()
-    {
-        // Button.onClick.AddListener(() => _controller.DetailView.Refresh(_data, true);
-    }
-
-    private void OnDisable()
-    {
-        Button.onClick.RemoveAllListeners();
-    }
+    private bool _isHovered;
+    private bool _isFocused;
+    private bool _isSelected;
 
     public void Init(CharacterShopUIController shopController, int index, CharacterSO data,
         bool isUnlocked)
@@ -35,8 +37,18 @@ public class CharacterShopViewItem : UIViewItemBase
         _index = index;
         _isUnlocked = isUnlocked;
 
-        Button.onClick.RemoveAllListeners();
-        Button.onClick.AddListener(() => _controller.FocusItem(_index));
+        // The item receives pointer events directly; the button is kept only as a raycast target,
+        // so it must not also trigger focus on click (would double-fire).
+        if (Button != null)
+            Button.onClick.RemoveAllListeners();
+
+        // Clone the outline material so each item drives its own _OutlineColor (like the amulet item).
+        if (_border != null && _border.material != null)
+            _border.material = new Material(_border.material);
+
+        _isHovered = false;
+        _isFocused = false;
+        _isSelected = false;
 
         Refresh();
     }
@@ -47,25 +59,59 @@ public class CharacterShopViewItem : UIViewItemBase
             Icon.sprite = _data.Icon;
 
         Text.text = _data.DisplayName;
+        RefreshVisual();
     }
 
+    // Pointer hover (PC): highlight only — does not show details.
     public override void OnPointerEnter(PointerEventData eventData)
     {
-        Debug.Log($"Focus {this.Text}");
-        _controller.FocusItem(_index);
+        if (_controller != null)
+            _controller.HoverItem(_index);
     }
 
+    public override void OnPointerExit(PointerEventData eventData)
+    {
+        if (_controller != null)
+            _controller.UnhoverItem(_index);
+    }
+
+    // Click (PC): focus the item and show its details.
     public override void OnPointerClick(PointerEventData eventData)
     {
-        _controller.FocusItem(_index);
+        if (_controller != null)
+            _controller.FocusItem(_index);
+    }
+
+    public override void SetHovered(bool isHovered)
+    {
+        _isHovered = isHovered;
+        RefreshVisual();
     }
 
     public override void SetFocus(bool isFocused)
     {
+        _isFocused = isFocused;
+        RefreshVisual();
     }
 
     public override void SetSelected(bool isSelected)
     {
-        // _controller.SelectItem(_index);
+        _isSelected = isSelected;
+        RefreshVisual();
+    }
+
+    private bool IsHighlighted => _isFocused || _isHovered;
+
+    private void RefreshVisual()
+    {
+        if (Text != null)
+            Text.color = (_isSelected || IsHighlighted)
+                ? CpBaseUISettings.ComplementaryColor
+                : CpBaseUISettings.ComplementaryColorOver;
+
+        // Border outline color follows the shared item-outline settings (like the amulet item).
+        if (_border != null && _border.material != null)
+            _border.material.SetColor(OutlineColorShaderProperty,
+                CpBaseUISettings.GetItemOutlineColor(_isSelected, IsHighlighted, _isUnlocked));
     }
 }

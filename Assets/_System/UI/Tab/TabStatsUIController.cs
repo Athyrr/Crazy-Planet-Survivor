@@ -1,45 +1,61 @@
 using Unity.Entities;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class TabStatsUIController : UIControllerBase
 {
     [Header("View Reference")] public TabStatsUIView TabStatsView;
 
     private EntityManager _entityManager;
-    private EntityQuery _inputsEntityQuery;
     private EntityQuery _coreStatsQuery;
+
+    private GameInputs _inputs;
 
     private void Awake()
     {
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-    }
-
-    private void Start()
-    {
-        _inputsEntityQuery = _entityManager.CreateEntityQuery(typeof(InputData));
         _coreStatsQuery = _entityManager.CreateEntityQuery(typeof(CoreStats), typeof(Player));
     }
 
-    private void Update()
+    private void OnEnable()
     {
-        if (_inputsEntityQuery.IsEmpty)
+        if (_inputs == null)
+            _inputs = new GameInputs();
+
+        _inputs.Player.StatsView.performed += OnToggleStats;
+        _inputs.Player.StatsView.Enable();
+
+        RefreshView();
+    }
+
+    private void OnDisable()
+    {
+        if (_inputs == null)
             return;
 
-        InputData input = _inputsEntityQuery.GetSingleton<InputData>();
+        _inputs.Player.StatsView.performed -= OnToggleStats;
+        _inputs.Player.StatsView.Disable();
+    }
 
-        if (input.IsTabPressed && !TabStatsView.IsOpen)
+    private void OnToggleStats(InputAction.CallbackContext ctx)
+    {
+        if (!TabStatsView.IsOpen)
         {
             TabStatsView.gameObject.SetActive(true);
             TabStatsView.OpenView();
-
-            if (!_coreStatsQuery.IsEmpty)
-            {
-                TabStatsView.RefreshData(_coreStatsQuery.GetSingleton<CoreStats>());
-            }
+            RefreshView();
         }
-        else if (input.IsTabPressed && TabStatsView.IsOpen)
+        else
         {
             TabStatsView.CloseView();
+        }
+    }
+
+    private void RefreshView()
+    {
+        if (!_coreStatsQuery.IsEmpty)
+        {
+            TabStatsView.RefreshData(_coreStatsQuery.GetSingleton<CoreStats>());
         }
     }
 }
