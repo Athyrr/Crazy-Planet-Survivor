@@ -29,9 +29,9 @@ public class UpgradeSelectionUIController : UIControllerBase
 
     private void InitDatabase()
     {
-        if (_isInitialized) 
+        if (_isInitialized)
             return;
-        
+
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
         _upgradeDatabaseQuery = _entityManager.CreateEntityQuery(typeof(UpgradesDatabase));
@@ -39,7 +39,7 @@ public class UpgradeSelectionUIController : UIControllerBase
 
         _isInitialized = true;
     }
-    
+
     public void DisplaySelection(DynamicBuffer<UpgradeSelectionBufferElement> selection)
     {
         InitDatabase();
