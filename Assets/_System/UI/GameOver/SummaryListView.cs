@@ -103,34 +103,37 @@ public class SummaryListView : UIViewBase
 
         var stats = _playerStatsQuery.GetSingleton<CoreStats>();
 
+        // Absolute totals (health / regen / armor / final move & pickup): flat value, colored by sign.
         float finalHealth = stats.MaxHealth;
-        CreateStatUI("Max Health", finalHealth.ToString("0"));
-        CreateStatUI("Health Regen", $"{stats.HealthRegen:0.0}/s");
-        CreateStatUI("Armor", stats.BaseArmor.ToString("0"));
+        CreateStatUI("Max Health", StatsFormatUtils.Colorize(finalHealth.ToString("0"), finalHealth));
+        CreateStatUI("Health Regen", StatsFormatUtils.Colorize($"{stats.HealthRegen:0.0}/s", stats.HealthRegen));
+        CreateStatUI("Armor", StatsFormatUtils.Colorize(stats.BaseArmor.ToString("0"), stats.BaseArmor));
 
         float finalSpeed = stats.BaseMoveSpeed * (1f + stats.MoveSpeed);
-        CreateStatUI("Move Speed", finalSpeed.ToString("0.0"));
+        CreateStatUI("Move Speed", StatsFormatUtils.Colorize(finalSpeed.ToString("0.0"), finalSpeed));
 
         float finalPickup = stats.BasePickupRange * (1f + stats.PickupRange);
-        CreateStatUI("Pickup Range", finalPickup.ToString("0.0"));
+        CreateStatUI("Pickup Range", StatsFormatUtils.Colorize(finalPickup.ToString("0.0"), finalPickup));
 
-        CreateStatUI("Damage", $"{(stats.Damage):+0%;-0%;0}");
-        CreateStatUI("Attack Sp.", $"{(stats.AttackSpeed):+0%;-0%;0}");
-        CreateStatUI("Spell Size", $"{(stats.SpellSize):+0%;-0%;0}");
-        CreateStatUI("Spell Sp.", $"{(stats.SpellSpeed):+0%;-0%;0}");
-        CreateStatUI("Spell Duration", $"{(stats.SpellDuration):+0%;-0%;0}");
+        // Global multiplier bonuses: signed percentage (0% stays green and keeps the %).
+        CreateStatUI("Damage", StatsFormatUtils.FormatValue(stats.Damage, isPercentage: true));
+        CreateStatUI("Attack Sp.", StatsFormatUtils.FormatValue(stats.AttackSpeed, isPercentage: true));
+        CreateStatUI("Spell Size", StatsFormatUtils.FormatValue(stats.SpellSize, isPercentage: true));
+        CreateStatUI("Spell Sp.", StatsFormatUtils.FormatValue(stats.SpellSpeed, isPercentage: true));
+        CreateStatUI("Spell Duration", StatsFormatUtils.FormatValue(stats.SpellDuration, isPercentage: true));
 
+        // Flat count bonuses: only shown when present.
         if (stats.Amount > 0)
-            CreateStatUI("Amount", $"+{stats.Amount}");
+            CreateStatUI("Amount", StatsFormatUtils.FormatValue(stats.Amount, isPercentage: false));
 
         if (stats.Pierce > 0)
-            CreateStatUI("Pierce", $"+{stats.Pierce}");
+            CreateStatUI("Pierce", StatsFormatUtils.FormatValue(stats.Pierce, isPercentage: false));
 
         if (stats.Bounce > 0)
-            CreateStatUI("Bounce", $"+{stats.Bounce}");
+            CreateStatUI("Bounce", StatsFormatUtils.FormatValue(stats.Bounce, isPercentage: false));
 
-        CreateStatUI("Crit Chance", $"{(stats.CritChance):+0%;-0%;0}");
-        CreateStatUI("Crit Damage", $"{(stats.CritDamage):+0%;-0%;0}");
+        CreateStatUI("Crit Chance", StatsFormatUtils.FormatValue(stats.CritChance, isPercentage: true));
+        CreateStatUI("Crit Damage", StatsFormatUtils.FormatValue(stats.CritDamage, isPercentage: true));
     }
 
     private void CreateSpellUI(ref SpellBlob spellData, ActiveSpell activeSpell)

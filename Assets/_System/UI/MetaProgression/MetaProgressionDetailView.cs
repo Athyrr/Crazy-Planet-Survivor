@@ -172,13 +172,7 @@ public class MetaProgressionDetailView : MonoBehaviour
     }
 
     private static string FormatBonus(float value, ECharacterStat stat)
-    {
-        bool isFlat = stat is ECharacterStat.PierceCount or ECharacterStat.BounceCount;
-        if (isFlat)
-            return $"{(int)value:+0;-0;0}";
-        else
-            return $"{value:+0%;-0%;0}";
-    }
+        => StatsFormatUtils.FormatModifier(stat, value);
 
     /// <summary>
     /// Highlights the purchase button when an upgrade is committed via controller (so the player

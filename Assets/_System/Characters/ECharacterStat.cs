@@ -22,12 +22,16 @@ public enum ECharacterStat
     CritDamage = 19,
 
     SpellSpeed = 21,
-    
+
     BurnDamage = 22,
     BurnDuration = 23,
     SlowStrength = 24,
     SlowDuration = 25,
     StunDuration = 26,
-    
-    HealthRegen = 27
+
+    HealthRegen = 27,
+
+    SpellDuration = 28,
+    CastRange = 29,
+    Amount = 30,
 }

@@ -82,17 +82,12 @@ public class TabStatsUIView : UIViewBase
 
         foreach (var meta in _cachedStatFields)
         {
-            var fieldValue = meta.Field.GetValue(coreStats);
-            string displayName = meta.Attribute.DisplayName;
-            string format = meta.Attribute.Format;
+            var attr = meta.Attribute;
+            float rawValue = System.Convert.ToSingle(meta.Field.GetValue(coreStats));
 
-            // For float fields, adjust value relative to neutral (delta from neutral)
-            object displayValue = fieldValue;
-            if (meta.Field.FieldType == typeof(float))
-                displayValue = ((float)fieldValue) - meta.Attribute.NeutralValue;
-
-            string formattedValue = string.Format(format, displayValue);
-            UpdateStat(displayName, formattedValue);
+            string formattedValue = StatsFormatUtils.FormatPanelStat(
+                rawValue, attr.Stat, attr.NeutralValue, attr.Absolute, attr.Suffix, attr.Decimals);
+            UpdateStat(attr.DisplayName, formattedValue);
         }
     }
 

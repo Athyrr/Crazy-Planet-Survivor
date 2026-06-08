@@ -201,24 +201,17 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         else
             target = mod.UpgradeType.ToString();
 
+        // Centralized formatting: percent/flat rule comes from the stat (Health is always flat),
+        // sign + color (green positive / red negative) are handled by StatsFormatUtils.
         string formattedValue;
-        bool isFlatBonus =
-            mod.CharacterStat is ECharacterStat.PierceCount or ECharacterStat.BounceCount;
-
-        if (isFlatBonus)
-        {
-            // Integer bonuses: +2, -1
-            formattedValue = $"{(int)mod.Value:+0;-0;0}";
-        }
+        if (mod.CharacterStat != ECharacterStat.None)
+            formattedValue = StatsFormatUtils.FormatModifier(mod.CharacterStat, mod.Value);
+        else if (mod.SpellStat != ESpellStat.None)
+            formattedValue = StatsFormatUtils.FormatSpellModifier(mod.SpellStat, mod.Value);
         else
-        {
-            // Percentage bonuses: +50%, -10%
-            formattedValue = $"{mod.Value:+0%;-0%;0}";
-        }
+            formattedValue = StatsFormatUtils.FormatValue(mod.Value, isPercentage: false);
 
-        // Set color green for positive, red for negative
-        string color = mod.Value >= 0 ? "#4ADE80" : "#F87171";
-        return $"<color={color}>{formattedValue}</color> {target}";
+        return $"{formattedValue} {StatsFormatUtils.Humanize(target)}";
     }
 
     public void Clear()

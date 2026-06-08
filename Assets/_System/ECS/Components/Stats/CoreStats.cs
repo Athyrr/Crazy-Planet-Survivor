@@ -10,18 +10,18 @@ public struct CoreStats : IComponentData
 {
     [Header("Survival")]
     [Tooltip("Max Health points.")]
-    [UIStat("Max Health.", "{0}")] //todo
+    [UIStat("Max Health.", ECharacterStat.MaxHealth, absolute: true)] //todo
     public float MaxHealth;
 
     [Tooltip("Health points recovered per second.")]
-    [UIStat("Regen/s", "{0:0.0}/s")]
+    [UIStat("Regen/s", ECharacterStat.HealthRegen, absolute: true, suffix: "/s", decimals: 1)]
     public float HealthRegen;
 
     [Tooltip("Base armor (native to the character).")] //todo
     public float BaseArmor;
 
     [Tooltip("Flat damage reduction in % (0 = none, 0.2 = 20% less damage taken).")]
-    [UIStat("Armor", "{0:+0%;-0%;0}")]
+    [UIStat("Armor", ECharacterStat.Armor)]
     public float Armor;
 
     [Header("Movement")]
@@ -29,60 +29,60 @@ public struct CoreStats : IComponentData
     public float BaseMoveSpeed;
 
     [Tooltip("Speed bonus (0 = 100%, 0.1 = +10%).")]
-    [UIStat("Move Sp.", "{0:+0%;-0%;0}")]
+    [UIStat("Move Sp.", ECharacterStat.Speed)]
     public float MoveSpeed;
 
     [Tooltip("Base pickup range.")]
     public float BasePickupRange;
 
     [Tooltip("Pickup range bonus.")]
-    [UIStat("Pickup Range", "{0:+0%;-0%;0}")]
+    [UIStat("Pickup Range", ECharacterStat.CollectRange)]
     public float PickupRange;
 
     [Header("Offensive Global Multipliers")]
     [Tooltip("Damage bonus (0 = normal, 0.5 = +50%).")]
-    [UIStat("Damage", "{0:+0%;-0%;0}")]
+    [UIStat("Damage", ECharacterStat.Damage)]
     public float Damage;
 
     [Tooltip("Attack speed bonus (0 = 100%, 0.1 = +10%).")]
-    [UIStat("Attack Sp.", "{0:+0%;-0%;0}")]
+    [UIStat("Attack Sp.", ECharacterStat.AttackSpeed)]
     public float AttackSpeed;
 
     [Tooltip("Spell size bonus (projectiles).")]
-    [UIStat("Proj. Size", "{0:+0%;-0%;0}")]
+    [UIStat("Proj. Size", ECharacterStat.SizeMultiplier)]
     public float SpellSize;
 
     [Tooltip("Projectile speed bonus.")]
-    [UIStat("Spell Sp.", "{0:+0%;-0%;0}")]
+    [UIStat("Spell Sp.", ECharacterStat.SpellSpeed)]
     public float SpellSpeed;
 
     [Tooltip("Spell duration bonus.")]
-    [UIStat("Spell Duration", "{0:+0%;-0%;0}")]
+    [UIStat("Spell Duration", ECharacterStat.SpellDuration)]
     public float SpellDuration;
 
     [Tooltip("Cast range bonus (for targeted spells).")]
-    [UIStat("Cast Range", "{0:+0%;-0%;0}")]
+    [UIStat("Cast Range", ECharacterStat.CastRange)]
     public float CastRange;
 
     [Header("Offensive Global Bonuses")]
     [Tooltip("Number of projectiles added to all spells.")]
-    [UIStat("Amount", "{0:+0;-0;0}")]
+    [UIStat("Amount", ECharacterStat.Amount)]
     public int Amount;
 
     [Tooltip("Number of pierces added to all projectiles.")]
-    [UIStat("Pierce", "{0:+0;-0;0}")]
+    [UIStat("Pierce", ECharacterStat.PierceCount)]
     public int Pierce;
 
     [Tooltip("Number of bounces added to all projectiles.")]
-    [UIStat("Bounce", "{0:+0;-0;0}")]
+    [UIStat("Bounce", ECharacterStat.BounceCount)]
     public int Bounce;
 
     [Header("Critical")]
     [Tooltip("Critical chance probability (0.0 to 1.0).")]
-    [UIStat("Crit Chance", "{0:+0%;-0%;0}")]
+    [UIStat("Crit Chance", ECharacterStat.CritChance)]
     public float CritChance;
 
     [Tooltip("Bonus critical damage (0 = normal, 0.5 = +50%).")]
-    [UIStat("Crit Damage", "{0:+0%;-0%;0}")]
+    [UIStat("Crit Damage", ECharacterStat.CritDamage)]
     public float CritDamage;
 }

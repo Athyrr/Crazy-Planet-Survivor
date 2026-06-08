@@ -12,6 +12,6 @@ public class CharacterShopStatItemComponent : StatTabViewItem
     public void Init(string name, string value)
     {
         LabelText.text = StatsFormatUtils.Humanize(name);
-        ValueText.text = StatsFormatUtils.ColorizeBySign(value);
+        ValueText.text = value; // already formatted + colored by StatsFormatUtils.FormatPanelStat
     }
 }

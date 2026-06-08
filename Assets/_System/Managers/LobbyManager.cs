@@ -1,6 +1,7 @@
 using Unity.Cinemachine;
 using Unity.Entities;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -10,10 +11,10 @@ public class LobbyManager : MonoBehaviour
     [Tooltip("Camera used to zoom in on a specific planet.")]
     public CinemachineCamera PlanetFocusCamera;
 
-    [Header("UI Controllers")] public CharacterShopUIController characterShopUIController;
+    [Header("UI Controllers")] public CharacterShopUIController CharacterShopUIController;
     public PlanetSelectionUIController PlanetSelectionUIController;
-    public AmuletShopUIController amuletShopUIController;
-    public MetaProgressionController metaProgressionController;
+    public AmuletShopUIController AmuletShopUIController;
+    public MetaProgressionController MetaProgressionController;
 
     private EntityManager _entityManager;
     private EntityQuery _openCharacterSelectionViewQuery;
@@ -123,9 +124,9 @@ public class LobbyManager : MonoBehaviour
         // Let galaxy opened
         PlanetSelectionUIController.gameObject.SetActive(true);
 
-        characterShopUIController.gameObject.SetActive(false);
-        amuletShopUIController.gameObject.SetActive(false);
-        if (metaProgressionController != null) metaProgressionController.gameObject.SetActive(false);
+        CharacterShopUIController.gameObject.SetActive(false);
+        AmuletShopUIController.gameObject.SetActive(false);
+        MetaProgressionController.gameObject.SetActive(false);
 
         bool isGalaxyMode = (newState == EGameState.PlanetSelection);
         if (isGalaxyMode)
@@ -163,8 +164,8 @@ public class LobbyManager : MonoBehaviour
 
     private void OpenCharacterSelectionView()
     {
-        characterShopUIController.gameObject.SetActive(true);
-        characterShopUIController.OpenView();
+        CharacterShopUIController.gameObject.SetActive(true);
+        CharacterShopUIController.OpenView();
     }
 
     private void OpenPlanetSelectionView()
@@ -178,16 +179,16 @@ public class LobbyManager : MonoBehaviour
 
     private void OpenAmuletShopView()
     {
-        amuletShopUIController.gameObject.SetActive(true);
-        amuletShopUIController.OpenView();
+        AmuletShopUIController.gameObject.SetActive(true);
+        AmuletShopUIController.OpenView();
     }
 
     private void OpenMetaProgressionView()
     {
-        if (metaProgressionController != null)
+        if (MetaProgressionController != null)
         {
-            metaProgressionController.gameObject.SetActive(true);
-            metaProgressionController.OpenView();
+            MetaProgressionController.gameObject.SetActive(true);
+            MetaProgressionController.OpenView();
         }
     }
 
@@ -218,8 +219,6 @@ public class LobbyManager : MonoBehaviour
             PlanetFocusCamera.Follow = null;
             PlanetFocusCamera.LookAt = null;
         }
-
-        //todo hide other planets when focus and show details UI
     }
 
     /// <summary>

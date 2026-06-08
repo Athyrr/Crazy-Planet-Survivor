@@ -12,20 +12,18 @@ public class SummarySpell : UIViewItemBase
 
     public void Refresh(SpellBlob spellData, ActiveSpell activeSpell, Sprite icon)
     {
-        Label.text = spellData.ID.ToString();
+        Label.text = StatsFormatUtils.Humanize(spellData.ID.ToString());
         LevelValue.text = activeSpell.Level.ToString();
         Icon.sprite = icon;
 
-        DamageValue.text = activeSpell.TotalDamageDealt.ToString("N0");
+        // Total damage dealt is an absolute (always >= 0) achievement number: colored via the
+        // central funnel like the other summary stats (positive -> green).
+        DamageValue.text = StatsFormatUtils.Colorize(
+            activeSpell.TotalDamageDealt.ToString("N0"), activeSpell.TotalDamageDealt);
     }
 
-    public override void OnPointerEnter(PointerEventData eventData)
-    {
-        throw new System.NotImplementedException();
-    }
+    // Summary items are display-only; pointer events are intentionally ignored (matches SummaryStat).
+    public override void OnPointerEnter(PointerEventData eventData) { }
 
-    public override void OnPointerClick(PointerEventData eventData)
-    {
-        throw new System.NotImplementedException();
-    }
+    public override void OnPointerClick(PointerEventData eventData) { }
 }

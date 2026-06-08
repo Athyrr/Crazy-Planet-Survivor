@@ -158,38 +158,25 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
             if (attr == null)
                 continue;
 
-            object rawValue = field.GetValue(coreStats);
+            float rawValue = Convert.ToSingle(field.GetValue(coreStats));
 
-            // Skip stats at their neutral/default value and only show what differentiates this character
+            // Skip stats at their neutral/default value: only show what differentiates this character.
             if (IsDefaultValue(field, attr, rawValue))
                 continue;
 
-            // For float fields, adjust value relative to neutral (delta from neutral)
-            object displayValue = rawValue;
-            if (field.FieldType == typeof(float))
-                displayValue = ((float)rawValue) - attr.NeutralValue;
-
-            string formattedValue = string.Format(attr.Format, displayValue);
+            string formattedValue = StatsFormatUtils.FormatPanelStat(
+                rawValue, attr.Stat, attr.NeutralValue, attr.Absolute, attr.Suffix, attr.Decimals);
             CreateStatRow(attr.DisplayName, formattedValue);
         }
     }
 
-    private static bool IsDefaultValue(FieldInfo field, UIStatAttribute attr, object rawValue)
+    private static bool IsDefaultValue(FieldInfo field, UIStatAttribute attr, float rawValue)
     {
-        // MaxHealth always shown
+        // MaxHealth is always shown.
         if (field.Name == nameof(CoreStats.MaxHealth))
             return false;
 
-        if (field.FieldType == typeof(float))
-        {
-            float val = (float)rawValue;
-            return Mathf.Approximately(val, attr.NeutralValue);
-        }
-
-        if (field.FieldType == typeof(int))
-            return (int)rawValue == 0;
-
-        return false;
+        return Mathf.Approximately(rawValue, attr.NeutralValue);
     }
 
     private void CreateStatRow(string name, string value)

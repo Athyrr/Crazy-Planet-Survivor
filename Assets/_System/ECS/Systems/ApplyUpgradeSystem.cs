@@ -45,6 +45,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecbUpgrade = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var ecbAmulet = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        var ecbMeta = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
         var upgradesDatabaseEntity = SystemAPI.GetSingletonEntity<UpgradesDatabase>();
         var upgradesDatabase = SystemAPI.GetComponent<UpgradesDatabase>(upgradesDatabaseEntity);
@@ -84,7 +85,7 @@ public partial struct ApplyUpgradeSystem : ISystem
 
         var applyMetaJob = new ApplyMetaProgressionJob
         {
-            ECB = ecbAmulet.AsParallelWriter(),
+            ECB = ecbMeta.AsParallelWriter(),
         };
         var applyMetaJobHandle = applyMetaJob.ScheduleParallel(state.Dependency);
 
@@ -360,6 +361,18 @@ public partial struct ApplyUpgradeSystem : ISystem
                 break;
             case ECharacterStat.SpellSpeed:
                 playerCoreStats.SpellSpeed += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.SpellDuration:
+                playerCoreStats.SpellDuration += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.CastRange:
+                playerCoreStats.CastRange += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.Amount:
+                playerCoreStats.Amount += (int)value;
                 needSpellUpdate = true;
                 break;
             case ECharacterStat.HealthRegen:

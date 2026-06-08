@@ -85,11 +85,7 @@ public class UpgradeViewItem : MonoBehaviour,
                     StatLabelText.text = StatsFormatUtils.Humanize(data.CharacterStat.ToString());
 
                 if (StatValueText)
-                {
-                    bool isFlat = data.ModifierStrategy == EModiferStrategy.Flat;
-                    string val = StatsFormatUtils.SignedValue(data.Value, !isFlat);
-                    StatValueText.text = $"<color=green>{val}</color>";
-                }
+                    StatValueText.text = StatsFormatUtils.FormatModifier(data.CharacterStat, data.Value);
 
                 break;
 
@@ -108,10 +104,7 @@ public class UpgradeViewItem : MonoBehaviour,
                     StatLabelText.text = $"{targetName} {data.SpellStat}";
 
                 if (StatValueText)
-                {
-                    bool isPercentage = IsSpellStatPercentage(data.SpellStat);
-                    StatValueText.text = $"<color=green>{FormatSpellValue(data.Value, isPercentage)}</color>";
-                }
+                    StatValueText.text = StatsFormatUtils.FormatSpellModifier(data.SpellStat, data.Value);
 
                 break;
         }
@@ -147,22 +140,6 @@ public class UpgradeViewItem : MonoBehaviour,
 
         if (TitleText)
             StatLabelText.color = isHovered ? Color.yellow : Color.white;
-    }
-
-    private string FormatSpellValue(float value, bool isPercentage)
-        => StatsFormatUtils.SignedValue(value, isPercentage);
-
-    private bool IsSpellStatPercentage(ESpellStat stat)
-    {
-        switch (stat)
-        {
-            case ESpellStat.Amount:
-            case ESpellStat.BounceCount:
-            case ESpellStat.PierceCount:
-                return false;
-            default:
-                return true;
-        }
     }
 
     private void Update()
