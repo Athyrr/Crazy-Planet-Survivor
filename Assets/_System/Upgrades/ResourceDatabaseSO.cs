@@ -3,9 +3,7 @@ using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// Central database of all resource definitions.
-/// Single source of truth for resource icons, names, and types.
-/// Referenced by HUD and shop widgets — no more duplicated EnumValues.
+/// Central database of all resource.
 /// </summary>
 [CreateAssetMenu(menuName = "Game/Resource/Resource Database")]
 public class ResourceDatabaseSO : ScriptableObject
@@ -30,4 +28,14 @@ public class ResourceDatabaseSO : ScriptableObject
         var resource = GetResource(type);
         return resource != null ? resource.DisplayName : type.ToString();
     }
+
+#if UNITY_EDITOR
+    [EasyButtons.Button("Populate (find all Resources)")]
+    public void Populate()
+    {
+        _resources = DatabaseAutoPopulateUtils.FindAllAssets<ResourceSO>();
+        DatabaseAutoPopulateUtils.Save(this);
+        Debug.Log($"[{name}] Populated {_resources.Length} resources.", this);
+    }
+#endif
 }

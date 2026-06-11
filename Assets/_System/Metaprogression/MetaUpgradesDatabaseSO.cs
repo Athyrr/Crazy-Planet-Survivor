@@ -23,4 +23,14 @@ public class MetaUpgradesDatabaseSO : ScriptableObject
     }
 
     public int Count => _upgrades != null ? _upgrades.Length : 0;
+
+#if UNITY_EDITOR
+    [EasyButtons.Button("Populate (find all Meta Upgrades)")]
+    public void Populate()
+    {
+        _upgrades = DatabaseAutoPopulateUtils.FindAllAssets<MetaUpgradeSO>();
+        DatabaseAutoPopulateUtils.Save(this);
+        Debug.Log($"[{name}] Populated {_upgrades.Length} meta upgrades.", this);
+    }
+#endif
 }

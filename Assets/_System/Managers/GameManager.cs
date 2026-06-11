@@ -3,6 +3,7 @@ using Unity.Entities.Serialization;
 using System.Collections;
 using Unity.Entities;
 using Unity.Scenes;
+using UnityEditor;
 using UnityEngine;
 
 [DefaultExecutionOrder(-100)]
@@ -100,7 +101,11 @@ public class GameManager : MonoBehaviour
 
     public void Quit()
     {
+#if UNITY_EDITOR
+        EditorApplication.ExitPlaymode();
+#else
         Application.Quit();
+#endif
     }
 
     private void InternalLoadScene(EPlanetID planetID, EGameState targetState, bool sendStartRequest)

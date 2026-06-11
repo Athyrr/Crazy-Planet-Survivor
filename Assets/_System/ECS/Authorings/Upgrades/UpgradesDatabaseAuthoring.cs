@@ -38,12 +38,17 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
                 blob.UpgradeType = upgradeSO.UpgradeType;
 
                 // Stat Player
-                blob.CharacterStat = upgradeSO.CharacterStat;
-
-                // Spell Upgrade Logic
-                blob.SpellID = upgradeSO.SpellID;
-                blob.SpellTags = upgradeSO.RequiredTags;
-                blob.SpellStat = upgradeSO.SpellStat;
+                if (upgradeSO is StatUpgradeSO statUpgrade)
+                {
+                    blob.CharacterStat = statUpgrade.CharacterStat;
+                }
+                // Spell Upgrade Logic (unlock or effect upgrade)
+                else if (upgradeSO is SpellUpgradeSO spellUpgrade)
+                {
+                    blob.SpellID = spellUpgrade.SpellID;
+                    blob.SpellTags = spellUpgrade.RequiredTags;
+                    blob.SpellStat = spellUpgrade.SpellStat;
+                }
 
                 // Value
                 blob.ModifierStrategy = upgradeSO.ModifierStrategy;

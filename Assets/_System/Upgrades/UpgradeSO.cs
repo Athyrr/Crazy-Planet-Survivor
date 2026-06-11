@@ -1,7 +1,11 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "NewUpgradeSO", menuName = "Survivor/Upgrades/Upgrade")]
-public class UpgradeSO : ScriptableObject
+/// <summary>
+/// Base class for all run upgrades.
+/// Concrete upgrades are either <see cref="StatUpgradeSO"/> (player stat upgrades)
+/// or <see cref="SpellUpgradeSO"/> (spell unlocks / spell effect upgrades).
+/// </summary>
+public abstract class UpgradeSO : ScriptableObject
 {
     [Header("UI")] public string DisplayName;
     [TextArea(2, 4)] public string Description;
@@ -9,19 +13,6 @@ public class UpgradeSO : ScriptableObject
 
     [Header("Core")] public EUpgradeType UpgradeType;
 
-    [Header("Character Stat Upgrade")] public ECharacterStat CharacterStat;
-
-    [Header("Target Spell")] [Tooltip("Spell to unlock or upgrade.None if we target all tagged spell.")]
-    public ESpellID SpellID;
-
-    [Header("Target Tags")]
-    [Tooltip("Spell Tags to upgrade a spell. E.g. 'Fire' will upgrade all Fire tagged spells." +
-             "\n Note that if SpellID is set, the tags will be added as new tags to the spell.")]
-    public ESpellTag RequiredTags;
-
-    [Header("Upgrade")] [Tooltip("Property of the spell to modify (Damage, Cooldown, Amount...).")]
-    public ESpellStat SpellStat;
-
-    public EModiferStrategy ModifierStrategy;
+    [Header("Modifier")] public EModiferStrategy ModifierStrategy;
     public float Value;
 }

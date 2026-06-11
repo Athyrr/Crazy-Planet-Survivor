@@ -1,12 +1,14 @@
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(UpgradeSO))]
+[CustomEditor(typeof(UpgradeSO), true)]
 public class UpgradeSOEditor : UnityEditor.Editor
 {
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
+
+        bool isStatUpgrade = target is StatUpgradeSO;
 
         // Draw properties one by one to inject the help box
         SerializedProperty prop = serializedObject.GetIterator();
@@ -15,6 +17,9 @@ public class UpgradeSOEditor : UnityEditor.Editor
         {
             enterChildren = false;
             if (prop.name == "m_Script") continue;
+
+            // Stat upgrades are always PlayerStat: the type field is redundant, hide it.
+            if (isStatUpgrade && prop.name == "UpgradeType") continue;
 
             EditorGUILayout.PropertyField(prop, true);
 
