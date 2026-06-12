@@ -9,8 +9,8 @@ public class GameStateAuthoring : MonoBehaviour
         {
             var entity = GetEntity(TransformUsageFlags.None);
 
-            // Store game state
-            AddComponent(entity, new GameState { State = EGameState.Lobby });
+            // Store game state. The game boots on the main menu; New Game then streams the lobby.
+            AddComponent(entity, new GameState { State = EGameState.MainMenu });
 
             // Store upgrade selection 
             AddBuffer<UpgradeSelectionBufferElement>(entity);

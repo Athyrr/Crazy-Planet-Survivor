@@ -4,7 +4,7 @@ using UnityEngine;
 namespace _System.Settings
 {
     [CreateAssetMenu(fileName = "Player", menuName = "CPSettings/Player")]
-    public class CpBasePlayerSettings: CPCustomSettings<CpBasePlayerSettings>
+    public class CpBasePlayerSettings: CpSettings<CpBasePlayerSettings>
     {
         [Header("Movement Setting")] 
         [SerializeField, Range(0f, 1000f)] private float _playerMovementMitigationSpeed;

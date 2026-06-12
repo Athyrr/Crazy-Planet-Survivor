@@ -106,12 +106,12 @@ public class CharacterShopViewItem : UIViewItemBase
     {
         if (Text != null)
             Text.color = (_isSelected || IsHighlighted)
-                ? CpBaseUISettings.ComplementaryColor
-                : CpBaseUISettings.ComplementaryColorOver;
+                ? CpUISettings.ComplementaryColor
+                : CpUISettings.ComplementaryColorOver;
 
         // Border outline color follows the shared item-outline settings (like the amulet item).
         if (_border != null && _border.material != null)
             _border.material.SetColor(OutlineColorShaderProperty,
-                CpBaseUISettings.GetItemOutlineColor(_isSelected, IsHighlighted, _isUnlocked));
+                CpUISettings.GetItemOutlineColor(_isSelected, IsHighlighted, _isUnlocked));
     }
 }

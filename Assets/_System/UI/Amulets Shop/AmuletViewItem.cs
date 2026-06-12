@@ -103,13 +103,13 @@ public class AmuletViewItem : UIViewItemBase
     private bool IsHighlighted => _isFocused || _isHovered;
 
     private Color GetBorderColor()
-        => CpBaseUISettings.GetItemOutlineColor(_isSelected, IsHighlighted, _isUnlocked);
+        => CpUISettings.GetItemOutlineColor(_isSelected, IsHighlighted, _isUnlocked);
 
     private Color GetTextColor()
     {
         if (_isSelected || IsHighlighted)
-            return CpBaseUISettings.ComplementaryColor;
+            return CpUISettings.ComplementaryColor;
 
-        return CpBaseUISettings.ComplementaryColorOver;
+        return CpUISettings.ComplementaryColorOver;
     }
 }

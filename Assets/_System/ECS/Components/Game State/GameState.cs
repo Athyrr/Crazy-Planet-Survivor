@@ -20,4 +20,8 @@ public enum EGameState
     Loading,
     AmuletShop,
     MetaProgression,
+
+    // Entry state shown on launch (logo + New Game / Continue / Options) before any planet
+    // content is streamed in. Appended last to keep existing enum values stable.
+    MainMenu,
 }

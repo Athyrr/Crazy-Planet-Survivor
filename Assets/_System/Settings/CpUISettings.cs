@@ -3,7 +3,7 @@ using UnityEngine;
 namespace _System.Settings
 {
     [CreateAssetMenu(fileName = "UISettings", menuName = "CPSettings/UISettings")]
-    public class CpBaseUISettings: CPCustomSettings<CpBaseUISettings>
+    public class CpUISettings: CpSettings<CpUISettings>
     {
         [Header("Project Setting")] 
         [SerializeField] private Color _mainColor = Color.dodgerBlue;
@@ -16,6 +16,12 @@ namespace _System.Settings
         [SerializeField] private Color _complementaryColorOver;
 
         [SerializeField, Range(0, 1)] private float _offElementOpacity;
+
+        [Header("Interactive Labels")]
+        [Tooltip("Idle color of an interactive text label (menu button / settings row).")]
+        [SerializeField] private Color _labelColor = new Color(0.6528f, 0.6528f, 0.6528f, 1f);
+        [Tooltip("Color of a non-interactable (greyed-out) label.")]
+        [SerializeField] private Color _labelColorDisabled = new Color(0.42f, 0.42f, 0.48f, 1f);
 
         [Header("Item Outline")]
         [Tooltip("Outline color of a shop list item when its purchase is committed (selected).")]
@@ -41,6 +47,13 @@ namespace _System.Settings
         public static Color ComplementaryColorOver => I._complementaryColorOver;
 
         public static float OffElementOpacity => I._offElementOpacity;
+
+        /// <summary>Idle color of an interactive label (menu button / settings row).</summary>
+        public static Color LabelColor => I._labelColor;
+        /// <summary>Hover / focus / pressed color of an interactive label — the chosen blue (MainColor).</summary>
+        public static Color LabelHighlightColor => I._mainColor;
+        /// <summary>Greyed-out color of a non-interactable label.</summary>
+        public static Color LabelColorDisabled => I._labelColorDisabled;
 
         public static Color ItemOutlineSelected => I._itemOutlineSelected;
         public static Color ItemOutlineHighlight => I._itemOutlineHighlight;

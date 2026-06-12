@@ -154,7 +154,7 @@ namespace _System.Settings
 #endif
     }
     
-    public abstract class CPCustomSettings<T> : CPBaseSettings where T : CPCustomSettings<T>
+    public abstract class CpSettings<T> : CPBaseSettings where T : CpSettings<T>
     {
         #region Instance
         

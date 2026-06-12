@@ -6,7 +6,7 @@ using UnityEngine;
 namespace _System.Settings
 {
     [CreateAssetMenu(fileName = "UISettings", menuName = "CPSettings/UISettings")]
-    public class CpBasePlanetSettings: CPCustomSettings<CpBasePlanetSettings>
+    public class CpBasePlanetSettings: CpSettings<CpBasePlanetSettings>
     {
         [Serializable]
         public struct PlanetConfigData

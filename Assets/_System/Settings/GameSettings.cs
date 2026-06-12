@@ -1,9 +1,10 @@
 using System;
+using _System.Settings;
 using UnityEngine;
 
 /// <summary>
 /// Lightweight player-facing settings persisted in PlayerPrefs (separate from the design-time
-/// <see cref="_System.Settings.CPCustomSettings{T}"/> assets). Currently holds the three audio
+/// <see cref="CpSettings{T}"/> assets). Currently holds the three audio
 /// volumes used by the pause-menu Settings panel.
 ///
 /// <para><b>Master</b> is applied immediately to <see cref="AudioListener.volume"/> (and re-applied at

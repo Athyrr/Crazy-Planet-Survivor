@@ -5,22 +5,30 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
-/// Controller for the in-run pause menu.
+/// Controller for the main menu.
 /// </summary>
-public class PauseUIController : UIControllerBase, ISettingsControllerOwner
+public class MainMenuController : UIControllerBase, ISettingsControllerOwner
 {
-    [Header("Buttons (top to bottom)")] public Button ResumeButton;
-    public Button AbandonButton;
+    [Header("Buttons (top to bottom)")]
+    public Button NewGameButton;
+    public Button ContinueButton;
     public Button OptionsButton;
+
+    [Tooltip("Optional. Leave unassigned if the menu has no Quit entry.")]
     public Button QuitButton;
 
     [Header("Options / Settings")]
     [Tooltip("Settings sub-panel opened by the Options button. While it is open the menu buttons are " +
-             "hidden and pause input is suspended; the panel returns control via OnSettingsClosed().")]
+             "hidden; the panel returns control via OnSettingsClosed().")]
     public SettingsPanelController SettingsPanel;
 
     [Tooltip("The buttons list (hidden while the settings panel is open). Defaults to this object.")]
     public GameObject MenuButtonsRoot;
+
+    [Header("Saves")]
+    [Tooltip("Whether a saved game exists. Until the save system is wired up this stays false and " +
+             "the Continue button is greyed out.")]
+    [SerializeField] private bool _hasSaveData = false;
 
     private GameInputs _inputs;
     private Button[] _buttons;
@@ -28,7 +36,7 @@ public class PauseUIController : UIControllerBase, ISettingsControllerOwner
     private NavRepeatFilter _nav;
     private bool _prevSendNavEvents = true;
 
-    // Index of the Options button in _buttons (Resume, Abandon, Options, Quit).
+    // Index of the Options button in _buttons (NewGame, Continue, Options, Quit).
     private const int OptionsIndex = 2;
 
     private void Awake() => EnsureButtons();
@@ -36,16 +44,22 @@ public class PauseUIController : UIControllerBase, ISettingsControllerOwner
     private void OnEnable()
     {
         EnsureButtons();
+        ApplyLabelStyles();
         WireButtons(true);
         EnableInput();
 
-        // Always open the pause menu on the buttons page, never a leftover settings page.
+        // Continue is unavailable until the save system lands: disabling it greys the label
+        // automatically through the shared label tint (disabled color).
+        if (ContinueButton != null)
+            ContinueButton.interactable = _hasSaveData;
+
+        // Always open on the buttons page, never a leftover settings page.
         if (SettingsPanel != null)
             SettingsPanel.gameObject.SetActive(false);
         if (MenuButtonsRoot != null)
             MenuButtonsRoot.SetActive(true);
 
-        // Disable event system
+        // Disable event system nav routing; we drive selection / submit ourselves.
         if (EventSystem.current != null)
         {
             _prevSendNavEvents = EventSystem.current.sendNavigationEvents;
@@ -62,7 +76,7 @@ public class PauseUIController : UIControllerBase, ISettingsControllerOwner
         WireButtons(false);
         DisableInput();
 
-        // If the panel hides while settings is open (e.g. the run resumes), close settings too.
+        // If the panel hides while settings is open, close settings too.
         if (SettingsPanel != null && SettingsPanel.gameObject.activeSelf)
             SettingsPanel.gameObject.SetActive(false);
 
@@ -77,27 +91,26 @@ public class PauseUIController : UIControllerBase, ISettingsControllerOwner
 
     // Actions (also public so they can be invoked from the inspector if needed)
 
-    public void Resume()
+    public void NewGame()
     {
         if (GameManager.Instance != null)
-            GameManager.Instance.ChangeState(EGameState.Running);
+            GameManager.Instance.StartNewGame();
     }
 
-    public void Abandon()
+    public void Continue()
     {
-        if (GameManager.Instance != null)
-            GameManager.Instance.ReturnToLobby();
+        // TODO: load the saved run here once the save system exists. Disabled until then.
     }
 
     public void OpenOptions()
     {
         if (SettingsPanel == null)
         {
-            Debug.LogWarning("[PauseUIController] No SettingsPanel wired — Options does nothing.");
+            Debug.LogWarning("[MainMenuController] No SettingsPanel wired — Options does nothing.");
             return;
         }
 
-        // Hand off to the settings page
+        // Hand off to the settings page.
         DisableInput();
         if (MenuButtonsRoot != null)
             MenuButtonsRoot.SetActive(false);
@@ -105,7 +118,7 @@ public class PauseUIController : UIControllerBase, ISettingsControllerOwner
         SettingsPanel.Open(this);
     }
 
-    /// <summary>Called back by the settings panel when it closes and estores the pause menu.</summary>
+    /// <summary>Called back by the settings panel when it closes and restores the main menu.</summary>
     public void OnSettingsClosed()
     {
         if (MenuButtonsRoot != null)
@@ -129,13 +142,21 @@ public class PauseUIController : UIControllerBase, ISettingsControllerOwner
     private void EnsureButtons()
     {
         if (_buttons == null)
-            _buttons = new[] { ResumeButton, AbandonButton, OptionsButton, QuitButton };
+            _buttons = new[] { NewGameButton, ContinueButton, OptionsButton, QuitButton };
+    }
+
+    // The buttons have no visible background: each button tints its own TMP label from the shared
+    // CpUISettings palette (idle grey -> blue on hover/focus, greyed when disabled) via UILabelPalette.
+    private void ApplyLabelStyles()
+    {
+        for (int i = 0; i < _buttons.Length; i++)
+            UILabelPalette.ApplyToButton(_buttons[i]);
     }
 
     private void WireButtons(bool wire)
     {
-        SetListener(ResumeButton, Resume, wire);
-        SetListener(AbandonButton, Abandon, wire);
+        SetListener(NewGameButton, NewGame, wire);
+        SetListener(ContinueButton, Continue, wire);
         SetListener(OptionsButton, OpenOptions, wire);
         SetListener(QuitButton, Quit, wire);
     }
@@ -151,21 +172,19 @@ public class PauseUIController : UIControllerBase, ISettingsControllerOwner
             button.onClick.RemoveListener(action);
     }
 
-    // Navigation / input
+    // Navigation / input (same explicit-input model as the pause menu)
 
     private void EnableInput()
     {
         _inputs ??= new GameInputs();
 
-        // Remove before add so a second EnableInput can't double-subscribe the handlers — a doubled
-        // OnNavigate steps focus twice per push.
+        // Remove before add so a second EnableInput (boot ordering, canvas toggle, settings round-trip)
+        // can't double-subscribe OnNavigate — a doubled handler steps focus twice per push.
         _inputs.UI.Navigate.performed -= OnNavigate;
         _inputs.UI.Submit.performed -= OnSubmit;
-        _inputs.UI.Cancel.performed -= OnCancel;
 
         _inputs.UI.Navigate.performed += OnNavigate;
         _inputs.UI.Submit.performed += OnSubmit;
-        _inputs.UI.Cancel.performed += OnCancel;
         _inputs.UI.Enable();
     }
 
@@ -176,7 +195,6 @@ public class PauseUIController : UIControllerBase, ISettingsControllerOwner
 
         _inputs.UI.Navigate.performed -= OnNavigate;
         _inputs.UI.Submit.performed -= OnSubmit;
-        _inputs.UI.Cancel.performed -= OnCancel;
         _inputs.UI.Disable();
     }
 
@@ -200,9 +218,6 @@ public class PauseUIController : UIControllerBase, ISettingsControllerOwner
         if (button != null && button.interactable)
             button.onClick.Invoke();
     }
-
-    // Cancel (gamepad B) mirrors the Pause key: resume the run.
-    private void OnCancel(InputAction.CallbackContext ctx) => Resume();
 
     private void StepFocus(int direction)
     {

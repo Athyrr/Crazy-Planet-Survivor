@@ -15,7 +15,10 @@ public class GameManager : MonoBehaviour
 
     public Action<EPlanetID> OnPlanetSelected;
 
-    public GameObject LoadingPanel;
+    public Canvas LoadingCanvas;
+
+    public Canvas MainMenuCanvas;
+
     [SerializeField] private float _minLoadingTime = 1.0f;
 
     [SerializeField] private Canvas _joystickCanvas;
@@ -49,23 +52,26 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        // Boot straight to the main menu. The lobby (and the rest of the run content) is only
+        // streamed in once the player presses New Game (see StartNewGame).
+        ChangeState(EGameState.MainMenu);
+    }
+
+    /// <summary>
+    /// Entry point for the main menu's "New Game" button: streams the lobby planet scene and
+    /// enters the Lobby state. Continue / saved games will hook in here later.
+    /// </summary>
+    public void StartNewGame()
+    {
         StartCoroutine(WaitForSceneBufferCoroutine());
     }
 
     private IEnumerator WaitForSceneBufferCoroutine()
     {
-        // todo valide this temp fix
-        // float timeout = 1f;
+        // Wait until the baked planet-scene reference buffer is available before loading the lobby.
         while (_planetScenesBufferQuery.IsEmpty)
         {
-            Debug.LogError("[GameManager] wait load _planetScenesBuffer !");
             yield return null;
-            // timeout -= Time.deltaTime;
-        }
-
-        if (_planetScenesBufferQuery.IsEmpty)
-        {
-            yield break;
         }
 
         InternalLoadScene(EPlanetID.Lobby, EGameState.Lobby, sendStartRequest: false);
@@ -229,10 +235,13 @@ public class GameManager : MonoBehaviour
 
     private void HandleInternalStateChange(EGameState newState)
     {
-        if (LoadingPanel != null)
-            LoadingPanel.SetActive(newState == EGameState.Loading);
+        if (LoadingCanvas != null)
+            LoadingCanvas.gameObject.SetActive(newState == EGameState.Loading);
 
         if (_joystickCanvas != null)
             _joystickCanvas.gameObject.SetActive(newState == EGameState.Running || newState == EGameState.Lobby);
+
+        if (MainMenuCanvas != null)
+            MainMenuCanvas.gameObject.SetActive(newState == EGameState.MainMenu);
     }
 }

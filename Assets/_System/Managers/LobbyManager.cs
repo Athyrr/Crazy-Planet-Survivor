@@ -121,6 +121,17 @@ public class LobbyManager : MonoBehaviour
 
     private void HandleStateChange(EGameState newState)
     {
+        // On the main menu no lobby content is streamed in yet: keep every lobby view hidden so
+        // nothing shows (or steals input) behind the main menu canvas.
+        if (newState == EGameState.MainMenu)
+        {
+            PlanetSelectionUIController.gameObject.SetActive(false);
+            CharacterShopUIController.gameObject.SetActive(false);
+            AmuletShopUIController.gameObject.SetActive(false);
+            MetaProgressionController.gameObject.SetActive(false);
+            return;
+        }
+
         // Let galaxy opened
         PlanetSelectionUIController.gameObject.SetActive(true);
 

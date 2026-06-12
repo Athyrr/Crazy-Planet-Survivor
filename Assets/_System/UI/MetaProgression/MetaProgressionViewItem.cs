@@ -177,7 +177,7 @@ public class MetaProgressionViewItem : UIViewItemBase
         // Availability = affordable (locked = cannot afford the next level).
         if (_border != null && _border.material != null)
             _border.material.SetColor(OutlineColorShaderProperty,
-                CpBaseUISettings.GetItemOutlineColor(_isSelected, highlighted, !_isLocked));
+                CpUISettings.GetItemOutlineColor(_isSelected, highlighted, !_isLocked));
     }
 
     private Color GetStateColor()

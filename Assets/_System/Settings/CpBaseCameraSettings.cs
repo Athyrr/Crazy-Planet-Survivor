@@ -4,7 +4,7 @@ using UnityEngine;
 namespace _System.Settings
 {
     [CreateAssetMenu(fileName = "UISettings", menuName = "CPSettings/UISettings")]
-    public class CpBaseCameraSettings: CPCustomSettings<CpBaseCameraSettings>
+    public class CpBaseCameraSettings: CpSettings<CpBaseCameraSettings>
     {
         [Serializable]
         public struct CameraSettingsData
