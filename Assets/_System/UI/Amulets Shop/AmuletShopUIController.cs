@@ -22,6 +22,14 @@ public class AmuletShopUIController
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
     }
 
+    /// <summary>Stop the long purchase reveal (delayed swap + VFX) the instant the shop starts closing,
+    /// so it doesn't keep playing during the slide-out (or linger in the lobby).</summary>
+    protected override void OnClosing()
+    {
+        if (DetailView != null)
+            DetailView.StopUnlockAnimation();
+    }
+
     /// <summary>Controller confirm while committed: buy the locked item.</summary>
     protected override void ExecutePurchase(int index)
     {

@@ -40,22 +40,51 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
     public float SpawnDelay = 1.05f;
     public Vector3 AnimScale = new Vector3(200f, 200f, 200f);
 
+    // Purchase reveal is long-running (delayed prefab swap + an unparented VFX). Both are tracked so
+    // they can be cancelled the instant the shop closes — otherwise they keep playing in world space
+    // (the VFX is not parented to the shop) after the panel is gone. See StopUnlockAnimation().
+    private Tween _unlockRevealTween;
+    private GameObject _unlockVfx;
+
     public void PlayUnlockVfx()
     {
         if (UnlockVfxPrefab == null || AmuletPreviewContainer == null)
             return;
 
-        var vfx = Instantiate(UnlockVfxPrefab);
-        vfx.transform.localPosition = AmuletPreviewContainer.transform.position + VfxLocalOffset;
-        vfx.transform.localRotation =
+        _unlockVfx = Instantiate(UnlockVfxPrefab);
+        _unlockVfx.transform.localPosition = AmuletPreviewContainer.transform.position + VfxLocalOffset;
+        _unlockVfx.transform.localRotation =
             AmuletPreviewContainer.transform.rotation * Quaternion.identity;
-        vfx.transform.localScale = AnimScale;
-        SetLayerRecursive(vfx, AmuletPreviewContainer.gameObject.layer);
+        _unlockVfx.transform.localScale = AnimScale;
+        SetLayerRecursive(_unlockVfx, AmuletPreviewContainer.gameObject.layer);
 
-        vfx.GetComponent<ParticleSystem>().Play();
+        _unlockVfx.GetComponent<ParticleSystem>().Play();
 
         if (VfxLifetime > 0f)
-            Destroy(vfx, VfxLifetime);
+            Destroy(_unlockVfx, VfxLifetime);
+    }
+
+    /// <summary>
+    /// Cancels an in-flight purchase reveal: stops the delayed prefab-swap tween and destroys the
+    /// unlock VFX instance. Called the instant the shop begins closing (controller OnClosing), again
+    /// from <see cref="OnDisable"/> as a safety net, and whenever the preview is rebuilt
+    /// (<see cref="Clear"/>), so a reveal never outlives its shop or its item.
+    /// </summary>
+    public void StopUnlockAnimation()
+    {
+        if (_unlockRevealTween.isAlive)
+            _unlockRevealTween.Stop();
+
+        if (_unlockVfx != null)
+        {
+            Destroy(_unlockVfx);
+            _unlockVfx = null;
+        }
+    }
+
+    private void OnDisable()
+    {
+        StopUnlockAnimation();
     }
 
     private static void SetLayerRecursive(GameObject go, int layer)
@@ -115,7 +144,7 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
             if (DefaultAmulet != null)
                 Instantiate(DefaultAmulet, AmuletPreviewContainer);
 
-            Tween.Delay(
+            _unlockRevealTween = Tween.Delay(
                 duration: SpawnDelay,
                 () =>
                 {
@@ -216,6 +245,9 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
 
     public void Clear()
     {
+        // Cancel any in-flight purchase reveal before rebuilding (switching items mid-reveal).
+        StopUnlockAnimation();
+
         // Clear preview
         if (AmuletPreviewContainer != null)
         {

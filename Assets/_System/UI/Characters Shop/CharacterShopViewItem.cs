@@ -1,4 +1,5 @@
 using _System.Settings;
+using PrimeTween;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -29,6 +30,8 @@ public class CharacterShopViewItem : UIViewItemBase
     private bool _isFocused;
     private bool _isSelected;
 
+    private Tween _scaleTween;
+
     public void Init(CharacterShopUIController shopController, int index, CharacterSO data,
         bool isUnlocked)
     {
@@ -49,6 +52,11 @@ public class CharacterShopViewItem : UIViewItemBase
         _isHovered = false;
         _isFocused = false;
         _isSelected = false;
+
+        // Pooled items can be reused while still scaled from a previous hover — reset instantly.
+        if (_scaleTween.isAlive)
+            _scaleTween.Stop();
+        transform.localScale = Vector3.one;
 
         Refresh();
     }
@@ -86,12 +94,14 @@ public class CharacterShopViewItem : UIViewItemBase
     {
         _isHovered = isHovered;
         RefreshVisual();
+        RefreshScale();
     }
 
     public override void SetFocus(bool isFocused)
     {
         _isFocused = isFocused;
         RefreshVisual();
+        RefreshScale();
     }
 
     public override void SetSelected(bool isSelected)
@@ -101,6 +111,16 @@ public class CharacterShopViewItem : UIViewItemBase
     }
 
     private bool IsHighlighted => _isFocused || _isHovered;
+
+    private void RefreshScale()
+    {
+        if (_scaleTween.isAlive)
+            _scaleTween.Stop();
+
+        float target = IsHighlighted ? CpUISettings.HoverScale : 1f;
+        _scaleTween = Tween.Scale(
+            transform, target, CpUISettings.HoverDuration, CpUISettings.HoverEase, useUnscaledTime: true);
+    }
 
     private void RefreshVisual()
     {

@@ -1,4 +1,5 @@
 using _System.Settings;
+using PrimeTween;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -23,6 +24,8 @@ public class AmuletViewItem : UIViewItemBase
     private bool _isFocused;
     private bool _isSelected;
 
+    private Tween _scaleTween;
+
     private static readonly int BackgroundColorShaderProperty = Shader.PropertyToID("_BackgroundColor");
     private static readonly int OutlineColorShaderProperty = Shader.PropertyToID("_OutlineColor");
 
@@ -46,6 +49,12 @@ public class AmuletViewItem : UIViewItemBase
         _isHovered = false;
         _isFocused = false;
         _isSelected = false;
+
+        // Pooled items can be reused while still scaled from a previous hover — reset instantly.
+        if (_scaleTween.isAlive)
+            _scaleTween.Stop();
+        transform.localScale = Vector3.one;
+
         RefreshColor();
     }
 
@@ -73,12 +82,14 @@ public class AmuletViewItem : UIViewItemBase
     {
         _isHovered = isHovered;
         RefreshColor();
+        RefreshScale();
     }
 
     public override void SetFocus(bool isFocused)
     {
         _isFocused = isFocused;
         RefreshColor();
+        RefreshScale();
     }
 
     public override void SetSelected(bool isSelected)
@@ -98,6 +109,16 @@ public class AmuletViewItem : UIViewItemBase
         Color targetColor = GetBorderColor();
         if (_border.material != null)
             _border.material.SetColor(OutlineColorShaderProperty, targetColor);
+    }
+
+    private void RefreshScale()
+    {
+        if (_scaleTween.isAlive)
+            _scaleTween.Stop();
+
+        float target = IsHighlighted ? CpUISettings.HoverScale : 1f;
+        _scaleTween = Tween.Scale(
+            transform, target, CpUISettings.HoverDuration, CpUISettings.HoverEase, useUnscaledTime: true);
     }
 
     private bool IsHighlighted => _isFocused || _isHovered;

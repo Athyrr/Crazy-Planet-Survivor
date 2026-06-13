@@ -1,4 +1,5 @@
 using _System.Settings;
+using PrimeTween;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -56,6 +57,8 @@ public class MetaProgressionViewItem : UIViewItemBase
     private bool _isSelected;  // committed — purchase button focused
     private bool _isLocked;    // cannot afford the next level
 
+    private Tween _scaleTween;
+
     public int DatabaseIndex => _databaseIndex;
 
     private bool IsMaxed => _currentLevel >= _maxLevel;
@@ -82,6 +85,11 @@ public class MetaProgressionViewItem : UIViewItemBase
         _isFocused = false;
         _isSelected = false;
         _isLocked = !canAfford && !IsMaxed;
+
+        // Pooled items can be reused while still scaled from a previous hover — reset instantly.
+        if (_scaleTween.isAlive)
+            _scaleTween.Stop();
+        transform.localScale = Vector3.one;
 
         RefreshPips();
         RefreshVisualState();
@@ -123,18 +131,30 @@ public class MetaProgressionViewItem : UIViewItemBase
     {
         _isHovered = isHovered;
         RefreshVisualState();
+        RefreshScale();
     }
 
     public override void SetFocus(bool isFocused)
     {
         _isFocused = isFocused;
         RefreshVisualState();
+        RefreshScale();
     }
 
     public override void SetSelected(bool isSelected)
     {
         _isSelected = isSelected;
         RefreshVisualState();
+    }
+
+    private void RefreshScale()
+    {
+        if (_scaleTween.isAlive)
+            _scaleTween.Stop();
+
+        float target = (_isFocused || _isHovered) ? CpUISettings.HoverScale : 1f;
+        _scaleTween = Tween.Scale(
+            transform, target, CpUISettings.HoverDuration, CpUISettings.HoverEase, useUnscaledTime: true);
     }
 
     /// <summary>

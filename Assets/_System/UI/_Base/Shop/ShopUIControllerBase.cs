@@ -1,4 +1,6 @@
 using System;
+using _System.Settings;
+using PrimeTween;
 using TMPro;
 using Unity.Entities;
 using UnityEngine;
@@ -31,6 +33,12 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
     [Header("Views")] public TListView ListView;
     public TDetailView DetailView;
 
+    [Header("Animation")]
+    [Tooltip("Panel entrance/exit animators (UISlidePanel / UIFadePanel) driven as a group on open " +
+             "and close — e.g. list from left, stats from right, detail from bottom, title from top, " +
+             "and the background fades. Slid/faded out (then the shop deactivates) on close.")]
+    public MonoBehaviour[] PanelAnimators;
+
     [Header("Button")] public Button ActionButton;
     public TMP_Text ActionButtonText;
 
@@ -61,6 +69,7 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
     private GameInputs _shopInputs;
     private bool _navAxisActive;
     private bool _prevSendNavEvents = true;
+    private Tween _purchaseFocusTween;
 
     private const float NavDeadzone = 0.3f;
 
@@ -81,6 +90,9 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
     {
         ListView.OpenView();
         DetailView.OpenView();
+
+        // Animate the panels in (the GameObject is already active here).
+        UIPanelGroup.Show(PanelAnimators);
 
         RefreshListView();
 
@@ -106,12 +118,34 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
 
     public virtual void CloseViews()
     {
-        // todo animation
-
         SetPurchaseFocused(false);
 
         ListView.CloseView();
         DetailView.CloseView();
+    }
+
+    /// <summary>
+    /// Animated close used by the lobby state machine: runs <see cref="OnClosing"/> immediately (so
+    /// in-flight effects stop the instant the player leaves), animates the panels out, then deactivates
+    /// the GameObject (which fires OnDisable → HandleShopClosed for input/EventSystem restore and the
+    /// focused-selection commit). Deactivates immediately when no animators are assigned. No-op if
+    /// already inactive.
+    /// </summary>
+    public void CloseAnimated()
+    {
+        if (!gameObject.activeSelf)
+            return;
+
+        OnClosing();
+        UIPanelGroup.Hide(PanelAnimators, () => gameObject.SetActive(false));
+    }
+
+    /// <summary>
+    /// Hook invoked the instant a close begins (before the exit animation). Override to cancel any
+    /// in-flight effects that must stop exactly when the player leaves (not when the slide-out ends).
+    /// </summary>
+    protected virtual void OnClosing()
+    {
     }
 
     // Hover (PC pointer): highlight only, no detail change
@@ -413,7 +447,27 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
         if (PurchaseFocusHighlight != null)
             PurchaseFocusHighlight.SetActive(canShow);
 
-        ActionButton.transform.localScale = canShow ? Vector3.one * PurchaseFocusScale : Vector3.one;
+        if (_purchaseFocusTween.isAlive)
+            _purchaseFocusTween.Stop();
+
+        float targetScale = canShow ? PurchaseFocusScale : 1f;
+
+        // Only animate when the button is actually visible. Tweening an inactive target warns in
+        // PrimeTween (and would be invisible anyway) — this runs on open (button hidden) and on close
+        // (parent deactivating), so set the scale instantly in those cases.
+        if (ActionButton.gameObject.activeInHierarchy)
+        {
+            _purchaseFocusTween = Tween.Scale(
+                ActionButton.transform,
+                targetScale,
+                CpUISettings.HoverDuration,
+                CpUISettings.HoverEase,
+                useUnscaledTime: true);
+        }
+        else
+        {
+            ActionButton.transform.localScale = Vector3.one * targetScale;
+        }
     }
 
     protected abstract int GetItemsCount();
