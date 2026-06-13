@@ -126,18 +126,21 @@ public class LobbyManager : MonoBehaviour
         if (newState == EGameState.MainMenu)
         {
             PlanetSelectionUIController.gameObject.SetActive(false);
-            CharacterShopUIController.gameObject.SetActive(false);
-            AmuletShopUIController.gameObject.SetActive(false);
-            MetaProgressionController.gameObject.SetActive(false);
+            // Slide the lobby views out (then they deactivate themselves). No-op if already inactive.
+            CharacterShopUIController.CloseAnimated();
+            AmuletShopUIController.CloseAnimated();
+            MetaProgressionController.CloseAnimated();
             return;
         }
 
         // Let galaxy opened
         PlanetSelectionUIController.gameObject.SetActive(true);
 
-        CharacterShopUIController.gameObject.SetActive(false);
-        AmuletShopUIController.gameObject.SetActive(false);
-        MetaProgressionController.gameObject.SetActive(false);
+        // Slide out whichever lobby view is currently open (then it deactivates itself). The incoming
+        // view (opened just below) slides in at the same time, reading as a cross-slide.
+        CharacterShopUIController.CloseAnimated();
+        AmuletShopUIController.CloseAnimated();
+        MetaProgressionController.CloseAnimated();
 
         bool isGalaxyMode = (newState == EGameState.PlanetSelection);
         if (isGalaxyMode)
