@@ -1,3 +1,4 @@
+using PrimeTween;
 using UnityEngine;
 
 namespace _System.Settings
@@ -35,6 +36,20 @@ namespace _System.Settings
         [Tooltip("Outline color when the item is idle and locked.")]
         [SerializeField] private Color _itemOutlineIdleLocked = new Color(0.9623f, 0.3788f, 0.286f, 1f);
 
+        [Header("UI Animation")]
+        [Tooltip("Duration (seconds) of a panel slide in/out.")]
+        [SerializeField] private float _panelSlideDuration = 0.25f;
+        [Tooltip("Ease used when a panel slides in.")]
+        [SerializeField] private Ease _panelSlideInEase = Ease.OutCubic;
+        [Tooltip("Ease used when a panel slides out.")]
+        [SerializeField] private Ease _panelSlideOutEase = Ease.InCubic;
+        [Tooltip("Scale multiplier applied to a button/item while hovered or focused.")]
+        [SerializeField] private float _hoverScale = 1.05f;
+        [Tooltip("Duration (seconds) of the hover scale tween.")]
+        [SerializeField] private float _hoverDuration = 0.12f;
+        [Tooltip("Ease used for the hover scale tween.")]
+        [SerializeField] private Ease _hoverEase = Ease.OutQuad;
+
         #region Accessor
 
         public static Color MainColor => I._mainColor;
@@ -60,6 +75,14 @@ namespace _System.Settings
         public static Color ItemOutlineHighlightLocked => I._itemOutlineHighlightLocked;
         public static Color ItemOutlineIdle => I._itemOutlineIdle;
         public static Color ItemOutlineIdleLocked => I._itemOutlineIdleLocked;
+
+        // UI Animation
+        public static float PanelSlideDuration => I._panelSlideDuration;
+        public static Ease PanelSlideInEase => I._panelSlideInEase;
+        public static Ease PanelSlideOutEase => I._panelSlideOutEase;
+        public static float HoverScale => I._hoverScale;
+        public static float HoverDuration => I._hoverDuration;
+        public static Ease HoverEase => I._hoverEase;
 
         /// <summary>
         /// Resolves the outline color for a shop list item from its interaction + content state,
