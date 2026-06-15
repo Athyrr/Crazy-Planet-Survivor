@@ -49,7 +49,6 @@ GameObject:
   - component: {fileID: 457457189574904408}
   - component: {fileID: 943659087296636610}
   - component: {fileID: 4094682867943329831}
-  - component: {fileID: 5699809057609379238}
   m_Layer: 3
   m_Name: Character Detail View
   m_TagString: Untagged
@@ -110,28 +109,11 @@ MonoBehaviour:
   CharacterStatsContainer: {fileID: 811310602995244524}
   CharacterShopStatItemPrefab: {fileID: -5245906625081389907, guid: 88668b1a45f30ff45ab830fc9aed8c71, type: 3}
   DefaultName: Locked
-  UnlockVfxPrefab: {fileID: 1937373113512653880, guid: b697b4daf46dc214bbfdba9d8645f39b, type: 3}
+  UnlockVfxPrefab: {fileID: 1705468657739804387, guid: 692691b39f962144f80e651b84f9f2d2, type: 3}
   VfxLocalOffset: {x: 0, y: -0.9, z: 0}
-  VfxLifetime: 3
-  SpawnDelay: 0.001
+  VfxLifetime: 5
+  SpawnDelay: 1.06
   AnimScale: {x: 1, y: 1, z: 1}
---- !u!114 &5699809057609379238
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 944784356084540258}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
-  _panel: {fileID: 0}
-  _slideFrom: 3
-  _offScreenPadding: 100
-  _offScreenOffsetOverride: {x: 0, y: 0}
-  _durationOverride: -1
 --- !u!1 &1279714591594173131
 GameObject:
   m_ObjectHideFlags: 0
@@ -310,7 +292,7 @@ MonoBehaviour:
   PanelAnimators:
   - {fileID: 1864903407024840146}
   - {fileID: 8652962836245287508}
-  - {fileID: 5699809057609379238}
+  - {fileID: 0}
   - {fileID: 1118998936089107590}
   - {fileID: 2823853656007055689}
   - {fileID: 3115171388813159584}

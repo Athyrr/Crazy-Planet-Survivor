@@ -10685,7 +10685,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2541109229880968110, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3009601589142470924, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: m_AnchorMax.y
@@ -10772,17 +10772,21 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4094682867943329831, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
-      propertyPath: SpawnDelay
-      value: 1.06
+      propertyPath: AnimScale.x
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4094682867943329831, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
-      propertyPath: VfxLifetime
-      value: 5
+      propertyPath: AnimScale.y
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4094682867943329831, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
-      propertyPath: UnlockVfxPrefab
-      value: 
-      objectReference: {fileID: 1705468657739804387, guid: 692691b39f962144f80e651b84f9f2d2, type: 3}
+      propertyPath: AnimScale.z
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4094682867943329831, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
+      propertyPath: VfxLocalOffset.y
+      value: -0.9
+      objectReference: {fileID: 0}
     - target: {fileID: 4374138807037738544, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -10806,6 +10810,10 @@ PrefabInstance:
     - target: {fileID: 4374138807037738544, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5620786330913497577, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
+      propertyPath: m_Alpha
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5706869884154522240, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
       propertyPath: m_AnchorMax.y
@@ -11023,8 +11031,7 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 5699809057609379238, guid: 4d510fd393d13904aa13d25e41393cb4, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -11663,6 +11670,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7901883355781370056, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8037101515032699205, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
       propertyPath: PanelAnimators.Array.size
       value: 7
@@ -11787,8 +11798,7 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: -75
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 7543801495942513122, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:

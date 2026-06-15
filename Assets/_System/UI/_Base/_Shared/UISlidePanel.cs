@@ -77,6 +77,14 @@ public class UISlidePanel : MonoBehaviour, IUIPanelAnimator
         if (_active.isAlive)
             _active.Stop();
 
+        // Don't tween an inactive target (PrimeTween warns). Snap to the on-screen position so the
+        // panel is correct whenever it does become visible (e.g. a detail panel shown on selection).
+        if (!Panel.gameObject.activeInHierarchy)
+        {
+            Panel.anchoredPosition = _onScreenPos;
+            return default;
+        }
+
         Panel.anchoredPosition = _offScreenPos;
         _active = Tween.UIAnchoredPosition(
             Panel, _onScreenPos, Duration, CpUISettings.PanelSlideInEase, useUnscaledTime: true);
@@ -93,6 +101,14 @@ public class UISlidePanel : MonoBehaviour, IUIPanelAnimator
 
         if (_active.isAlive)
             _active.Stop();
+
+        // Don't tween an inactive target (PrimeTween warns). Snap off-screen and finish immediately.
+        if (!Panel.gameObject.activeInHierarchy)
+        {
+            Panel.anchoredPosition = _offScreenPos;
+            onComplete?.Invoke();
+            return default;
+        }
 
         _active = Tween.UIAnchoredPosition(
             Panel, _offScreenPos, Duration, CpUISettings.PanelSlideOutEase, useUnscaledTime: true);

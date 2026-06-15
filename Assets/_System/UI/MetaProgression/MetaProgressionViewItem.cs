@@ -153,6 +153,11 @@ public class MetaProgressionViewItem : UIViewItemBase
             _scaleTween.Stop();
 
         float target = (_isFocused || _isHovered) ? CpUISettings.HoverScale : 1f;
+
+        // Skip a no-op tween when already at the target scale (PrimeTween warns on equal end value).
+        if (transform.localScale == Vector3.one * target)
+            return;
+
         _scaleTween = Tween.Scale(
             transform, target, CpUISettings.HoverDuration, CpUISettings.HoverEase, useUnscaledTime: true);
     }

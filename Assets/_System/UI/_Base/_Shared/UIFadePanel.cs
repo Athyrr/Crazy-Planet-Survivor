@@ -28,6 +28,13 @@ public class UIFadePanel : MonoBehaviour, IUIPanelAnimator
         if (_active.isAlive)
             _active.Stop();
 
+        // Don't tween an inactive target (PrimeTween warns). Snap to opaque so it's correct when shown.
+        if (!Group.gameObject.activeInHierarchy)
+        {
+            Group.alpha = 1f;
+            return default;
+        }
+
         Group.alpha = 0f;
         _active = Tween.Alpha(Group, 1f, Duration, CpUISettings.PanelSlideInEase, useUnscaledTime: true);
         return _active;
@@ -38,6 +45,14 @@ public class UIFadePanel : MonoBehaviour, IUIPanelAnimator
     {
         if (_active.isAlive)
             _active.Stop();
+
+        // Don't tween an inactive target (PrimeTween warns). Snap transparent and finish immediately.
+        if (!Group.gameObject.activeInHierarchy)
+        {
+            Group.alpha = 0f;
+            onComplete?.Invoke();
+            return default;
+        }
 
         _active = Tween.Alpha(Group, 0f, Duration, CpUISettings.PanelSlideOutEase, useUnscaledTime: true);
 

@@ -46,6 +46,10 @@ public class UIButtonHover : MonoBehaviour,
         if (_tween.isAlive)
             _tween.Stop();
 
+        // Skip a no-op tween when already at the target (PrimeTween warns on equal end value).
+        if (transform.localScale == targetScale)
+            return;
+
         _tween = Tween.Scale(
             transform, targetScale, CpUISettings.HoverDuration, CpUISettings.HoverEase, useUnscaledTime: true);
     }

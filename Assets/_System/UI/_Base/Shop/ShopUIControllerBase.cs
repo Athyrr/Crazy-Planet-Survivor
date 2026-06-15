@@ -450,23 +450,24 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
         if (_purchaseFocusTween.isAlive)
             _purchaseFocusTween.Stop();
 
-        float targetScale = canShow ? PurchaseFocusScale : 1f;
+        Vector3 targetVec = Vector3.one * (canShow ? PurchaseFocusScale : 1f);
 
         // Only animate when the button is actually visible. Tweening an inactive target warns in
         // PrimeTween (and would be invisible anyway) — this runs on open (button hidden) and on close
-        // (parent deactivating), so set the scale instantly in those cases.
-        if (ActionButton.gameObject.activeInHierarchy)
+        // (parent deactivating), so set the scale instantly in those cases. Also skip a no-op tween
+        // when already at the target (PrimeTween warns on equal end value).
+        if (!ActionButton.gameObject.activeInHierarchy)
+        {
+            ActionButton.transform.localScale = targetVec;
+        }
+        else if (ActionButton.transform.localScale != targetVec)
         {
             _purchaseFocusTween = Tween.Scale(
                 ActionButton.transform,
-                targetScale,
+                targetVec,
                 CpUISettings.HoverDuration,
                 CpUISettings.HoverEase,
                 useUnscaledTime: true);
-        }
-        else
-        {
-            ActionButton.transform.localScale = Vector3.one * targetScale;
         }
     }
 
