@@ -141,7 +141,8 @@ public class RunManager : MonoBehaviour
         // Hide all panels
         HUDController.gameObject.SetActive(false);
         UpgradeSelectionController.gameObject.SetActive(false);
-        PausePanel.SetActive(false);
+        // Slide the pause panel out (then deactivate it) instead of an instant pop-off.
+        CloseAnimatedPanel(PausePanel);
         GameOverUIController.gameObject.SetActive(false);
 
         switch (newState)
@@ -162,5 +163,20 @@ public class RunManager : MonoBehaviour
             default:
                 break;
         }
+    }
+
+    /// <summary>
+    /// Slides a panel out via its <see cref="UISlidePanel"/> (then deactivates it), or deactivates it
+    /// immediately when it has no slide animator. No-op if already inactive.
+    /// </summary>
+    private static void CloseAnimatedPanel(GameObject panel)
+    {
+        if (panel == null || !panel.activeSelf)
+            return;
+
+        if (panel.TryGetComponent<UISlidePanel>(out var slide))
+            slide.Hide(() => panel.SetActive(false));
+        else
+            panel.SetActive(false);
     }
 }

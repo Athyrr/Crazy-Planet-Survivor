@@ -269,6 +269,7 @@ GameObject:
   - component: {fileID: 8883497926613115921}
   - component: {fileID: 3558937621452373642}
   - component: {fileID: 8336094386217269793}
+  - component: {fileID: 7455933505254438662}
   m_Layer: 5
   m_Name: Resume
   m_TagString: Untagged
@@ -439,6 +440,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &7455933505254438662
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1320800264464986413}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec141149540bc8946810af6da9094449, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonHover
+  _hoverScaleOverride: -1
 --- !u!1 &1631970487582043256
 GameObject:
   m_ObjectHideFlags: 0
@@ -699,6 +713,7 @@ GameObject:
   - component: {fileID: 7639069024061252654}
   - component: {fileID: 3354628949067760900}
   - component: {fileID: 7854913043175941368}
+  - component: {fileID: 1591279752379825859}
   m_Layer: 5
   m_Name: Options
   m_TagString: Untagged
@@ -869,6 +884,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1591279752379825859
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2902012955030890970}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec141149540bc8946810af6da9094449, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonHover
+  _hoverScaleOverride: -1
 --- !u!1 &3751985911081240870
 GameObject:
   m_ObjectHideFlags: 0
@@ -1176,6 +1204,7 @@ GameObject:
   - component: {fileID: 7809315707195317086}
   - component: {fileID: 3096923623931198042}
   - component: {fileID: 2030262079009481929}
+  - component: {fileID: 3827115781523057542}
   m_Layer: 5
   m_Name: PF_UI_PausePanel
   m_TagString: Untagged
@@ -1231,6 +1260,23 @@ MonoBehaviour:
   QuitButton: {fileID: 5647161239752620973}
   SettingsPanel: {fileID: 3050216110769578234}
   MenuButtonsRoot: {fileID: 1651794119957989746}
+--- !u!114 &3827115781523057542
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5354578257132953450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 2
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
 --- !u!1 &6341628277483789466
 GameObject:
   m_ObjectHideFlags: 0
@@ -1318,6 +1364,7 @@ GameObject:
   - component: {fileID: 8404357948214482742}
   - component: {fileID: 1828039420490322956}
   - component: {fileID: 7634438066151446234}
+  - component: {fileID: 4719508692983920276}
   m_Layer: 5
   m_Name: Abandon
   m_TagString: Untagged
@@ -1488,6 +1535,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &4719508692983920276
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6753317180946588214}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec141149540bc8946810af6da9094449, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonHover
+  _hoverScaleOverride: -1
 --- !u!1 &6959988233866186079
 GameObject:
   m_ObjectHideFlags: 0
@@ -1500,6 +1560,7 @@ GameObject:
   - component: {fileID: 2011212456329585093}
   - component: {fileID: 3537100957758256818}
   - component: {fileID: 5647161239752620973}
+  - component: {fileID: 4834965623095372159}
   m_Layer: 5
   m_Name: Quit
   m_TagString: Untagged
@@ -1670,6 +1731,19 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &4834965623095372159
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6959988233866186079}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec141149540bc8946810af6da9094449, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonHover
+  _hoverScaleOverride: -1
 --- !u!1 &8162275026870369294
 GameObject:
   m_ObjectHideFlags: 0
@@ -1766,9 +1840,13 @@ MonoBehaviour:
   MusicRow: {fileID: 8670614627163544890}
   SfxRow: {fileID: 8296093741618570141}
   BackRow: {fileID: 6748541651898358512}
+  MasterSlider: {fileID: 0}
+  MusicSlider: {fileID: 0}
+  SfxSlider: {fileID: 0}
+  MasterValue: {fileID: 0}
+  MusicValue: {fileID: 0}
+  SfxValue: {fileID: 0}
   VolumeStep: 0.1
-  NormalColor: {r: 0.6528, g: 0.6528, b: 0.6528, a: 1}
-  HighlightColor: {r: 0.2934, g: 0.9094, b: 0.7754, a: 1}
 --- !u!1 &8287173442253517625
 GameObject:
   m_ObjectHideFlags: 0
