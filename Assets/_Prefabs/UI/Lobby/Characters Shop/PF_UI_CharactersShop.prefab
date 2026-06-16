@@ -109,10 +109,10 @@ MonoBehaviour:
   CharacterStatsContainer: {fileID: 811310602995244524}
   CharacterShopStatItemPrefab: {fileID: -5245906625081389907, guid: 88668b1a45f30ff45ab830fc9aed8c71, type: 3}
   DefaultName: Locked
-  UnlockVfxPrefab: {fileID: 1937373113512653880, guid: b697b4daf46dc214bbfdba9d8645f39b, type: 3}
+  UnlockVfxPrefab: {fileID: 1705468657739804387, guid: 692691b39f962144f80e651b84f9f2d2, type: 3}
   VfxLocalOffset: {x: 0, y: -0.9, z: 0}
-  VfxLifetime: 3
-  SpawnDelay: 0.001
+  VfxLifetime: 5
+  SpawnDelay: 1.06
   AnimScale: {x: 1, y: 1, z: 1}
 --- !u!1 &1279714591594173131
 GameObject:
@@ -125,6 +125,7 @@ GameObject:
   - component: {fileID: 5683813475728033136}
   - component: {fileID: 8409383008857221533}
   - component: {fileID: 4231036299105021227}
+  - component: {fileID: 1864903407024840146}
   m_Layer: 3
   m_Name: Character List View
   m_TagString: Untagged
@@ -175,6 +176,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UI_CharacterSelection_CharactersContainer
   Container: {fileID: 5037408872494746253}
   ItemPrefab: {fileID: -6539993168767564977, guid: 511d3787655b6644b9242d23cc32fd88, type: 3}
+--- !u!114 &1864903407024840146
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1279714591594173131}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 0
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
 --- !u!1 &2289010141866801329
 GameObject:
   m_ObjectHideFlags: 0
@@ -271,12 +289,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UI_CharacterSelectionComponent
   ListView: {fileID: 4231036299105021227}
   DetailView: {fileID: 4094682867943329831}
+  PanelAnimators:
+  - {fileID: 1864903407024840146}
+  - {fileID: 8652962836245287508}
+  - {fileID: 0}
+  - {fileID: 1118998936089107590}
+  - {fileID: 2823853656007055689}
+  - {fileID: 3115171388813159584}
   ActionButton: {fileID: 7749487441257734574}
   ActionButtonText: {fileID: 242349759389688987}
+  PurchaseFocusHighlight: {fileID: 0}
+  PurchaseFocusScale: 1.1
   PurchaseText: Purchase
   PurchaseColor: {r: 1, g: 0.70367473, b: 0.1273585, a: 1}
   ChooseText: Select
   ChooseColor: {r: 0.5575074, g: 1, b: 0.4669811, a: 1}
+  Columns: 1
   Database: {fileID: 11400000, guid: b18eb864ea520be4893624ac14c6c17b, type: 2}
   characterShopListView: {fileID: 4231036299105021227}
   characterShopDetailView: {fileID: 4094682867943329831}
@@ -503,6 +531,8 @@ GameObject:
   - component: {fileID: 2696189778014009912}
   - component: {fileID: 6842722067521246631}
   - component: {fileID: 4808295499358098080}
+  - component: {fileID: 711948925423126074}
+  - component: {fileID: 3115171388813159584}
   m_Layer: 3
   m_Name: Background ellipse
   m_TagString: Untagged
@@ -567,6 +597,32 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!225 &711948925423126074
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4242183646630992649}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
+--- !u!114 &3115171388813159584
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4242183646630992649}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 370f054cb7ad4f14cb09802150fcbe32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIFadePanel
+  _canvasGroup: {fileID: 0}
+  _durationOverride: -1
 --- !u!1 &5137915374324129395
 GameObject:
   m_ObjectHideFlags: 0
@@ -772,6 +828,8 @@ GameObject:
   - component: {fileID: 7175587203772402089}
   - component: {fileID: 4655011109629744189}
   - component: {fileID: 2008387729139091244}
+  - component: {fileID: 5620786330913497577}
+  - component: {fileID: 2823853656007055689}
   m_Layer: 3
   m_Name: Background color
   m_TagString: Untagged
@@ -836,6 +894,32 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!225 &5620786330913497577
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8287075065224100356}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
+--- !u!114 &2823853656007055689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8287075065224100356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 370f054cb7ad4f14cb09802150fcbe32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIFadePanel
+  _canvasGroup: {fileID: 0}
+  _durationOverride: -1
 --- !u!1 &8788450430878085858
 GameObject:
   m_ObjectHideFlags: 0
@@ -2138,13 +2222,34 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5807296619678415717, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3533372900461745484}
   m_SourcePrefab: {fileID: 100100000, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
 --- !u!224 &2152046777841925983 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 2559481691422181212, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
   m_PrefabInstance: {fileID: 4492481562673117187}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &7984646483303285606 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5807296619678415717, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
+  m_PrefabInstance: {fileID: 4492481562673117187}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3533372900461745484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7984646483303285606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec141149540bc8946810af6da9094449, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonHover
+  _hoverScaleOverride: -1
 --- !u!1001 &4526333772310867730
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2514,13 +2619,38 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6732832515594181049, guid: 94be98528ad9faa46a50727fe9b88cbc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8652962836245287508}
   m_SourcePrefab: {fileID: 100100000, guid: 94be98528ad9faa46a50727fe9b88cbc, type: 3}
 --- !u!224 &1033252965581928454 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4930209758089356810, guid: 94be98528ad9faa46a50727fe9b88cbc, type: 3}
   m_PrefabInstance: {fileID: 5349508616270749196}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1680570805664434101 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6732832515594181049, guid: 94be98528ad9faa46a50727fe9b88cbc, type: 3}
+  m_PrefabInstance: {fileID: 5349508616270749196}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8652962836245287508
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1680570805664434101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 1
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
 --- !u!1001 &6023677588437636802
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3380,13 +3510,38 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6746089366937887003, guid: eb05a6fed001469478e7f87333c38018, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1118998936089107590}
   m_SourcePrefab: {fileID: 100100000, guid: eb05a6fed001469478e7f87333c38018, type: 3}
 --- !u!224 &393576958783973064 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8669456141532528813, guid: eb05a6fed001469478e7f87333c38018, type: 3}
   m_PrefabInstance: {fileID: 9017996756016227941}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2357828796635645822 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6746089366937887003, guid: eb05a6fed001469478e7f87333c38018, type: 3}
+  m_PrefabInstance: {fileID: 9017996756016227941}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1118998936089107590
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2357828796635645822}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 2
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
 --- !u!1001 &9043393694341691622
 PrefabInstance:
   m_ObjectHideFlags: 0

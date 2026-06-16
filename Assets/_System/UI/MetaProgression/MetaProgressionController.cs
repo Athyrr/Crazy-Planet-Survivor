@@ -36,6 +36,11 @@ public class MetaProgressionController : MonoBehaviour
     [Header("Navigation")]
     [SerializeField] private GameObject _mainView;
 
+    [Header("Animation")]
+    [Tooltip("Panel entrance/exit animators (UISlidePanel / UIFadePanel) driven as a group on open " +
+             "and close — e.g. grid from left, detail from bottom, title from top, background fades.")]
+    [SerializeField] private MonoBehaviour[] _panelAnimators;
+
     private EntityManager _entityManager;
     private EntityQuery _gameStateQuery;
 
@@ -96,6 +101,9 @@ public class MetaProgressionController : MonoBehaviour
         if (_mainView != null)
             _mainView.SetActive(true);
 
+        // Animate the panels in (the panel is active here).
+        UIPanelGroup.Show(_panelAnimators);
+
         // Ensure the detail view is wired even on the very first open (Start may not have run yet).
         if (_detailView != null)
             _detailView.SetController(this);
@@ -133,6 +141,22 @@ public class MetaProgressionController : MonoBehaviour
 
         if (EventSystem.current != null)
             EventSystem.current.sendNavigationEvents = _prevSendNavEvents;
+    }
+
+    /// <summary>
+    /// Animated close used by the lobby state machine: slides the panel out, then deactivates the
+    /// controller GameObject (which fires OnDisable → input + EventSystem restore). Falls back to an
+    /// immediate deactivate when no slide animator is assigned. No-op if already inactive.
+    /// </summary>
+    public void CloseAnimated()
+    {
+        if (!gameObject.activeSelf)
+            return;
+
+        if (_detailView != null)
+            _detailView.SetPurchaseFocused(false);
+
+        UIPanelGroup.Hide(_panelAnimators, () => gameObject.SetActive(false));
     }
 
     /// <summary>
@@ -388,7 +412,9 @@ public class MetaProgressionController : MonoBehaviour
 
     public void BackToLobby()
     {
-        CloseView();
+        // Don't CloseView() here — that would instantly hide the panel and skip the slide-out.
+        // The lobby state machine runs CloseAnimated() on the state change (OnDisable then restores
+        // input / EventSystem routing at the end of the slide).
         GameManager.Instance.ChangeState(EGameState.Lobby);
     }
 

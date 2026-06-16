@@ -148,6 +148,8 @@ GameObject:
   - component: {fileID: 2632491525473855546}
   - component: {fileID: 8880979172241302182}
   - component: {fileID: 1446255131334201953}
+  - component: {fileID: 2862764089304026718}
+  - component: {fileID: 7395541306243213215}
   m_Layer: 3
   m_Name: Background Color
   m_TagString: Untagged
@@ -212,6 +214,32 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!225 &2862764089304026718
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 105284963087561885}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
+--- !u!114 &7395541306243213215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 105284963087561885}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 370f054cb7ad4f14cb09802150fcbe32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIFadePanel
+  _canvasGroup: {fileID: 0}
+  _durationOverride: -1
 --- !u!1 &742345769583321543
 GameObject:
   m_ObjectHideFlags: 0
@@ -260,6 +288,8 @@ GameObject:
   - component: {fileID: 1956004837629164328}
   - component: {fileID: 3337737490078926760}
   - component: {fileID: 1999545444727814680}
+  - component: {fileID: 8301638166931796779}
+  - component: {fileID: 4499949924842108627}
   m_Layer: 3
   m_Name: Background Shade
   m_TagString: Untagged
@@ -324,6 +354,32 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!225 &8301638166931796779
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1273755670234079627}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
+--- !u!114 &4499949924842108627
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1273755670234079627}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 370f054cb7ad4f14cb09802150fcbe32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIFadePanel
+  _canvasGroup: {fileID: 0}
+  _durationOverride: -1
 --- !u!1 &2869559649543104111
 GameObject:
   m_ObjectHideFlags: 0
@@ -461,6 +517,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9143920543044484455}
   - component: {fileID: 4818495806756645389}
+  - component: {fileID: 4616191610649553055}
   m_Layer: 3
   m_Name: Amulets List View
   m_TagString: Untagged
@@ -502,6 +559,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AmuletListView
   Container: {fileID: 9035966972400180776}
   ItemPrefab: {fileID: -1643921970564029181, guid: 73446ca89b24ce140a1d3bff368bea7c, type: 3}
+--- !u!114 &4616191610649553055
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2927482649292078055}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 0
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
 --- !u!1 &2964591988829294812
 GameObject:
   m_ObjectHideFlags: 0
@@ -649,7 +723,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5954370707132002855}
   - component: {fileID: 539311020082288490}
-  - component: {fileID: 1995742269789465780}
   m_Layer: 3
   m_Name: Statistics
   m_TagString: Untagged
@@ -687,36 +760,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3806536787196280495}
   m_CullTransparentMesh: 1
---- !u!114 &1995742269789465780
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3806536787196280495}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.02745098}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &6294315603242653261
 GameObject:
   m_ObjectHideFlags: 0
@@ -821,12 +864,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AmuletShopUIController
   ListView: {fileID: 4818495806756645389}
   DetailView: {fileID: 3360265049651993615}
+  PanelAnimators:
+  - {fileID: 4616191610649553055}
+  - {fileID: 342398969664399529}
+  - {fileID: 0}
+  - {fileID: 3499805063655829819}
+  - {fileID: 7395541306243213215}
+  - {fileID: 4499949924842108627}
   ActionButton: {fileID: 5574347654011536141}
   ActionButtonText: {fileID: 2705332686258800184}
+  PurchaseFocusHighlight: {fileID: 0}
+  PurchaseFocusScale: 1.1
   PurchaseText: Purchase
   PurchaseColor: {r: 0.6753464, g: 1, b: 0, a: 1}
   ChooseText: Select
   ChooseColor: {r: 1, g: 0.48584908, b: 0.48584908, a: 1}
+  Columns: 1
   Database: {fileID: 11400000, guid: f41156ceb7477ec4aa478f37886a20cf, type: 2}
 --- !u!1 &6630794177234909401
 GameObject:
@@ -1066,6 +1119,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AmuletDetailView
   AmuletPreviewContainer: {fileID: 5622612811508880822}
   DefaultAmulet: {fileID: 2352876710774900367, guid: 2386b38cbdac9b24cb6d6ed2e56e8f5c, type: 3}
+  LockedView: {fileID: 0}
   CostContainer: {fileID: 5471237426386004305}
   InfoContainer: {fileID: 6294315603242653261}
   CostItemPrefab: {fileID: 2633479180020865581, guid: d8880033ee705014ba86b9f3b6d20078, type: 3}
@@ -1492,8 +1546,33 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6732832515594181049, guid: 94be98528ad9faa46a50727fe9b88cbc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 342398969664399529}
   m_SourcePrefab: {fileID: 100100000, guid: 94be98528ad9faa46a50727fe9b88cbc, type: 3}
+--- !u!1 &5389055821679922370 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6732832515594181049, guid: 94be98528ad9faa46a50727fe9b88cbc, type: 3}
+  m_PrefabInstance: {fileID: 1704073937132672379}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &342398969664399529
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5389055821679922370}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 1
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
 --- !u!224 &6038633930412782449 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4930209758089356810, guid: 94be98528ad9faa46a50727fe9b88cbc, type: 3}
@@ -1798,13 +1877,38 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6746089366937887003, guid: eb05a6fed001469478e7f87333c38018, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3499805063655829819}
   m_SourcePrefab: {fileID: 100100000, guid: eb05a6fed001469478e7f87333c38018, type: 3}
 --- !u!224 &6248202454254835175 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8669456141532528813, guid: eb05a6fed001469478e7f87333c38018, type: 3}
   m_PrefabInstance: {fileID: 3379401122790069578}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &8320655277572109393 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6746089366937887003, guid: eb05a6fed001469478e7f87333c38018, type: 3}
+  m_PrefabInstance: {fileID: 3379401122790069578}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3499805063655829819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8320655277572109393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 2
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
 --- !u!1001 &3550311676595578661
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2128,13 +2232,34 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5807296619678415717, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4723933209968694382}
   m_SourcePrefab: {fileID: 100100000, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
 --- !u!224 &1647787647876079251 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 2559481691422181212, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
   m_PrefabInstance: {fileID: 3844672389312666063}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &7335427742780482218 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5807296619678415717, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
+  m_PrefabInstance: {fileID: 3844672389312666063}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4723933209968694382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7335427742780482218}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec141149540bc8946810af6da9094449, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonHover
+  _hoverScaleOverride: -1
 --- !u!1001 &4609449657887022724
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -23,6 +23,11 @@ public class CharacterShopUIController
 
     private EntityQuery _gameStateQuery;
 
+    // One-shot flag: set right before a purchase-triggered refresh so the detail view plays the
+    // delayed unlock reveal. Consumed (reset) in RefreshDetailView so plain selection switches
+    // don't animate.
+    private bool _animateNextUnlock;
+
     protected override EGameState ShopState => EGameState.CharacterSelection;
 
     protected override void Awake()
@@ -61,7 +66,11 @@ public class CharacterShopUIController
     protected override void RefreshDetailView(CharacterSO data, int index)
     {
         _isSelectedItemUnlocked = IsCharacterUnlocked(index);
-        DetailView.Refresh(data, _isSelectedItemUnlocked);
+
+        bool animateUnlock = _animateNextUnlock;
+        _animateNextUnlock = false;
+
+        DetailView.Refresh(data, _isSelectedItemUnlocked, animateUnlock);
         RefreshActionButton();
     }
 
@@ -92,8 +101,11 @@ public class CharacterShopUIController
         var entity = _gameStateQuery.GetSingletonEntity();
 
         // Skip if it is already the selected character (avoids a needless respawn).
-        if (_entityManager.HasComponent<SelectedCharacter>(entity) &&
-            _entityManager.GetComponentData<SelectedCharacter>(entity).DbIndex == _focusedItemIndex)
+        if (
+            _entityManager.HasComponent<SelectedCharacter>(entity)
+            && _entityManager.GetComponentData<SelectedCharacter>(entity).DbIndex
+                == _focusedItemIndex
+        )
             return;
 
         var requestEntity = _entityManager.CreateEntity();
@@ -173,10 +185,17 @@ public class CharacterShopUIController
         int purchasedIndex = _selectedItemIndex;
         RefreshListView();
 
-        // Focus the just-purchased character (force a refresh so the panel flips to its
-        // now-unlocked state and it becomes the staged choice).
+        // Focus the just-purchased character first (force a refresh so the panel flips to its
+        // now-unlocked state and it becomes the staged choice), and flag the detail view to play the
+        // delayed reveal on that refresh. This refresh calls DetailView.Clear(), which destroys every
+        // child of CharacterPreviewContainer — so the unlock VFX MUST be played AFTER it, otherwise the
+        // freshly-spawned VFX (parented to that container) is destroyed in the same frame and never
+        // shows. (This matches the amulet shop and the NFC path order.)
+        _animateNextUnlock = true;
         _focusedItemIndex = -1;
         FocusItem(purchasedIndex);
+
+        DetailView.PlayUnlockVfx();
     }
 
     private void SelectAndConfirm()
@@ -259,6 +278,7 @@ public class CharacterShopUIController
         unlockedBuffer.Add(new UnlockedCharacter { DbIndex = index });
 
         RefreshListView();
+        _animateNextUnlock = true;
         SelectItem(index);
         DetailView.PlayUnlockVfx();
     }

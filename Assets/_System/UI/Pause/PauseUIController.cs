@@ -35,6 +35,10 @@ public class PauseUIController : UIControllerBase, ISettingsControllerOwner
 
     private void OnEnable()
     {
+        // Slide the panel in from its off-screen edge (uses unscaled time so it plays while paused).
+        if (TryGetComponent<UISlidePanel>(out var slide))
+            slide.Show();
+
         EnsureButtons();
         WireButtons(true);
         EnableInput();

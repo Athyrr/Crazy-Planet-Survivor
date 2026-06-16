@@ -59,6 +59,10 @@ public class MainMenuController : UIControllerBase, ISettingsControllerOwner
         if (MenuButtonsRoot != null)
             MenuButtonsRoot.SetActive(true);
 
+        // Slide the menu buttons in from their off-screen edge.
+        if (MenuButtonsRoot != null && MenuButtonsRoot.TryGetComponent<UISlidePanel>(out var menuSlide))
+            menuSlide.Show();
+
         // Disable event system nav routing; we drive selection / submit ourselves.
         if (EventSystem.current != null)
         {

@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using PrimeTween;
 using TMPro;
 using UnityEngine;
 
@@ -9,21 +10,27 @@ using UnityEngine;
 /// </summary>
 public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
 {
-    [Header("Preview")] public Transform CharacterPreviewContainer;
+    [Header("Preview")]
+    public Transform CharacterPreviewContainer;
     public GameObject DefaultCharacter;
     public TMP_Text CharacterNameText;
 
     [Header("Overlapped Detail Containers")]
-    [Tooltip("Locked-state panel, toggled on when the character is locked. Assign the 'Locked View' object (the parent of the Cost Container), NOT the inner cost container.")]
+    [Tooltip(
+        "Locked-state panel, toggled on when the character is locked. Assign the 'Locked View' object (the parent of the Cost Container), NOT the inner cost container."
+    )]
     public GameObject LockedView;
 
-    [Tooltip("Container with the layout group where cost item widgets are spawned (inside Locked View).")]
+    [Tooltip(
+        "Container with the layout group where cost item widgets are spawned (inside Locked View)."
+    )]
     public GameObject CostContainer;
 
     [Tooltip("Unlocked-state panel, toggled on when the character is unlocked.")]
     public GameObject InfoContainer;
 
-    [Header("Cost Display (locked)")] public ResourceWidgetItem CostItemPrefab;
+    [Header("Cost Display (locked)")]
+    public ResourceWidgetItem CostItemPrefab;
     public ResourceDatabaseSO ResourceDatabase;
 
     [Header("Description Display (unlocked)")]
@@ -32,29 +39,55 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
     public Transform CharacterStatsContainer;
     public CharacterShopStatItemComponent CharacterShopStatItemPrefab;
 
-    [Header("Default Strings")] public string DefaultName = "???";
+    [Header("Default Strings")]
+    public string DefaultName = "???";
 
-    [Header("NFC Purchase VFX")] public GameObject UnlockVfxPrefab;
+    [Header("NFC Purchase VFX")]
+    public GameObject UnlockVfxPrefab;
     public Vector3 VfxLocalOffset = new Vector3(0f, 0f, 1.5f);
     public float VfxLifetime = 3f;
     public float SpawnDelay = 1.05f;
     public Vector3 AnimScale = new Vector3(1f, 1f, 1f);
+
+    // Tracked so the reveal survives a preview rebuild (Clear preserves it) and is cleaned up when the
+    // shop closes — mirroring the amulet shop, whose VFX is immune to refreshes because it's unparented.
+    private GameObject _unlockVfx;
+
+    // Delayed purchase reveal: shows the locked/base model first, then swaps in the real character
+    // after SpawnDelay so the swap lands in time with the unlock VFX.
+    private Tween _unlockRevealTween;
 
     public void PlayUnlockVfx()
     {
         if (UnlockVfxPrefab == null || CharacterPreviewContainer == null)
             return;
 
-        var vfx = Instantiate(UnlockVfxPrefab, CharacterPreviewContainer);
-        vfx.transform.localPosition = VfxLocalOffset;
-        vfx.transform.localRotation = Quaternion.identity;
-        vfx.transform.localScale = AnimScale;
-        SetLayerRecursive(vfx, CharacterPreviewContainer.gameObject.layer);
+        // Replace any still-playing previous reveal.
+        if (_unlockVfx != null)
+            Destroy(_unlockVfx);
 
-        vfx.GetComponent<ParticleSystem>().Play();
+        _unlockVfx = Instantiate(UnlockVfxPrefab, CharacterPreviewContainer);
+        _unlockVfx.transform.localPosition = VfxLocalOffset;
+        _unlockVfx.transform.localRotation = Quaternion.identity;
+        _unlockVfx.transform.localScale = AnimScale;
+        SetLayerRecursive(_unlockVfx, CharacterPreviewContainer.gameObject.layer);
+
+        _unlockVfx.GetComponent<ParticleSystem>().Play();
 
         if (VfxLifetime > 0f)
-            Destroy(vfx, VfxLifetime);
+            Destroy(_unlockVfx, VfxLifetime);
+    }
+
+    private void OnDisable()
+    {
+        if (_unlockRevealTween.isAlive)
+            _unlockRevealTween.Stop();
+
+        if (_unlockVfx != null)
+        {
+            Destroy(_unlockVfx);
+            _unlockVfx = null;
+        }
     }
 
     private static void SetLayerRecursive(GameObject go, int layer)
@@ -64,7 +97,13 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
             SetLayerRecursive(child.gameObject, layer);
     }
 
-    public void Refresh(CharacterSO data, bool isUnlocked)
+    /// <summary>
+    /// Refreshes the detail view. <paramref name="animateUnlock"/> should only be true when the
+    /// character was just purchased: it plays the delayed reveal (locked/base model shown first, then
+    /// the real character after <see cref="SpawnDelay"/>). On plain selection switches it must be false
+    /// so the character appears immediately with no base-model reshow.
+    /// </summary>
+    public void Refresh(CharacterSO data, bool isUnlocked, bool animateUnlock = false)
     {
         Clear();
 
@@ -77,7 +116,7 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
             return;
         }
 
-        ShowUnlocked(data);
+        ShowUnlocked(data, animateUnlock);
     }
 
     private void ShowLocked(CharacterSO data)
@@ -102,13 +141,50 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
         ShowCost(data.PurchaseCost);
     }
 
-    private void ShowUnlocked(CharacterSO data)
+    private void ShowUnlocked(CharacterSO data, bool animateUnlock)
     {
         // Preview
-        if (data.UIPrefab != null && CharacterPreviewContainer != null)
+        if (animateUnlock)
         {
-            var previewObj = Instantiate(data.UIPrefab, CharacterPreviewContainer);
-            previewObj.transform.position = CharacterPreviewContainer.position;
+            // Purchase reveal: show the locked/base model first, then swap in the real character
+            // after SpawnDelay (timed with the unlock VFX).
+            if (DefaultCharacter != null && CharacterPreviewContainer != null)
+            {
+                var baseObj = Instantiate(DefaultCharacter, CharacterPreviewContainer);
+                baseObj.transform.position = CharacterPreviewContainer.position;
+            }
+
+            _unlockRevealTween = Tween.Delay(
+                duration: SpawnDelay,
+                () =>
+                {
+                    if (CharacterPreviewContainer == null)
+                        return;
+
+                    // Destroy the base preview (keep the unlock VFX), then swap in the real character.
+                    foreach (Transform child in CharacterPreviewContainer)
+                    {
+                        if (_unlockVfx != null && child.gameObject == _unlockVfx)
+                            continue;
+                        Destroy(child.gameObject);
+                    }
+
+                    if (data.UIPrefab != null)
+                    {
+                        var previewObj = Instantiate(data.UIPrefab, CharacterPreviewContainer);
+                        previewObj.transform.position = CharacterPreviewContainer.position;
+                    }
+                }
+            );
+        }
+        else
+        {
+            // Plain selection switch: show the character immediately, no base-model reshow.
+            if (data.UIPrefab != null && CharacterPreviewContainer != null)
+            {
+                var previewObj = Instantiate(data.UIPrefab, CharacterPreviewContainer);
+                previewObj.transform.position = CharacterPreviewContainer.position;
+            }
         }
 
         if (CharacterNameText != null)
@@ -165,7 +241,13 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
                 continue;
 
             string formattedValue = StatsFormatUtils.FormatPanelStat(
-                rawValue, attr.Stat, attr.NeutralValue, attr.Absolute, attr.Suffix, attr.Decimals);
+                rawValue,
+                attr.Stat,
+                attr.NeutralValue,
+                attr.Absolute,
+                attr.Suffix,
+                attr.Decimals
+            );
             CreateStatRow(attr.DisplayName, formattedValue);
         }
     }
@@ -187,11 +269,19 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
 
     public void Clear()
     {
-        // Clear preview
+        // Cancel a pending delayed reveal swap so a refresh can't instantiate a stale duplicate later.
+        if (_unlockRevealTween.isAlive)
+            _unlockRevealTween.Stop();
+
+        // Clear preview (but keep an in-flight unlock VFX so a refresh doesn't cut the reveal short).
         if (CharacterPreviewContainer != null)
         {
             foreach (Transform child in CharacterPreviewContainer)
+            {
+                if (_unlockVfx != null && child.gameObject == _unlockVfx)
+                    continue;
                 Destroy(child.gameObject);
+            }
         }
 
         // Destroy cost items
