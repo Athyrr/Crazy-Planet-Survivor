@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: 4408138108673131992}
   - component: {fileID: 3558754938740066826}
   - component: {fileID: 6219782126673954414}
+  - component: {fileID: 8885050350460903718}
   m_Layer: 5
   m_Name: PF_UI_Widget_Spells
   m_TagString: Untagged
@@ -186,6 +187,25 @@ MonoBehaviour:
   spellWidgetItemPrefab: {fileID: -7363475890344373592, guid: 9fcf2d2479a5aa546bf30c0420a6c4a3, type: 3}
   AmuletContainer: {fileID: 5228870006770345012}
   AmuletIcon: {fileID: 7821367003471238377}
+--- !u!114 &8885050350460903718
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3766625042564900972}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 0
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
+  _playOnEnable: 1
+  _delayBeforePlay: -1
 --- !u!1 &3921497627409802570
 GameObject:
   m_ObjectHideFlags: 0
