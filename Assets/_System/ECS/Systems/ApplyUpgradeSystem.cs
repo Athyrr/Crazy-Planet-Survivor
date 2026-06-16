@@ -81,16 +81,17 @@ public partial struct ApplyUpgradeSystem : ISystem
             ActiveSpellLookup = _activeSpellsBufferLookup,
             SpellModifierLookup = _spellModifiersLookup
         };
-        var applyAmuletJobHandle = applyAmuletJob.ScheduleParallel(state.Dependency);
+        // Chained after the upgrade job: all three write CoreStats (RW) on the player, so they
+        // must run sequentially, not from the same input dependency.
+        var applyAmuletJobHandle = applyAmuletJob.ScheduleParallel(applyUpgradeJobHandle);
 
         var applyMetaJob = new ApplyMetaProgressionJob
         {
             ECB = ecbMeta.AsParallelWriter(),
         };
-        var applyMetaJobHandle = applyMetaJob.ScheduleParallel(state.Dependency);
+        var applyMetaJobHandle = applyMetaJob.ScheduleParallel(applyAmuletJobHandle);
 
-        state.Dependency =
-            JobHandle.CombineDependencies(applyUpgradeJobHandle, applyAmuletJobHandle, applyMetaJobHandle);
+        state.Dependency = applyMetaJobHandle;
     }
 
     [BurstCompile]
