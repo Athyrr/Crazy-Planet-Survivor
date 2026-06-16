@@ -10,30 +10,29 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1225be897357dc34c86a649774f464a9, type: 3}
-  m_Name: Boss_EarthGuardian
+  m_Name: Elite_Earth_1
   m_EditorClassIdentifier: Assembly-CSharp::BossSO
-  DisplayName: Earth Guardian
-  Icon: {fileID: 21300000, guid: 7c8026600ee9f974386901e672741be7, type: 3}
-  Kind: 1
+  DisplayName: "\xC9lite de la Terre"
+  Icon: {fileID: 0}
+  Kind: 0
   BaseStats:
-    MaxHealth: 20000
-    HealthRegen: 4
+    MaxHealth: 500
+    HealthRegen: 0
     BaseArmor: 0
     Armor: 0
-    BaseMoveSpeed: 3
+    BaseMoveSpeed: 4
     MoveSpeed: 0
     BasePickupRange: 0
     PickupRange: 0
-    Damage: 10
-    AttackSpeed: 0.1
-    SpellSize: 5
+    Damage: 0
+    AttackSpeed: 0
+    SpellSize: 0
     SpellSpeed: 0
     SpellDuration: 0
     CastRange: 0
-    Amount: 3
+    Amount: 0
     Pierce: 0
     Bounce: 0
     CritChance: 0
     CritDamage: 0
-  InitialSpells:
-  - {fileID: 11400000, guid: 9e39f75e475110447adf8ec004d90448, type: 2}
+  InitialSpells: []

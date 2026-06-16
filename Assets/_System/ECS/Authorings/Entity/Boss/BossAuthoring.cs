@@ -25,6 +25,8 @@ public class BossAuthoring : MonoBehaviour
 
             if (kind == EBossKind.FinalBoss)
                 AddComponent<FinalBossTag>(entity);
+            else if (kind == EBossKind.Elite)
+                AddComponent<EliteTag>(entity);
 
             AddComponentObject(entity, new BossPresentation
             {

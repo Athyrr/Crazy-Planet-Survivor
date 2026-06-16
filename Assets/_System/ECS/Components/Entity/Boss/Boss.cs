@@ -10,11 +10,11 @@ public struct Boss : IComponentData
 
 /// <summary>
 /// Distinguishes a planet's final boss (defeating it ends the run in victory, shown in the 2D HUD)
-/// from in-run mini-bosses (do not end the run, displayed with a world-space bar later).
+/// from in-run elites (do not end the run, displayed with a world-space bar later).
 /// </summary>
 public enum EBossKind
 {
-    MiniBoss,
+    Elite,
     FinalBoss
 }
 
@@ -22,5 +22,13 @@ public enum EBossKind
 /// Tag added only to a <see cref="EBossKind.FinalBoss"/>.
 /// </summary>
 public struct FinalBossTag : IComponentData
+{
+}
+
+/// <summary>
+/// Tag added only to an <see cref="EBossKind.Elite"/> (in-run mini-boss shown with a world-space health bar).
+/// Unlike <see cref="FinalBossTag"/>, defeating an elite does not end the run.
+/// </summary>
+public struct EliteTag : IComponentData
 {
 }
