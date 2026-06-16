@@ -138,7 +138,13 @@ public struct SpawnGroup : IBufferElementData
     public float MaxRange;
 
     /// <summary>
-    /// Delay in seconds between each individual enemy spawned in this group. 
+    /// Delay in seconds between each individual enemy spawned in this group.
     /// </summary>
     public float SpawnDelay;
+
+    /// <summary>
+    /// Uniform scale applied to spawned entities. 0 means "use the default" (1).
+    /// Used to spawn larger entities such as bosses without shrinking them to 1.
+    /// </summary>
+    public float Scale;
 }

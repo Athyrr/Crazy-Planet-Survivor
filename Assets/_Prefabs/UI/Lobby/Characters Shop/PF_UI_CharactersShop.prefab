@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1337417427780986317}
+  - component: {fileID: 8277471624966588237}
   m_Layer: 3
   m_Name: Stats
   m_TagString: Untagged
@@ -35,9 +36,26 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.00021362305}
+  m_AnchoredPosition: {x: 0, y: 0.00024414062}
   m_SizeDelta: {x: 600, y: 0.0012817}
   m_Pivot: {x: 1, y: 0.5}
+--- !u!114 &8277471624966588237
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 911207706808106784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 1337417427780986317}
+  _slideFrom: 1
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
 --- !u!1 &944784356084540258
 GameObject:
   m_ObjectHideFlags: 0
@@ -113,7 +131,7 @@ MonoBehaviour:
   VfxLocalOffset: {x: 0, y: -0.9, z: 0}
   VfxLifetime: 5
   SpawnDelay: 1.06
-  AnimScale: {x: 1, y: 1, z: 1}
+  AnimScale: {x: 2, y: 2, z: 2}
 --- !u!1 &1279714591594173131
 GameObject:
   m_ObjectHideFlags: 0
@@ -202,6 +220,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7991506150362225953}
+  - component: {fileID: 8255022679572648484}
   m_Layer: 3
   m_Name: Preview
   m_TagString: Untagged
@@ -231,6 +250,23 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 635, y: 0}
   m_Pivot: {x: 0, y: 0.5}
+--- !u!114 &8255022679572648484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2289010141866801329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 7991506150362225953}
+  _slideFrom: 3
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
 --- !u!1 &2541109229880968110
 GameObject:
   m_ObjectHideFlags: 0
@@ -292,10 +328,11 @@ MonoBehaviour:
   PanelAnimators:
   - {fileID: 1864903407024840146}
   - {fileID: 8652962836245287508}
-  - {fileID: 0}
   - {fileID: 1118998936089107590}
   - {fileID: 2823853656007055689}
   - {fileID: 3115171388813159584}
+  - {fileID: 8255022679572648484}
+  - {fileID: 8277471624966588237}
   ActionButton: {fileID: 7749487441257734574}
   ActionButtonText: {fileID: 242349759389688987}
   PurchaseFocusHighlight: {fileID: 0}
@@ -732,7 +769,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -24.99997}
+  m_AnchoredPosition: {x: 0, y: -24.999878}
   m_SizeDelta: {x: 0, y: -50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &6569990215406228593
@@ -2647,7 +2684,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
   _panel: {fileID: 0}
-  _slideFrom: 1
+  _slideFrom: 2
   _offScreenPadding: 100
   _offScreenOffsetOverride: {x: 0, y: 0}
   _durationOverride: -1
