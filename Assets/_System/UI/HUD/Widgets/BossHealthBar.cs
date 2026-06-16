@@ -1,23 +1,17 @@
-using TMPro;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
-using UnityEngine.UI;
 
 /// <summary>
-/// Drives the 2D boss health bar at the top of the run HUD.
-/// it gets the ECS world for the active final boss and updates visual.
+/// Drives the 2D boss health bar at the top of the run HUD. Reads the active final boss from ECS and
+/// feeds the shared <see cref="BaseHealthBar"/> view (damage trail + name + numeric label).
 /// The bar shows itself only while a <see cref="FinalBossTag"/> entity is alive.
 /// </summary>
-public class BossHealthHUDWidget : MonoBehaviour
+public class BossHealthBar : BaseHealthBar
 {
-    [Header("UI References")]
+    [Header("Boss bar")]
     [Tooltip("Visual root toggled on/off based on whether a final boss is alive. Should be a child object, not this one.")]
     public GameObject BarRoot;
-
-    public Slider HealthSlider;
-    public TMP_Text NameText;
-    public TMP_Text HealthText;
 
     private EntityManager _entityManager;
     private EntityQuery _bossQuery;
@@ -43,7 +37,7 @@ public class BossHealthHUDWidget : MonoBehaviour
         SetVisible(false);
     }
 
-    private void Update()
+    protected override void Update()
     {
         if (!_initialized)
             return;
@@ -67,26 +61,23 @@ public class BossHealthHUDWidget : MonoBehaviour
 
         int maxHealth = Mathf.Max(1, Mathf.FloorToInt(stats.MaxHealth));
         int current = Mathf.Clamp(health.Value, 0, maxHealth);
+        float ratio = (float)current / maxHealth;
 
         if (!_isShown)
         {
             SetVisible(true);
 
-            if (NameText != null)
-            {
-                var presentation = _entityManager.GetComponentObject<BossPresentation>(bossEntity);
-                NameText.text = presentation != null ? presentation.DisplayName : string.Empty;
-            }
+            var presentation = _entityManager.GetComponentObject<BossPresentation>(bossEntity);
+            SetName(presentation != null ? presentation.DisplayName : string.Empty);
+            ResetTo(ratio); // snap on first appearance, no trail from full
         }
-
-        if (HealthSlider != null)
+        else
         {
-            HealthSlider.maxValue = maxHealth;
-            HealthSlider.value = current;
+            SetHealth(ratio);
         }
 
-        if (HealthText != null)
-            HealthText.text = $"{current} / {maxHealth}";
+        SetValue(current, maxHealth);
+        base.Update(); // animate the damage trail
     }
 
     private void SetVisible(bool visible)
