@@ -57,15 +57,8 @@ public partial struct RunProgressionSystem : ISystem
             state.EntityManager.DestroyEntity(_killedEventsQuery);
         }
 
-        if (SystemAPI.TryGetSingleton<EndRunRequest>(out var _))
-            return;
-
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-
         var runProgressionJob = new RunProgressionJob
         {
-            ECB = ecb.AsParallelWriter(),
             DeltaTime = SystemAPI.Time.DeltaTime,
             RunDuration = planetData.RunDuration
         };
@@ -75,21 +68,18 @@ public partial struct RunProgressionSystem : ISystem
     [BurstCompile]
     private partial struct RunProgressionJob : IJobEntity
     {
-        public EntityCommandBuffer.ParallelWriter ECB;
-
         public float DeltaTime;
         public float RunDuration;
 
         public void Execute(ref RunProgression run)
         {
             run.Timer += DeltaTime;
-            run.ProgressRatio = run.Timer / RunDuration;
 
-            if (run.ProgressRatio >= 1)
+            if (RunDuration > 0f)
             {
-                run.ProgressRatio = 1;
-                var endRunReqEntity = ECB.CreateEntity(0);
-                ECB.AddComponent(0, endRunReqEntity, new EndRunRequest { State = EEndRunState.Timeout });
+                run.ProgressRatio = run.Timer / RunDuration;
+                if (run.ProgressRatio > 1f)
+                    run.ProgressRatio = 1f;
             }
         }
     }

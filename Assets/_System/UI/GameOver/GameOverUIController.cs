@@ -5,9 +5,17 @@ using TMPro;
 
 public class GameOverUIController : UIControllerBase
 {
-    [Header("Game Over View")]
+    [Header("Game Over Fields")]
     public GameObject GameOverView;
     public TMP_Text GameOverText;
+    
+    [Header("Game Over Text")]
+    public string VictoryText;
+    public Color VictoryColor;
+    public string DefeatText;
+    public Color DefeatColor;
+    
+    [Header("Game Over Animation")]
     public float FadeInDuration = 2f;
     public float DisplayDuration = 1f;
 
@@ -47,13 +55,13 @@ public class GameOverUIController : UIControllerBase
         switch (state)
         {
             case EEndRunState.Success:
-                GameOverText.text = "YOUPI";
+                GameOverText.text = VictoryText;
                 GameOverText.color = Color.yellow;
                 KeepPersistantRessources(resources);
                 break;
 
             case EEndRunState.Death:
-                GameOverText.text = "YOU DIED (nulos)";
+                GameOverText.text = DefeatText;
                 GameOverText.color = Color.red;
                 KeepPersistantRessources(resources); // todo remove here
                 break;
