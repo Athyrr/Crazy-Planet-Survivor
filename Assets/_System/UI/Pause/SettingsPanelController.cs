@@ -17,26 +17,38 @@ using UnityEngine.UI;
 /// </summary>
 public class SettingsPanelController : UIControllerBase
 {
-    private enum Row { Master, Music, Sfx, Back }
+    private enum Row
+    {
+        Master,
+        Music,
+        Sfx,
+        Back,
+    }
 
     [Header("Rows (top to bottom)")]
-    [Tooltip("Focusable Button of each row. May live on the row object itself or on a child label " +
-             "(e.g. a layout-group row split into a Label + Value + Slider).")]
+    [Tooltip(
+        "Focusable Button of each row. May live on the row object itself or on a child label "
+            + "(e.g. a layout-group row split into a Label + Value + Slider)."
+    )]
     public Button MasterRow;
     public Button MusicRow;
     public Button SfxRow;
     public Button BackRow;
 
     [Header("Volume sliders")]
-    [Tooltip("Slider (min 0, max 1) that edits each volume row. Drag works for mouse/touch; the " +
-             "controller moves it with Left/Right while the row is in edit mode.")]
+    [Tooltip(
+        "Slider (min 0, max 1) that edits each volume row. Drag works for mouse/touch; the "
+            + "controller moves it with Left/Right while the row is in edit mode."
+    )]
     public Slider MasterSlider;
     public Slider MusicSlider;
     public Slider SfxSlider;
 
     [Header("Volume value labels (optional)")]
-    [Tooltip("TMP showing the percentage for each volume row. Bolds while its row is being edited; " +
-             "its color is never changed.")]
+    [Tooltip(
+        "TMP showing the percentage for each volume row. Bolds while its row is being edited; "
+            + "its color is never changed."
+    )]
     public TMP_Text MasterValue;
     public TMP_Text MusicValue;
     public TMP_Text SfxValue;
@@ -172,7 +184,12 @@ public class SettingsPanelController : UIControllerBase
     private void WireSlider(Slider slider, Row row, bool wire)
     {
         if (slider == null)
+        {
+            Debug.LogWarning(
+                $"A Slider has been defined for Row {row} but none are set in the Settings Panel Component"
+            );
             return;
+        }
 
         slider.onValueChanged.RemoveAllListeners();
         if (wire)
@@ -213,21 +230,28 @@ public class SettingsPanelController : UIControllerBase
             EnterEdit(index);
     }
 
-    private static float ReadVolume(Row row) => row switch
-    {
-        Row.Master => GameSettings.MasterVolume,
-        Row.Music => GameSettings.MusicVolume,
-        Row.Sfx => GameSettings.SfxVolume,
-        _ => 0f,
-    };
+    private static float ReadVolume(Row row) =>
+        row switch
+        {
+            Row.Master => GameSettings.MasterVolume,
+            Row.Music => GameSettings.MusicVolume,
+            Row.Sfx => GameSettings.SfxVolume,
+            _ => 0f,
+        };
 
     private static void WriteVolume(Row row, float value)
     {
         switch (row)
         {
-            case Row.Master: GameSettings.MasterVolume = value; break;
-            case Row.Music: GameSettings.MusicVolume = value; break;
-            case Row.Sfx: GameSettings.SfxVolume = value; break;
+            case Row.Master:
+                GameSettings.MasterVolume = value;
+                break;
+            case Row.Music:
+                GameSettings.MusicVolume = value;
+                break;
+            case Row.Sfx:
+                GameSettings.SfxVolume = value;
+                break;
         }
     }
 
@@ -244,13 +268,14 @@ public class SettingsPanelController : UIControllerBase
             SetText(ButtonFor(row), $"{RowName(row)}   {percent}%");
     }
 
-    private static string RowName(Row row) => row switch
-    {
-        Row.Master => "Master",
-        Row.Music => "Music",
-        Row.Sfx => "SFX",
-        _ => string.Empty,
-    };
+    private static string RowName(Row row) =>
+        row switch
+        {
+            Row.Master => "Master",
+            Row.Music => "Music",
+            Row.Sfx => "SFX",
+            _ => string.Empty,
+        };
 
     private static void SetText(Button row, string text)
     {
@@ -262,30 +287,33 @@ public class SettingsPanelController : UIControllerBase
             tmp.text = text;
     }
 
-    private Button ButtonFor(Row row) => row switch
-    {
-        Row.Master => MasterRow,
-        Row.Music => MusicRow,
-        Row.Sfx => SfxRow,
-        Row.Back => BackRow,
-        _ => null,
-    };
+    private Button ButtonFor(Row row) =>
+        row switch
+        {
+            Row.Master => MasterRow,
+            Row.Music => MusicRow,
+            Row.Sfx => SfxRow,
+            Row.Back => BackRow,
+            _ => null,
+        };
 
-    private Slider SliderFor(Row row) => row switch
-    {
-        Row.Master => MasterSlider,
-        Row.Music => MusicSlider,
-        Row.Sfx => SfxSlider,
-        _ => null,
-    };
+    private Slider SliderFor(Row row) =>
+        row switch
+        {
+            Row.Master => MasterSlider,
+            Row.Music => MusicSlider,
+            Row.Sfx => SfxSlider,
+            _ => null,
+        };
 
-    private TMP_Text ValueFor(Row row) => row switch
-    {
-        Row.Master => MasterValue,
-        Row.Music => MusicValue,
-        Row.Sfx => SfxValue,
-        _ => null,
-    };
+    private TMP_Text ValueFor(Row row) =>
+        row switch
+        {
+            Row.Master => MasterValue,
+            Row.Music => MusicValue,
+            Row.Sfx => SfxValue,
+            _ => null,
+        };
 
     // Input
 
@@ -322,11 +350,23 @@ public class SettingsPanelController : UIControllerBase
         switch (_nav.Evaluate(ctx.ReadValue<Vector2>()))
         {
             // Vertical: leave edit mode (if any) and move between rows.
-            case NavDirection.Up: ExitEdit(); StepFocus(-1); break;
-            case NavDirection.Down: ExitEdit(); StepFocus(1); break;
+            case NavDirection.Up:
+                ExitEdit();
+                StepFocus(-1);
+                break;
+            case NavDirection.Down:
+                ExitEdit();
+                StepFocus(1);
+                break;
             // Horizontal only edits while a volume row is selected for editing.
-            case NavDirection.Left: if (_editingIndex >= 0) AdjustVolume((Row)_editingIndex, -1); break;
-            case NavDirection.Right: if (_editingIndex >= 0) AdjustVolume((Row)_editingIndex, 1); break;
+            case NavDirection.Left:
+                if (_editingIndex >= 0)
+                    AdjustVolume((Row)_editingIndex, -1);
+                break;
+            case NavDirection.Right:
+                if (_editingIndex >= 0)
+                    AdjustVolume((Row)_editingIndex, 1);
+                break;
         }
     }
 
