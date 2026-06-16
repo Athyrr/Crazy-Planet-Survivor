@@ -409,7 +409,9 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     float2 perfectCircleAround =
                         new float2(math.cos(angleAround), math.sin(angleAround)) * radiusAround;
 
-                    float3 upAround = math.normalize(SpawnOrigin - PlanetCenter);
+                    // AroundPlayer centers the spawn ring on the player (not the group origin).
+                    float3 centerAround = PlayerTransform.Position;
+                    float3 upAround = math.normalize(centerAround - PlanetCenter);
                     float3 tangentAround = math.cross(upAround, new float3(0, 1, 0));
                     if (math.lengthsq(tangentAround) < 0.001f)
                         tangentAround = math.cross(upAround, new float3(1, 0, 0));
@@ -417,7 +419,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     quaternion alignmentRotAround = quaternion.LookRotationSafe(tangentAround, upAround);
                     float3 localOffsetAround = new float3(perfectCircleAround.x, 0f, perfectCircleAround.y);
                     float3 worldOffsetAround = math.rotate(alignmentRotAround, localOffsetAround);
-                    float3 roughPosAround = SpawnOrigin + worldOffsetAround;
+                    float3 roughPosAround = centerAround + worldOffsetAround;
 
                     if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, roughPosAround, PlanetCenter, groundFilter,
                             100f, out var hitAround))
