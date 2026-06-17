@@ -6,8 +6,12 @@ using Unity.Jobs;
 
 /// <summary>
 /// ECS System that handles upgrade selection on each level up.
-/// It gets the ref of the player upgrade database and calculates 3 upgrades to give to a buffer of SelectedUpgradeElement.
-/// Choosing an upgrade is managed by UpgradeSelectionComponent (Monobehavior)
+/// It reads the player's upgrade pools and writes up to 3 candidate upgrades to the
+/// <see cref="UpgradeSelectionBufferElement"/> buffer on the GameState entity.
+/// Stat upgrades are drawn with a per-card rarity roll weighted by base weights and the
+/// player's Luck (see <c>CpRaritySettings</c> / <see cref="RaritySettings"/>); spell upgrades
+/// are drawn uniformly. The "spell levels" cadence is configurable in the rarity settings.
+/// Choosing an upgrade is handled by the UI (UpgradeSelectionView).
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -19,6 +23,7 @@ public partial struct UpgradeSelectionSystem : ISystem
         state.RequireForUpdate<GameState>();
         state.RequireForUpdate<SpellsDatabase>();
         state.RequireForUpdate<UpgradesDatabase>();
+        state.RequireForUpdate<RaritySettings>();
         state.RequireForUpdate<PlayerLevelUpRequest>();
 
         state.RequireForUpdate<StatsUpgradePoolBufferElement>();
@@ -37,6 +42,7 @@ public partial struct UpgradeSelectionSystem : ISystem
 
         var upgradesDatabase = SystemAPI.GetSingleton<UpgradesDatabase>();
         var spellsDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
+        var raritySettings = SystemAPI.GetSingleton<RaritySettings>();
         var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
 
         var selectUpgradeJob = new SelectUpgradeJob()
@@ -49,8 +55,10 @@ public partial struct UpgradeSelectionSystem : ISystem
 
             UpgradesDatabaseRef = upgradesDatabase.Blobs,
             SpellsDatabaseRef = spellsDatabase.Blobs,
+            RaritySettingsRef = raritySettings.Blob,
 
             PlayerExperienceLookup = SystemAPI.GetComponentLookup<PlayerExperience>(true),
+            CoreStatsLookup = SystemAPI.GetComponentLookup<CoreStats>(true),
             ActiveSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(true),
             StatsUpgradePoolBufferLookup = SystemAPI.GetBufferLookup<StatsUpgradePoolBufferElement>(true),
             SpellsUpgradePoolBufferLookup = SystemAPI.GetBufferLookup<SpellsUpgradePoolBufferElement>(true)
@@ -59,7 +67,6 @@ public partial struct UpgradeSelectionSystem : ISystem
         state.Dependency = selectUpgradeJob.Schedule(state.Dependency);
     }
 
-    //@todo Burst and remove log
     [BurstCompile]
     private struct SelectUpgradeJob : IJob
     {
@@ -71,13 +78,15 @@ public partial struct UpgradeSelectionSystem : ISystem
 
         [ReadOnly] public BlobAssetReference<UpgradeBlobs> UpgradesDatabaseRef;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
+        [ReadOnly] public BlobAssetReference<RaritySettingsBlob> RaritySettingsRef;
 
         [ReadOnly] public ComponentLookup<PlayerExperience> PlayerExperienceLookup;
+        [ReadOnly] public ComponentLookup<CoreStats> CoreStatsLookup;
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [ReadOnly] public BufferLookup<StatsUpgradePoolBufferElement> StatsUpgradePoolBufferLookup;
         [ReadOnly] public BufferLookup<SpellsUpgradePoolBufferElement> SpellsUpgradePoolBufferLookup;
 
-        // todo rework upgrade selection -> Allow new spell behavior even below %4 lvls
+        // todo rework upgrade selection -> Allow new spell behavior even below the spell interval
         public void Execute()
         {
             var random = Random.CreateFromIndex(Seed);
@@ -85,59 +94,188 @@ public partial struct UpgradeSelectionSystem : ISystem
             if (!PlayerExperienceLookup.TryGetComponent(PlayerEntity, out var experience))
                 return;
 
-            // Drop spell upgrades every 4 levels
-            bool mustDropSpell = (experience.Level % 4) == 0;
+            ref var rarity = ref RaritySettingsRef.Value;
 
-            var candidates = new NativeList<int>(Allocator.Temp);
-
-            if (mustDropSpell)
-            {
-                SetSpellCandidates(ref candidates);
-
-                if (candidates.Length <= 0)
-                    mustDropSpell = false;
-            }
-            else
-            {
-                SetStatCandidates(ref candidates);
-            }
+            // Drop spell upgrades every Nth level (configurable in the rarity settings).
+            int interval = math.max(1, rarity.SpellDropLevelInterval);
+            bool mustDropSpell = (experience.Level % interval) == 0;
 
             // Clear previous selection
             ECB.SetBuffer<UpgradeSelectionBufferElement>(GameStateEntity);
 
-            // Pick 3 upgrades from candidates
-            int countToPick = math.min(3, candidates.Length);
-
-            for (int i = 0; i < countToPick; i++)
+            if (mustDropSpell)
             {
-                // Pick random index from candidates
-                int indexInList = random.NextInt(0, candidates.Length);
-                int globalDbIndex = candidates[indexInList];
+                var spellCandidates = new NativeList<int>(Allocator.Temp);
+                SetSpellCandidates(ref spellCandidates);
 
-                ECB.AppendToBuffer(GameStateEntity, new UpgradeSelectionBufferElement()
-                {
-                    DatabaseIndex = globalDbIndex
-                });
+                if (spellCandidates.Length > 0)
+                    PickUniform(ref random, ref spellCandidates);
+                else
+                    PickStats(ref random); // no spell available -> fall back to stats
 
-                // Avoid picking same upgrade again
-                candidates.RemoveAtSwapBack(indexInList);
+                spellCandidates.Dispose();
+            }
+            else
+            {
+                PickStats(ref random);
             }
 
-            // Add display upgrades flag 
+            // Add display upgrades flag
             ECB.AddComponent<OpenUpgradesSelectionViewRequest>(GameStateEntity);
             // Remove player lvl up request
             ECB.RemoveComponent<PlayerLevelUpRequest>(PlayerEntity);
-
-            candidates.Dispose();
         }
 
-        private void SetStatCandidates(ref NativeList<int> candidates)
+        /// <summary>Picks up to 3 stat upgrades, each card rolling its own (Luck-weighted) rarity.</summary>
+        private void PickStats(ref Random random)
         {
             if (!StatsUpgradePoolBufferLookup.TryGetBuffer(PlayerEntity, out var statsUpgradePool))
                 return;
 
+            ref var upgrades = ref UpgradesDatabaseRef.Value.Upgrades;
+            ref var rarity = ref RaritySettingsRef.Value;
+
+            // Parallel lists: global db index + its rarity tier.
+            var indices = new NativeList<int>(Allocator.Temp);
+            var tiers = new NativeList<int>(Allocator.Temp);
             for (int i = 0; i < statsUpgradePool.Length; i++)
-                candidates.Add(statsUpgradePool[i].DatabaseIndex);
+            {
+                int idx = statsUpgradePool[i].DatabaseIndex;
+                indices.Add(idx);
+                tiers.Add((int)upgrades[idx].Rarity);
+            }
+
+            // Luck → rare-weight multiplier for this draw.
+            float luck = CoreStatsLookup.TryGetComponent(PlayerEntity, out var stats) ? stats.Luck : 0f;
+            float luck01 = rarity.MaxLuck > 0f ? math.saturate(luck / rarity.MaxLuck) : 0f;
+            float luckFactor = SampleLuckFactor(ref rarity.LuckSamples, luck01);
+
+            // Per-tier weight = baseWeight * pow(luckFactor, tierIndex).
+            var tierWeights = new NativeArray<float>(RarityConstants.Count, Allocator.Temp);
+            for (int t = 0; t < RarityConstants.Count; t++)
+            {
+                float baseW = t < rarity.BaseWeights.Length ? rarity.BaseWeights[t] : 0f;
+                tierWeights[t] = baseW * math.pow(luckFactor, t);
+            }
+
+            int countToPick = math.min(3, indices.Length);
+            for (int pick = 0; pick < countToPick; pick++)
+            {
+                int chosenInList = RollCandidate(ref random, ref indices, ref tiers, tierWeights);
+                if (chosenInList < 0)
+                    break;
+
+                ECB.AppendToBuffer(GameStateEntity, new UpgradeSelectionBufferElement
+                {
+                    DatabaseIndex = indices[chosenInList]
+                });
+
+                // Avoid offering the same upgrade twice.
+                indices.RemoveAtSwapBack(chosenInList);
+                tiers.RemoveAtSwapBack(chosenInList);
+            }
+
+            tierWeights.Dispose();
+            indices.Dispose();
+            tiers.Dispose();
+        }
+
+        /// <summary>
+        /// Rolls a rarity tier among the tiers still present in the pool (weighted), then returns
+        /// a random list position holding a candidate of that tier. Returns -1 if the pool is empty.
+        /// </summary>
+        private int RollCandidate(ref Random random, ref NativeList<int> indices, ref NativeList<int> tiers,
+            NativeArray<float> tierWeights)
+        {
+            if (indices.Length == 0)
+                return -1;
+
+            // Sum the weights of tiers that still have at least one candidate.
+            float weightSum = 0f;
+            for (int t = 0; t < RarityConstants.Count; t++)
+            {
+                if (TierIsPresent(ref tiers, t))
+                    weightSum += tierWeights[t];
+            }
+
+            int chosenTier = -1;
+            if (weightSum > 0f)
+            {
+                float roll = random.NextFloat(0f, weightSum);
+                float acc = 0f;
+                for (int t = 0; t < RarityConstants.Count; t++)
+                {
+                    if (!TierIsPresent(ref tiers, t))
+                        continue;
+                    acc += tierWeights[t];
+                    if (roll <= acc)
+                    {
+                        chosenTier = t;
+                        break;
+                    }
+                }
+            }
+
+            // Fallback (all weights zero): pick any remaining candidate uniformly.
+            if (chosenTier < 0)
+                return random.NextInt(0, indices.Length);
+
+            // Count candidates of the chosen tier, then pick the k-th one.
+            int tierCount = 0;
+            for (int i = 0; i < tiers.Length; i++)
+                if (tiers[i] == chosenTier)
+                    tierCount++;
+
+            int target = random.NextInt(0, tierCount);
+            int seen = 0;
+            for (int i = 0; i < tiers.Length; i++)
+            {
+                if (tiers[i] != chosenTier)
+                    continue;
+                if (seen == target)
+                    return i;
+                seen++;
+            }
+
+            return -1;
+        }
+
+        private static bool TierIsPresent(ref NativeList<int> tiers, int tier)
+        {
+            for (int i = 0; i < tiers.Length; i++)
+                if (tiers[i] == tier)
+                    return true;
+            return false;
+        }
+
+        private static float SampleLuckFactor(ref BlobArray<float> samples, float luck01)
+        {
+            int n = samples.Length;
+            if (n == 0)
+                return 1f;
+            if (n == 1)
+                return samples[0];
+
+            float x = math.saturate(luck01) * (n - 1);
+            int i0 = (int)math.floor(x);
+            int i1 = math.min(i0 + 1, n - 1);
+            float f = x - i0;
+            return math.lerp(samples[i0], samples[i1], f);
+        }
+
+        /// <summary>Picks up to 3 candidates uniformly (used for spell draws — no rarity).</summary>
+        private void PickUniform(ref Random random, ref NativeList<int> candidates)
+        {
+            int countToPick = math.min(3, candidates.Length);
+            for (int i = 0; i < countToPick; i++)
+            {
+                int indexInList = random.NextInt(0, candidates.Length);
+                ECB.AppendToBuffer(GameStateEntity, new UpgradeSelectionBufferElement
+                {
+                    DatabaseIndex = candidates[indexInList]
+                });
+                candidates.RemoveAtSwapBack(indexInList);
+            }
         }
 
         private void SetSpellCandidates(ref NativeList<int> candidates)
@@ -180,13 +318,12 @@ public partial struct UpgradeSelectionSystem : ISystem
                         if (upgradeData.SpellTags != ESpellTag.None)
                         {
                             if (SpellHasTag(upgradeData.SpellID, upgradeData.SpellTags, activeSpells, ref spellBlobs))
-                                // if (HasSpellWithTag(upgradeData.SpellTags, activeSpells, ref spellBlobs))
                             {
                                 isValid = false;
                             }
                         }
                     }
-                    // Target tag 
+                    // Target tag
                     else if (upgradeData.SpellTags != ESpellTag.None)
                     {
                         if (HasAnySpellWithTag(upgradeData.SpellTags, activeSpells, ref spellBlobs))
@@ -202,10 +339,6 @@ public partial struct UpgradeSelectionSystem : ISystem
         /// <summary>
         /// Check if the player has the given spell
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="activeSpells"></param>
-        /// <param name="spellBlobs"></param>
-        /// <returns></returns>
         private bool HasSpell(ESpellID id, DynamicBuffer<ActiveSpell> activeSpells, ref BlobArray<SpellBlob> spellBlobs)
         {
             if (activeSpells.IsEmpty)
@@ -224,11 +357,6 @@ public partial struct UpgradeSelectionSystem : ISystem
         /// <summary>
         /// Check if a spell has a given tag.
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="tag"></param>
-        /// <param name="activeSpells"></param>
-        /// <param name="spellBlobs"></param>
-        /// <returns></returns>
         private bool SpellHasTag(ESpellID id, ESpellTag tag, DynamicBuffer<ActiveSpell> activeSpells,
             ref BlobArray<SpellBlob> spellBlobs)
         {
@@ -248,10 +376,6 @@ public partial struct UpgradeSelectionSystem : ISystem
         /// <summary>
         /// Check if the player has at least one spell with a given tag
         /// </summary>
-        /// <param name="tag">The tag to check.</param>
-        /// <param name="activeSpells"></param>
-        /// <param name="spellBlobs"></param>
-        /// <returns></returns>
         private bool HasAnySpellWithTag(ESpellTag tag, DynamicBuffer<ActiveSpell> activeSpells,
             ref BlobArray<SpellBlob> spellBlobs)
         {

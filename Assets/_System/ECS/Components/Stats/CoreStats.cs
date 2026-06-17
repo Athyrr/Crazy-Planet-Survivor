@@ -85,4 +85,9 @@ public struct CoreStats : IComponentData
     [Tooltip("Bonus critical damage (0 = normal, 0.5 = +50%).")]
     [UIStat("Crit Damage", ECharacterStat.CritDamage)]
     public float CritDamage;
+
+    [Header("Luck")]
+    [Tooltip("Increases the chance of drawing rarer stat upgrades on level up (see CpRaritySettings luck curve).")]
+    [UIStat("Luck", ECharacterStat.Luck, absolute: true)]
+    public float Luck;
 }

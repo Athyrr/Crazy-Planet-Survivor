@@ -104,6 +104,8 @@ public class PlayerAuthoring : MonoBehaviour
 
                 CritChance = baseStats.CritChance,
                 CritDamage = baseStats.CritDamage,
+
+                Luck = baseStats.Luck,
             });
 
             AddComponent<FinalStats>(entity);

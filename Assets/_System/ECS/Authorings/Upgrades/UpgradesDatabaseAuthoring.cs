@@ -37,22 +37,43 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
 
                 blob.UpgradeType = upgradeSO.UpgradeType;
 
-                // Stat Player
+                // Stat Player (rarity + one or more bonus/malus modifiers)
                 if (upgradeSO is StatUpgradeSO statUpgrade)
                 {
-                    blob.CharacterStat = statUpgrade.CharacterStat;
+                    blob.Rarity = statUpgrade.Rarity;
+
+                    var modifiers = statUpgrade.Modifiers;
+                    int modCount = modifiers != null ? modifiers.Length : 0;
+                    BlobBuilderArray<StatModifierBlob> modArray =
+                        builder.Allocate(ref blob.StatModifiers, modCount);
+
+                    for (int m = 0; m < modCount; m++)
+                    {
+                        modArray[m] = new StatModifierBlob
+                        {
+                            CharacterStat = modifiers[m].CharacterStat,
+                            Strategy = modifiers[m].Strategy,
+                            Value = modifiers[m].Value,
+                        };
+                    }
                 }
-                // Spell Upgrade Logic (unlock or effect upgrade)
+                // Spell Upgrade Logic (unlock or effect upgrade) — not subject to rarity
                 else if (upgradeSO is SpellUpgradeSO spellUpgrade)
                 {
+                    builder.Allocate(ref blob.StatModifiers, 0);
+
                     blob.SpellID = spellUpgrade.SpellID;
                     blob.SpellTags = spellUpgrade.RequiredTags;
                     blob.SpellStat = spellUpgrade.SpellStat;
-                }
 
-                // Value
-                blob.ModifierStrategy = upgradeSO.ModifierStrategy;
-                blob.Value = upgradeSO.Value;
+                    // Spell upgrades keep a single value/strategy.
+                    blob.ModifierStrategy = upgradeSO.ModifierStrategy;
+                    blob.Value = upgradeSO.Value;
+                }
+                else
+                {
+                    builder.Allocate(ref blob.StatModifiers, 0);
+                }
             }
 
             var upgradesDatabaseBlob = builder.CreateBlobAssetReference<UpgradeBlobs>(Allocator.Persistent);

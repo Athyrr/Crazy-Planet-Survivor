@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5095105504584821569}
   - component: {fileID: 3030510812226180595}
+  - component: {fileID: 7697456266785676959}
   m_Layer: 0
   m_Name: PF_UpgradesDatabase
   m_TagString: Untagged
@@ -45,3 +46,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UpgradesDatabaseAuthoring
   GlobalConfig: {fileID: 11400000, guid: 11d9aba4c35447747a33674086e46662, type: 2}
+--- !u!114 &7697456266785676959
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1767094172191639394}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6effa68017f4cde4791ae330dc2db4d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RaritySettingsAuthoring
+  Settings: {fileID: 11400000, guid: f941ae0d8ad1e834fab438a44e7317d8, type: 2}
