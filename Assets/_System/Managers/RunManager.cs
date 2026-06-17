@@ -122,8 +122,11 @@ public class RunManager : MonoBehaviour
                 true
             );
 
-            GameManager.Instance.ChangeState(EGameState.UpgradeSelection);
+            // Stash the selection first, then change state. The state change drives the panel transition
+            // (outgoing panel animates out, THEN the upgrade panel is activated); ShowPanelForState spawns
+            // the cards once the panel is active — see ShowPanelForState / UpgradeSelectionController.ShowSelection.
             UpgradeSelectionController.DisplaySelection(buffer);
+            GameManager.Instance.ChangeState(EGameState.UpgradeSelection);
 
             _entityManager.RemoveComponent<OpenUpgradesSelectionViewRequest>(gameStateEntity);
         }
@@ -201,6 +204,7 @@ public class RunManager : MonoBehaviour
                 break;
             case EGameState.UpgradeSelection:
                 UpgradeSelectionController.gameObject.SetActive(true);
+                UpgradeSelectionController.ShowSelection();
                 break;
             case EGameState.GameOver:
                 //GameOverUIController.gameObject.SetActive(true);
