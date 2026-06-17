@@ -116,15 +116,6 @@ public partial struct EnemiesSpawnerSystem : ISystem
             {
                 StartWave(ref spawnerState, waves, spawnerState.CurrentWaveIndex + 1);
             }
-            else
-            {
-                //state.IsWaveActive = false;
-                var endRunRequestEntity = ecb.CreateEntity();
-                ecb.AddComponent(endRunRequestEntity, new EndRunRequest
-                {
-                    State = EEndRunState.Success
-                });
-            }
         }
     }
 
@@ -245,6 +236,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
             StartIndex = group.Amount - count,
             Mode = group.Mode,
             WaveIndex = waveIndex,
+            // Scale = group.Scale, // issue ? @todo
 
             PlanetCenter = planetTransform.Position,
             PlanetRadius = planetData.Radius,
@@ -274,6 +266,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
         public int StartIndex;
         public SpawnMode Mode;
         public int WaveIndex;
+        public float Scale;
 
         // Planet Data
         public float3 PlanetCenter;
@@ -452,11 +445,12 @@ public partial struct EnemiesSpawnerSystem : ISystem
             float3 finalPosition =
                 spawnPosition + (tangentDirection * spawnOffset) + (surfaceNormal * 0.5f);
 
-            // Set Transform 
+            // Set Transform
+            float spawnScale = Scale > 0f ? Scale : 1f;
             ECB.SetComponent(index, entity, new LocalTransform
             {
                 Position = finalPosition,
-                Scale = 1f,
+                Scale = spawnScale,
                 Rotation = quaternion.LookRotationSafe(tangentDirection, surfaceNormal)
             });
 
