@@ -25,7 +25,7 @@ public partial struct AreaAttackSystem : ISystem
 {
     private ComponentLookup<Destructible> _destructibleLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
-    private ComponentLookup<LocalTransform> _transformLookup;
+    private ComponentLookup<LocalToWorld> _ltwTransformLookup;
     private ComponentLookup<ActiveKnockback> _knockbackLookup;
     private ComponentLookup<SlowEffect> _slowLookup;
     private ComponentLookup<StunEffect> _stunLookup;
@@ -42,7 +42,7 @@ public partial struct AreaAttackSystem : ISystem
 
         _destructibleLookup = state.GetComponentLookup<Destructible>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
-        _transformLookup = state.GetComponentLookup<LocalTransform>(true);
+        _ltwTransformLookup = state.GetComponentLookup<LocalToWorld>(true);
         _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(true);
         _slowLookup = state.GetComponentLookup<SlowEffect>(true);
         _stunLookup = state.GetComponentLookup<StunEffect>(true);
@@ -68,7 +68,7 @@ public partial struct AreaAttackSystem : ISystem
 
         _destructibleLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
-        _transformLookup.Update(ref state);
+        _ltwTransformLookup.Update(ref state);
         _knockbackLookup.Update(ref state);
         _slowLookup.Update(ref state);
         _stunLookup.Update(ref state);
@@ -83,7 +83,7 @@ public partial struct AreaAttackSystem : ISystem
             EffectsConfig = effectsConfig,
             DestructibleLookup = _destructibleLookup,
             DamageBufferLookup = _damageBufferLookup,
-            TransformLookup = _transformLookup,
+            LtwTransformLookup = _ltwTransformLookup,
             KnockbackLookup = _knockbackLookup,
             SlowLookup = _slowLookup,
             StunLookup = _stunLookup,
@@ -104,7 +104,7 @@ public partial struct AreaAttackSystem : ISystem
 
         [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
-        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
+        [ReadOnly] public ComponentLookup<LocalToWorld> LtwTransformLookup;
         [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
         [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
@@ -187,7 +187,7 @@ public partial struct AreaAttackSystem : ISystem
 
                 if ((areaAttack.Tags & ESpellTag.Knockback) != 0)
                 {
-                    float3 targetPos = TransformLookup[hitEntity].Position;
+                    float3 targetPos = LtwTransformLookup[hitEntity].Position;
                     float3 pushDir = targetPos - PlayerPosition;
                     float distSq = math.lengthsq(pushDir);
 

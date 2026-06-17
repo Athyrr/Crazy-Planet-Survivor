@@ -4,8 +4,7 @@ using UnityEngine.Serialization;
 
 public class RunManager : MonoBehaviour
 {
-    [Header("UI Managers")] 
-    public HUDController HUDController;
+    [Header("UI Managers")] public HUDController HUDController;
     public UpgradeSelectionUIController UpgradeSelectionController;
     public GameOverUIController GameOverUIController;
 
@@ -130,6 +129,9 @@ public class RunManager : MonoBehaviour
             case EGameState.Running:
                 GameManager.Instance.ChangeState(EGameState.Paused);
                 break;
+            // case EGameState.Lobby:
+            //     GameManager.Instance.ChangeState(EGameState.Paused);
+            //     break;
             case EGameState.Paused:
                 GameManager.Instance.ChangeState(EGameState.Running);
                 break;

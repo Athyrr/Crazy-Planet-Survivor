@@ -13,12 +13,14 @@ public enum ESpellID : byte
     ShockStrike = 6,
     DraconicVomit = 7,
     LightningTornado = 8,
-    PoisonFloor= 9,
-    FireOrbs= 10,
-    PoisonNeedle= 11,
+    PoisonFloor = 9,
+    FireOrbs = 10,
+    PoisonNeedle = 11,
 
     // Enemy Spells
     Enemy_Projectile = 12,
+    Boss_ImpaleFire = 15,
+    Boss_VortexFire = 16,
 
     VoidSlash = 13,
     VoidPulse = 14

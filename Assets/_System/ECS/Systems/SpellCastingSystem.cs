@@ -14,6 +14,7 @@ public partial struct SpellCastingSystem : ISystem
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
+    private ComponentLookup<LocalToWorld> _localToWorldLookup;
 
     private BufferLookup<ActiveSpell> _activeSpellLookup;
 
@@ -53,6 +54,7 @@ public partial struct SpellCastingSystem : ISystem
         _playerLookup = SystemAPI.GetComponentLookup<Player>(true);
         _enemyLookup = SystemAPI.GetComponentLookup<Enemy>(true);
         _transformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true);
+        _localToWorldLookup = SystemAPI.GetComponentLookup<LocalToWorld>(true);
         _activeSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(true);
         _lifetimeLookup = SystemAPI.GetComponentLookup<Lifetime>(true);
         _colliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true);
@@ -82,6 +84,7 @@ public partial struct SpellCastingSystem : ISystem
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
         _transformLookup.Update(ref state);
+        _localToWorldLookup.Update(ref state);
         _activeSpellLookup.Update(ref state);
 
         _lifetimeLookup.Update(ref state);
@@ -109,10 +112,21 @@ public partial struct SpellCastingSystem : ISystem
         var mainSpellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
         var childSpellPrefabs = SystemAPI.GetSingletonBuffer<ChildSpellPrefab>(true);
 
+        // Resolve the player once so enemy NearestTarget spells can target it directly.
+        Entity playerEntity = Entity.Null;
+        float3 playerPosition = float3.zero;
+        if (SystemAPI.TryGetSingletonEntity<Player>(out var playerSingleton))
+        {
+            playerEntity = playerSingleton;
+            playerPosition = SystemAPI.GetComponent<LocalToWorld>(playerSingleton).Position;
+        }
+
         var castJob = new CastSpellJob
         {
             ECB = ecb.AsParallelWriter(),
             Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
+            PlayerEntity = playerEntity,
+            PlayerPosition = playerPosition,
             CollisionWorld = physicsWorldSingleton.CollisionWorld,
             SpellDatabaseRef = spellDatabase.Blobs,
             MainSpellPrefabs = mainSpellPrefabs,
@@ -121,6 +135,7 @@ public partial struct SpellCastingSystem : ISystem
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
             TransformLookup = _transformLookup,
+            LocalToWorldLookup = _localToWorldLookup,
             ActiveSpellLookup = _activeSpellLookup,
 
             LifetimeLookup = _lifetimeLookup,
@@ -149,6 +164,8 @@ public partial struct SpellCastingSystem : ISystem
     {
         public EntityCommandBuffer.ParallelWriter ECB;
         public uint Seed;
+        public Entity PlayerEntity;
+        public float3 PlayerPosition;
 
         [ReadOnly] public CollisionWorld CollisionWorld;
         [ReadOnly] public DynamicBuffer<SpellPrefab> MainSpellPrefabs;
@@ -158,6 +175,7 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
+        [ReadOnly] public ComponentLookup<LocalToWorld> LocalToWorldLookup;
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
 
         [ReadOnly] public ComponentLookup<Lifetime> LifetimeLookup;
@@ -280,29 +298,46 @@ public partial struct SpellCastingSystem : ISystem
                     break;
 
                 case ESpellTargetingMode.NearestTarget:
-                    PointDistanceInput input = new PointDistanceInput
+                    if (!isPlayerCaster)
                     {
-                        Position = casterTransform.Position,
-                        MaxDistance = finalRange,
-                        Filter = new CollisionFilter
+                        // Enemy spells target the player directly. A physics query on the Player
+                        // layer also matches the planet collider (mis-categorized onto that layer,
+                        // sitting at the world origin), so resolve the player explicitly instead.
+                        if (PlayerEntity == Entity.Null)
                         {
-                            BelongsTo = CollisionLayers.Raycast,
-                            CollidesWith = isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player,
+                            ECB.DestroyEntity(chunkIndex, requestEntity);
+                            return;
                         }
-                    };
-                    if (CollisionWorld.CalculateDistance(input, out DistanceHit hit))
-                    {
-                        targetEntity = hit.Entity;
-                        targetPosition = TransformLookup.HasComponent(hit.Entity)
-                            ? TransformLookup[hit.Entity].Position
-                            : hit.Position;
+                        targetEntity = PlayerEntity;
+                        targetPosition = PlayerPosition;
                         targetFound = true;
                     }
                     else
                     {
-                        // Fallback 
-                        ECB.DestroyEntity(chunkIndex, requestEntity);
-                        return;
+                        PointDistanceInput input = new PointDistanceInput
+                        {
+                            Position = casterTransform.Position,
+                            MaxDistance = finalRange,
+                            Filter = new CollisionFilter
+                            {
+                                BelongsTo = CollisionLayers.Raycast,
+                                CollidesWith = CollisionLayers.Enemy,
+                            }
+                        };
+                        if (CollisionWorld.CalculateDistance(input, out DistanceHit hit))
+                        {
+                            targetEntity = hit.Entity;
+                            targetPosition = LocalToWorldLookup.HasComponent(hit.Entity)
+                                ? LocalToWorldLookup[hit.Entity].Position
+                                : hit.Position;
+                            targetFound = true;
+                        }
+                        else
+                        {
+                            // Fallback
+                            ECB.DestroyEntity(chunkIndex, requestEntity);
+                            return;
+                        }
                     }
 
                     break;
