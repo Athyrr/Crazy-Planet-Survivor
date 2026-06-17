@@ -134,6 +134,10 @@ public partial struct UpgradeSelectionSystem : ISystem
 
             ref var upgrades = ref UpgradesDatabaseRef.Value.Upgrades;
             ref var rarity = ref RaritySettingsRef.Value;
+            ref var spellBlobs = ref SpellsDatabaseRef.Value.Spells;
+
+            // Player's equipped spells, used to gate behaviour-specific stat upgrades (Bounce, Pierce...).
+            bool hasSpells = ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var activeSpells);
 
             // Parallel lists: global db index + its rarity tier.
             var indices = new NativeList<int>(Allocator.Temp);
@@ -141,6 +145,13 @@ public partial struct UpgradeSelectionSystem : ISystem
             for (int i = 0; i < statsUpgradePool.Length; i++)
             {
                 int idx = statsUpgradePool[i].DatabaseIndex;
+
+                // Skip upgrades that require an equipped spell with a given tag (e.g. Bounce needs a Bouncing spell).
+                ESpellTag requiredTag = upgrades[idx].RequiredSpellTag;
+                if (requiredTag != ESpellTag.None &&
+                    (!hasSpells || !HasAnySpellWithTag(requiredTag, activeSpells, ref spellBlobs)))
+                    continue;
+
                 indices.Add(idx);
                 tiers.Add((int)upgrades[idx].Rarity);
             }

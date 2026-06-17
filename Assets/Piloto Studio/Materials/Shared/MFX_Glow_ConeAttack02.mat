@@ -44,6 +44,8 @@ Material:
   - MOTIONVECTORS
   - TransparentDepthPrepass
   - TransparentDepthPostpass
+  - DepthOnly
+  - SHADOWCASTER
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -161,11 +163,13 @@ Material:
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 2
     - _DstBlend: 10
+    - _DstBlendAlpha: 10
     - _DstMode: 3
     - _EmissionEnabled: 0
     - _EmissiveMultiply: 3
     - _EnableBlendModePreserveSpecularLighting: 0
     - _EnableFogOnTransparent: 0
+    - _EnableVertexColorNoiseOpacity: 0
     - _ExcludeFromTUAndAA: 0
     - _FRESNEL: 0
     - _FlipbookMode: 0
@@ -187,7 +191,7 @@ Material:
     - _OpacityMultiply: 1
     - _OpaqueCullMode: 2
     - _Parallax: 0.02
-    - _QueueControl: -1
+    - _QueueControl: 1
     - _QueueOffset: 0
     - _ReceivesSSR: 1
     - _ReceivesSSRTransparent: 0
@@ -200,7 +204,8 @@ Material:
     - _SoftParticlesNearFadeDistance: 0
     - _SourceBlendRGB: 10
     - _SpecularHighlights: 1
-    - _SrcBlend: 1
+    - _SrcBlend: 5
+    - _SrcBlendAlpha: 1
     - _SrcMode: 1
     - _StencilRef: 0
     - _StencilRefDepth: 1
@@ -234,6 +239,7 @@ Material:
     - _UseShadowThreshold: 0
     - _UseSoftAlpha: 1
     - _UseUVOffset: 0
+    - _VertexColorNoiseOpacity: 0
     - _ZTest: 4
     - _ZTestDepthEqualForOpaque: 4
     - _ZTestGBuffer: 4

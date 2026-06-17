@@ -71,6 +71,15 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Unity Packages (downloadable) - ignore everything except manifest and lock
+/Packages/*
+!/Packages/manifest.json
+!/Packages/packages-lock.json
+
+# Visual Studio configuration
+.vsconfig
+
 .idea
 .claude
 

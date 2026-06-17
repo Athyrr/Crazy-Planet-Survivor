@@ -33,6 +33,12 @@ public class StatUpgradeSO : UpgradeSO
     [Tooltip("One or more stat modifications applied together when this upgrade is picked.")]
     public StatModifier[] Modifiers = new StatModifier[0];
 
+    [Header("Requirements")]
+    [Tooltip("If set, this upgrade can only be offered when the player has at least one equipped spell " +
+             "carrying this tag . E.g. a 'Bounce' stat upgrade requires a Bouncing spell.\n" +
+             "None = no requirement.")]
+    public ESpellTag RequiredSpellTag = ESpellTag.None;
+
     // Legacy single-stat data (pre multi-modifier). Captured for the migration menu only.
     [HideInInspector] [SerializeField] [FormerlySerializedAs("CharacterStat")]
     private ECharacterStat _legacyCharacterStat = ECharacterStat.None;
