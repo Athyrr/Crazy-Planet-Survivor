@@ -1,4 +1,6 @@
 using System;
+using System.Text;
+using _System.Settings;
 using UnityEngine;
 using TMPro;
 using UnityEngine.EventSystems;
@@ -26,8 +28,16 @@ public class UpgradeViewItem : MonoBehaviour,
     public TextMeshPro StatValueText;
     public TextMeshPro UpgradeTypeText;
 
+    [Header("Rarity / Crystal")]
+    [Tooltip("Renderer of the upgrade crystal. Its material + density vary with rarity (or the spell material).")]
+    public MeshRenderer CrystalRenderer;
+    [Tooltip("Rarity label (e.g. RARE). Hidden / set to SPELL for spell cards.")]
+    public TextMeshPro RarityText;
+
     [Header("Floating")] public float FloatingSpeed;
     public float FloatingAmplitude;
+
+    private MaterialPropertyBlock _crystalPropertyBlock;
 
     private bool _isHovered;
     private int _dbIndex;
@@ -52,6 +62,42 @@ public class UpgradeViewItem : MonoBehaviour,
         RefreshUpgradeType(ref upgradeData);
         RefreshStatsDetails(ref upgradeData);
         RefreshColors(ref upgradeData);
+        RefreshCrystalAndRarity(ref upgradeData);
+    }
+
+    /// <summary>
+    /// Applies the rarity crystal material + density (or the dedicated spell material) and the
+    /// rarity label/color, all driven by <see cref="CpRaritySettings"/>.
+    /// </summary>
+    private void RefreshCrystalAndRarity(ref UpgradeBlob data)
+    {
+        bool isStat = data.UpgradeType == EUpgradeType.PlayerStat;
+
+        Material crystalMaterial = isStat
+            ? CpRaritySettings.GetCrystalMaterial(data.Rarity)
+            : CpRaritySettings.SpellCrystalMaterial;
+        float crystalDensity = isStat
+            ? CpRaritySettings.GetCrystalDensity(data.Rarity)
+            : CpRaritySettings.SpellCrystalDensity;
+
+        if (CrystalRenderer != null)
+        {
+            if (crystalMaterial != null)
+                CrystalRenderer.sharedMaterial = crystalMaterial;
+
+            _crystalPropertyBlock ??= new MaterialPropertyBlock();
+            CrystalRenderer.GetPropertyBlock(_crystalPropertyBlock);
+            // The density only affects rendering when its toggle is enabled.
+            _crystalPropertyBlock.SetFloat(CpRaritySettings.CrystalDensityEnableShaderProperty, 1f);
+            _crystalPropertyBlock.SetFloat(CpRaritySettings.CrystalDensityShaderProperty, crystalDensity);
+            CrystalRenderer.SetPropertyBlock(_crystalPropertyBlock);
+        }
+
+        if (RarityText != null)
+        {
+            RarityText.text = isStat ? CpRaritySettings.GetLabel(data.Rarity) : CpRaritySettings.SpellLabel;
+            RarityText.color = isStat ? CpRaritySettings.GetTextColor(data.Rarity) : CpRaritySettings.SpellTextColor;
+        }
     }
 
     private void RefreshUpgradeType(ref UpgradeBlob data)
@@ -81,11 +127,13 @@ public class UpgradeViewItem : MonoBehaviour,
         switch (data.UpgradeType)
         {
             case EUpgradeType.PlayerStat:
+                BuildModifierLines(ref data, out string labels, out string values);
+
                 if (StatLabelText)
-                    StatLabelText.text = StatsFormatUtils.Humanize(data.CharacterStat.ToString());
+                    StatLabelText.text = labels;
 
                 if (StatValueText)
-                    StatValueText.text = StatsFormatUtils.FormatModifier(data.CharacterStat, data.Value);
+                    StatValueText.text = values;
 
                 break;
 
@@ -108,6 +156,36 @@ public class UpgradeViewItem : MonoBehaviour,
 
                 break;
         }
+    }
+
+    /// <summary>Builds the label/value text (one line per modifier) for a multi-modifier stat upgrade.</summary>
+    private static void BuildModifierLines(ref UpgradeBlob data, out string labels, out string values)
+    {
+        ref var modifiers = ref data.StatModifiers;
+        if (modifiers.Length == 0)
+        {
+            labels = string.Empty;
+            values = string.Empty;
+            return;
+        }
+
+        var labelBuilder = new StringBuilder();
+        var valueBuilder = new StringBuilder();
+        for (int i = 0; i < modifiers.Length; i++)
+        {
+            if (i > 0)
+            {
+                labelBuilder.Append('\n');
+                valueBuilder.Append('\n');
+            }
+
+            ref var mod = ref modifiers[i];
+            labelBuilder.Append(StatsFormatUtils.Humanize(mod.CharacterStat.ToString()));
+            valueBuilder.Append(StatsFormatUtils.FormatModifier(mod.CharacterStat, mod.Value));
+        }
+
+        labels = labelBuilder.ToString();
+        values = valueBuilder.ToString();
     }
 
     private void RefreshColors(ref UpgradeBlob upgradeData)

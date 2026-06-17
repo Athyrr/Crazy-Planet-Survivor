@@ -34,4 +34,7 @@ public enum ECharacterStat
     SpellDuration = 28,
     CastRange = 29,
     Amount = 30,
+
+    /// <summary>Increases the chance of drawing rarer stat upgrades on level up.</summary>
+    Luck = 31,
 }

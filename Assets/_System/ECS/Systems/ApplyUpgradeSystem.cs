@@ -116,11 +116,19 @@ public partial struct ApplyUpgradeSystem : ISystem
             bool needSpellUpdate = false;
 
             // todo check for keeping StatModifer Buffer
-            // PLAYER GLOBAL STAT UPGRADE: STAT (Modif Directly)
-            if (upgrade.UpgradeType == EUpgradeType.PlayerStat && upgrade.CharacterStat != ECharacterStat.None)
+            // PLAYER GLOBAL STAT UPGRADE: applies every bundled bonus/malus modifier.
+            if (upgrade.UpgradeType == EUpgradeType.PlayerStat)
             {
-                ApplyPlayerStatUpgrade(ref playerCoreStats, ref health, upgrade.CharacterStat, upgrade.Value,
-                    ref needSpellUpdate);
+                ref var statModifiers = ref upgrade.StatModifiers;
+                for (int m = 0; m < statModifiers.Length; m++)
+                {
+                    ref var mod = ref statModifiers[m];
+                    if (mod.CharacterStat == ECharacterStat.None)
+                        continue;
+
+                    ApplyPlayerStatUpgrade(ref playerCoreStats, ref health, mod.CharacterStat, mod.Value,
+                        ref needSpellUpdate);
+                }
             }
 
             // SPECIFIC SPELL UPGRADE: STAT OR NEW TAG (Modify ActiveSpell Buffer)
@@ -377,6 +385,9 @@ public partial struct ApplyUpgradeSystem : ISystem
                 break;
             case ECharacterStat.HealthRegen:
                 playerCoreStats.HealthRegen += value;
+                break;
+            case ECharacterStat.Luck:
+                playerCoreStats.Luck += value;
                 break;
 
             // case ECharacterStat.BurnDamage:

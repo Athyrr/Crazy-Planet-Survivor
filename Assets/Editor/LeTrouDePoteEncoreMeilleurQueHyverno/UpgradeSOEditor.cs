@@ -18,12 +18,19 @@ public class UpgradeSOEditor : UnityEditor.Editor
             enterChildren = false;
             if (prop.name == "m_Script") continue;
 
-            // Stat upgrades are always PlayerStat: the type field is redundant, hide it.
-            if (isStatUpgrade && prop.name == "UpgradeType") continue;
+            if (isStatUpgrade)
+            {
+                // Stat upgrades are always PlayerStat and now use the Modifiers list:
+                // the type + base single-value fields are redundant, hide them.
+                if (prop.name == "UpgradeType") continue;
+                if (prop.name == "ModifierStrategy") continue;
+                if (prop.name == "Value") continue;
+            }
 
             EditorGUILayout.PropertyField(prop, true);
 
-            if (prop.name == "Value")
+            // Help box is only relevant for the single-value (spell) upgrades.
+            if (!isStatUpgrade && prop.name == "Value")
             {
                 ShowHelpBox();
             }
@@ -37,7 +44,7 @@ public class UpgradeSOEditor : UnityEditor.Editor
         UpgradeSO upgrade = (UpgradeSO)target;
         string helpText = "";
         MessageType messageType = MessageType.Info;
-        
+
         switch (upgrade.ModifierStrategy)
         {
             case EModiferStrategy.Flat:
@@ -75,5 +82,55 @@ public class UpgradeSOEditor : UnityEditor.Editor
             EditorGUILayout.HelpBox(helpText, messageType);
             EditorGUILayout.Space(5);
         }
+    }
+}
+
+/// <summary>
+/// One-time migration from the legacy single-stat <see cref="StatUpgradeSO"/> format
+/// (CharacterStat + base Value/ModifierStrategy) to the multi-modifier <c>Modifiers[]</c> list.
+/// </summary>
+public static class StatUpgradeMigration
+{
+    [MenuItem("Survivor/Upgrades/Migrate Stat Upgrades to Modifiers")]
+    public static void MigrateAll()
+    {
+        string[] guids = AssetDatabase.FindAssets("t:StatUpgradeSO");
+        int migrated = 0;
+
+        foreach (string guid in guids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            var so = AssetDatabase.LoadAssetAtPath<StatUpgradeSO>(path);
+            if (so == null)
+                continue;
+
+            // Only migrate assets that still hold legacy data and have no modifiers yet.
+            bool hasModifiers = so.Modifiers != null && so.Modifiers.Length > 0;
+            bool hasLegacy = so.LegacyCharacterStat != ECharacterStat.None;
+            if (hasModifiers || !hasLegacy)
+                continue;
+
+            Undo.RecordObject(so, "Migrate Stat Upgrade");
+            so.Modifiers = new[]
+            {
+                new StatModifier
+                {
+                    CharacterStat = so.LegacyCharacterStat,
+                    Strategy = so.ModifierStrategy,
+                    Value = so.Value,
+                }
+            };
+            so.ClearLegacyStat();
+            so.Value = 0f;
+
+            EditorUtility.SetDirty(so);
+            migrated++;
+        }
+
+        if (migrated > 0)
+            AssetDatabase.SaveAssets();
+
+        Debug.Log($"[StatUpgradeMigration] Migrated {migrated} stat upgrade(s) to the Modifiers format " +
+                  $"out of {guids.Length} found.");
     }
 }
