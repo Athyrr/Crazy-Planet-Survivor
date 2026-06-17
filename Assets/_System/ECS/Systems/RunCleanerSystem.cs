@@ -24,13 +24,15 @@ public partial struct RunCleanerSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        // Destroy run scoped entities
+        // Destroy run scoped entities.
         var entities = _runScopeEntitiesQuery.ToEntityArray(Allocator.Temp);
         state.EntityManager.DestroyEntity(entities);
         entities.Dispose();
 
-        // Destroy Player
-        state.EntityManager.DestroyEntity(_playerQuery);
+        // Destroy Player (array overload for the same LinkedEntityGroup reason).
+        var players = _playerQuery.ToEntityArray(Allocator.Temp);
+        state.EntityManager.DestroyEntity(players);
+        players.Dispose();
 
         var requestEntity = SystemAPI.GetSingletonEntity<ClearRunRequest>();
         state.EntityManager.DestroyEntity(requestEntity);

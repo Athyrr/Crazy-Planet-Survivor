@@ -116,15 +116,6 @@ public partial struct EnemiesSpawnerSystem : ISystem
             {
                 StartWave(ref spawnerState, waves, spawnerState.CurrentWaveIndex + 1);
             }
-            else
-            {
-                //state.IsWaveActive = false;
-                var endRunRequestEntity = ecb.CreateEntity();
-                ecb.AddComponent(endRunRequestEntity, new EndRunRequest
-                {
-                    State = EEndRunState.Success
-                });
-            }
         }
     }
 
@@ -245,6 +236,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
             StartIndex = group.Amount - count,
             Mode = group.Mode,
             WaveIndex = waveIndex,
+            // Scale = group.Scale, // issue ? @todo
 
             PlanetCenter = planetTransform.Position,
             PlanetRadius = planetData.Radius,
@@ -274,6 +266,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
         public int StartIndex;
         public SpawnMode Mode;
         public int WaveIndex;
+        public float Scale;
 
         // Planet Data
         public float3 PlanetCenter;
@@ -416,7 +409,9 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     float2 perfectCircleAround =
                         new float2(math.cos(angleAround), math.sin(angleAround)) * radiusAround;
 
-                    float3 upAround = math.normalize(SpawnOrigin - PlanetCenter);
+                    // AroundPlayer centers the spawn ring on the player (not the group origin).
+                    float3 centerAround = PlayerTransform.Position;
+                    float3 upAround = math.normalize(centerAround - PlanetCenter);
                     float3 tangentAround = math.cross(upAround, new float3(0, 1, 0));
                     if (math.lengthsq(tangentAround) < 0.001f)
                         tangentAround = math.cross(upAround, new float3(1, 0, 0));
@@ -424,7 +419,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     quaternion alignmentRotAround = quaternion.LookRotationSafe(tangentAround, upAround);
                     float3 localOffsetAround = new float3(perfectCircleAround.x, 0f, perfectCircleAround.y);
                     float3 worldOffsetAround = math.rotate(alignmentRotAround, localOffsetAround);
-                    float3 roughPosAround = SpawnOrigin + worldOffsetAround;
+                    float3 roughPosAround = centerAround + worldOffsetAround;
 
                     if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, roughPosAround, PlanetCenter, groundFilter,
                             100f, out var hitAround))
@@ -452,11 +447,12 @@ public partial struct EnemiesSpawnerSystem : ISystem
             float3 finalPosition =
                 spawnPosition + (tangentDirection * spawnOffset) + (surfaceNormal * 0.5f);
 
-            // Set Transform 
+            // Set Transform
+            float spawnScale = Scale > 0f ? Scale : 1f;
             ECB.SetComponent(index, entity, new LocalTransform
             {
                 Position = finalPosition,
-                Scale = 1f,
+                Scale = spawnScale,
                 Rotation = quaternion.LookRotationSafe(tangentDirection, surfaceNormal)
             });
 

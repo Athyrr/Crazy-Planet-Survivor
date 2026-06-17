@@ -10,6 +10,16 @@
       },
       "hash": "c5a6a15f551deb2e071f76ee86a48e9c962b16df"
     },
+    "com.coplaydev.unity-mcp": {
+      "version": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.0.2",
+        "com.unity.test-framework": "1.1.31"
+      },
+      "hash": "b92c05a25820cfc9f59ce4094eb46aaec8632ea2"
+    },
     "com.kyrylokuzyk.primetween": {
       "version": "file:../Assets/Plugins/PrimeTween/internal/com.kyrylokuzyk.primetween.tgz",
       "depth": 0,
@@ -108,6 +118,13 @@
         "com.unity.test-framework": "1.4.6",
         "com.unity.test-framework.performance": "3.0.3"
       }
+    },
+    "com.unity.device-simulator.devices": {
+      "version": "1.0.1",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
     },
     "com.unity.dt.app-ui": {
       "version": "2.1.1",

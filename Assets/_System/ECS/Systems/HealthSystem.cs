@@ -16,6 +16,7 @@ public partial struct HealthSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
+    private ComponentLookup<Boss> _bossLookup;
     private ComponentLookup<Destructible> _destrucibleLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
@@ -28,6 +29,7 @@ public partial struct HealthSystem : ISystem
 
         _playerLookup = state.GetComponentLookup<Player>(true);
         _enemyLookup = state.GetComponentLookup<Enemy>(true);
+        _bossLookup = state.GetComponentLookup<Boss>(true);
         _destrucibleLookup = state.GetComponentLookup<Destructible>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
@@ -51,6 +53,7 @@ public partial struct HealthSystem : ISystem
 
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
+        _bossLookup.Update(ref state);
         _destrucibleLookup.Update(ref state);
         _transformLookup.Update(ref state);
         _destroyFlagLookup.Update(ref state);
@@ -63,6 +66,7 @@ public partial struct HealthSystem : ISystem
             PlayerLookup = _playerLookup,
             DestructibleLookup = _destrucibleLookup,
             EnemyLookup = _enemyLookup,
+            BossLookup = _bossLookup,
             ExplodeOnDeathLookup = _explodeOnDeathLookup
         };
 
@@ -82,6 +86,7 @@ public partial struct HealthSystem : ISystem
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
+        [ReadOnly] public ComponentLookup<Boss> BossLookup;
         [ReadOnly] public ComponentLookup<ExplodeOnDeath> ExplodeOnDeathLookup;
 
         // todo Opti here: If  possible use Query instead of lookup
@@ -179,6 +184,17 @@ public partial struct HealthSystem : ISystem
                         killedEventEntity,
                         new EnemyKilledEvent { WaveIndex = EnemyLookup[entity].WaveIndex }
                     );
+
+                    // Defeating the planet's final boss is the only way to win a run.
+                    if (BossLookup.TryGetComponent(entity, out var boss) && boss.Kind == EBossKind.FinalBoss)
+                    {
+                        var winEntity = ECB.CreateEntity(index);
+                        ECB.AddComponent(
+                            index,
+                            winEntity,
+                            new EndRunRequest { State = EEndRunState.Success }
+                        );
+                    }
                 }
                 else if (DestructibleLookup.HasComponent(entity))
                 {

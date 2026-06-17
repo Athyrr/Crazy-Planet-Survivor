@@ -35,6 +35,9 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
 
         [Tooltip("Maximum distance from the player (Only used for 'AroundPlayer' mode).")]
         public float MaxRange;
+
+        [Tooltip("Uniform scale of the spawned entities. 0 = default (1). Use >1 for bosses.")]
+        public float Scale;
     }
 
     /// <summary>
@@ -188,7 +191,8 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
                             Position = groupData.ZoneTransform ? groupData.ZoneTransform.position : float3.zero,
                             SpawnDelay = groupData.Delay,
                             MinRange = groupData.MinRange,
-                            MaxRange = groupData.MaxRange
+                            MaxRange = groupData.MaxRange,
+                            Scale = groupData.Scale
                         });
                     }
                 }
