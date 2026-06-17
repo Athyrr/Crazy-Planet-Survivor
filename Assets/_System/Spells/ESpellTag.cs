@@ -11,9 +11,8 @@ public enum ESpellTag : uint
     Ice = 1 << 2,
     Lightning = 1 << 3,
     Poison = 1 << 4,
-    Light = 1 << 5,
-    Dark = 1 << 6,
     Nature = 1 << 7,
+    // bits 5,6 free (former Light / Dark)
 
     // Types
     Projectile = 1 << 8,
@@ -21,13 +20,14 @@ public enum ESpellTag : uint
     Summon = 1 << 10,
     Buff = 1 << 11,
     Debuff = 1 << 12,
+    Ranged = 1 << 22,
+    Melee = 1 << 23,
 
     // Behaviors
     Explosive = 1 << 13,
-    Slashing = 1 << 14,
-    Crushing = 1 << 15,
     Piercing = 1 << 16,
     Bouncing = 1 << 17,
+    // bits 14,15 free (former Slashing / Crushing)
 
     // Active Effects
     Burn = 1 << 18,
@@ -35,7 +35,5 @@ public enum ESpellTag : uint
     Slow = 1 << 20,
     Knockback = 1 << 21,
 
-    
-    MagicDamage = Fire | Ice | Lightning | Light | Dark | Nature,
     All = ~0u,
 }
