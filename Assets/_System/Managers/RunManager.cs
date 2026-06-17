@@ -4,8 +4,7 @@ using UnityEngine.Serialization;
 
 public class RunManager : MonoBehaviour
 {
-    [Header("UI Managers")]
-    public HUDController HUDController;
+    [Header("UI Managers")] public HUDController HUDController;
     public UpgradeSelectionUIController UpgradeSelectionController;
     public GameOverUIController GameOverUIController;
 
@@ -17,9 +16,6 @@ public class RunManager : MonoBehaviour
     private EntityQuery _playerQuery;
     private EntityQuery _openUpgradesRequestQuery;
     private EntityQuery _gameStateQuery;
-
-    // Bumped on each state change so a hide-completion can tell whether its transition is still current.
-    private int _transitionGen;
 
     private void OnEnable()
     {
@@ -38,10 +34,8 @@ public class RunManager : MonoBehaviour
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
         _playerHealthQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(Health));
-        _openUpgradesRequestQuery = _entityManager.CreateEntityQuery(
-            typeof(GameState),
-            typeof(OpenUpgradesSelectionViewRequest)
-        );
+        _openUpgradesRequestQuery =
+            _entityManager.CreateEntityQuery(typeof(GameState), typeof(OpenUpgradesSelectionViewRequest));
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _endRunQuery = _entityManager.CreateEntityQuery(typeof(EndRunRequest));
         _playerQuery = _entityManager.CreateEntityQuery(typeof(Player));
@@ -97,10 +91,7 @@ public class RunManager : MonoBehaviour
             if (playerHealth.Value <= 0)
             {
                 var reqEntity = _entityManager.CreateEntity();
-                _entityManager.AddComponentData(
-                    reqEntity,
-                    new EndRunRequest { State = EEndRunState.Death }
-                );
+                _entityManager.AddComponentData(reqEntity, new EndRunRequest { State = EEndRunState.Death });
 
                 //if (GameManager.Instance.GetGameState() != EGameState.GameOver)
                 //    GameManager.Instance.ChangeState(EGameState.GameOver);
@@ -117,16 +108,10 @@ public class RunManager : MonoBehaviour
 
         if (!_openUpgradesRequestQuery.IsEmpty)
         {
-            var buffer = _entityManager.GetBuffer<UpgradeSelectionBufferElement>(
-                gameStateEntity,
-                true
-            );
+            var buffer = _entityManager.GetBuffer<UpgradeSelectionBufferElement>(gameStateEntity, true);
 
-            // Stash the selection first, then change state. The state change drives the panel transition
-            // (outgoing panel animates out, THEN the upgrade panel is activated); ShowPanelForState spawns
-            // the cards once the panel is active — see ShowPanelForState / UpgradeSelectionController.ShowSelection.
-            UpgradeSelectionController.DisplaySelection(buffer);
             GameManager.Instance.ChangeState(EGameState.UpgradeSelection);
+            UpgradeSelectionController.DisplaySelection(buffer);
 
             _entityManager.RemoveComponent<OpenUpgradesSelectionViewRequest>(gameStateEntity);
         }
@@ -144,6 +129,9 @@ public class RunManager : MonoBehaviour
             case EGameState.Running:
                 GameManager.Instance.ChangeState(EGameState.Paused);
                 break;
+            // case EGameState.Lobby:
+            //     GameManager.Instance.ChangeState(EGameState.Paused);
+            //     break;
             case EGameState.Paused:
                 GameManager.Instance.ChangeState(EGameState.Running);
                 break;
@@ -152,63 +140,27 @@ public class RunManager : MonoBehaviour
 
     private void HandleStateChange(EGameState newState)
     {
-        // Sequenced transition: animate the outgoing panel(s) fully out, THEN bring the new one in, so the
-        // out- and in-animations never overlap. _transitionGen guards against a newer state change landing
-        // mid-transition (a stale "show" is dropped).
-        int gen = ++_transitionGen;
-        HideActivePanels(() =>
-        {
-            if (gen == _transitionGen)
-                ShowPanelForState(newState);
-        });
-    }
-
-    // Animates every currently-visible panel out, then invokes onAllHidden once the last one finishes.
-    // Panels without an exit animation (upgrade / game over) just switch off and don't hold up the wait.
-    private void HideActivePanels(System.Action onAllHidden)
-    {
+        // Hide all panels
+        HUDController.gameObject.SetActive(false);
         UpgradeSelectionController.gameObject.SetActive(false);
+        // Slide the pause panel out (then deactivate it) instead of an instant pop-off.
+        CloseAnimatedPanel(PausePanel);
         GameOverUIController.gameObject.SetActive(false);
 
-        bool hudActive = HUDController.gameObject.activeSelf;
-        bool pauseActive = PausePanel.activeSelf;
-
-        int remaining = (hudActive ? 1 : 0) + (pauseActive ? 1 : 0);
-        if (remaining == 0)
-        {
-            onAllHidden?.Invoke();
-            return;
-        }
-
-        System.Action one = () =>
-        {
-            if (--remaining == 0)
-                onAllHidden?.Invoke();
-        };
-
-        if (hudActive)
-            HUDController.HideHUD(one);
-        if (pauseActive)
-            CloseAnimatedPanel(PausePanel, one);
-    }
-
-    private void ShowPanelForState(EGameState state)
-    {
-        switch (state)
+        switch (newState)
         {
             case EGameState.Running:
-                HUDController.ShowHUD();
+                HUDController.gameObject.SetActive(true);
                 break;
             case EGameState.Paused:
                 PausePanel.SetActive(true);
                 break;
-            case EGameState.UpgradeSelection:
-                UpgradeSelectionController.gameObject.SetActive(true);
-                UpgradeSelectionController.ShowSelection();
-                break;
             case EGameState.GameOver:
                 //GameOverUIController.gameObject.SetActive(true);
                 //GameOverUIController.OpenView();
+                break;
+            case EGameState.UpgradeSelection:
+                UpgradeSelectionController.gameObject.SetActive(true);
                 break;
             default:
                 break;
@@ -216,30 +168,17 @@ public class RunManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Animates a panel out via its <see cref="IUIPanelAnimator"/> (slide or fade), then deactivates it,
-    /// or deactivates it immediately when it has no animator. Invokes <paramref name="onComplete"/> once
-    /// it is hidden (immediately if already inactive), used to sequence the next panel in.
+    /// Slides a panel out via its <see cref="UISlidePanel"/> (then deactivates it), or deactivates it
+    /// immediately when it has no slide animator. No-op if already inactive.
     /// </summary>
-    private static void CloseAnimatedPanel(GameObject panel, System.Action onComplete = null)
+    private static void CloseAnimatedPanel(GameObject panel)
     {
         if (panel == null || !panel.activeSelf)
-        {
-            onComplete?.Invoke();
             return;
-        }
 
-        if (panel.TryGetComponent<IUIPanelAnimator>(out var animator))
-        {
-            animator.Hide(() =>
-            {
-                panel.SetActive(false);
-                onComplete?.Invoke();
-            });
-        }
+        if (panel.TryGetComponent<UISlidePanel>(out var slide))
+            slide.Hide(() => panel.SetActive(false));
         else
-        {
             panel.SetActive(false);
-            onComplete?.Invoke();
-        }
     }
 }
