@@ -23,6 +23,7 @@ public class LobbyTouchInteractDispatcher : MonoBehaviour
     private EntityManager _entityManager;
     private EntityQuery _interactableQuery;
     private bool _initialized;
+    private bool _clickQueued;
 
     private void OnEnable()
     {
@@ -58,11 +59,20 @@ public class LobbyTouchInteractDispatcher : MonoBehaviour
         _initialized = true;
     }
 
+    // UI.Click performed fires on both press and release. We only queue the press here and do the actual
+    // work in Update(): IsPointerOverGameObject() must NOT be read from inside an InputAction callback
+    // (it runs during input-event processing and would query stale, last-frame UI state — Unity warns).
     private void OnClick(InputAction.CallbackContext ctx)
     {
-        // UI.Click performed fires on both press and release.
-        if (!ctx.ReadValueAsButton())
+        if (ctx.ReadValueAsButton())
+            _clickQueued = true;
+    }
+
+    private void Update()
+    {
+        if (!_clickQueued)
             return;
+        _clickQueued = false;
 
         // Skip taps the EventSystem already consumed (HUD buttons, upgrade cards, etc.).
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())

@@ -32,6 +32,15 @@ public class UISlidePanel : MonoBehaviour, IUIPanelAnimator
     [Tooltip("Slide duration override (seconds). <= 0 uses CpUISettings.PanelSlideDuration.")]
     [SerializeField] private float _durationOverride = -1f;
 
+    [Tooltip("Play the slide-in automatically whenever this object is enabled. Tick this for panels with " +
+             "no controller calling Show() (e.g. standalone HUD widgets). Leave off when a controller " +
+             "drives Show()/Hide() itself.")]
+    [SerializeField] private bool _playOnEnable;
+
+    [Tooltip("Seconds to wait before the slide actually starts (the panel stays off-screen during the " +
+             "wait). Use it to stagger panels that would otherwise overlap. <= 0 = no delay.")]
+    [SerializeField] private float _delayBeforePlay = -1f;
+
     private Vector2 _onScreenPos;
     private Vector2 _offScreenPos;
     private Tween _active;
@@ -41,7 +50,17 @@ public class UISlidePanel : MonoBehaviour, IUIPanelAnimator
 
     private float Duration => _durationOverride > 0f ? _durationOverride : CpUISettings.PanelSlideDuration;
 
+    private float DelayBeforePlay => _delayBeforePlay > 0f ? _delayBeforePlay : 0f;
+
     private void Awake() => EnsureInitialized();
+
+    // Self-drives the slide-in when enabled (plug-and-play). Safe here because a component's own OnEnable
+    // only runs once its GameObject is already active in the hierarchy — no activation-order race.
+    private void OnEnable()
+    {
+        if (_playOnEnable)
+            Show();
+    }
 
     private void EnsureInitialized()
     {
@@ -87,7 +106,8 @@ public class UISlidePanel : MonoBehaviour, IUIPanelAnimator
 
         Panel.anchoredPosition = _offScreenPos;
         _active = Tween.UIAnchoredPosition(
-            Panel, _onScreenPos, Duration, CpUISettings.PanelSlideInEase, useUnscaledTime: true);
+            Panel, _onScreenPos, Duration, CpUISettings.PanelSlideInEase,
+            startDelay: DelayBeforePlay, useUnscaledTime: true);
         return _active;
     }
 
@@ -111,7 +131,8 @@ public class UISlidePanel : MonoBehaviour, IUIPanelAnimator
         }
 
         _active = Tween.UIAnchoredPosition(
-            Panel, _offScreenPos, Duration, CpUISettings.PanelSlideOutEase, useUnscaledTime: true);
+            Panel, _offScreenPos, Duration, CpUISettings.PanelSlideOutEase,
+            startDelay: DelayBeforePlay, useUnscaledTime: true);
 
         if (onComplete != null)
             _active.OnComplete(onComplete);

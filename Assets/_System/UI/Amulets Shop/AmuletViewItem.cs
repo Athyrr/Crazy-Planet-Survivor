@@ -131,6 +131,8 @@ public class AmuletViewItem : UIViewItemBase
     private Color GetBorderColor()
         => CpUISettings.GetItemOutlineColor(_isSelected, IsHighlighted, _isUnlocked);
 
+    // Shop items intentionally use their own Complementary color scheme and are NOT tied to the unified
+    // menu/settings label hover color (CpUISettings.LabelHighlightColor / MainColorOver).
     private Color GetTextColor()
     {
         if (_isSelected || IsHighlighted)

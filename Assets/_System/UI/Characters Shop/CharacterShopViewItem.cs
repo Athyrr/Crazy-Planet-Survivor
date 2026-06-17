@@ -127,6 +127,8 @@ public class CharacterShopViewItem : UIViewItemBase
             transform, target, CpUISettings.HoverDuration, CpUISettings.HoverEase, useUnscaledTime: true);
     }
 
+    // Shop items intentionally use their own Complementary color scheme and are NOT tied to the unified
+    // menu/settings label hover color (CpUISettings.LabelHighlightColor / MainColorOver).
     private void RefreshVisual()
     {
         if (Text != null)

@@ -12,6 +12,8 @@ public class UpgradeSelectionUIController : UIControllerBase
 
     private bool _isInitialized = false;
 
+    private readonly List<int> _pendingIndices = new List<int>();
+
     private void Awake()
     {
         InitDatabase();
@@ -40,7 +42,20 @@ public class UpgradeSelectionUIController : UIControllerBase
         _isInitialized = true;
     }
 
+    // Stashes the pending selection's database indices. The cards are NOT spawned here: that happens in
+    // ShowSelection, which RunManager calls only after the outgoing panel has animated out and this
+    // controller's GameObject has been re-activated. Spawning earlier would start the View's entry coroutine
+    // while the View's parent is still inactive ("Coroutine couldn't be started ... 'View' is inactive").
     public void DisplaySelection(DynamicBuffer<UpgradeSelectionBufferElement> selection)
+    {
+        _pendingIndices.Clear();
+        for (int i = 0; i < selection.Length; i++)
+            _pendingIndices.Add(selection[i].DatabaseIndex);
+    }
+
+    // Spawns the cards for the stashed selection. Must run while this controller's GameObject is active so
+    // the View (a child) is active-in-hierarchy and can start its entry coroutine.
+    public void ShowSelection()
     {
         InitDatabase();
 
@@ -51,20 +66,17 @@ public class UpgradeSelectionUIController : UIControllerBase
         var blobs = _entityManager.GetComponentData<UpgradesDatabase>(dbEntity).Blobs;
         ref var upgradesDatabase = ref blobs.Value.Upgrades;
 
-        List<int> indices = new List<int>();
-        for (int i = 0; i < selection.Length; i++)
-        {
-            indices.Add(selection[i].DatabaseIndex);
-        }
-
-        View.SpawnAndLayoutCards(indices, ref upgradesDatabase);
+        View.SpawnAndLayoutCards(_pendingIndices, ref upgradesDatabase);
     }
 
     private void HandleUpgradeSelected(int databaseIndex)
     {
         var playerEntity = _playerQuery.GetSingletonEntity();
 
-        _entityManager.AddComponentData(playerEntity, new ApplyUpgradeRequest { DatabaseIndex = databaseIndex });
+        _entityManager.AddComponentData(
+            playerEntity,
+            new ApplyUpgradeRequest { DatabaseIndex = databaseIndex }
+        );
 
         View.ClearSelection();
         View.gameObject.SetActive(false);

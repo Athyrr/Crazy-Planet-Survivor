@@ -65,8 +65,14 @@ namespace _System.Settings
 
         /// <summary>Idle color of an interactive label (menu button / settings row).</summary>
         public static Color LabelColor => I._labelColor;
-        /// <summary>Hover / focus / pressed color of an interactive label — the chosen blue (MainColor).</summary>
-        public static Color LabelHighlightColor => I._mainColor;
+        /// <summary>
+        /// Hover / focus / pressed color of an interactive menu / settings label — the shared "over"
+        /// hover color (<see cref="MainColorOver"/>).
+        /// NOTE: this is the unified hover color for menu / settings labels ONLY. Shop items
+        /// (amulet / character views) are deliberately NOT driven by this; they keep their own
+        /// ComplementaryColor / ComplementaryColorOver scheme.
+        /// </summary>
+        public static Color LabelHighlightColor => I._mainColorOver;
         /// <summary>Greyed-out color of a non-interactable label.</summary>
         public static Color LabelColorDisabled => I._labelColorDisabled;
 

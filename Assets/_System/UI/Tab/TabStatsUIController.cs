@@ -37,7 +37,11 @@ public class TabStatsUIController : UIControllerBase
         _inputs.Player.StatsView.Disable();
     }
 
-    private void OnToggleStats(InputAction.CallbackContext ctx)
+    private void OnToggleStats(InputAction.CallbackContext ctx) => Toggle();
+
+    /// <summary>Opens the stats view (refreshing its data) or closes it if already open.
+    /// Shared by the StatsView input and the HUD stats button.</summary>
+    public void Toggle()
     {
         if (!TabStatsView.IsOpen)
         {
