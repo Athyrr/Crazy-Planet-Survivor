@@ -40,7 +40,9 @@ Shader "Custom/URP/BAT_Lit_PBR"
         _BATPlaneHeight2("BAT Plane Height 2", Float) = 1
         _BATPlaneWidth2("BAT Plane Width 2", Float) = 1
         _BATColumns2("BAT Columns", Float) = 1
-//        _BATBlend("BAT Blend Amount", Range(0,1)) = 0
+//        _BATBlendPlayer("BAT Blend Player Amount", Range(0,1)) = 0 // global value
+//        _BATBlendEntity("BAT Blend Entity Amount", Range(0,1)) = 0 // local value
+        _BATWasPlayer("BAT Was Player CheckBox", Int) = 0
         _BATBlendFrame("BAT Blend Frame Offset", Float) = 0
         _BAT_FPS_Blend("BAT FPS Blend", Float) = 30
         [HideInInspector] _BATManualTime("BAT Manual Time", Float) = 0
@@ -52,6 +54,7 @@ Shader "Custom/URP/BAT_Lit_PBR"
         {
             "RenderPipeline"="UniversalPipeline"
             "RenderType"="Opaque"
+            "LightMode" = "ForwardBase"
             "Queue"="Geometry"
         }
         HLSLINCLUDE
@@ -94,9 +97,11 @@ Shader "Custom/URP/BAT_Lit_PBR"
             uint _BATPlaneWidth2;
             uint _BATBlendFrame;
             half _BAT_FPS_Blend;
+            uint _BATWasPlayer;
         CBUFFER_END
         
-        float _BATBlend;
+        float _BATBlendPlayer;
+        float _BATBlendEntity = 1.0f;
         
         struct BoneRows
         {
@@ -230,7 +235,7 @@ Shader "Custom/URP/BAT_Lit_PBR"
             normal = 0;
             position = 0;
 
-            float blend = _BATBlend;
+            float blend = _BATWasPlayer == 1 ? _BATBlendPlayer : _BATBlendEntity;
             float frameIdx2 = FrameBlend();
 
             [unroll] for (int i = 0; i < 4; i++)
@@ -261,7 +266,7 @@ Shader "Custom/URP/BAT_Lit_PBR"
             normal = 0;
             position = 0;
 
-            float blend = _BATBlend;
+            float blend = _BATWasPlayer == 1 ? _BATBlendPlayer : _BATBlendEntity;
             float frameIdx2 = FrameBlend();
 
             [unroll] for (int i = 0; i < 4; i++)
@@ -537,15 +542,12 @@ Shader "Custom/URP/BAT_Lit_PBR"
             {
                 float3 positionOS = input.position_os.xyz;
                 float3 normalOS = input.normal_os;
+                float3 lightDirectionWS = 1.0f;
 
                 float3 positionWS = TransformObjectToWorld(positionOS);
                 float3 normalWS = TransformObjectToWorldNormal(normalOS);
-
-                #if defined(_CASTING_PUNCTUAL_LIGHT_SHADOW)
-                    float3 lightDirectionWS = normalize(_LightPosition.xyz - positionWS);
-                #else
-                    float3 lightDirectionWS = _MainLightPosition.xyz;
-                #endif
+                
+                lightDirectionWS = _MainLightPosition.xyz;
 
                 float4 positionCS = TransformWorldToHClip(ApplyShadowBias(positionWS, normalWS, lightDirectionWS));
 

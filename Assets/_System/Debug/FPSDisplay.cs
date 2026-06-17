@@ -49,7 +49,7 @@ public class FPSDisplay : MonoBehaviour
                 fpsText.text = "FPS: 0";
                 fpsText.color = textColor;
                 fpsText.fontSize = fontSize;
-                fpsText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+                // fpsText.font = Resources.GetBuiltinResource<Font>("Arial.ttf"); // not: can't work if u try build & spam console. pls switch Font
 
                 // Position at top-left
                 RectTransform rect = fpsText.GetComponent<RectTransform>();
