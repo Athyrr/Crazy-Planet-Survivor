@@ -10,7 +10,7 @@ public struct CoreStats : IComponentData
 {
     [Header("Survival")]
     [Tooltip("Max Health points.")]
-    [UIStat("Max Health.", ECharacterStat.MaxHealth, absolute: true)] //todo
+    [UIStat("Max Health.", ECharacterStat.MaxHealth, absolute: true)]
     public float MaxHealth;
 
     [Tooltip("Health points recovered per second.")]

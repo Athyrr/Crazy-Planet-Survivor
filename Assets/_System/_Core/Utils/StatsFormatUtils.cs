@@ -15,6 +15,8 @@ using System.Text.RegularExpressions;
 /// </summary>
 public static class StatsFormatUtils
 {
+    // todo use CpUISettings for colors
+    
     /// <summary>Rich-text color for positive (bonus) values — also used for zero.</summary>
     public const string PositiveColor = "#4ADE80";
 
@@ -44,7 +46,7 @@ public static class StatsFormatUtils
 
     /// <summary>Integer "count" stats (added projectiles / pierces / bounces) are flat values.</summary>
     public static bool IsCountStat(ECharacterStat stat)
-        => stat is ECharacterStat.PierceCount or ECharacterStat.BounceCount or ECharacterStat.Amount;
+        => stat is ECharacterStat.PierceCount or ECharacterStat.BounceCount or ECharacterStat.Amount or ECharacterStat.Luck;
 
     /// <summary>True when the character stat is displayed as a percentage (everything but health + counts).</summary>
     public static bool IsPercentStat(ECharacterStat stat)
