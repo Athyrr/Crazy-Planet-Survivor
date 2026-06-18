@@ -23,6 +23,9 @@ public static class StatsFormatUtils
     /// <summary>Rich-text color for negative (malus) values. Sourced from <see cref="CpUISettings.StatMalusColor"/>.</summary>
     public static string NegativeColor => "#" + ColorUtility.ToHtmlStringRGB(CpUISettings.StatMalusColor);
 
+    /// <summary>Neutral (grey) rich-text color, used for the "before" side of a before → after preview.</summary>
+    public static string NeutralColor => "#" + ColorUtility.ToHtmlStringRGB(CpUISettings.LabelColor);
+
     // ----------------------------------------------------------------------------------
     // Naming
     // ----------------------------------------------------------------------------------
@@ -107,6 +110,60 @@ public static class StatsFormatUtils
 
         string color = formatted.StartsWith("-") ? NegativeColor : PositiveColor;
         return $"<color={color}>{formatted}</color>";
+    }
+
+    /// <summary>Wraps text in the neutral grey color (used for the "before" value of a preview).</summary>
+    public static string Neutralize(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        return $"<color={NeutralColor}>{text}</color>";
+    }
+
+    // ----------------------------------------------------------------------------------
+    // Before → after previews (upgrade cards)
+    // ----------------------------------------------------------------------------------
+
+    /// <summary>
+    /// "before → after" preview for a character stat: the current value in neutral grey, an arrow,
+    /// then the resulting value colored by the sign of the change (green = improvement, red = malus).
+    /// Absolute stats (health + Luck) are shown as plain totals; percent stats keep their signed '%';
+    /// count bonuses (Amount / Pierce / Bounce) are signed flats.
+    /// </summary>
+    public static string FormatStatBeforeAfter(ECharacterStat stat, float before, float after)
+    {
+        bool absolute = IsHealthStat(stat) || stat == ECharacterStat.Luck;
+        bool percent = !absolute && IsPercentStat(stat);
+
+        string beforeStr, afterStr;
+        if (percent)
+        {
+            beforeStr = SignedPercent(before);
+            afterStr = SignedPercent(after);
+        }
+        else if (absolute)
+        {
+            beforeStr = before.ToString("0.##");
+            afterStr = after.ToString("0.##");
+        }
+        else
+        {
+            beforeStr = SignedFlat(before);
+            afterStr = SignedFlat(after);
+        }
+
+        return Neutralize(beforeStr) + " → " + Colorize(afterStr, after - before);
+    }
+
+    /// <summary>"before → after" preview for a spell stat (percent unless it is a count stat).</summary>
+    public static string FormatSpellStatBeforeAfter(ESpellStat stat, float before, float after)
+    {
+        bool percent = IsPercentStat(stat);
+        string beforeStr = percent ? SignedPercent(before) : SignedFlat(before);
+        string afterStr = percent ? SignedPercent(after) : SignedFlat(after);
+
+        return Neutralize(beforeStr) + " → " + Colorize(afterStr, after - before);
     }
 
     // ----------------------------------------------------------------------------------
