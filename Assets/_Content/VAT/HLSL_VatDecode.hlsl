@@ -6,7 +6,7 @@ void GetVATPixel_float(uint vertexId, float frameIdx, uint2 texWidthHeight, floa
 {
     float  col       =  vertexId % texWidthHeight.x;// colonne
     float  rowBlock  =  vertexId / texWidthHeight.x;// bloc de sommets
-    float rowPos = rowBlock * (frames+1) + frameIdx;
+    float rowPos = rowBlock * (frames+1) + frameIdx; //     float rowPos = rowBlock * frames + frameIdx;
     
     float2 pix = float2(col, rowPos);//pixel dans texture
 

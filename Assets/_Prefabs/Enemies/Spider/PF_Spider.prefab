@@ -1,5 +1,118 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1126832002107096097
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1386438451491237154}
+  - component: {fileID: 1826383044711938317}
+  - component: {fileID: 2659616294474701231}
+  - component: {fileID: 7703970086782788152}
+  m_Layer: 0
+  m_Name: ForestSpider
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1386438451491237154
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1126832002107096097}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.887, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 834412683046234062}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1826383044711938317
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1126832002107096097}
+  m_Mesh: {fileID: 1427877039754297139, guid: d4efaf9a3a881ed488f4f9077dac2a6b, type: 3}
+--- !u!23 &2659616294474701231
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1126832002107096097}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0c87dadcb5c823b4d87c05c7c2b20e9e, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7703970086782788152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1126832002107096097}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdd773eac6e4407458835bcec94f4f13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BATAnimGraph
+  animations:
+  - {fileID: 11400000, guid: 2fd417676ced03f4c98b0a7ae6b0f772, type: 2}
+  - {fileID: 11400000, guid: 34ab00f43b6b10744adccd2551014bb7, type: 2}
+  animationSelector: 1
+  globalSpeed: 1
+  autoPlay: 1
+  crossfadeDuration: 0.25
+  enableCrossfade: 1
+  meshRenderer: {fileID: 2659616294474701231}
+  materialIndex: 0
 --- !u!1 &4960229139857780973
 GameObject:
   m_ObjectHideFlags: 0
@@ -35,7 +148,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 7285187106084318297}
+  - {fileID: 1386438451491237154}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &-6327967751872516132
@@ -78,9 +191,9 @@ MonoBehaviour:
     y: 0
     z: 0
   m_PrimitiveSize:
-    x: 1
-    y: 1
-    z: 1
+    x: 2.2
+    y: 2.2
+    z: 2.2
   m_PrimitiveOrientation:
     Value:
       x: -0
@@ -88,15 +201,15 @@ MonoBehaviour:
       z: 0
     RotationOrder: 4
   m_Capsule:
-    Height: 1
-    Radius: 0.5
+    Height: 2.2
+    Radius: 1.1
     Axis: 2
   m_Cylinder:
-    Height: 1
-    Radius: 0.5
+    Height: 2.2
+    Radius: 1.1
     Axis: 2
   m_CylinderSideCount: 20
-  m_SphereRadius: 0.5
+  m_SphereRadius: 1.1
   m_MinimumSkinnedVertexWeight: 0.1
   m_ConvexHullGenerationParameters:
     m_SimplificationTolerance: 0.015
@@ -219,25 +332,24 @@ MonoBehaviour:
   UseSnappedMovement: 1
   BaseStats:
     MaxHealth: 80
-    HealthRecovery: 0
+    HealthRegen: 0
     BaseArmor: 0
-    DamageReductionMultiplier: 0
+    Armor: 0
     BaseMoveSpeed: 0
-    MoveSpeedMultiplier: 0
+    MoveSpeed: 0
     BasePickupRange: 0
-    PickupRangeMultiplier: 0
-    GlobalDamageMultiplier: 0
-    GlobalCooldownReductionMultiplier: 0
-    GlobalSpellAreaMultiplier: 0
-    GlobalSpellSizeMultiplier: 0
-    GlobalSpellSpeedMultiplier: 0
-    GlobalSpellDurationMultiplier: 0
-    GlobalCastRangeMultiplier: 0
-    GlobalAmountBonus: 0
-    GlobalPierceBonus: 0
-    GlobalBounceBonus: 0
+    PickupRange: 0
+    Damage: 0
+    AttackSpeed: 0
+    SpellSize: 0
+    SpellSpeed: 0
+    SpellDuration: 0
+    CastRange: 0
+    Amount: 0
+    Pierce: 0
+    Bounce: 0
     CritChance: 0
-    CritDamageMultiplier: 0
+    CritDamage: 0
   InitialSpells: []
 --- !u!114 &7077652745905088192
 MonoBehaviour:
@@ -251,8 +363,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9572930ed885f804eae7a2b7f785412d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExperienceLootAuthoring
-  _ressourceType: 0
+  _resourceType: 0
   _value: 0
+  _isExperience: 0
   _dropChance: 1
 --- !u!114 &4190783909020484761
 MonoBehaviour:
@@ -280,93 +393,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DestructibleAuthoring
---- !u!1 &7892183719345375266
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 7285187106084318297}
-  - component: {fileID: 6083556057176871543}
-  - component: {fileID: 5468153029900271284}
-  m_Layer: 0
-  m_Name: Spider_SK
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &7285187106084318297
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7892183719345375266}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 834412683046234062}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &6083556057176871543
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7892183719345375266}
-  m_Mesh: {fileID: -541100725682823677, guid: 4c91bc303f2255e4db7488c709bff660, type: 3}
---- !u!23 &5468153029900271284
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7892183719345375266}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 9e5c929043122054891641a56bc27e01, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}

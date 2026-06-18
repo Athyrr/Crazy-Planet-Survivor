@@ -20,7 +20,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: SG_EliteFlyDemon_Vat
+  m_Name: SG_Wasp_Vat
   m_Shader: {fileID: -6465566751694194690, guid: 8ea983b9c59083247a4f46bb5e33d061, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -38,11 +38,11 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseColor:
-        m_Texture: {fileID: 2800000, guid: 89d87194a501ab5499f46e4c05a6bd63, type: 3}
+        m_Texture: {fileID: 2800000, guid: ce27958406f16e841a02248bc67ef07c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Texture2D:
-        m_Texture: {fileID: 2800000, guid: 9072217d465d46642bed039ba6365d97, type: 3}
+        m_Texture: {fileID: 2800000, guid: c2ed3188d5a30a54f850938a5382d97c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:
@@ -59,19 +59,21 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _DebugMode: 0
     - _Metallic: 0
     - _QueueControl: 0
     - _QueueOffset: 0
     - _Smoothness: 0
     - _UseTexture: 1
-    - _addPositionMode: 0
-    - _frames: 16
+    - _XRMotionVectorsPass: 1
+    - _addPositionMode: 1
+    - _frames: 75
     - _normalIsBaked: 1
     - _speed: 20
-    - _totalVertices: 5013
+    - _totalVertices: 12359
     m_Colors:
     - _Color: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-    - _bounds: {r: 4.9655886, g: 3.7034097, b: 3.0963078, a: 0}
-    - _objectOffsetMaxDistance: {r: 0, g: 0, b: 0, a: 0}
+    - _bounds: {r: 2.3096004, g: 2.0540602, b: 2.0692213, a: 0}
+    - _objectOffsetMaxDistance: {r: 0.70179415, g: 1.4593894, b: 1.1798029, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
