@@ -196,13 +196,13 @@ public class UpgradeViewItem : MonoBehaviour,
         switch (upgradeData.UpgradeType)
         {
             case EUpgradeType.PlayerStat:
-                TitleText.color = Color.white;
+                TitleText.color = CpUISettings.UpgradeStatTitleColor;
                 break;
             case EUpgradeType.UnlockSpell:
-                TitleText.color = Color.yellow;
+                TitleText.color = CpUISettings.UpgradeUnlockTitleColor;
                 break;
             case EUpgradeType.UpgradeSpell:
-                TitleText.color = Color.green;
+                TitleText.color = CpUISettings.UpgradeSpellTitleColor;
                 break;
         }
     }
@@ -216,8 +216,9 @@ public class UpgradeViewItem : MonoBehaviour,
 
         _isHovered = isHovered;
 
-        if (TitleText)
-            StatLabelText.color = isHovered ? Color.yellow : Color.white;
+        // Guard the field that is actually recolored (was guarding TitleText — a bug).
+        if (StatLabelText)
+            StatLabelText.color = isHovered ? CpUISettings.UpgradeCardHighlightColor : CpUISettings.UpgradeCardIdleColor;
     }
 
     private void Update()

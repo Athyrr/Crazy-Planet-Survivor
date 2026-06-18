@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using UnityEngine;
+using _System.Settings;
 
 /// <summary>
 /// Centralized formatting for displaying stats and stat modifiers in the UI.
@@ -15,13 +17,11 @@ using System.Text.RegularExpressions;
 /// </summary>
 public static class StatsFormatUtils
 {
-    // todo use CpUISettings for colors
-    
-    /// <summary>Rich-text color for positive (bonus) values — also used for zero.</summary>
-    public const string PositiveColor = "#4ADE80";
+    /// <summary>Rich-text color for positive (bonus) values — also used for zero. Sourced from <see cref="CpUISettings.StatBonusColor"/>.</summary>
+    public static string PositiveColor => "#" + ColorUtility.ToHtmlStringRGB(CpUISettings.StatBonusColor);
 
-    /// <summary>Rich-text color for negative (malus) values.</summary>
-    public const string NegativeColor = "#F87171";
+    /// <summary>Rich-text color for negative (malus) values. Sourced from <see cref="CpUISettings.StatMalusColor"/>.</summary>
+    public static string NegativeColor => "#" + ColorUtility.ToHtmlStringRGB(CpUISettings.StatMalusColor);
 
     // ----------------------------------------------------------------------------------
     // Naming

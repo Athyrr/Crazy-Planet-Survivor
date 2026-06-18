@@ -69,7 +69,7 @@ public class AmuletShopUIController
             var item = ListView.GetOrCreateItem();
             bool isUnlocked = IsAmuletUnlocked(i);
 
-            item.Init(this, i, data, isUnlocked);
+            item.Init(this, i, data, isUnlocked, IsAmuletEquipped(i));
         }
     }
 
@@ -311,5 +311,17 @@ public class AmuletShopUIController
         }
 
         return false;
+    }
+
+    private bool IsAmuletEquipped(int index)
+    {
+        if (_gameStateQuery.IsEmptyIgnoreFilter)
+            return false;
+
+        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
+        if (!_entityManager.HasComponent<EquippedAmulet>(gameStateEntity))
+            return false;
+
+        return _entityManager.GetComponentData<EquippedAmulet>(gameStateEntity).DbIndex == index;
     }
 }

@@ -3,6 +3,7 @@ using System.Reflection;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using _System.Settings;
 
 /// <summary>
 /// Detail panel for the meta-progression shop.
@@ -20,11 +21,6 @@ public class MetaProgressionDetailView : MonoBehaviour
     [SerializeField] private TMP_Text _currentBonusText;
     [SerializeField] private TMP_Text _nextBonusText;
 
-    [Header("Pips")]
-    [SerializeField] private Image[] _detailPips;   // 5 pips in detail view
-    [SerializeField] private Sprite _pipFilled;
-    [SerializeField] private Sprite _pipEmpty;
-
     [Header("Cost")]
     [SerializeField] private GameObject _costContainer;
     [SerializeField] private ResourceWidgetItem _costItemPrefab;
@@ -34,20 +30,12 @@ public class MetaProgressionDetailView : MonoBehaviour
     [SerializeField] private Button _purchaseButton;
     [SerializeField] private TMP_Text _purchaseButtonText;
 
-    [Tooltip("Optional highlight (frame/glow) shown when the purchase button is focused via controller.")]
-    [SerializeField] private GameObject _purchaseFocusHighlight;
-
     [Tooltip("Scale applied to the purchase button while it is focused (controller feedback).")]
     [SerializeField] private float _purchaseFocusScale = 1.1f;
 
     [Header("Maxed Out")]
     [SerializeField] private GameObject _maxedContainer;
     [SerializeField] private TMP_Text _maxedText;
-
-    [Header("Colors")]
-    [SerializeField] private Color _normalPipColor = Color.white;
-    [SerializeField] private Color _filledPipColor = Color.white;
-    [SerializeField] private Color _maxedPipColor = new Color(0.2f, 1f, 0.2f);
 
     private MetaProgressionController _controller;
     private MetaUpgradeSO _currentData;
@@ -91,33 +79,33 @@ public class MetaProgressionDetailView : MonoBehaviour
         int maxLevel = data.BonusPerLevel != null ? data.BonusPerLevel.Length : 5;
         bool isMaxed = level >= maxLevel;
 
-        // Level
-        if (_currentLevelText != null)
-            _currentLevelText.text = $"lvl {level} / {maxLevel}";
+        string previewHex = CpUISettings.PipPreviewColorHex;
 
-        // Current total bonus
+        // Level: current, with a preview of the next level after purchase ("Niveau 3 → 4 / 5").
+        if (_currentLevelText != null)
+        {
+            _currentLevelText.text = isMaxed
+                ? $"MAXED"
+                : $"lvl. {level} <color={previewHex}>→ {level + 1}</color>";
+        }
+
+        // Bonus: current total (colored by sign) with the after-purchase total previewed next to it.
+        // Self-contained in _currentBonusText so a single wired label is enough; _nextBonusText is optional.
         if (_currentBonusText != null)
         {
-            float totalBonus = data.GetTotalBonus(level);
-            _currentBonusText.text = FormatBonus(totalBonus, data.TargetStat);
+            string current = FormatBonus(data.GetTotalBonus(level), data.TargetStat);
+            _currentBonusText.text = isMaxed
+                ? current
+                : $"{current} <color={previewHex}>→ {FormatBonus(data.GetTotalBonus(level + 1), data.TargetStat, colorize: false)}</color>";
         }
 
-        // Next level bonus
+        // Optional standalone "after purchase" label (preview color). Skipped when not assigned.
         if (_nextBonusText != null)
         {
-            if (isMaxed)
-            {
-                _nextBonusText.text = "MAX";
-            }
-            else
-            {
-                float nextBonus = data.GetLevelBonus(level + 1);
-                _nextBonusText.text = $"Prochain: {FormatBonus(nextBonus, data.TargetStat)}";
-            }
+            _nextBonusText.text = isMaxed
+                ? "MAX"
+                : $"<color={previewHex}>→ {FormatBonus(data.GetTotalBonus(level + 1), data.TargetStat, colorize: false)}</color>";
         }
-
-        // Detail pips
-        RefreshDetailPips(level, maxLevel, isMaxed);
 
         // Cost / maxed display
         if (_maxedContainer != null) _maxedContainer.SetActive(isMaxed);
@@ -125,24 +113,10 @@ public class MetaProgressionDetailView : MonoBehaviour
         if (_purchaseButton != null) _purchaseButton.gameObject.SetActive(!isMaxed);
 
         if (!isMaxed && _purchaseButtonText != null)
-            _purchaseButtonText.text = "AMÉLIORER";
+            _purchaseButtonText.text = "Upgrade";
 
         // Show cost
         ShowCost(data, level);
-    }
-
-    private void RefreshDetailPips(int level, int maxLevel, bool isMaxed)
-    {
-        if (_detailPips == null) return;
-
-        for (int i = 0; i < _detailPips.Length; i++)
-        {
-            if (_detailPips[i] == null) continue;
-
-            bool isFilled = i < level;
-            _detailPips[i].sprite = isFilled ? _pipFilled : _pipEmpty;
-            _detailPips[i].color = isMaxed && isFilled ? _maxedPipColor : _filledPipColor;
-        }
     }
 
     private void ShowCost(MetaUpgradeSO data, int level)
@@ -171,13 +145,13 @@ public class MetaProgressionDetailView : MonoBehaviour
         gameObject.SetActive(visible);
     }
 
-    private static string FormatBonus(float value, ECharacterStat stat)
-        => StatsFormatUtils.FormatModifier(stat, value);
+    private static string FormatBonus(float value, ECharacterStat stat, bool colorize = true)
+        => StatsFormatUtils.FormatModifier(stat, value, colorize);
 
     /// <summary>
     /// Highlights the purchase button when an upgrade is committed via controller (so the player
-    /// sees what the next Interact will buy). Uses an optional frame plus a subtle scale so it
-    /// works even without a wired highlight. No-op while the button is hidden (maxed upgrade).
+    /// sees what the next Interact will buy), using a subtle scale. No-op while the button is hidden
+    /// (maxed upgrade).
     /// </summary>
     public void SetPurchaseFocused(bool focused)
     {
@@ -185,9 +159,6 @@ public class MetaProgressionDetailView : MonoBehaviour
             return;
 
         bool canShow = focused && _purchaseButton.gameObject.activeSelf;
-
-        if (_purchaseFocusHighlight != null)
-            _purchaseFocusHighlight.SetActive(canShow);
 
         _purchaseButton.transform.localScale =
             canShow ? Vector3.one * _purchaseFocusScale : Vector3.one;

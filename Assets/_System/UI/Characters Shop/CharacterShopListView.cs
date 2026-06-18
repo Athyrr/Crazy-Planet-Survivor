@@ -3,13 +3,14 @@
 /// </summary>
 public class CharacterShopListView : ShopListViewBase<CharacterShopViewItem>
 {
-    public void Init(CharacterShopUIController controller, CharactersDatabaseSO database, System.Func<int, bool> isUnlockedCheck)
+    public void Init(CharacterShopUIController controller, CharactersDatabaseSO database,
+        System.Func<int, bool> isUnlockedCheck, System.Func<int, bool> isEquippedCheck)
     {
         Clear();
         for (int i = 0; i < database.Characters.Length; i++)
         {
             var item = GetOrCreateItem();
-            item.Init(controller, i, database.Characters[i], isUnlockedCheck(i));
+            item.Init(controller, i, database.Characters[i], isUnlockedCheck(i), isEquippedCheck(i));
         }
     }
 }
