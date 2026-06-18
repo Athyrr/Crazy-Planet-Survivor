@@ -18,6 +18,7 @@ public partial struct DropLootSystem : ISystem
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<ExpOrbDatabaseBufferElement>();
         state.RequireForUpdate<ResourcesDatabaseBufferElement>();
+        state.RequireForUpdate<PlanetData>();
 
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(isReadOnly: true);
     }
@@ -38,12 +39,15 @@ public partial struct DropLootSystem : ISystem
         var expOrbDatabase = SystemAPI.GetSingletonBuffer<ExpOrbDatabaseBufferElement>(true);
         var resourcesDatabase = SystemAPI.GetSingletonBuffer<ResourcesDatabaseBufferElement>(true);
 
+        var planetCenter = SystemAPI.GetSingleton<PlanetData>().Center;
+
         state.Dependency = new DropLootJob
         {
             ECB = ecb.AsParallelWriter(),
             ExpOrbDatabase = expOrbDatabase,
             ResourcesDatabase = resourcesDatabase,
             DestroyFlagLookup = _destroyFlagLookup,
+            PlanetCenter = planetCenter,
         }.ScheduleParallel(state.Dependency);
     }
 
@@ -56,6 +60,10 @@ public partial struct DropLootSystem : ISystem
         [ReadOnly] public DynamicBuffer<ExpOrbDatabaseBufferElement> ExpOrbDatabase;
         [ReadOnly] public DynamicBuffer<ResourcesDatabaseBufferElement> ResourcesDatabase;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
+        [ReadOnly] public float3 PlanetCenter;
+
+        // Small radial lift so dropped loot sits just above the surface instead of clipping into it.
+        private const float GroundOffset = 0.3f;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform,
             in LootSource loot)
@@ -98,7 +106,7 @@ public partial struct DropLootSystem : ISystem
                     var expEntity = ECB.Instantiate(chunkIndex, entry.Prefab);
                     var offset = rand.NextFloat2Direction() * 3;
                     ECB.SetComponent(chunkIndex, expEntity, LocalTransform.FromPositionRotationScale(
-                        origin + new float3(offset.x, 0, offset.y),
+                        GetSurfaceDropPosition(origin, offset),
                         quaternion.identity,
                         1f
                     ));
@@ -130,11 +138,35 @@ public partial struct DropLootSystem : ISystem
                 Entity spawned = ECB.Instantiate(chunkIndex, prefab);
                 var offset = rand.NextFloat2Direction() * 3;
                 ECB.SetComponent(chunkIndex, spawned, LocalTransform.FromPositionRotationScale(
-                    origin + new float3(offset.x, 0, offset.y),
+                    GetSurfaceDropPosition(origin, offset),
                     quaternion.identity,
                     1f
                 ));
             }
+        }
+
+        /// <summary>
+        /// Places a dropped orb on the planet surface around <paramref name="origin"/>.
+        /// The random offset is applied in the surface tangent plane (instead of flat world XZ),
+        /// then reprojected onto the spherical shell at the drop height so it follows the
+        /// curvature, plus a small radial lift to keep it from clipping into the ground.
+        /// </summary>
+        private float3 GetSurfaceDropPosition(float3 origin, float2 offset)
+        {
+            float3 up = math.normalize(origin - PlanetCenter);
+
+            // Build a tangent basis around the surface normal.
+            float3 tangent = math.cross(up, new float3(0f, 1f, 0f));
+            if (math.lengthsq(tangent) < 0.001f)
+                tangent = math.cross(up, new float3(1f, 0f, 0f));
+            tangent = math.normalize(tangent);
+            float3 bitangent = math.cross(up, tangent);
+
+            float3 rough = origin + tangent * offset.x + bitangent * offset.y;
+
+            // Keep the orb at the origin's surface height (+ a small lift), reprojected onto the sphere.
+            float radius = math.distance(origin, PlanetCenter) + GroundOffset;
+            return PlanetCenter + math.normalize(rough - PlanetCenter) * radius;
         }
     }
 }
