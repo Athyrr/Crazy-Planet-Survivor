@@ -1,7 +1,7 @@
 using System;
-using Unity.Entities.Serialization;
 using System.Collections;
 using Unity.Entities;
+using Unity.Entities.Serialization;
 using Unity.Scenes;
 using UnityEditor;
 using UnityEngine;
@@ -19,13 +19,17 @@ public class GameManager : MonoBehaviour
 
     public Canvas MainMenuCanvas;
 
-    [SerializeField] private float _minLoadingTime = 1.0f;
+    [SerializeField]
+    private float _minLoadingTime = 1.0f;
 
-    [SerializeField] private Canvas _joystickCanvas;
+    [SerializeField]
+    private Canvas _joystickCanvas;
 
     [Header("Performance")]
-    [Tooltip("Frames per second cap for the whole app. 60 for smooth mobile play. " +
-             "Limited by the device screen's max refresh rate.")]
+    [Tooltip(
+        "Frames per second cap for the whole app. 60 for smooth mobile play. "
+            + "Limited by the device screen's max refresh rate."
+    )]
     [SerializeField]
     private int TargetFrameRate = 60;
 
@@ -49,12 +53,12 @@ public class GameManager : MonoBehaviour
         Application.targetFrameRate = TargetFrameRate;
     }
 
-
     private void Start()
     {
         // Boot straight to the main menu. The lobby (and the rest of the run content) is only
         // streamed in once the player presses New Game (see StartNewGame).
-        ChangeState(EGameState.MainMenu);
+        //ChangeState(EGameState.MainMenu);
+        ChangeState(EGameState.PlanetSelection);
     }
 
     /// <summary>
@@ -84,7 +88,9 @@ public class GameManager : MonoBehaviour
 
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
-        _planetScenesBufferQuery = _entityManager.CreateEntityQuery(typeof(PlanetSceneRefBufferElement));
+        _planetScenesBufferQuery = _entityManager.CreateEntityQuery(
+            typeof(PlanetSceneRefBufferElement)
+        );
     }
 
     private void OnDisable()
@@ -114,7 +120,11 @@ public class GameManager : MonoBehaviour
 #endif
     }
 
-    private void InternalLoadScene(EPlanetID planetID, EGameState targetState, bool sendStartRequest)
+    private void InternalLoadScene(
+        EPlanetID planetID,
+        EGameState targetState,
+        bool sendStartRequest
+    )
     {
         // Find scene ref
         if (!TryGetSceneReference(planetID, out EntitySceneReference sceneRef))
@@ -158,13 +168,20 @@ public class GameManager : MonoBehaviour
         return false;
     }
 
-    private IEnumerator LoadSceneCoroutine(EntitySceneReference sceneRef, EGameState targetState, bool sendStartRequest)
+    private IEnumerator LoadSceneCoroutine(
+        EntitySceneReference sceneRef,
+        EGameState targetState,
+        bool sendStartRequest
+    )
     {
         // Unload
         if (_currentSceneEntity != Entity.Null)
         {
-            SceneSystem.UnloadScene(World.DefaultGameObjectInjectionWorld.Unmanaged, _currentSceneEntity,
-                SceneSystem.UnloadParameters.DestroyMetaEntities);
+            SceneSystem.UnloadScene(
+                World.DefaultGameObjectInjectionWorld.Unmanaged,
+                _currentSceneEntity,
+                SceneSystem.UnloadParameters.DestroyMetaEntities
+            );
             _currentSceneEntity = Entity.Null;
             yield return null;
         }
@@ -181,13 +198,20 @@ public class GameManager : MonoBehaviour
             timer += Time.deltaTime;
 
             // Get load state
-            var loadingState = SceneSystem.GetSceneStreamingState(worldUnmanaged, _currentSceneEntity);
-            bool isStreamingDone = (loadingState == SceneSystem.SceneStreamingState.LoadedSuccessfully);
+            var loadingState = SceneSystem.GetSceneStreamingState(
+                worldUnmanaged,
+                _currentSceneEntity
+            );
+            bool isStreamingDone = (
+                loadingState == SceneSystem.SceneStreamingState.LoadedSuccessfully
+            );
 
             bool isDataReady = true;
             if (sendStartRequest && isStreamingDone)
             {
-                isDataReady = _entityManager.CreateEntityQuery(typeof(PlanetData)).HasSingleton<PlanetData>();
+                isDataReady = _entityManager
+                    .CreateEntityQuery(typeof(PlanetData))
+                    .HasSingleton<PlanetData>();
             }
 
             if (isStreamingDone && isDataReady)
@@ -202,7 +226,9 @@ public class GameManager : MonoBehaviour
         // Update state
         ChangeState(targetState);
 
-        var planetData = _entityManager.CreateEntityQuery(typeof(PlanetData)).GetSingleton<PlanetData>();
+        var planetData = _entityManager
+            .CreateEntityQuery(typeof(PlanetData))
+            .GetSingleton<PlanetData>();
         OnPlanetSelected?.Invoke(planetData.PlanetID);
 
         // Send Request if needed
@@ -239,7 +265,9 @@ public class GameManager : MonoBehaviour
             LoadingCanvas.gameObject.SetActive(newState == EGameState.Loading);
 
         if (_joystickCanvas != null)
-            _joystickCanvas.gameObject.SetActive(newState == EGameState.Running || newState == EGameState.Lobby);
+            _joystickCanvas.gameObject.SetActive(
+                newState == EGameState.Running || newState == EGameState.Lobby
+            );
 
         if (MainMenuCanvas != null)
             MainMenuCanvas.gameObject.SetActive(newState == EGameState.MainMenu);
