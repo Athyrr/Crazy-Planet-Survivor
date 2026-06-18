@@ -60,7 +60,7 @@ public class CharacterShopUIController
 
     protected override void RefreshListView()
     {
-        ListView.Init(this, Database, IsCharacterUnlocked);
+        ListView.Init(this, Database, IsCharacterUnlocked, IsCharacterEquipped);
     }
 
     protected override void RefreshDetailView(CharacterSO data, int index)
@@ -133,6 +133,18 @@ public class CharacterShopUIController
         }
 
         return false;
+    }
+
+    private bool IsCharacterEquipped(int index)
+    {
+        if (_gameStateQuery.IsEmptyIgnoreFilter)
+            return false;
+
+        var entity = _gameStateQuery.GetSingletonEntity();
+        if (!_entityManager.HasComponent<SelectedCharacter>(entity))
+            return false;
+
+        return _entityManager.GetComponentData<SelectedCharacter>(entity).DbIndex == index;
     }
 
     protected override int GetStartingIndex()

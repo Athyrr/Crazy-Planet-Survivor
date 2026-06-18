@@ -1204,8 +1204,8 @@ GameObject:
   - component: {fileID: 7809315707195317086}
   - component: {fileID: 3096923623931198042}
   - component: {fileID: 2030262079009481929}
-  - component: {fileID: 267010289798278275}
-  - component: {fileID: 5771368708762210342}
+  - component: {fileID: 4822605415832036513}
+  - component: {fileID: 6600246282877647170}
   m_Layer: 5
   m_Name: PF_UI_PausePanel
   m_TagString: Untagged
@@ -1261,7 +1261,7 @@ MonoBehaviour:
   QuitButton: {fileID: 5647161239752620973}
   SettingsPanel: {fileID: 3050216110769578234}
   MenuButtonsRoot: {fileID: 1651794119957989746}
---- !u!225 &267010289798278275
+--- !u!225 &4822605415832036513
 CanvasGroup:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1273,7 +1273,7 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &5771368708762210342
+--- !u!114 &6600246282877647170
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1285,8 +1285,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 370f054cb7ad4f14cb09802150fcbe32, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIFadePanel
-  _canvasGroup: {fileID: 267010289798278275}
+  _canvasGroup: {fileID: 4822605415832036513}
   _durationOverride: -1
+  _playOnEnable: 0
+  _delayBeforePlay: -1
 --- !u!1 &6341628277483789466
 GameObject:
   m_ObjectHideFlags: 0

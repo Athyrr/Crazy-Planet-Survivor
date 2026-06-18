@@ -1,4 +1,5 @@
 using System.Collections;
+using _System.Settings;
 using Unity.Entities;
 using UnityEngine;
 using TMPro;
@@ -11,9 +12,7 @@ public class GameOverUIController : UIControllerBase
     
     [Header("Game Over Text")]
     public string VictoryText;
-    public Color VictoryColor;
     public string DefeatText;
-    public Color DefeatColor;
     
     [Header("Game Over Animation")]
     public float FadeInDuration = 2f;
@@ -56,25 +55,25 @@ public class GameOverUIController : UIControllerBase
         {
             case EEndRunState.Success:
                 GameOverText.text = VictoryText;
-                GameOverText.color = Color.yellow;
+                GameOverText.color = CpUISettings.ResultVictoryColor;
                 KeepPersistantRessources(resources);
                 break;
 
             case EEndRunState.Death:
                 GameOverText.text = DefeatText;
-                GameOverText.color = Color.red;
+                GameOverText.color = CpUISettings.ResultDefeatColor;
                 KeepPersistantRessources(resources); // todo remove here
                 break;
 
             case EEndRunState.Timeout:
                 GameOverText.text = "TIME OUT";
-                GameOverText.color = Color.gray;
+                GameOverText.color = CpUISettings.ResultNeutralColor;
                 KeepPersistantRessources(resources);
                 break;
 
             default:
                 GameOverText.text = "NULOS";
-                GameOverText.color = Color.red;
+                GameOverText.color = CpUISettings.ResultDefeatColor;
                 break;
         }
     }

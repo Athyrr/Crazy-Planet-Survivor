@@ -138,7 +138,8 @@ public class UpgradeSelectionView : UIViewBase
     }
 
 
-    public void SpawnAndLayoutCards(List<int> indices, ref BlobArray<UpgradeBlob> upgradesDatabase)
+    public void SpawnAndLayoutCards(List<int> indices, ref BlobArray<UpgradeBlob> upgradesDatabase,
+        in UpgradeDisplayContext context)
     {
         gameObject.SetActive(true);
         ClearSelection();
@@ -154,7 +155,7 @@ public class UpgradeSelectionView : UIViewBase
             _spawnedUpgradeItems.Add(upgradeViewItem);
             cardsTransforms.Add(upgradeViewItem.transform);
 
-            upgradeViewItem.SetData(ref upgradeData, indice);
+            upgradeViewItem.SetData(ref upgradeData, indice, in context);
             upgradeViewItem.PointerEntered += HandleItemPointerEntered;
             upgradeViewItem.PointerExited += HandleItemPointerExited;
             upgradeViewItem.PointerClicked += HandleItemPointerClicked;

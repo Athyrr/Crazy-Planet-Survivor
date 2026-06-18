@@ -71,6 +71,8 @@ public partial struct RessourceAttractionSystem : ISystem
         var playerEntity = _playerQuery.GetSingletonEntity();
         var playerPosition = SystemAPI.GetComponent<LocalTransform>(playerEntity).Position;
 
+        var planetCenter = SystemAPI.GetSingleton<PlanetData>().Center;
+
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var ecbParallel = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
@@ -84,6 +86,7 @@ public partial struct RessourceAttractionSystem : ISystem
             ECB = ecb,
             PlayerEntity = playerEntity,
             PlayerPosition = playerPosition,
+            PlanetCenter = planetCenter,
             DeltaTime = deltaTime,
             CurveBlobRef = config.CurveBlobRef,
             ExperienceOrbLookup = _experienceOrbLookup,
@@ -164,6 +167,7 @@ public partial struct RessourceAttractionSystem : ISystem
         public float DeltaTime;
         public Entity PlayerEntity;
         public float3 PlayerPosition;
+        public float3 PlanetCenter;
 
         [ReadOnly] public ComponentLookup<ExperienceOrb> ExperienceOrbLookup;
         [ReadOnly] public ComponentLookup<Resource> ResourceLookup;
@@ -186,7 +190,19 @@ public partial struct RessourceAttractionSystem : ISystem
 
             var curveValue = math.lerp(animCurve.Samples[indexLower], animCurve.Samples[indexUpper], lerpFactor);
 
-            transform.Position = math.lerp(anim.StartPosition, PlayerPosition, curveValue);
+            // Follow the planet curvature instead of cutting a straight chord through the ground.
+            // nlerp the surface directions around the planet center, and interpolate the radius
+            // separately so the orb stays on the spherical shell between its drop height and the
+            // player (both already sit just above the surface), never clipping below it.
+            var dirStart = math.normalize(anim.StartPosition - PlanetCenter);
+            var dirEnd = math.normalize(PlayerPosition - PlanetCenter);
+            var dir = math.normalize(math.lerp(dirStart, dirEnd, curveValue));
+
+            var startRadius = math.distance(anim.StartPosition, PlanetCenter);
+            var endRadius = math.distance(PlayerPosition, PlanetCenter);
+            var radius = math.lerp(startRadius, endRadius, curveValue);
+
+            transform.Position = PlanetCenter + dir * radius;
 
             if (!(progress01 >= 1f))
                 return;
