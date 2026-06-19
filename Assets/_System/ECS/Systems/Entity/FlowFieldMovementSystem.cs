@@ -1,3 +1,4 @@
+using _System.Settings;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
@@ -22,6 +23,9 @@ public partial struct FlowFieldMovementSystem : ISystem
     private ComponentLookup<StopDistance> _stopDistanceLookup;
     private BufferLookup<FlowFieldCell> _cellBufferLookup;
 
+    /// <summary> Fallback rotation smoothing used when no CpBaseEnemySettings asset is available. </summary>
+    private const float DefaultRotationLerpSpeed = 10f;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -36,7 +40,8 @@ public partial struct FlowFieldMovementSystem : ISystem
         _cellBufferLookup = state.GetBufferLookup<FlowFieldCell>(isReadOnly: true);
     }
 
-    [BurstCompile]
+    // Not Burst-compiled: reads the managed CpBaseEnemySettings asset so the rotation smoothing
+    // is tunable live in the inspector. The heavy per-entity work stays in the Burst job below.
     public void OnUpdate(ref SystemState state)
     {
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
@@ -51,6 +56,11 @@ public partial struct FlowFieldMovementSystem : ISystem
         var flowFieldEntity = SystemAPI.GetSingletonEntity<FlowFieldData>();
         var planetData = SystemAPI.GetSingleton<PlanetData>();
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
+
+        // Live-tunable rotation smoothing (falls back to the default if no settings asset exists).
+        float rotationLerpSpeed = CpBaseEnemySettings.I != null
+            ? CpBaseEnemySettings.RotationLerpSpeed
+            : DefaultRotationLerpSpeed;
 
         _steeringLookup.Update(ref state);
         _statsLookup.Update(ref state);
@@ -69,7 +79,8 @@ public partial struct FlowFieldMovementSystem : ISystem
             SteeringLookup = _steeringLookup,
             StatsLookup = _statsLookup,
             StunLookup = _stunLookup,
-            StopDistanceLookup = _stopDistanceLookup
+            StopDistanceLookup = _stopDistanceLookup,
+            RotationLerpSpeed = rotationLerpSpeed
         };
         state.Dependency = moveJob.ScheduleParallel(state.Dependency);
     }
@@ -94,19 +105,33 @@ public partial struct FlowFieldMovementSystem : ISystem
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
         [ReadOnly] public ComponentLookup<StopDistance> StopDistanceLookup;
 
+        /// <summary> Rotation smoothing factor (lerp speed), sourced from CpBaseEnemySettings. </summary>
+        [ReadOnly] public float RotationLerpSpeed;
+
         private const float SnapDistance = 500f;
         private const float VertSnapSpeed = 20.0f;
-        private const float RotLerpSpeed = 10.0f;
-        private const float TurnSmoothSpeed = 8.0f;
         // Avoidance is already in world-space units; cap its contribution so it
         // doesn't overpower the flow-field direction on its own.
         private const float SteeringBlend = 0.35f;
+        // Just outside the stop ring the entity decelerates over a band of
+        // (StopDistance * StopSlowBandFraction) units so it eases in ("adapts its speed")
+        // instead of slamming to a halt.
+        private const float StopSlowBandFraction = 0.5f;
 
         public void Execute(Entity entity, ref LocalTransform transform)
         {
             // Stunned entities do not move
             if (StunLookup.TryGetComponent(entity, out var _) && StunLookup.IsComponentEnabled(entity))
                 return;
+
+            float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
+
+            // --- Direction straight to the player (goal), projected onto the surface. ---
+            // This is the orientation target: looking at the player is stable, whereas the
+            // flow/avoidance direction is noisy and makes packed entities spin in place.
+            float3 toGoal = FlowField.Origin - transform.Position;
+            PlanetUtils.ProjectDirectionOnSurface(in toGoal, in currentNormal, out float3 goalDirection);
+            bool hasGoalDirection = math.lengthsq(goalDirection) > 0.0001f;
 
             // --- Sample flow field (bilinear) ---
             float3 flowDirection = SampleFlowField(transform.Position);
@@ -121,14 +146,39 @@ public partial struct FlowFieldMovementSystem : ISystem
                 steeringForce = SteeringLookup[entity].Value;
 
             float3 desiredDirection = flowDirection + steeringForce * SteeringBlend;
-            if (math.lengthsq(desiredDirection) < 0.001f)
-                desiredDirection = transform.Forward();
-            desiredDirection = math.normalize(desiredDirection);
+            bool hasMoveDirection = math.lengthsq(desiredDirection) > 0.001f;
+            desiredDirection = hasMoveDirection ? math.normalize(desiredDirection) : transform.Forward();
 
-            // --- Smooth turn: lerp current facing toward desired, then move along it ---
-            float3 currentFacing = transform.Forward();
-            float3 moveDirection = math.normalize(
-                math.lerp(currentFacing, desiredDirection, math.min(1f, DeltaTime * TurnSmoothSpeed)));
+            // --- Stop distance: decelerate toward the ring, then hold position. ---
+            // Inside the ring the entity has "arrived": it stops advancing instead of creeping
+            // all the way onto the player. Just outside, speed ramps up so it eases in.
+            float speedFactor = 1f;
+            if (StopDistanceLookup.HasComponent(entity))
+            {
+                float stopDist = StopDistanceLookup[entity].Distance;
+                if (stopDist > 0f)
+                {
+                    float distToGoal = math.distance(transform.Position, FlowField.Origin);
+                    if (distToGoal <= stopDist)
+                    {
+                        speedFactor = 0f;
+                    }
+                    else
+                    {
+                        float slowBand = math.max(stopDist * StopSlowBandFraction, 0.0001f);
+                        speedFactor = math.saturate((distToGoal - stopDist) / slowBand);
+                    }
+                }
+            }
+
+            // --- Orientation: always look toward the player, never toward the avoidance steering. ---
+            // The steering force flips direction constantly when entities are packed together, so
+            // driving rotation from it makes a (near-)stationary entity spin in place. Facing the
+            // player directly is stable and is what we want regardless of how it shuffles for spacing.
+            float3 faceDirection = hasGoalDirection ? goalDirection : flowDirection;
+
+            // Movement still follows the flow field + avoidance so entities path in and keep spacing.
+            float3 moveDirection = desiredDirection;
 
             // --- Speed ---
             float speed = 3f;
@@ -138,25 +188,7 @@ public partial struct FlowFieldMovementSystem : ISystem
                 speed = stats.BaseMoveSpeed * (1f + stats.MoveSpeed);
             }
 
-            // --- Stop distance ---
-            if (StopDistanceLookup.HasComponent(entity))
-            {
-                float stopDist = StopDistanceLookup[entity].Distance;
-                if (stopDist > 0f)
-                {
-                    float distToGoal = math.distance(transform.Position, FlowField.Origin);
-                    if (distToGoal <= stopDist)
-                    {
-                        float t = math.saturate(distToGoal / stopDist);
-                        moveDirection *= t;
-                        if (t < 0.05f)
-                            return;
-                    }
-                }
-            }
-
-            float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
-            float3 desiredPosition = transform.Position + moveDirection * (speed * DeltaTime);
+            float3 desiredPosition = transform.Position + moveDirection * (speed * speedFactor * DeltaTime);
 
             // --- Raycast terrain snap ---
             var input = new RaycastInput
@@ -187,12 +219,16 @@ public partial struct FlowFieldMovementSystem : ISystem
 
                 transform.Position += horizontalDelta + currentNormal * vertSmooth;
 
-                PlanetUtils.GetRotationOnSurface(in desiredDirection, hit.SurfaceNormal, out quaternion targetRotation);
-                transform.Rotation = math.slerp(transform.Rotation, targetRotation, DeltaTime * RotLerpSpeed);
+                PlanetUtils.GetRotationOnSurface(in faceDirection, hit.SurfaceNormal, out quaternion targetRotation);
+                transform.Rotation = math.slerp(transform.Rotation, targetRotation, DeltaTime * RotationLerpSpeed);
             }
             else
             {
                 transform.Position = desiredPosition;
+
+                // Keep turning to face the player even when off the navigable mesh.
+                PlanetUtils.GetRotationOnSurface(in faceDirection, currentNormal, out quaternion targetRotation);
+                transform.Rotation = math.slerp(transform.Rotation, targetRotation, DeltaTime * RotationLerpSpeed);
             }
         }
 

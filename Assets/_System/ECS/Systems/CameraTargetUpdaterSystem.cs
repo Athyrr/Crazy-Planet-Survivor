@@ -1,3 +1,4 @@
+using _System.Settings;
 using Unity.Cinemachine;
 using Unity.Transforms;
 using Unity.Entities;
@@ -14,6 +15,7 @@ public partial class CameraTargetUpdaterSystem : SystemBase
 {
     private Transform _cameraTargetTransform;
     private CinemachineOrbitalFollow _cameraTargetFollow;
+    private CinemachineHardLookAt _cameraHardLookAt;
     private bool _initialized;
 
     // Player entity the rig is currently following. The camera rig persists across scene
@@ -57,16 +59,26 @@ public partial class CameraTargetUpdaterSystem : SystemBase
         // The target transform stays at the planet center (0,0,0) to act as a pivot
         _cameraTargetTransform.position = Vector3.zero;
 
-        // Parallel Transport: Use the current Up vector as a hint to maintain consistent orientation.
-        // This prevents the camera from snapping or spinning wildly when passing through the planet's poles.
-        // On (re)spawn, seed from world up so every lobby/run entry reproduces the initial spawn POV.
         Vector3 currentUp = playerChanged ? Vector3.up : _cameraTargetTransform.up;
         if (math.abs(math.dot(toCenter, (float3)currentUp)) > 0.99f) currentUp = math.rotate(playerTransform.Rotation, new float3(0, 0, 1));
 
         _cameraTargetTransform.rotation = Quaternion.LookRotation(toCenter, currentUp);
+        
+        float radiusOffset = 35f; // fallback used when no planet data / settings asset is available
+        if (CpBaseCameraSettings.I != null && SystemAPI.TryGetSingleton<PlanetData>(out var planetData))
+        {
+            var cam = CpBaseCameraSettings.PlanetCameraSettings[planetData.PlanetID];
+
+            radiusOffset = cam.RadiusOffset;
+            _cameraTargetFollow.VerticalAxis.Value = cam.VerticalAxis;
+            _cameraTargetFollow.RadialAxis.Value = cam.RadialAxis;
+
+            if (_cameraHardLookAt != null)
+                _cameraHardLookAt.LookAtOffset = new Vector3(0f, dist + cam.LookAtOffsetY, 0f);
+        }
 
         // Smoothly interpolate the camera radius to prevent jittering caused by rapid height changes (e.g., terrain height maps)
-        _cameraTargetFollow.Radius = math.lerp(_cameraTargetFollow.Radius, dist + 35, SystemAPI.Time.DeltaTime * 5f);
+        _cameraTargetFollow.Radius = math.lerp(_cameraTargetFollow.Radius, dist + radiusOffset, SystemAPI.Time.DeltaTime * 5f);
     }
 
     /// <summary>
@@ -74,22 +86,20 @@ public partial class CameraTargetUpdaterSystem : SystemBase
     /// </summary>
     private void InitializeCameraTarget()
     {
-        if (CameraTargetComponent.Instance != null)
-        {
-            _cameraTargetTransform = CameraTargetComponent.Instance.transform;
-            _cameraTargetFollow = CameraTargetComponent.Instance.CameraTargetFollow;
-            _initialized = true;
-        }
-        else
-        {
-            var cameraTarget = GameObject.FindFirstObjectByType<CameraTargetComponent>();
-            if (cameraTarget != null)
-            {
-                _cameraTargetTransform = cameraTarget.transform;
-                _cameraTargetFollow = cameraTarget.CameraTargetFollow;
-                _initialized = true;
-            }
-        }
+        var cameraTarget = CameraTargetComponent.Instance != null
+            ? CameraTargetComponent.Instance
+            : GameObject.FindFirstObjectByType<CameraTargetComponent>();
+
+        if (cameraTarget == null)
+            return;
+
+        _cameraTargetTransform = cameraTarget.transform;
+        _cameraTargetFollow = cameraTarget.CameraTargetFollow;
+        // The aim (HardLookAt) lives on the same CinemachineCamera GameObject as the orbital body.
+        _cameraHardLookAt = _cameraTargetFollow != null
+            ? _cameraTargetFollow.GetComponent<CinemachineHardLookAt>()
+            : null;
+        _initialized = true;
     }
 
     protected override void OnDestroy()

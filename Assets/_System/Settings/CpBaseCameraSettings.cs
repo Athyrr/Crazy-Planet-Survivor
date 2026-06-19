@@ -11,7 +11,11 @@ namespace _System.Settings
         {
             public float VerticalAxis;
             public float RadialAxis;
-            
+
+            [Tooltip("Base distance the camera sits above the player's surface (added to the player's " +
+                     "distance from the planet centre). Replaces the old hard-coded +35.")]
+            public float RadiusOffset;
+
             public float LookAtOffsetY;
         }
         
