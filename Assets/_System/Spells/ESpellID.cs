@@ -21,9 +21,10 @@ public enum ESpellID : byte
     Enemy_Projectile = 12,
     Boss_ImpaleFire = 15,
     Boss_VortexFire = 16,
+    Boss_Fireball = 17,
 
     VoidSlash = 13,
-    VoidPulse = 14
+    VoidPulse = 14,
 }
 
 /// <summary>

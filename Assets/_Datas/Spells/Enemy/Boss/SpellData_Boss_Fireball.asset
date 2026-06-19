@@ -10,28 +10,28 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
-  m_Name: SpellData_VoidSlash
+  m_Name: SpellData_Boss_Fireball
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 13
-  Icon: {fileID: 21300000, guid: 74ed7bf73e1e447438851d4bd949ba83, type: 3}
-  DisplayName: Void Slash
+  ID: 17
+  Icon: {fileID: 1555579377, guid: 4e1d115e8afe1c74cb4527dc970b8362, type: 3}
+  DisplayName: Fireball
   Description: 
-  SpellPrefab: {fileID: 8462075292813735881, guid: 5e6b96901990f0342b1b7265a4a68b2f, type: 3}
+  SpellPrefab: {fileID: 486797506737824905, guid: ca05d02ecf4a7cb45af89a41c2820a8c, type: 3}
   Rarity: 0
-  Tags: 8389120
+  Tags: 4202752
   BaseDamage: 40
   BaseCooldown: 1
-  BaseSpeed: 80
+  BaseSpeed: 10
   BaseSpawnOffset: {x: 0, y: 0, z: 0}
-  BaseCastRange: 5
-  SizeScalesRange: 1
-  BaseSize: 2
+  BaseCastRange: 30
+  SizeScalesRange: 0
+  BaseSize: 1
   TargetingMode: 0
-  Lifetime: 0.8
+  Lifetime: 5
   Bounces: 0
   BounceRange: 0
   Pierces: 0
-  TickRate: 1
+  TickRate: -1
   ChildPrefab: {fileID: 0}
   BaseAmount: 1
-  ChildrenSpawnRadius: 0
+  ChildrenSpawnRadius: 1
