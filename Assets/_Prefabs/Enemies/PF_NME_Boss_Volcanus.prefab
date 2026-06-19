@@ -197,27 +197,29 @@ MonoBehaviour:
   MainRenderer: {fileID: 5275413370969737620}
   UseSnappedMovement: 1
   BaseStats:
-    MaxHealth: 20000
-    HealthRegen: 4
+    MaxHealth: 5000
+    HealthRegen: 2
     BaseArmor: 0
     Armor: 0
-    BaseMoveSpeed: 3
+    BaseMoveSpeed: 4
     MoveSpeed: 0
     BasePickupRange: 0
     PickupRange: 0
     Damage: 10
     AttackSpeed: 0.1
-    SpellSize: 5
+    SpellSize: 0.5
     SpellSpeed: 0
     SpellDuration: 0
     CastRange: 0
     Amount: 2
     Pierce: 0
     Bounce: 0
-    CritChance: 0
-    CritDamage: 0
+    CritChance: 0.2
+    CritDamage: 0.5
+    Luck: 0
   InitialSpells:
   - {fileID: 11400000, guid: 84ec68c1a07e93b4ca70521509af9d9e, type: 2}
+  - {fileID: 11400000, guid: e3e2453ccd5bec541a39f28525b3ad10, type: 2}
 --- !u!114 &7077652745905088192
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -284,7 +286,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b3af2add97523844b15be64c5c152e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossAuthoring
-  Config: {fileID: 11400000, guid: 04e380c863c19ed4098f7109a327af6d, type: 2}
+  Config: {fileID: 11400000, guid: 8d8478d39afeb7f41b4b0031e2457711, type: 2}
 --- !u!1 &8762414058341912128
 GameObject:
   m_ObjectHideFlags: 0
