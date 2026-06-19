@@ -1,3 +1,4 @@
+using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -9,6 +10,9 @@ public class RunManager : MonoBehaviour
     public UpgradeSelectionUIController UpgradeSelectionController;
     public GameOverUIController GameOverUIController;
 
+    [Tooltip("Boss name card (disabled by default). Activated + played when the final boss appears.")]
+    public BossAppearMessageUI BossAppearMessage;
+
     public GameObject PausePanel;
 
     private EntityManager _entityManager;
@@ -17,6 +21,10 @@ public class RunManager : MonoBehaviour
     private EntityQuery _playerQuery;
     private EntityQuery _openUpgradesRequestQuery;
     private EntityQuery _gameStateQuery;
+    private EntityQuery _finalBossQuery;
+
+    // True once the current final boss's appear-message has been played (reset when no boss is present).
+    private bool _bossAnnounced;
 
     // Bumped on each state change so a hide-completion can tell whether its transition is still current.
     private int _transitionGen;
@@ -45,6 +53,9 @@ public class RunManager : MonoBehaviour
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _endRunQuery = _entityManager.CreateEntityQuery(typeof(EndRunRequest));
         _playerQuery = _entityManager.CreateEntityQuery(typeof(Player));
+        _finalBossQuery = _entityManager.CreateEntityQuery(
+            ComponentType.ReadOnly<FinalBossTag>(),
+            ComponentType.ReadOnly<BossPresentation>());
 
         InitPanels();
     }
@@ -55,6 +66,42 @@ public class RunManager : MonoBehaviour
 
         CheckEndRun();
         CheckOpenUpgradesRequest();
+        CheckBossAppearance();
+    }
+
+    /// <summary>
+    /// When the planet's final boss appears (its <see cref="FinalBossTag"/> entity exists), activate the
+    /// boss name card and play its reveal once. Re-arms when no final boss is present.
+    /// </summary>
+    private void CheckBossAppearance()
+    {
+        if (GameManager.Instance.GetGameState() != EGameState.Running)
+            return;
+
+        if (_finalBossQuery.IsEmpty)
+        {
+            _bossAnnounced = false;
+            return;
+        }
+
+        if (_bossAnnounced || BossAppearMessage == null)
+            return;
+
+        _bossAnnounced = true;
+
+        string bossName = string.Empty;
+        _finalBossQuery.CompleteDependency();
+        var entities = _finalBossQuery.ToEntityArray(Allocator.Temp);
+        if (entities.Length > 0)
+        {
+            var presentation = _entityManager.GetComponentObject<BossPresentation>(entities[0]);
+            if (presentation != null)
+                bossName = presentation.DisplayName;
+        }
+        entities.Dispose();
+
+        BossAppearMessage.gameObject.SetActive(true);
+        BossAppearMessage.Show(bossName);
     }
 
     private void InitPanels()
