@@ -2,37 +2,20 @@ using Unity.Mathematics;
 using Unity.Entities;
 
 /// <summary>
-/// Spawner runtime state. Tracks the progression of waves and spawning logic.
+/// Spawner runtime state. Per-wave progression (timer, kills) lives in the <see cref="WaveRuntime"/>
+/// buffer so that several waves can be active at once (a "lead" wave plus looping waves repeating in
+/// parallel behind it). Only the lead pointer and the global enemy count are scalars here.
 /// </summary>
 public struct SpawnerState : IComponentData
 {
-    // Wave tracking
+    /// <summary>
+    /// Index of the "lead" wave — the frontier of sequential progression (preserves 1st, 2nd, 3rd...
+    /// continuity). -1 means the spawner still has to initialize and start wave 0.
+    /// </summary>
     public int CurrentWaveIndex;
 
-    /// <summary> 
-    /// Countdown timer for the currently active wave.
-    /// </summary>
-    public float WaveTimer;
-    public bool IsWaveActive;
-
-    /// <summary> 
-    /// Tracks how many enemies have been spawned so far in the current wave.
-    /// </summary>
-    public int TotalEnemiesSpawnedInWave;
-
     /// <summary>
-    /// Tracks the number of enemies killed in the current wave (used for Kill Percentage).
-    /// </summary>
-    public int EnemiesKilledInWave;
-
-    /// <summary>
-    /// Pre-calculated total of enemies to spawn in this wave (used to calculate the kill ratio).
-    /// </summary>
-    public int TotalEnemiesToSpawnInWave;
-
-    // Global counter
-    /// <summary> 
-    /// Current number of active enemies in the entire game.
+    /// Current number of active enemies in the entire game (the hard cap is shared by every active wave).
     /// </summary>
     public int ActiveEnemyCount;
 }
@@ -97,10 +80,25 @@ public struct Wave : IBufferElementData
     /// </summary>
     public int GroupCount;
 
-    /// <summary> 
+    /// <summary>
     /// Pre-calculated during the Baking process to avoid looping over groups at runtime.
     /// </summary>
     public int TotalEnemyCount;
+
+    /// <summary>
+    /// If true, once this wave finishes its first run (timeout or kill %) it keeps repeating its groups
+    /// over and over, in parallel with the waves that follow. The first iteration still happens in
+    /// sequence; subsequent iterations run as a background loop. Stripped at bake time for any wave that
+    /// contains a final boss (a looping win-boss would respawn and end the run repeatedly).
+    /// </summary>
+    public bool Loop;
+
+    /// <summary>
+    /// If true, this whole wave's enemies spawn around the final boss's live position (a ring using each
+    /// group's Min/MaxRange) instead of each group's normal mode. The wave does nothing until a final boss
+    /// exists. Pace it with the wave's Duration/KillPercentage and each group's SpawnDelay.
+    /// </summary>
+    public bool AroundBoss;
 }
 
 /// <summary>
@@ -154,4 +152,26 @@ public struct SpawnGroupRuntime : IBufferElementData
     /// Stays negative to carry a backlog (catch-up) when a frame is long or the frame budget is saturated.
     /// </summary>
     public float SpawnTimer;
+}
+
+/// <summary>
+/// Per-wave runtime state, index-aligned 1:1 with the <see cref="Wave"/> buffer. Several entries can be
+/// <see cref="Active"/> simultaneously: the lead wave plus any number of looping waves repeating in
+/// parallel behind it.
+/// </summary>
+public struct WaveRuntime : IBufferElementData
+{
+    /// <summary> True while this wave is currently spawning/looping. </summary>
+    public bool Active;
+
+    /// <summary>
+    /// Countdown for the current iteration. Reloaded with the wave's period whenever the wave is (re)armed.
+    /// </summary>
+    public float Timer;
+
+    /// <summary>
+    /// Enemies killed in the current iteration of this wave (drives the kill-percentage condition).
+    /// Reset every time the wave is (re)armed.
+    /// </summary>
+    public int KilledCount;
 }

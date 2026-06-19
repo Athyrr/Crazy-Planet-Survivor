@@ -52,9 +52,19 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
         [Tooltip("Maximum duration of the wave in seconds before force-starting the next one.")]
         public float Duration;
 
-        [Tooltip("Percentage of total wave enemies (0-1) that must be killed to trigger the next wave early.")]
+        [Tooltip("Percentage of total wave enemies (0-1) that must be killed to trigger the next wave early. " +
+                 "Set to 0 to disable the kill condition (advance on Duration only).")]
         [Range(0f, 1f)]
         public float KillPercentageToAdvance;
+
+        [Tooltip("If enabled, after its first run this wave keeps repeating its groups over and over, in " +
+                 "parallel with the following waves. Ignored (and stripped) for a wave that contains a final boss.")]
+        public bool Loop;
+
+        [Tooltip("If enabled, this wave's enemies spawn around the final boss (a ring using each group's " +
+                 "Min/MaxRange) instead of their group's normal mode. Must be placed after the boss wave; the " +
+                 "wave waits until a final boss exists.")]
+        public bool AroundBoss;
 
         [Tooltip("List of enemy groups to spawn in this wave.")]
         public SpawnGroupData[] Groups;
@@ -158,12 +168,13 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
             // Spawn State
             AddComponent(entity, new SpawnerState
             {
-                CurrentWaveIndex = -1, // -1 indicates the system needs to initialize the first wave
-                IsWaveActive = false
+                CurrentWaveIndex = -1 // -1 indicates the system needs to initialize the first wave
             });
 
             // 3. Buffers
             var waveBuffer = AddBuffer<Wave>(entity);
+            // Runtime state, kept index-aligned 1:1 with waveBuffer (armed per wave at runtime).
+            var waveRuntimeBuffer = AddBuffer<WaveRuntime>(entity);
             var groupBuffer = AddBuffer<SpawnGroup>(entity);
             // Runtime state, kept index-aligned 1:1 with groupBuffer (filled per wave at runtime).
             var groupRuntimeBuffer = AddBuffer<SpawnGroupRuntime>(entity);
@@ -173,8 +184,11 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
             // Fill Groups Buffer
             foreach (var waveData in authoring.Waves)
             {
-                int groupsInThisWave = waveData.Groups != null ? waveData.Groups.Length : 0;
+                // Count only the groups actually added (null-prefab groups are skipped), so GroupStartIndex
+                // and GroupCount stay aligned with the buffers the runtime indexes into.
+                int groupsAddedInThisWave = 0;
                 int totalEnemiesInWave = 0;
+                bool waveContainsFinalBoss = false;
 
                 if (waveData.Groups != null)
                 {
@@ -184,6 +198,9 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
                             continue;
 
                         totalEnemiesInWave += groupData.Amount;
+
+                        if (ContainsFinalBoss(groupData.Prefab))
+                            waveContainsFinalBoss = true;
 
                         groupBuffer.Add(new SpawnGroup
                         {
@@ -199,7 +216,20 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
 
                         // Mirror entry; activated (Remaining set) when its wave starts.
                         groupRuntimeBuffer.Add(new SpawnGroupRuntime { Remaining = 0, SpawnTimer = 0f });
+
+                        groupsAddedInThisWave++;
                     }
+                }
+
+                // A looping wave containing the final boss would respawn it after death and emit several
+                // EndRunRequest{Success} (RunManager.CheckEndRun uses GetSingletonEntity -> would throw).
+                bool loop = waveData.Loop;
+                if (loop && waveContainsFinalBoss)
+                {
+                    UnityEngine.Debug.LogWarning(
+                        $"[EnemiesSpawnerAuthoring] Wave '{waveData.Name}' is marked Loop but contains a final " +
+                        "boss; disabling Loop for it (a looping boss would win the run repeatedly).");
+                    loop = false;
                 }
 
                 // Fill Waves Buffer
@@ -208,13 +238,31 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
                     Duration = waveData.Duration,
                     KillPercentage = waveData.KillPercentageToAdvance,
                     GroupStartIndex = currentGroupStartIndex,
-                    GroupCount = groupsInThisWave,
-                    TotalEnemyCount = totalEnemiesInWave
+                    GroupCount = groupsAddedInThisWave,
+                    TotalEnemyCount = totalEnemiesInWave,
+                    Loop = loop,
+                    AroundBoss = waveData.AroundBoss
                 });
 
+                // Mirror entry; armed (Active/Timer set) when its wave starts.
+                waveRuntimeBuffer.Add(new WaveRuntime { Active = false, Timer = 0f, KilledCount = 0 });
+
                 // Advance the start index for the next wave
-                currentGroupStartIndex += groupsInThisWave;
+                currentGroupStartIndex += groupsAddedInThisWave;
             }
+        }
+
+        /// <summary>
+        /// True if the prefab carries a <see cref="BossAuthoring"/> configured as a final boss (or with no
+        /// config, which BossAuthoring itself defaults to FinalBoss). Used to forbid looping a boss wave.
+        /// </summary>
+        private bool ContainsFinalBoss(GameObject prefab)
+        {
+            var boss = GetComponent<BossAuthoring>(prefab);
+            if (boss == null)
+                return false;
+
+            return boss.Config == null || boss.Config.Kind == EBossKind.FinalBoss;
         }
     }
 }
