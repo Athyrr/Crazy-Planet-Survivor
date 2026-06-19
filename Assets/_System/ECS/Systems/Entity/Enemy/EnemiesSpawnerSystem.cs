@@ -32,6 +32,13 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
     //todo allocate Ms budget et dispacth into frames
 
+    // Base (prefab) stats read at spawn to apply difficulty HP scaling without touching live enemies.
+    private ComponentLookup<Health> _baseHealthLookup;
+    private ComponentLookup<CoreStats> _baseCoreStatsLookup;
+
+    // Current spawn-time HP multiplier from time + kills (1 = no scaling). Recomputed each frame.
+    private float _healthMult;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -42,6 +49,9 @@ public partial struct EnemiesSpawnerSystem : ISystem
         state.RequireForUpdate<SpawnerState>();
         state.RequireForUpdate<PlanetData>();
         state.RequireForUpdate<Player>();
+
+        _baseHealthLookup = state.GetComponentLookup<Health>(true);
+        _baseCoreStatsLookup = state.GetComponentLookup<CoreStats>(true);
 
         //_playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
     }
@@ -62,6 +72,21 @@ public partial struct EnemiesSpawnerSystem : ISystem
         DynamicBuffer<SpawnGroupRuntime> groupRuntimes = SystemAPI.GetSingletonBuffer<SpawnGroupRuntime>(false);
         SpawnerSettings settings = SystemAPI.GetSingleton<SpawnerSettings>();
 
+        // Difficulty HP scaling (time + kills): recompute the spawn-time multiplier this frame.
+        _baseHealthLookup.Update(ref state);
+        _baseCoreStatsLookup.Update(ref state);
+        EnemyScalingConfig scaleCfg = SystemAPI.TryGetSingleton<EnemyScalingConfig>(out var cfg)
+            ? cfg
+            : EnemyScalingConfig.Default;
+        _healthMult = 1f;
+        if (SystemAPI.HasSingleton<RunProgression>())
+        {
+            // Read RunProgression via EntityManager (not a ComponentTypeHandle/SystemAPI query read) so the
+            // RunProgressionSystem write-job is completed first — avoids a read-after-write job hazard.
+            var runProgEntity = SystemAPI.GetSingletonEntity<RunProgression>();
+            var runProg = state.EntityManager.GetComponentData<RunProgression>(runProgEntity);
+            _healthMult = scaleCfg.ComputeHealthMult(runProg.Timer, runProg.EnemiesKilledCount);
+        }
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
@@ -314,7 +339,10 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 PlanetCenter = planetTransform.Position,
                 PlanetRadius = planetData.Radius,
                 BossPosition = bossPosition,
-                BaseSeed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1
+                BaseSeed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
+                HealthMult = _healthMult,
+                BaseHealthLookup = _baseHealthLookup,
+                BaseCoreStatsLookup = _baseCoreStatsLookup
             };
 
             systemState.Dependency = spawnJob.ScheduleParallel(commands.Length, 64, systemState.Dependency);
@@ -434,6 +462,11 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
         // Frame-stable base; combined with the command index for a unique per-entity seed.
         public uint BaseSeed;
+
+        // Difficulty HP scaling (1 = none). Base stats are read from the prefab entity.
+        public float HealthMult;
+        [ReadOnly] public ComponentLookup<Health> BaseHealthLookup;
+        [ReadOnly] public ComponentLookup<CoreStats> BaseCoreStatsLookup;
 
         public void Execute(int index)
         {
@@ -621,6 +654,24 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
             // Instantiate the enemy from the prefab
             Entity entity = ECB.Instantiate(index, cmd.Prefab);
+
+            // Difficulty HP scaling (time + kills): override the instantiated copy's Health from the
+            // prefab's base value, so a unit's toughness is fixed by WHEN it spawned (not re-buffed later).
+            if (HealthMult > 1f)
+            {
+                if (BaseHealthLookup.HasComponent(cmd.Prefab))
+                {
+                    int baseHp = BaseHealthLookup[cmd.Prefab].Value;
+                    ECB.SetComponent(index, entity, new Health { Value = (int)math.round(baseHp * HealthMult) });
+                }
+
+                if (BaseCoreStatsLookup.HasComponent(cmd.Prefab))
+                {
+                    var cs = BaseCoreStatsLookup[cmd.Prefab];
+                    cs.MaxHealth *= HealthMult;
+                    ECB.SetComponent(index, entity, cs);
+                }
+            }
 
             // Entity orientation
             float3 randomTangent = rand.NextFloat3Direction();
