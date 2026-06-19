@@ -165,6 +165,8 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
             // 3. Buffers
             var waveBuffer = AddBuffer<Wave>(entity);
             var groupBuffer = AddBuffer<SpawnGroup>(entity);
+            // Runtime state, kept index-aligned 1:1 with groupBuffer (filled per wave at runtime).
+            var groupRuntimeBuffer = AddBuffer<SpawnGroupRuntime>(entity);
 
             int currentGroupStartIndex = 0;
 
@@ -194,6 +196,9 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
                             MaxRange = groupData.MaxRange,
                             Scale = groupData.Scale
                         });
+
+                        // Mirror entry; activated (Remaining set) when its wave starts.
+                        groupRuntimeBuffer.Add(new SpawnGroupRuntime { Remaining = 0, SpawnTimer = 0f });
                     }
                 }
 

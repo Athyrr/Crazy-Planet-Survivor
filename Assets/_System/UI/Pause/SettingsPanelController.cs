@@ -54,7 +54,7 @@ public class SettingsPanelController : UIControllerBase
     public TMP_Text SfxValue;
 
     [Tooltip("Volume change applied per Left/Right step while editing a volume row.")]
-    [Range(0.05f, 0.5f)]
+    [Range(0.01f, 0.5f)]
     public float VolumeStep = 0.1f;
 
     private ISettingsControllerOwner _owner;

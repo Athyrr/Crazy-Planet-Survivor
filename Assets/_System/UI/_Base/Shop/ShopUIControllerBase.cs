@@ -42,17 +42,12 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
     [Header("Button")] public Button ActionButton;
     public TMP_Text ActionButtonText;
 
-    [Tooltip("Optional highlight (frame/glow) shown when the purchase button is focused via controller.")]
-    public GameObject PurchaseFocusHighlight;
-
     [Tooltip("Scale applied to the purchase button while it is focused (controller feedback).")]
     public float PurchaseFocusScale = 1.1f;
 
+    [Tooltip("Label shown on the action button when the action is a purchase (e.g. \"BUY\"). " +
+             "The text color is centralized in CpUISettings.PurchaseTextColor.")]
     public string PurchaseText = String.Empty;
-    public Color PurchaseColor = Color.yellow;
-
-    public string ChooseText = String.Empty;
-    public Color ChooseColor = Color.white;
 
     [Tooltip("Columns of the list, used for controller up/down navigation. 1 = a linear list " +
              "(up/down step by one, like left/right).")]
@@ -423,7 +418,7 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
         if (showPurchase)
         {
             ActionButtonText.text = PurchaseText;
-            ActionButtonText.color = PurchaseColor;
+            ActionButtonText.color = CpUISettings.PurchaseTextColor;
         }
         else
         {
@@ -433,9 +428,8 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
     }
 
     /// <summary>
-    /// Highlights the purchase button when an item is committed via controller. Uses an optional
-    /// frame plus a subtle scale so it works even without a wired highlight. No-op while the button
-    /// is hidden.
+    /// Highlights the purchase button when an item is committed via controller, using a subtle scale.
+    /// The committed item's own border outline carries the frame/glow. No-op while the button is hidden.
     /// </summary>
     protected void SetPurchaseFocused(bool focused)
     {
@@ -443,9 +437,6 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
             return;
 
         bool canShow = focused && ActionButton.gameObject.activeSelf;
-
-        if (PurchaseFocusHighlight != null)
-            PurchaseFocusHighlight.SetActive(canShow);
 
         if (_purchaseFocusTween.isAlive)
             _purchaseFocusTween.Stop();

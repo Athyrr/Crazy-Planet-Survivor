@@ -11,6 +11,8 @@ public class AmuletViewItem : UIViewItemBase
     [SerializeField] private TMP_Text _label;
     [SerializeField] private Image _icon;
     [SerializeField] private Image _border;
+    [Tooltip("Badge shown when this amulet is the currently equipped one.")]
+    [SerializeField] private TMP_Text _equippedLabel;
 
     [SerializeField] private ResourceDatabaseSO _resourceDatabase;
 
@@ -20,6 +22,7 @@ public class AmuletViewItem : UIViewItemBase
     private AmuletShopUIController _controller;
     private int _databaseIndex;
     private bool _isUnlocked;
+    private bool _isEquipped;
     private bool _isHovered;
     private bool _isFocused;
     private bool _isSelected;
@@ -29,11 +32,12 @@ public class AmuletViewItem : UIViewItemBase
     private static readonly int BackgroundColorShaderProperty = Shader.PropertyToID("_BackgroundColor");
     private static readonly int OutlineColorShaderProperty = Shader.PropertyToID("_OutlineColor");
 
-    public void Init(AmuletShopUIController controller, int index, AmuletSO amuletData, bool isUnlocked)
+    public void Init(AmuletShopUIController controller, int index, AmuletSO amuletData, bool isUnlocked, bool isEquipped)
     {
         _controller = controller;
         _databaseIndex = index;
         _isUnlocked = isUnlocked;
+        _isEquipped = isEquipped;
 
         _label.text = amuletData.DisplayName;
         _icon.sprite = amuletData.Icon;
@@ -102,13 +106,21 @@ public class AmuletViewItem : UIViewItemBase
     {
         _icon.enabled = _isUnlocked;
 
-        // todo @hyverno set background with rarity when integrate (BackgroundColorShaderProperty)
+        if (_equippedLabel != null)
+        {
+            _equippedLabel.gameObject.SetActive(_isEquipped);
+            _equippedLabel.color = CpUISettings.EquippedLabelColor;
+        }
 
         _label.color = GetTextColor();
 
-        Color targetColor = GetBorderColor();
         if (_border.material != null)
-            _border.material.SetColor(OutlineColorShaderProperty, targetColor);
+        {
+            _border.material.SetColor(OutlineColorShaderProperty, GetBorderColor());
+            // Owned amulets get a lighter background (read as "acquired"); unbought stay dark.
+            _border.material.SetColor(BackgroundColorShaderProperty,
+                _isUnlocked ? CpUISettings.ItemBackgroundOwned : CpUISettings.ItemBackground);
+        }
     }
 
     private void RefreshScale()
@@ -131,13 +143,9 @@ public class AmuletViewItem : UIViewItemBase
     private Color GetBorderColor()
         => CpUISettings.GetItemOutlineColor(_isSelected, IsHighlighted, _isUnlocked);
 
-    // Shop items intentionally use their own Complementary color scheme and are NOT tied to the unified
-    // menu/settings label hover color (CpUISettings.LabelHighlightColor / MainColorOver).
+    // Shop items share the common content-color resolver (Complementary scheme). Amulets are binary
+    // (owned / locked) with no maxed state, and "locked" here only means "not yet bought" — the name
+    // is never greyed — so maxed/locked are passed false and only the active / idle colors apply.
     private Color GetTextColor()
-    {
-        if (_isSelected || IsHighlighted)
-            return CpUISettings.ComplementaryColor;
-
-        return CpUISettings.ComplementaryColorOver;
-    }
+        => CpUISettings.GetItemContentColor(_isSelected || IsHighlighted, isMaxed: false, isLocked: false);
 }

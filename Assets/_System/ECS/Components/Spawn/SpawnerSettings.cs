@@ -26,19 +26,9 @@ public struct SpawnerState : IComponentData
     public int EnemiesKilledInWave;
 
     /// <summary>
-    /// Pre-calculated total of enemies to spawn in this wave (used to calculate the kill ratio). 
+    /// Pre-calculated total of enemies to spawn in this wave (used to calculate the kill ratio).
     /// </summary>
     public int TotalEnemiesToSpawnInWave;
-
-    /// <summary> 
-    /// The index of the spawn group currently being processed. 
-    /// </summary>
-    public int CurrentGroupIndex;
-
-    /// 
-    /// <summary> How many enemies are left to spawn in the current group. 
-    /// </summary>
-    public int RemainingSpawnsInGroup;
 
     // Global counter
     /// <summary> 
@@ -147,4 +137,21 @@ public struct SpawnGroup : IBufferElementData
     /// Used to spawn larger entities such as bosses without shrinking them to 1.
     /// </summary>
     public float Scale;
+}
+
+/// <summary>
+/// Per-group runtime spawn state, index-aligned 1:1 with the <see cref="SpawnGroup"/> buffer.
+/// Lets every group of the active wave "popcorn" its enemies independently and in parallel,
+/// each on its own <see cref="SpawnGroup.SpawnDelay"/> cadence.
+/// </summary>
+public struct SpawnGroupRuntime : IBufferElementData
+{
+    /// <summary> Enemies still to spawn for this group in the active wave. 0 = done / inactive. </summary>
+    public int Remaining;
+
+    /// <summary>
+    /// Countdown until the next enemy pops. Reloaded with <see cref="SpawnGroup.SpawnDelay"/> after each spawn.
+    /// Stays negative to carry a backlog (catch-up) when a frame is long or the frame budget is saturated.
+    /// </summary>
+    public float SpawnTimer;
 }

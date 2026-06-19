@@ -18,13 +18,17 @@ public class CharacterShopViewItem : UIViewItemBase
              "Its _OutlineColor is driven by the shared CpBaseUISettings item-outline colors. " +
              "Leave empty to fall back to tinting the label only.")]
     [SerializeField] private Image _border;
+    [Tooltip("Badge shown when this character is the currently selected (equipped) one.")]
+    [SerializeField] private TMP_Text _equippedLabel;
 
     private static readonly int OutlineColorShaderProperty = Shader.PropertyToID("_OutlineColor");
+    private static readonly int BackgroundColorShaderProperty = Shader.PropertyToID("_BackgroundColor");
 
     private CharacterShopUIController _controller;
     private CharacterSO _data;
     private int _index;
     private bool _isUnlocked;
+    private bool _isEquipped;
 
     private bool _isHovered;
     private bool _isFocused;
@@ -33,12 +37,13 @@ public class CharacterShopViewItem : UIViewItemBase
     private Tween _scaleTween;
 
     public void Init(CharacterShopUIController shopController, int index, CharacterSO data,
-        bool isUnlocked)
+        bool isUnlocked, bool isEquipped)
     {
         _controller = shopController;
         _data = data;
         _index = index;
         _isUnlocked = isUnlocked;
+        _isEquipped = isEquipped;
 
         // The item receives pointer events directly; the button is kept only as a raycast target,
         // so it must not also trigger focus on click (would double-fire).
@@ -127,18 +132,27 @@ public class CharacterShopViewItem : UIViewItemBase
             transform, target, CpUISettings.HoverDuration, CpUISettings.HoverEase, useUnscaledTime: true);
     }
 
-    // Shop items intentionally use their own Complementary color scheme and are NOT tied to the unified
-    // menu/settings label hover color (CpUISettings.LabelHighlightColor / MainColorOver).
+    // Shop items share the common content-color resolver (Complementary scheme), NOT the menu/settings
+    // label hover color. Characters are binary (owned / locked) with no maxed state and the name is
+    // never greyed, so maxed/locked are passed false and only the active / idle colors apply.
     private void RefreshVisual()
     {
         if (Text != null)
-            Text.color = (_isSelected || IsHighlighted)
-                ? CpUISettings.ComplementaryColor
-                : CpUISettings.ComplementaryColorOver;
+            Text.color = CpUISettings.GetItemContentColor(_isSelected || IsHighlighted, isMaxed: false, isLocked: false);
 
-        // Border outline color follows the shared item-outline settings (like the amulet item).
+        if (_equippedLabel != null)
+        {
+            _equippedLabel.gameObject.SetActive(_isEquipped);
+            _equippedLabel.color = CpUISettings.EquippedLabelColor;
+        }
+
+        // Border material drives both the outline color and the background fill (like the amulet item).
         if (_border != null && _border.material != null)
+        {
             _border.material.SetColor(OutlineColorShaderProperty,
                 CpUISettings.GetItemOutlineColor(_isSelected, IsHighlighted, _isUnlocked));
+            _border.material.SetColor(BackgroundColorShaderProperty,
+                _isUnlocked ? CpUISettings.ItemBackgroundOwned : CpUISettings.ItemBackground);
+        }
     }
 }

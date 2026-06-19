@@ -1,9 +1,14 @@
 using System.Collections.Generic;
 using Unity.Entities;
+using UnityEngine;
 
 public class UpgradeSelectionUIController : UIControllerBase
 {
     public UpgradeSelectionView View;
+
+    [Tooltip("Spells database (managed) used to resolve a card's spell tags / level. " +
+             "Indexed the same way as ActiveSpell.DatabaseIndex.")]
+    public SpellDatabaseSO SpellsDatabase;
 
     private RunManager _runManager;
     private EntityManager _entityManager;
@@ -66,7 +71,40 @@ public class UpgradeSelectionUIController : UIControllerBase
         var blobs = _entityManager.GetComponentData<UpgradesDatabase>(dbEntity).Blobs;
         ref var upgradesDatabase = ref blobs.Value.Upgrades;
 
-        View.SpawnAndLayoutCards(_pendingIndices, ref upgradesDatabase);
+        var context = BuildDisplayContext();
+        View.SpawnAndLayoutCards(_pendingIndices, ref upgradesDatabase, in context);
+    }
+
+    /// <summary>
+    /// Snapshots the live data the cards need but the static upgrade blob lacks: the player's current
+    /// stats (stat before → after), a copy of the player's active spells (spell level + spell-stat
+    /// before → after) and the spells database (spell id → tags / index).
+    /// </summary>
+    private UpgradeDisplayContext BuildDisplayContext()
+    {
+        var context = new UpgradeDisplayContext { SpellsDatabase = SpellsDatabase };
+
+        if (_playerQuery.IsEmptyIgnoreFilter)
+            return context;
+
+        var playerEntity = _playerQuery.GetSingletonEntity();
+
+        if (_entityManager.HasComponent<CoreStats>(playerEntity))
+        {
+            context.PlayerStats = _entityManager.GetComponentData<CoreStats>(playerEntity);
+            context.HasPlayerStats = true;
+        }
+
+        if (_entityManager.HasBuffer<ActiveSpell>(playerEntity))
+        {
+            var buffer = _entityManager.GetBuffer<ActiveSpell>(playerEntity, isReadOnly: true);
+            var spells = new List<ActiveSpell>(buffer.Length);
+            for (int i = 0; i < buffer.Length; i++)
+                spells.Add(buffer[i]);
+            context.ActiveSpells = spells;
+        }
+
+        return context;
     }
 
     private void HandleUpgradeSelected(int databaseIndex)

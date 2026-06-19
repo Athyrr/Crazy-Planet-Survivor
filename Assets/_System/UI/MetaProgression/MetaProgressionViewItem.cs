@@ -7,8 +7,9 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Grid item for the meta-progression shop.
-/// Displays the upgrade icon with level pips (filled/empty) and reacts to interaction
-/// (hover / selected) and content (locked / maxed) states via sprite-swap + tint.
+/// Shows the upgrade icon + name with a "level / max" text indicator, and reacts to interaction
+/// (hover / focus / selected) and content (locked / maxed) states using the shared
+/// outline + background model and colors from <see cref="CpUISettings"/> (like the amulet item).
 /// </summary>
 public class MetaProgressionViewItem : UIViewItemBase
 {
@@ -17,40 +18,27 @@ public class MetaProgressionViewItem : UIViewItemBase
     [SerializeField] private TMP_Text _nameLabel;
     [SerializeField] private Button _button;
 
-    [Header("State Graphic (optional)")]
-    [Tooltip("Background/border image used for the hover / selected / locked sprite-swap and tint. " +
-             "Leave empty to fall back to tinting the icon + label only.")]
-    [SerializeField] private Image _stateGraphic;
-
-    [Header("Outline (optional)")]
-    [Tooltip("Border image using the element-outline material (like the amulet item). " +
-             "Its _OutlineColor is driven by the shared CpBaseUISettings item-outline colors.")]
+    [Header("Outline / Background")]
+    [Tooltip("Border image using the element-outline material. Its _OutlineColor and _BackgroundColor " +
+             "follow the shared CpUISettings item colors (background lighter once maxed).")]
     [SerializeField] private Image _border;
 
     [Header("Level Pips")]
-    [SerializeField] private Image[] _pips;          // 5 pips, order: left-to-right
-    [SerializeField] private Sprite _pipFilled;
-    [SerializeField] private Sprite _pipEmpty;
-
-    [Header("State Sprites (optional, applied to State Graphic)")]
-    [SerializeField] private Sprite _normalSprite;
-    [SerializeField] private Sprite _hoverSprite;
-    [SerializeField] private Sprite _selectedSprite;
-    [SerializeField] private Sprite _lockedSprite;
-
-    [Header("State Colors")]
-    [SerializeField] private Color _normalColor = Color.white;
-    [SerializeField] private Color _focusedColor = new Color(1f, 0.84f, 0f);   // gold (hover)
-    [SerializeField] private Color _selectedColor = new Color(1f, 0.55f, 0f);  // orange (committed)
-    [SerializeField] private Color _lockedColor = new Color(0.45f, 0.45f, 0.45f); // greyed (can't afford)
-    [SerializeField] private Color _maxedColor = new Color(0.2f, 1f, 0.2f);    // green (maxed)
+    [Tooltip("Container holding the generated level pips (e.g. a HorizontalLayoutGroup). One pip is " +
+             "generated per max level: filled up to the current level, the next one previewed when focused.")]
+    [SerializeField] private RectTransform _pipsContainer;
+    [Tooltip("Template pip Image, cloned once per max level. Kept disabled; its clones are activated.")]
+    [SerializeField] private Image _pipTemplate;
 
     private static readonly int OutlineColorShaderProperty = Shader.PropertyToID("_OutlineColor");
+    private static readonly int BackgroundColorShaderProperty = Shader.PropertyToID("_BackgroundColor");
 
     private MetaProgressionController _controller;
     private int _databaseIndex;
     private int _currentLevel;
     private int _maxLevel;
+
+    private Image[] _pipImages;
 
     private bool _isHovered;   // pointer over (PC) — highlight only
     private bool _isFocused;   // navigation cursor / clicked item — highlight + details
@@ -62,6 +50,7 @@ public class MetaProgressionViewItem : UIViewItemBase
     public int DatabaseIndex => _databaseIndex;
 
     private bool IsMaxed => _currentLevel >= _maxLevel;
+    private bool IsHighlighted => _isFocused || _isHovered;
 
     public void Init(MetaProgressionController controller, int index, MetaUpgradeSO data, int level, bool canAfford)
     {
@@ -73,7 +62,7 @@ public class MetaProgressionViewItem : UIViewItemBase
         if (_icon != null) _icon.sprite = data.Icon;
         if (_nameLabel != null) _nameLabel.text = data.DisplayName;
 
-        // Button kept for layout only — OnPointerClick/OnPointerEnter handle interactions.
+        // Button kept for layout / raycast only — OnPointerClick/OnPointerEnter handle interactions.
         if (_button != null)
             _button.interactable = false;
 
@@ -86,12 +75,13 @@ public class MetaProgressionViewItem : UIViewItemBase
         _isSelected = false;
         _isLocked = !canAfford && !IsMaxed;
 
+        BuildPips();
+
         // Pooled items can be reused while still scaled from a previous hover — reset instantly.
         if (_scaleTween.isAlive)
             _scaleTween.Stop();
         transform.localScale = Vector3.one;
 
-        RefreshPips();
         RefreshVisualState();
     }
 
@@ -99,8 +89,6 @@ public class MetaProgressionViewItem : UIViewItemBase
     {
         _currentLevel = level;
         _isLocked = !canAfford && !IsMaxed;
-
-        RefreshPips();
         RefreshVisualState();
     }
 
@@ -109,22 +97,6 @@ public class MetaProgressionViewItem : UIViewItemBase
     {
         _isLocked = !canAfford && !IsMaxed;
         RefreshVisualState();
-    }
-
-    private void RefreshPips()
-    {
-        if (_pips == null) return;
-
-        bool isMaxed = IsMaxed;
-
-        for (int i = 0; i < _pips.Length; i++)
-        {
-            if (_pips[i] == null) continue;
-
-            bool isFilled = i < _currentLevel;
-            _pips[i].sprite = isFilled ? _pipFilled : _pipEmpty;
-            _pips[i].color = isMaxed && isFilled ? _maxedColor : Color.white;
-        }
     }
 
     public override void SetHovered(bool isHovered)
@@ -152,7 +124,7 @@ public class MetaProgressionViewItem : UIViewItemBase
         if (_scaleTween.isAlive)
             _scaleTween.Stop();
 
-        float target = (_isFocused || _isHovered) ? CpUISettings.HoverScale : 1f;
+        float target = IsHighlighted ? CpUISettings.HoverScale : 1f;
 
         // Skip a no-op tween when already at the target scale (PrimeTween warns on equal end value).
         if (transform.localScale == Vector3.one * target)
@@ -163,56 +135,109 @@ public class MetaProgressionViewItem : UIViewItemBase
     }
 
     /// <summary>
-    /// Drives the visual feedback. Interaction states (selected > hover) take priority over the
-    /// content states (maxed / locked) for the tint and the optional sprite-swap graphic.
+    /// Drives the visual feedback using the shared outline + background model. Interaction states
+    /// (selected / highlighted) take priority over the content states (maxed / locked) for the tint.
     /// </summary>
     private void RefreshVisualState()
     {
-        bool highlighted = _isFocused || _isHovered;
-        Color stateColor = GetStateColor();
+        bool highlighted = IsHighlighted;
+        Color contentColor = GetContentColor(highlighted);
 
-        // Optional background/border: sprite-swap + tint.
-        if (_stateGraphic != null)
-        {
-            Sprite sprite = _normalSprite;
-            if (_isSelected && _selectedSprite != null) sprite = _selectedSprite;
-            else if (highlighted && _hoverSprite != null) sprite = _hoverSprite;
-            else if (_isLocked && _lockedSprite != null) sprite = _lockedSprite;
+        RefreshPips(highlighted);
 
-            if (sprite != null)
-                _stateGraphic.sprite = sprite;
-
-            _stateGraphic.color = stateColor;
-        }
-
-        // Icon tint reflects the content state (maxed / locked) when not actively highlighted.
-        if (_icon != null)
-        {
-            if (_isSelected || highlighted) _icon.color = Color.white;
-            else if (IsMaxed) _icon.color = _maxedColor;
-            else if (_isLocked) _icon.color = _lockedColor;
-            else _icon.color = Color.white;
-        }
-
-        // Label follows the combined state color for readability.
         if (_nameLabel != null)
-            _nameLabel.color = stateColor;
+            _nameLabel.color = contentColor;
 
-        // Border outline color follows the shared item-outline settings (like the amulet item).
+        if (_icon != null)
+            _icon.color = CpUISettings.GetItemIconColor(_isSelected || highlighted, IsMaxed, _isLocked);
+
+        // Border material drives both the outline color and the background fill.
         // Availability = affordable (locked = cannot afford the next level).
+        // A maxed item gets a dedicated outline + a lighter "acquired" background — but interaction
+        // (selected / highlighted) still outranks maxed for the outline.
         if (_border != null && _border.material != null)
+        {
             _border.material.SetColor(OutlineColorShaderProperty,
-                CpUISettings.GetItemOutlineColor(_isSelected, highlighted, !_isLocked));
+                CpUISettings.GetItemOutlineColor(_isSelected, highlighted, !_isLocked, IsMaxed));
+            _border.material.SetColor(BackgroundColorShaderProperty,
+                IsMaxed ? CpUISettings.ItemBackgroundMaxed : CpUISettings.ItemBackground);
+        }
     }
 
-    private Color GetStateColor()
+    /// <summary>
+    /// Generates one pip per max level under <see cref="_pipsContainer"/> by cloning
+    /// <see cref="_pipTemplate"/> (kept hidden). Called on Init; colors are driven by RefreshPips.
+    /// </summary>
+    private void BuildPips()
     {
-        if (_isSelected) return _selectedColor;
-        if (_isFocused || _isHovered) return _focusedColor;
-        if (IsMaxed) return _maxedColor;
-        if (_isLocked) return _lockedColor;
-        return _normalColor;
+        if (_pipsContainer == null || _pipTemplate == null)
+        {
+            _pipImages = null;
+            return;
+        }
+
+        _pipTemplate.gameObject.SetActive(false);
+
+        // Clear pips generated for a previous Init (pooled / rebuilt items).
+        if (_pipImages != null)
+        {
+            for (int i = 0; i < _pipImages.Length; i++)
+                if (_pipImages[i] != null)
+                    Destroy(_pipImages[i].gameObject);
+        }
+
+        int pipLayer = _pipsContainer.gameObject.layer;
+
+        _pipImages = new Image[_maxLevel];
+        for (int i = 0; i < _maxLevel; i++)
+        {
+            var pip = Instantiate(_pipTemplate, _pipsContainer);
+            pip.gameObject.layer = pipLayer;   // clones inherit the container's UI layer (template layer may differ)
+            pip.gameObject.SetActive(true);
+            _pipImages[i] = pip;
+        }
     }
+
+    /// <summary>
+    /// Colors the pips: filled up to the current level, empty beyond. When the item is highlighted and
+    /// affordable, the next pip (the one a purchase would fill) is shown in the preview color.
+    /// Once fully maxed, every pip takes the dedicated <see cref="CpUISettings.PipMaxedColor"/>.
+    /// </summary>
+    private void RefreshPips(bool highlighted)
+    {
+        if (_pipImages == null)
+            return;
+
+        // Fully maxed: all pips read as "complete" with the dedicated maxed pip color.
+        if (IsMaxed)
+        {
+            for (int i = 0; i < _pipImages.Length; i++)
+                if (_pipImages[i] != null)
+                    _pipImages[i].color = CpUISettings.PipMaxedColor;
+            return;
+        }
+
+        bool previewNext = highlighted && !_isLocked;
+
+        for (int i = 0; i < _pipImages.Length; i++)
+        {
+            if (_pipImages[i] == null)
+                continue;
+
+            if (i < _currentLevel)
+                _pipImages[i].color = CpUISettings.PipFilledColor;
+            else if (i == _currentLevel && previewNext)
+                _pipImages[i].color = CpUISettings.PipPreviewColor;
+            else
+                _pipImages[i].color = CpUISettings.PipEmptyColor;
+        }
+    }
+
+    // Shop items share the common content-color resolver. Meta-progression is the full case
+    // (active > maxed > locked > idle); the binary amulet/character items reuse the same resolver
+    // with maxed/locked = false.
+    private Color GetContentColor(bool highlighted)
+        => CpUISettings.GetItemContentColor(_isSelected || highlighted, IsMaxed, _isLocked);
 
     // Pointer hover (PC): highlight only — does not show details.
     public override void OnPointerEnter(PointerEventData eventData)
