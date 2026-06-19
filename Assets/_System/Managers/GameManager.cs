@@ -40,6 +40,11 @@ public class GameManager : MonoBehaviour
     private EntityQuery _planetScenesBufferQuery;
     private Entity _currentSceneEntity = Entity.Null;
 
+    [Space]
+    [Header("Starting State \nChoose only MainMenu or PlanetSelection \n(others not tested)")]
+    [SerializeField]
+    private EGameState StartingState = EGameState.MainMenu;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -57,8 +62,7 @@ public class GameManager : MonoBehaviour
     {
         // Boot straight to the main menu. The lobby (and the rest of the run content) is only
         // streamed in once the player presses New Game (see StartNewGame).
-        //ChangeState(EGameState.MainMenu);
-        ChangeState(EGameState.PlanetSelection);
+        ChangeState(StartingState);
     }
 
     /// <summary>
