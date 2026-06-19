@@ -150,10 +150,15 @@ namespace _System.Settings
         [SerializeField] private Color _upgradeUnlockTitleColor = new Color(1f, 0.545f, 0f, 1f);
         [Tooltip("Title color of a spell-upgrade card. Anchor: Stat Bonus green (an improvement).")]
         [SerializeField] private Color _upgradeSpellTitleColor = new Color(0.2902f, 0.8706f, 0.502f, 1f);
-        [Tooltip("Card stat-label color while the card is hovered / focused. Anchor: Brand Main-Over.")]
+        [Tooltip("Card TITLE color while the card is hovered / focused. The title is the only thing " +
+                 "recolored on highlight; it returns to its per-type color on exit. Anchor: Brand Main-Over.")]
         [SerializeField] private Color _upgradeCardHighlightColor = new Color(1f, 0.7412f, 0f, 1f);
-        [Tooltip("Card stat-label color while idle. Anchor: neutral white.")]
+        [Tooltip("Unused since highlight recolors the title only (the title returns to its per-type color). " +
+                 "Kept for compatibility.")]
         [SerializeField] private Color _upgradeCardIdleColor = Color.white;
+        [Tooltip("Color of the spell tag line on an upgrade card (e.g. 'Fire • Bounce'). " +
+                 "Anchor: Brand Complementary (matches shop item labels / badges).")]
+        [SerializeField] private Color _upgradeTagColor = new Color(1f, 0.545f, 0f, 1f);
 
         // ======================================================================================
         // ANIMATION — panel slide + hover scale tweens (no color).
@@ -262,10 +267,12 @@ namespace _System.Settings
         public static Color UpgradeUnlockTitleColor => I._upgradeUnlockTitleColor;
         /// <summary>Title color of a spell-upgrade card.</summary>
         public static Color UpgradeSpellTitleColor => I._upgradeSpellTitleColor;
-        /// <summary>Upgrade card stat-label color while hovered / focused.</summary>
+        /// <summary>Upgrade card title color while hovered / focused (highlight recolors the title only).</summary>
         public static Color UpgradeCardHighlightColor => I._upgradeCardHighlightColor;
-        /// <summary>Upgrade card stat-label color while idle.</summary>
+        /// <summary>Kept for compatibility; highlight now recolors the title (back to its per-type color on exit).</summary>
         public static Color UpgradeCardIdleColor => I._upgradeCardIdleColor;
+        /// <summary>Color of the spell tag line on an upgrade card (e.g. "Fire • Bounce").</summary>
+        public static Color UpgradeTagColor => I._upgradeTagColor;
 
         // --- Animation ---
         public static float PanelSlideDuration => I._panelSlideDuration;

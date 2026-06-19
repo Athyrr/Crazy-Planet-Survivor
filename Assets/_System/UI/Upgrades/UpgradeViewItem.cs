@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using _System.Settings;
 using UnityEngine;
 using TMPro;
@@ -25,9 +24,13 @@ public class UpgradeViewItem : MonoBehaviour,
     public SpriteRenderer Icon;
     public TextMeshPro TitleText;
     public TextMeshPro DescriptionText;
-    public TextMeshPro StatLabelText;
-    public TextMeshPro StatValueText;
     public TextMeshPro UpgradeTypeText;
+
+    [Header("Stats")]
+    [Tooltip("Parent (VerticalLayoutGroup) the stat rows are spawned into — e.g. 'Container - Stat'.")]
+    public Transform StatsContainer;
+    [Tooltip("Row prefab spawned once per stat (PF_Upgrade_Stat). Carries an UpgradeStatRow (label + value).")]
+    public GameObject StatRowPrefab;
 
     [Header("Tags")]
     [Tooltip("Parent (HorizontalLayoutGroup) the tag chips are spawned into. Spell cards only.")]
@@ -62,6 +65,12 @@ public class UpgradeViewItem : MonoBehaviour,
 
     // Reused scratch buffer so spawning tag chips does not allocate every level-up.
     private static readonly List<string> _tagNameBuffer = new List<string>();
+
+    // Separator drawn between spell tags on the single inline tag label ("Fire • Bounce").
+    private const string TagSeparator = " • ";
+
+    // Base title color for the current upgrade type; restored when the card is no longer highlighted.
+    private Color _titleBaseColor = Color.white;
 
 
     public void SetData(ref UpgradeBlob upgradeData, int dbIndex, in UpgradeDisplayContext context)
@@ -128,7 +137,7 @@ public class UpgradeViewItem : MonoBehaviour,
                 text = "Stat Upgrade";
                 break;
             case EUpgradeType.UnlockSpell:
-                text = "Spell Unlock";
+                text = "New Spell";
                 break;
             case EUpgradeType.UpgradeSpell:
                 text = "Spell Upgrade";
@@ -164,11 +173,11 @@ public class UpgradeViewItem : MonoBehaviour,
         switch (data.UpgradeType)
         {
             case EUpgradeType.UnlockSpell:
-                return "Lv 1";
+                return "1";
 
             case EUpgradeType.UpgradeSpell:
                 if (data.SpellID != ESpellID.None && context.TryGetActiveSpell(data.SpellID, out var active))
-                    return $"Lv {active.Level} → {active.Level + 1}";
+                    return $"{active.Level} → {active.Level + 1}";
                 return string.Empty;
 
             default:
@@ -200,15 +209,23 @@ public class UpgradeViewItem : MonoBehaviour,
             return;
 
         SpellTagUtils.GetTagNames(tags, _tagNameBuffer);
-        for (int i = 0; i < _tagNameBuffer.Count; i++)
+
+        // Show every tag on a single line, side by side, separated by a dot:
+        // "Fire • Bounce • Pierce". One auto-sized label (instead of one chip per tag) so the
+        // separators read cleanly and the tags never wrap onto a second line.
+        var chip = Instantiate(TagChipPrefab, TagsContainer);
+        var label = chip.GetComponentInChildren<TextMeshPro>();
+        if (label != null)
         {
-            var chip = Instantiate(TagChipPrefab, TagsContainer);
-            var label = chip.GetComponentInChildren<TextMeshPro>();
-            if (label != null)
-            {
-                label.text = _tagNameBuffer[i];
-                label.color = CpUISettings.ComplementaryColor;
-            }
+            label.text = string.Join(TagSeparator, _tagNameBuffer);
+            label.color = CpUISettings.UpgradeTagColor;
+
+            // Keep it on one line and shrink to fit the tag bar width. The chip's authored font
+            // size is the cap; the prefab's min/max are leftover UGUI values, so set sane bounds.
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.fontSizeMax = label.fontSize;
+            label.fontSizeMin = 0.1f;
+            label.enableAutoSizing = true;
         }
     }
 
@@ -230,94 +247,72 @@ public class UpgradeViewItem : MonoBehaviour,
         return tags;
     }
 
+    /// <summary>
+    /// Rebuilds the stats container: one <see cref="StatRowPrefab"/> row per stat. A multi-modifier
+    /// stat upgrade shows one row per modifier, a spell upgrade shows one row, an unlock shows none.
+    /// </summary>
     private void RefreshStatsDetails(ref UpgradeBlob data, in UpgradeDisplayContext context)
     {
+        if (!StatsContainer)
+            return;
+
+        // Clear any previous rows (also removes the design-time mockup rows on first build).
+        for (int i = StatsContainer.childCount - 1; i >= 0; i--)
+            Destroy(StatsContainer.GetChild(i).gameObject);
+
+        if (StatRowPrefab == null)
+            return;
+
         switch (data.UpgradeType)
         {
             case EUpgradeType.PlayerStat:
-                BuildModifierLines(ref data, in context, out string labels, out string values);
-
-                if (StatLabelText)
-                    StatLabelText.text = labels;
-
-                if (StatValueText)
-                    StatValueText.text = values;
-
-                break;
-
-            case EUpgradeType.UnlockSpell:
-                if (StatLabelText)
-                    StatLabelText.text = string.Empty;
-
-                if (StatValueText)
-                    StatValueText.text = string.Empty;
+                AddModifierRows(ref data, in context);
                 break;
 
             case EUpgradeType.UpgradeSpell:
-                BuildSpellUpgradeLine(ref data, in context, out string spellLabel, out string spellValue);
+                AddSpellUpgradeRow(ref data, in context);
+                break;
 
-                if (StatLabelText)
-                    StatLabelText.text = spellLabel;
-
-                if (StatValueText)
-                    StatValueText.text = spellValue;
-
+            case EUpgradeType.UnlockSpell:
+                // An unlock has no stat rows.
                 break;
         }
     }
 
     /// <summary>
-    /// Builds the label/value text (one line per modifier) for a multi-modifier stat upgrade.
-    /// When the player's current stats are known, the value shows a "before → after" preview;
-    /// otherwise it falls back to the raw modifier delta.
+    /// Spawns one row per modifier of a multi-modifier stat upgrade. When the player's current stats
+    /// are known the value shows a "before → after" preview; otherwise it falls back to the raw delta.
     /// </summary>
-    private static void BuildModifierLines(ref UpgradeBlob data, in UpgradeDisplayContext context,
-        out string labels, out string values)
+    private void AddModifierRows(ref UpgradeBlob data, in UpgradeDisplayContext context)
     {
         ref var modifiers = ref data.StatModifiers;
-        if (modifiers.Length == 0)
-        {
-            labels = string.Empty;
-            values = string.Empty;
-            return;
-        }
-
-        var labelBuilder = new StringBuilder();
-        var valueBuilder = new StringBuilder();
         for (int i = 0; i < modifiers.Length; i++)
         {
-            if (i > 0)
-            {
-                labelBuilder.Append('\n');
-                valueBuilder.Append('\n');
-            }
-
             ref var mod = ref modifiers[i];
-            labelBuilder.Append(StatsFormatUtils.Humanize(mod.CharacterStat.ToString()));
 
-            if (context.HasPlayerStats && TryGetCurrentStat(in context.PlayerStats, mod.CharacterStat, out float before))
-                valueBuilder.Append(StatsFormatUtils.FormatStatBeforeAfter(mod.CharacterStat, before, before + mod.Value));
-            else
-                valueBuilder.Append(StatsFormatUtils.FormatModifier(mod.CharacterStat, mod.Value));
+            string label = StatsFormatUtils.Humanize(mod.CharacterStat.ToString());
+            string value = context.HasPlayerStats
+                           && TryGetCurrentStat(in context.PlayerStats, mod.CharacterStat, out float before)
+                ? StatsFormatUtils.FormatStatBeforeAfter(mod.CharacterStat, before, before + mod.Value)
+                : StatsFormatUtils.FormatModifier(mod.CharacterStat, mod.Value);
+
+            SpawnStatRow(label, value);
         }
-
-        labels = labelBuilder.ToString();
-        values = valueBuilder.ToString();
     }
 
     /// <summary>
-    /// Builds the label/value line for a spell upgrade. For an owned specific spell the value shows a
+    /// Spawns the single row for a spell upgrade. For an owned specific spell the value shows a
     /// "before → after" preview of the affected spell stat; otherwise it shows the raw modifier.
     /// </summary>
-    private static void BuildSpellUpgradeLine(ref UpgradeBlob data, in UpgradeDisplayContext context,
-        out string label, out string value)
+    private void AddSpellUpgradeRow(ref UpgradeBlob data, in UpgradeDisplayContext context)
     {
         string targetName = data.SpellID != ESpellID.None
             ? StatsFormatUtils.Humanize(data.SpellID.ToString())
             : data.SpellTags.ToString();
 
-        label = $"{targetName} {StatsFormatUtils.Humanize(data.SpellStat.ToString())}";
+        string label = $"{targetName} {StatsFormatUtils.Humanize(data.SpellStat.ToString())}";
 
+        string value;
         if (data.SpellID != ESpellID.None && context.TryGetActiveSpell(data.SpellID, out var active))
         {
             float before = GetCurrentSpellStat(in active, data.SpellStat);
@@ -327,6 +322,32 @@ public class UpgradeViewItem : MonoBehaviour,
         {
             value = StatsFormatUtils.FormatSpellModifier(data.SpellStat, data.Value);
         }
+
+        SpawnStatRow(label, value);
+    }
+
+    /// <summary>
+    /// Instantiates one stat row into <see cref="StatsContainer"/> and fills its label + value.
+    /// Prefers the row's <see cref="UpgradeStatRow"/> component; falls back to child order
+    /// ([0] = label, [1] = value) if the prefab has none.
+    /// </summary>
+    private void SpawnStatRow(string label, string value)
+    {
+        var row = Instantiate(StatRowPrefab, StatsContainer);
+
+        var view = row.GetComponent<UpgradeStatRow>();
+        if (view != null)
+        {
+            view.Set(label, value);
+            return;
+        }
+
+        // Fallback: no UpgradeStatRow wired — use the first two TMP children in order.
+        var texts = row.GetComponentsInChildren<TMP_Text>(true);
+        if (texts.Length > 0)
+            texts[0].text = label;
+        if (texts.Length > 1)
+            texts[1].text = value;
     }
 
     /// <summary>Reads the player's current accumulated value for <paramref name="stat"/>.</summary>
@@ -387,15 +408,18 @@ public class UpgradeViewItem : MonoBehaviour,
         switch (upgradeData.UpgradeType)
         {
             case EUpgradeType.PlayerStat:
-                TitleText.color = CpUISettings.UpgradeStatTitleColor;
+                _titleBaseColor = CpUISettings.UpgradeStatTitleColor;
                 break;
             case EUpgradeType.UnlockSpell:
-                TitleText.color = CpUISettings.UpgradeUnlockTitleColor;
+                _titleBaseColor = CpUISettings.UpgradeUnlockTitleColor;
                 break;
             case EUpgradeType.UpgradeSpell:
-                TitleText.color = CpUISettings.UpgradeSpellTitleColor;
+                _titleBaseColor = CpUISettings.UpgradeSpellTitleColor;
                 break;
         }
+
+        // Apply the base color now; SetHovered swaps to the highlight color and back to this.
+        TitleText.color = _isHovered ? CpUISettings.UpgradeCardHighlightColor : _titleBaseColor;
     }
 
     private string GetTitle(ref UpgradeBlob upgradeData) => upgradeData.DisplayName.ToString();
@@ -407,9 +431,10 @@ public class UpgradeViewItem : MonoBehaviour,
 
         _isHovered = isHovered;
 
-        // Guard the field that is actually recolored (was guarding TitleText — a bug).
-        if (StatLabelText)
-            StatLabelText.color = isHovered ? CpUISettings.UpgradeCardHighlightColor : CpUISettings.UpgradeCardIdleColor;
+        // Highlight recolors only the title now (stats keep their own colors). On exit the title
+        // returns to its per-type base color set in RefreshColors.
+        if (TitleText)
+            TitleText.color = isHovered ? CpUISettings.UpgradeCardHighlightColor : _titleBaseColor;
     }
 
     private void Update()
