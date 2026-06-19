@@ -57,8 +57,8 @@ public class GameManager : MonoBehaviour
     {
         // Boot straight to the main menu. The lobby (and the rest of the run content) is only
         // streamed in once the player presses New Game (see StartNewGame).
-        //ChangeState(EGameState.MainMenu);
-        ChangeState(EGameState.PlanetSelection);
+        ChangeState(EGameState.MainMenu);
+        // ChangeState(EGameState.PlanetSelection);
     }
 
     /// <summary>
