@@ -40,8 +40,7 @@ public partial struct RunInitializationSystem : ISystem
                 spawnerState.ValueRW.ActiveEnemyCount = 0;
                 spawnerState.ValueRW.TotalEnemiesSpawnedInWave = 0;
                 spawnerState.ValueRW.EnemiesKilledInWave = 0;
-                spawnerState.ValueRW.CurrentGroupIndex = 0;
-                spawnerState.ValueRW.RemainingSpawnsInGroup = -1;
+                // Per-group runtime is (re)initialized by StartWave when CurrentWaveIndex == -1.
             }
 
             // Destroy start run request
