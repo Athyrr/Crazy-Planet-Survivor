@@ -263,52 +263,81 @@ public partial struct EnemiesSpawnerSystem : ISystem
         if (frameBudget <= 0)
             return;
 
-        // The player may be mid-respawn this frame; bail rather than letting GetSingletonEntity throw.
+        // The player may be mid-respawn this frame; bail before mutating any runtime so we never decrement
+        // a group's Remaining without actually spawning.
         if (!SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity))
             return;
 
-        // Fetch the frame-invariant spawn inputs ONCE (this would otherwise run per active group).
-        var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
-        var planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
-        var planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
-        var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
-        var playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
-
-        var ctx = new SpawnContext
-        {
-            CollisionWorld = physicsWorld.CollisionWorld,
-            PlayerTransform = playerTransform,
-            PlanetCenter = planetTransform.Position,
-            PlanetRadius = planetData.Radius,
-            BaseSeed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1
-        };
+        // Boss position for AroundBoss-mode groups. The boss is found by its FinalBossTag (no manual
+        // capture needed); if it hasn't spawned yet, AroundBoss groups are skipped until it exists.
+        bool hasBoss = SystemAPI.TryGetSingletonEntity<FinalBossTag>(out var bossEntity);
+        float3 bossPosition = hasBoss
+            ? SystemAPI.GetComponentRO<LocalTransform>(bossEntity).ValueRO.Position
+            : float3.zero;
 
         float dt = SystemAPI.Time.DeltaTime;
-        // One monotonic sort-key range across ALL waves spawned this frame so their ECB commands never collide.
-        int sortKeyBase = 0;
+
+        // Gather every enemy to spawn this frame into ONE list, then run a SINGLE job over it. An
+        // EntityCommandBuffer.ParallelWriter must be written by exactly one job, so we cannot schedule a
+        // separate job per group/wave (that races the ECB's per-thread command buffers).
+        // frameBudget is the exact upper bound on commands this frame, so the list never reallocates.
+        var commands = new NativeList<SpawnCommand>(frameBudget, Allocator.TempJob);
 
         // Lead wave first so the current wave is never starved by background loops...
         if (waveRuntimes[lead].Active)
-            SpawnWaveGroups(ref ecb, ref systemState, ref spawnerState, groups, groupRuntimes, waves[lead], lead,
-                dt, in ctx, ref frameBudget, ref sortKeyBase);
+            GatherWaveSpawns(ref spawnerState, groups, groupRuntimes, waves[lead], lead, dt, hasBoss, ref frameBudget,
+                ref commands);
 
         // ...then the looping waves behind it.
         for (int wi = 0; wi < lead && frameBudget > 0; wi++)
         {
             if (waveRuntimes[wi].Active)
-                SpawnWaveGroups(ref ecb, ref systemState, ref spawnerState, groups, groupRuntimes, waves[wi], wi,
-                    dt, in ctx, ref frameBudget, ref sortKeyBase);
+                GatherWaveSpawns(ref spawnerState, groups, groupRuntimes, waves[wi], wi, dt, hasBoss, ref frameBudget,
+                    ref commands);
         }
+
+        if (commands.Length > 0)
+        {
+            // Frame-invariant spawn inputs, fetched once and shared by the single job.
+            var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
+            var planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
+            var planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
+            var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
+            var playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
+
+            var spawnJob = new SpawnJob
+            {
+                Commands = commands.AsArray(),
+                ECB = ecb.AsParallelWriter(),
+                CollisionWorld = physicsWorld.CollisionWorld,
+                PlayerTransform = playerTransform,
+                PlanetCenter = planetTransform.Position,
+                PlanetRadius = planetData.Radius,
+                BossPosition = bossPosition,
+                BaseSeed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1
+            };
+
+            systemState.Dependency = spawnJob.ScheduleParallel(commands.Length, 64, systemState.Dependency);
+        }
+
+        // Defer disposal until the scheduled job (if any) has consumed the list.
+        commands.Dispose(systemState.Dependency);
     }
 
     /// <summary>
-    /// Spawns from one wave's group range, consuming the shared frame budget and advancing the shared
-    /// sort-key base. See <see cref="ManageSpawning"/> for the popcorn/budget contract.
+    /// Appends one <see cref="SpawnCommand"/> per enemy to spawn from this wave's group range, consuming the
+    /// shared frame budget. The popcorn/budget contract is unchanged; only the output moved from "schedule a
+    /// job per group" to "append to the frame's single spawn list".
     /// </summary>
-    private void SpawnWaveGroups(ref EntityCommandBuffer ecb, ref SystemState systemState,
-        ref SpawnerState spawnerState, DynamicBuffer<SpawnGroup> groups, DynamicBuffer<SpawnGroupRuntime> groupRuntimes,
-        in Wave wave, int waveIndex, float dt, in SpawnContext ctx, ref int frameBudget, ref int sortKeyBase)
+    private void GatherWaveSpawns(ref SpawnerState spawnerState, DynamicBuffer<SpawnGroup> groups,
+        DynamicBuffer<SpawnGroupRuntime> groupRuntimes, in Wave wave, int waveIndex, float dt, bool hasBoss,
+        ref int frameBudget, ref NativeList<SpawnCommand> commands)
     {
+        // An "around boss" wave does nothing until a final boss exists: leave every group untouched
+        // (Remaining/timers preserved) so the whole wave starts the moment the boss is alive.
+        if (wave.AroundBoss && !hasBoss)
+            return;
+
         int endGroupIndex = wave.GroupStartIndex + wave.GroupCount;
 
         for (int gi = wave.GroupStartIndex; gi < endGroupIndex && frameBudget > 0; gi++)
@@ -344,105 +373,74 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
             if (countToSpawn > 0)
             {
-                // Enemies already released in this group -> preserves the geometric layout across batches.
+                // GlobalIndex (enemies already released first) preserves the geometric layout across batches.
                 int startIndex = group.Amount - runtime.Remaining;
-                ScheduleSpawnJob(ref ecb, ref systemState, in ctx, group, startIndex, countToSpawn, waveIndex,
-                    sortKeyBase);
+                for (int k = 0; k < countToSpawn; k++)
+                {
+                    commands.Add(new SpawnCommand
+                    {
+                        Prefab = group.Prefab,
+                        Mode = group.Mode,
+                        AroundBoss = wave.AroundBoss,
+                        GlobalIndex = startIndex + k,
+                        TotalAmount = group.Amount,
+                        SpawnOrigin = group.Position,
+                        MinRange = group.MinRange,
+                        MaxRange = group.MaxRange,
+                        WaveIndex = waveIndex,
+                        Scale = group.Scale
+                    });
+                }
 
                 runtime.Remaining -= countToSpawn;
                 spawnerState.ActiveEnemyCount += countToSpawn;
-
                 frameBudget -= countToSpawn;
-                sortKeyBase += countToSpawn;
             }
 
             groupRuntimes[gi] = runtime;
         }
     }
 
-    private void ScheduleSpawnJob(ref EntityCommandBuffer ecb, ref SystemState state, in SpawnContext ctx,
-        SpawnGroup group, int startIndex, int count, int waveIndex, int sortKeyBase)
+    /// <summary> One enemy to spawn this frame: its group's placement params plus its per-entity index. </summary>
+    private struct SpawnCommand
     {
-        var spawnJob = new SpawnJob
-        {
-            ECB = ecb.AsParallelWriter(),
-
-            CollisionWorld = ctx.CollisionWorld,
-
-            PlayerTransform = ctx.PlayerTransform,
-            Prefab = group.Prefab,
-
-            TotalAmount = group.Amount,
-            StartIndex = startIndex,
-            Mode = group.Mode,
-            WaveIndex = waveIndex,
-            SortKeyBase = sortKeyBase,
-            // Scale = group.Scale, // issue ? @todo
-
-            PlanetCenter = ctx.PlanetCenter,
-            PlanetRadius = ctx.PlanetRadius,
-
-            SpawnOrigin = group.Position,
-            MinRange = group.MinRange,
-            MaxRange = group.MaxRange,
-
-            BaseSeed = ctx.BaseSeed
-        };
-
-        // Chained on state.Dependency so the shared ECB.ParallelWriter is written by one job at a time
-        // (concurrent jobs on one ParallelWriter would race its per-thread command buffers).
-        state.Dependency = spawnJob.ScheduleParallel(count, 64, state.Dependency);
-    }
-
-    /// <summary> Frame-invariant inputs for spawning, fetched once per frame and shared by every wave/group. </summary>
-    private struct SpawnContext
-    {
-        public CollisionWorld CollisionWorld;
-        public LocalTransform PlayerTransform;
-        public float3 PlanetCenter;
-        public float PlanetRadius;
-
-        /// <summary> Frame-stable base; combined with the frame-global sort key for a unique per-entity seed. </summary>
-        public uint BaseSeed;
+        public Entity Prefab;
+        public SpawnMode Mode;
+        public bool AroundBoss; // wave-level: spawn around the boss instead of using Mode
+        public int GlobalIndex; // index within its group, for the geometric layout
+        public int TotalAmount; // group total, for the geometric layout
+        public float3 SpawnOrigin;
+        public float MinRange;
+        public float MaxRange;
+        public int WaveIndex;
+        public float Scale;
     }
 
     [BurstCompile]
     private struct SpawnJob : IJobFor
     {
+        [ReadOnly] public NativeArray<SpawnCommand> Commands;
         public EntityCommandBuffer.ParallelWriter ECB;
 
         [ReadOnly] public CollisionWorld CollisionWorld;
-
         [ReadOnly] public LocalTransform PlayerTransform;
-        [ReadOnly] public Entity Prefab;
 
-        // Spawn Configuration
-        public int TotalAmount;
-        public int StartIndex;
-        public SpawnMode Mode;
-        public int WaveIndex;
-        public float Scale;
-
-        /// <summary> Base offset added to every ECB sort key so concurrent group jobs stay disjoint. </summary>
-        public int SortKeyBase;
-
-        // Planet Data
+        // Planet Data (shared by every command this frame)
         public float3 PlanetCenter;
         public float PlanetRadius;
 
-        // Spawn Parameters
-        public float3 SpawnOrigin;
-        public float MinRange;
-        public float MaxRange;
+        // Live boss position, shared by AroundBoss commands (valid only when such commands were gathered).
+        public float3 BossPosition;
 
-        // Random
+        // Frame-stable base; combined with the command index for a unique per-entity seed.
         public uint BaseSeed;
 
         public void Execute(int index)
         {
-            int globalIndex = StartIndex + index;
-            // Frame-global unique seed: SortKeyBase + index never collides across waves/groups this frame.
-            var rand = Random.CreateFromIndex(BaseSeed + (uint)(SortKeyBase + index));
+            SpawnCommand cmd = Commands[index];
+            int globalIndex = cmd.GlobalIndex;
+            // index is unique across every command this frame -> unique seed and unique ECB sort key.
+            var rand = Random.CreateFromIndex(BaseSeed + (uint)index);
 
             float3 spawnPosition = float3.zero;
             float3 surfaceNormal = float3.zero;
@@ -454,8 +452,35 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 CollidesWith = CollisionLayers.Landscape
             };
 
-            // Calculate spawn postion based on spawning mode
-            switch (Mode)
+            // Around-boss waves spawn in a spiral centered on the boss's live position, overriding the
+            // group's mode. Everything else uses the group's SpawnMode.
+            if (cmd.AroundBoss)
+            {
+                float goldenAngleBoss = 2.39996323f;
+                float cBoss = cmd.MaxRange / math.sqrt(cmd.TotalAmount);
+                float spiralRadiusBoss = cBoss * math.sqrt(globalIndex) + cmd.MinRange;
+                float angleBoss = globalIndex * goldenAngleBoss;
+                float2 circleBoss = new float2(math.cos(angleBoss), math.sin(angleBoss)) * spiralRadiusBoss;
+
+                float3 upBoss = math.normalize(BossPosition - PlanetCenter);
+                float3 tangentBoss = math.cross(upBoss, new float3(0, 1, 0));
+                if (math.lengthsq(tangentBoss) < 0.001f)
+                    tangentBoss = math.cross(upBoss, new float3(1, 0, 0));
+
+                quaternion alignBoss = quaternion.LookRotationSafe(tangentBoss, upBoss);
+                float3 worldOffBoss = math.rotate(alignBoss, new float3(circleBoss.x, 0f, circleBoss.y));
+                float3 pBoss = BossPosition + worldOffBoss;
+
+                if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, pBoss, PlanetCenter, groundFilter, 100f,
+                        out var hitBoss))
+                {
+                    spawnPosition = hitBoss.Position;
+                    surfaceNormal = hitBoss.SurfaceNormal;
+                    positionFound = true;
+                }
+            }
+            // Calculate spawn position based on spawning mode
+            else switch (cmd.Mode)
             {
                 // case SpawnMode.RandomInPlanet:
                 //     float3 randomDir = rand.NextFloat3Direction();
@@ -474,7 +499,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 case SpawnMode.RandomInPlanet:
                     float goldenAngleSphere = 2.39996323f; // PI * (3 - sqrt(5))
 
-                    float maxAmount = math.max(1f, (float)TotalAmount);
+                    float maxAmount = math.max(1f, (float)cmd.TotalAmount);
                     float z = 1f - (2f * globalIndex + 1f) / maxAmount;
 
                     float radiusAtZ = math.sqrt(1f - z * z);
@@ -507,16 +532,16 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 case SpawnMode.Zone:
                     float goldenAngle = 2.39996323f;
 
-                    float c = MaxRange / math.sqrt(TotalAmount);
+                    float c = cmd.MaxRange / math.sqrt(cmd.TotalAmount);
 
                     float angle = globalIndex * goldenAngle;
                     float spiralRadius = c * math.sqrt(globalIndex);
 
-                    spiralRadius += MinRange;
+                    spiralRadius += cmd.MinRange;
 
                     float2 perfectCircle = new float2(math.cos(angle), math.sin(angle)) * spiralRadius;
 
-                    float3 up = math.normalize(SpawnOrigin - PlanetCenter);
+                    float3 up = math.normalize(cmd.SpawnOrigin - PlanetCenter);
                     float3 tangent = math.cross(up, new float3(0, 1, 0));
                     if (math.lengthsq(tangent) < 0.001f)
                         tangent = math.cross(up, new float3(1, 0, 0));
@@ -524,7 +549,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     quaternion alignmentRot = quaternion.LookRotationSafe(tangent, up);
                     float3 localOffset = new float3(perfectCircle.x, 0f, perfectCircle.y);
                     float3 worldOffset = math.rotate(alignmentRot, localOffset);
-                    float3 p = SpawnOrigin + worldOffset;
+                    float3 p = cmd.SpawnOrigin + worldOffset;
 
                     if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, p, PlanetCenter, groundFilter, 100f,
                             out var h))
@@ -543,7 +568,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     float3 opositePoint = PlanetCenter - (dirToOrigin * PlanetRadius * 1f);
 
                     // Avoid stacking
-                    float oppositePositionRadius = math.max(15f, TotalAmount * 0.5f);
+                    float oppositePositionRadius = math.max(15f, cmd.TotalAmount * 0.5f);
 
                     positionFound = PlanetUtils.GetRandomPointOnSurface(
                         ref CollisionWorld, ref rand, opositePoint, PlanetCenter, oppositePositionRadius,
@@ -561,9 +586,9 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     float goldenAngleAround = 2.39996323f;
                     float angleAround = globalIndex * goldenAngleAround;
 
-                    float fraction = (float)globalIndex / TotalAmount;
+                    float fraction = (float)globalIndex / cmd.TotalAmount;
 
-                    float radiusAround = math.lerp(MinRange, MaxRange, math.sqrt(fraction));
+                    float radiusAround = math.lerp(cmd.MinRange, cmd.MaxRange, math.sqrt(fraction));
 
                     float2 perfectCircleAround =
                         new float2(math.cos(angleAround), math.sin(angleAround)) * radiusAround;
@@ -595,8 +620,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 return;
 
             // Instantiate the enemy from the prefab
-            int sortKey = SortKeyBase + index;
-            Entity entity = ECB.Instantiate(sortKey, Prefab);
+            Entity entity = ECB.Instantiate(index, cmd.Prefab);
 
             // Entity orientation
             float3 randomTangent = rand.NextFloat3Direction();
@@ -608,8 +632,8 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 spawnPosition + (tangentDirection * spawnOffset) + (surfaceNormal * 0.5f);
 
             // Set Transform
-            float spawnScale = Scale > 0f ? Scale : 1f;
-            ECB.SetComponent(sortKey, entity, new LocalTransform
+            float spawnScale = cmd.Scale > 0f ? cmd.Scale : 1f;
+            ECB.SetComponent(index, entity, new LocalTransform
             {
                 Position = finalPosition,
                 Scale = spawnScale,
@@ -617,12 +641,11 @@ public partial struct EnemiesSpawnerSystem : ISystem
             });
 
             // Set Movement Target
-            // ECB.SetComponent(sortKey, entity, new FollowTargetMovement
-            ECB.SetComponent(sortKey, entity, new FlowFieldFollowerMovement());
+            ECB.SetComponent(index, entity, new FlowFieldFollowerMovement());
 
             // Set Wave Index
             // todo @hyverno passing Enemy in lookup
-            ECB.SetComponent(sortKey, entity, new Enemy { WaveIndex = WaveIndex });
+            ECB.SetComponent(index, entity, new Enemy { WaveIndex = cmd.WaveIndex });
         }
     }
 }

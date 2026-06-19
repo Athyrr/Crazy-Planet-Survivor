@@ -92,6 +92,13 @@ public struct Wave : IBufferElementData
     /// contains a final boss (a looping win-boss would respawn and end the run repeatedly).
     /// </summary>
     public bool Loop;
+
+    /// <summary>
+    /// If true, this whole wave's enemies spawn around the final boss's live position (a ring using each
+    /// group's Min/MaxRange) instead of each group's normal mode. The wave does nothing until a final boss
+    /// exists. Pace it with the wave's Duration/KillPercentage and each group's SpawnDelay.
+    /// </summary>
+    public bool AroundBoss;
 }
 
 /// <summary>

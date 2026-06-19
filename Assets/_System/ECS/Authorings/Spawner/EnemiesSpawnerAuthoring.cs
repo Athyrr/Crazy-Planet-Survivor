@@ -61,6 +61,11 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
                  "parallel with the following waves. Ignored (and stripped) for a wave that contains a final boss.")]
         public bool Loop;
 
+        [Tooltip("If enabled, this wave's enemies spawn around the final boss (a ring using each group's " +
+                 "Min/MaxRange) instead of their group's normal mode. Must be placed after the boss wave; the " +
+                 "wave waits until a final boss exists.")]
+        public bool AroundBoss;
+
         [Tooltip("List of enemy groups to spawn in this wave.")]
         public SpawnGroupData[] Groups;
     }
@@ -235,7 +240,8 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
                     GroupStartIndex = currentGroupStartIndex,
                     GroupCount = groupsAddedInThisWave,
                     TotalEnemyCount = totalEnemiesInWave,
-                    Loop = loop
+                    Loop = loop,
+                    AroundBoss = waveData.AroundBoss
                 });
 
                 // Mirror entry; armed (Active/Timer set) when its wave starts.
