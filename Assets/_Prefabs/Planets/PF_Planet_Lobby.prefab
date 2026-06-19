@@ -30,13 +30,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7431055858490708449}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -3.36, y: 0, z: 0}
+  m_LocalRotation: {x: -0.5609498, y: -0.122437775, z: 0.3284849, w: 0.7499614}
+  m_LocalPosition: {x: -0.00005972534, y: 0.00006638483, z: -0.00007724833}
   m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -49.547, y: -58.326, z: 76.191}
 --- !u!33 &3995231814262822588
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -44,7 +44,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7431055858490708449}
-  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 289301614986012343, guid: 2b7210ea99d3e374c86c9da128102dfb, type: 3}
 --- !u!23 &4621067963375093220
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -53,14 +53,14 @@ MeshRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7431055858490708449}
   m_Enabled: 1
-  m_CastShadows: 0
+  m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
   m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 0
+  m_RayTracingMode: 2
   m_RayTraceProcedural: 0
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
@@ -70,7 +70,10 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 5148a4f3e28b40e4abb2560a97b3580b, type: 2}
+  - {fileID: 2100000, guid: 5febd05afacde26438fbeabf001ee5a9, type: 2}
+  - {fileID: 2100000, guid: 03b639d6e3f728f4a89f86754081b958, type: 2}
+  - {fileID: 2100000, guid: a3f05bc343361a848a4f7fab668b8102, type: 2}
+  - {fileID: 2100000, guid: 41df580536144f04d81f1675aa6952ad, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -273,7 +276,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlanetConfigAuthoring
   _planetID: 5
   _autoCalculate: 1
-  _planetRenderer: {fileID: 0}
+  _planetRenderer: {fileID: 4621067963375093220}
   _manualRadius: 50
   _manualCenterOffset: {x: 0, y: 0, z: 0}
   _runDuration: 60
