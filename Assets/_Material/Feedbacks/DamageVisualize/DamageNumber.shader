@@ -63,7 +63,7 @@ Shader "Custom/DamageNumbers"
 
                 float age = _CurrentTime - data.startTime;
                 float life01 = saturate(1.0 - age / _LifeTime);
-                
+
                 float width = data.digitCount * _Scale;
 
                 float2 quad[4] =
@@ -89,7 +89,7 @@ Shader "Custom/DamageNumbers"
 
                 float3 camRight = normalize(UNITY_MATRIX_V._m00_m01_m02);
                 float3 camUp    = normalize(UNITY_MATRIX_V._m10_m11_m12);
-                
+
                 float3 offset =
                     camRight * quad[v].x +
                     camUp    * quad[v].y;
@@ -148,6 +148,143 @@ Shader "Custom/DamageNumbers"
                 col.a *= min(col.r, i.alpha);
                // col.rgb *= _Color.rgb * emissive;
 
+                col.rgb *= data.color.rgb * emissive;
+
+                return col;
+            }
+            ENDCG
+        }
+    }
+
+    SubShader
+    {
+        Tags { "Queue"="Transparent" "RenderType"="Transparent" }
+        Blend SrcAlpha OneMinusSrcAlpha
+        ZWrite Off
+        Cull Off
+
+        Pass
+        {
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma target 3.0
+
+            #include "UnityCG.cginc"
+
+            #define MAX_DIGITS 6
+
+            struct DamageData
+            {
+                float3 position;
+                float value;
+                float startTime;
+                int digitCount;
+                float4 color;
+            };
+
+            StructuredBuffer<DamageData> _DamageBuffer;
+
+            sampler2D _MainTex;
+            float _CurrentTime;
+            float _LifeTime;
+            float _FloatSpeed;
+            float _EmissiveDuration;
+            float4 _Color;
+            float _Scale;
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                uint inst : TEXCOORD0;
+                float2 ndc : TEXCOORD1;
+            };
+
+            v2f vert(uint id : SV_VertexID, uint inst : SV_InstanceID)
+            {
+                v2f o;
+
+                float x = (id & 1) ? 3 : -1;
+                float y = (id & 2) ? 3 : -1;
+
+                o.pos = float4(x, y, 0, 1);
+                o.ndc = float2(x, y);
+                o.inst = inst;
+
+                return o;
+            }
+
+            fixed4 frag(v2f i) : SV_Target
+            {
+                DamageData data = _DamageBuffer[i.inst];
+
+                float age = _CurrentTime - data.startTime;
+                float life01 = saturate(1.0 - age / _LifeTime);
+
+                if (life01 <= 0)
+                    discard;
+
+                float3 worldPos = data.position;
+                worldPos.y += age * _FloatSpeed;
+
+                float4 clipCenter = mul(UNITY_MATRIX_VP, float4(worldPos, 1.0));
+
+                if (clipCenter.w <= 0)
+                    discard;
+
+                float2 ndcCenter = clipCenter.xy / clipCenter.w;
+
+                float4 viewPos = mul(UNITY_MATRIX_V, float4(worldPos, 1.0));
+                float depth = -viewPos.z;
+
+                float width = data.digitCount * _Scale;
+
+                float ndcHalfW = UNITY_MATRIX_P._m00 * width / (2.0 * depth);
+                float ndcHalfH = abs(UNITY_MATRIX_P._m11) * _Scale / (2.0 * depth);
+
+                float2 offset = i.ndc - ndcCenter;
+
+                if (abs(offset.x) > ndcHalfW || abs(offset.y) > ndcHalfH)
+                    discard;
+
+                float2 uv = (offset / float2(ndcHalfW, ndcHalfH)) * 0.5 + 0.5;
+
+                float number = data.value;
+
+                fixed4 col = fixed4(0,0,0,0);
+
+                if (data.digitCount == 1)
+                {
+                    int digit = (int)floor(number);
+                    float2 tc = float2(uv.x / 10.0 + digit / 10.0, uv.y);
+                    col = tex2D(_MainTex, tc);
+                }
+                else
+                {
+                    int at = 0;
+
+                    [unroll]
+                    for (int d = MAX_DIGITS - 1; d >= 0; d--)
+                    {
+                        if (d >= data.digitCount) continue;
+
+                        int digit = (int)floor(fmod(number / pow(10.0, d), 10.0));
+
+                        float left  = step(at / (float)data.digitCount, uv.x);
+                        float right = step(uv.x, (at + 1) / (float)data.digitCount);
+
+                        float2 tc;
+                        tc.x = (uv.x * data.digitCount - at + digit) / 10.0;
+                        tc.y = uv.y;
+
+                        col += left * right * tex2D(_MainTex, tc);
+                        at++;
+                    }
+                }
+
+                float emissive = saturate(1.0 - age / _EmissiveDuration);
+
+                col.a *= min(col.r, life01);
                 col.rgb *= data.color.rgb * emissive;
 
                 return col;
