@@ -12,15 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1225be897357dc34c86a649774f464a9, type: 3}
   m_Name: Boss_VolcanusGuardian
   m_EditorClassIdentifier: Assembly-CSharp::BossSO
-  DisplayName: Earth Guardian
+  DisplayName: Volcanus Guardian
   Icon: {fileID: 21300000, guid: 7c8026600ee9f974386901e672741be7, type: 3}
   Kind: 1
   BaseStats:
-    MaxHealth: 20000
-    HealthRegen: 4
+    MaxHealth: 5000
+    HealthRegen: 2
     BaseArmor: 0
     Armor: 0
-    BaseMoveSpeed: 3
+    BaseMoveSpeed: 4
     MoveSpeed: 0
     BasePickupRange: 0
     PickupRange: 0
@@ -30,10 +30,11 @@ MonoBehaviour:
     SpellSpeed: 0
     SpellDuration: 0
     CastRange: 0
-    Amount: 2
+    Amount: 0
     Pierce: 0
-    Bounce: 0
-    CritChance: 0
-    CritDamage: 0
+    Bounce: 1
+    CritChance: 0.2
+    CritDamage: 0.5
+    Luck: 0
   InitialSpells:
-  - {fileID: 11400000, guid: 84ec68c1a07e93b4ca70521509af9d9e, type: 2}
+  - {fileID: 11400000, guid: e3e2453ccd5bec541a39f28525b3ad10, type: 2}
