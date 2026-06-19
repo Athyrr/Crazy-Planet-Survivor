@@ -24,6 +24,12 @@ public partial struct EnemiesSpawnerSystem : ISystem
     /// </summary>
     private const int MAX_SPAWNS_PER_FRAME = 50;
 
+    /// <summary>
+    /// Minimum seconds between two iterations of a looping wave. Floors the loop period and gates the
+    /// kill-% restart, so straggler kills from a previous iteration can't make a loop restart every frame.
+    /// </summary>
+    private const float MIN_LOOP_PERIOD = 0.5f;
+
     //todo allocate Ms budget et dispacth into frames
 
     [BurstCompile]
@@ -51,6 +57,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
         ref var spawnerState = ref SystemAPI.GetSingletonRW<SpawnerState>().ValueRW;
         DynamicBuffer<Wave> waves = SystemAPI.GetSingletonBuffer<Wave>(true);
+        DynamicBuffer<WaveRuntime> waveRuntimes = SystemAPI.GetSingletonBuffer<WaveRuntime>(false);
         DynamicBuffer<SpawnGroup> groups = SystemAPI.GetSingletonBuffer<SpawnGroup>(true);
         DynamicBuffer<SpawnGroupRuntime> groupRuntimes = SystemAPI.GetSingletonBuffer<SpawnGroupRuntime>(false);
         SpawnerSettings settings = SystemAPI.GetSingleton<SpawnerSettings>();
@@ -59,20 +66,28 @@ public partial struct EnemiesSpawnerSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-        // Handle kills
-        ProcessKills(ref ecb, ref state, ref spawnerState);
-        // Handle timer and wave progression
-        ManageWaveProgression(ref state, ref ecb, ref spawnerState, waves, groups, groupRuntimes);
-        // Handle Spawning
-        ManageSpawning(ref ecb, ref state, ref spawnerState, waves, groups, groupRuntimes, settings.MaxEnemies);
+        // Handle kills (attributed per wave)
+        ProcessKills(ref ecb, ref state, ref spawnerState, waveRuntimes);
+        // Handle timers, wave progression and loop restarts
+        ManageWaveProgression(ref state, ref spawnerState, waves, groups, waveRuntimes, groupRuntimes);
+        // Handle Spawning across every active wave
+        ManageSpawning(ref ecb, ref state, ref spawnerState, waves, groups, waveRuntimes, groupRuntimes,
+            settings.MaxEnemies);
     }
 
-    private void ProcessKills(ref EntityCommandBuffer ecb, ref SystemState state, ref SpawnerState spawnerState)
+    private void ProcessKills(ref EntityCommandBuffer ecb, ref SystemState state, ref SpawnerState spawnerState,
+        DynamicBuffer<WaveRuntime> waveRuntimes)
     {
         foreach (var (evt, entity) in SystemAPI.Query<RefRO<EnemyKilledEvent>>().WithEntityAccess())
         {
-            if (evt.ValueRO.WaveIndex == spawnerState.CurrentWaveIndex)
-                spawnerState.EnemiesKilledInWave++;
+            // Credit the kill to its own wave (a wave may be a background loop, not the lead).
+            int wi = evt.ValueRO.WaveIndex;
+            if (wi >= 0 && wi < waveRuntimes.Length)
+            {
+                var rt = waveRuntimes[wi];
+                rt.KilledCount++;
+                waveRuntimes[wi] = rt;
+            }
 
             spawnerState.ActiveEnemyCount--;
             if (spawnerState.ActiveEnemyCount < 0)
@@ -82,75 +97,225 @@ public partial struct EnemiesSpawnerSystem : ISystem
         }
     }
 
-    private void ManageWaveProgression(ref SystemState systemState, ref EntityCommandBuffer ecb,
-        ref SpawnerState spawnerState, DynamicBuffer<Wave> waves, DynamicBuffer<SpawnGroup> groups,
+    /// <summary>
+    /// Ticks every active wave's timer and applies completion. Background loop waves (already passed by
+    /// the lead) re-arm themselves in place. The lead wave advances the sequential frontier to the next
+    /// wave and, if it loops, re-arms itself so it keeps running in parallel behind the new lead.
+    /// </summary>
+    private void ManageWaveProgression(ref SystemState state, ref SpawnerState spawnerState, DynamicBuffer<Wave> waves,
+        DynamicBuffer<SpawnGroup> groups, DynamicBuffer<WaveRuntime> waveRuntimes,
         DynamicBuffer<SpawnGroupRuntime> groupRuntimes)
     {
         if (waves.Length == 0)
             return; // dirty condition, but never mind
 
+        // First update of a run: clear any stale loop state, then arm wave 0 as the lead.
         if (spawnerState.CurrentWaveIndex == -1)
         {
-            StartWave(ref spawnerState, waves, groups, groupRuntimes, 0);
+            for (int i = 0; i < waveRuntimes.Length; i++)
+                waveRuntimes[i] = default; // Active = false
+
+            spawnerState.CurrentWaveIndex = 0;
+            ArmWave(waves, groups, waveRuntimes, groupRuntimes, 0);
             return;
         }
 
-        if (spawnerState.CurrentWaveIndex >= waves.Length)
-            return;
+        float dt = SystemAPI.Time.DeltaTime;
+        int lead = spawnerState.CurrentWaveIndex;
 
-        Wave currentWave = waves[spawnerState.CurrentWaveIndex];
-        spawnerState.WaveTimer -= SystemAPI.Time.DeltaTime;
-
-        // Next wave conditions
-        bool timeOut = spawnerState.WaveTimer <= 0;
-        bool killPercentReached = false;
-
-        if (currentWave.TotalEnemyCount > 0)
+        // 1) Background loop waves (strictly behind the lead, so necessarily loop waves): re-arm on completion.
+        for (int i = 0; i < lead; i++)
         {
-            float killRatio = (float)spawnerState.EnemiesKilledInWave / currentWave.TotalEnemyCount;
-            killPercentReached = killRatio >= currentWave.KillPercentage;
+            var rt = waveRuntimes[i];
+            if (!rt.Active)
+                continue;
+
+            rt.Timer -= dt;
+            waveRuntimes[i] = rt;
+
+            if (ShouldLoopRestart(waves[i], rt))
+                ArmWave(waves, groups, waveRuntimes, groupRuntimes, i);
         }
 
-        if (timeOut || killPercentReached)
+        // 2) Lead wave: drives sequential progression.
+        var leadRt = waveRuntimes[lead];
+        if (!leadRt.Active)
+            return;
+
+        leadRt.Timer -= dt;
+        waveRuntimes[lead] = leadRt;
+
+        Wave leadWave = waves[lead];
+        bool hasNext = lead + 1 < waves.Length;
+
+        if (hasNext)
         {
-            // Exists next wave?
-            if (spawnerState.CurrentWaveIndex + 1 < waves.Length)
+            // Sequential advancement on (timeout || kill %) — ungated, as normal wave progression.
+            if (!ConditionMet(leadWave, leadRt))
+                return;
+
+            spawnerState.CurrentWaveIndex = lead + 1;
+            ArmWave(waves, groups, waveRuntimes, groupRuntimes, lead + 1);
+
+            if (leadWave.Loop)
             {
-                StartWave(ref spawnerState, waves, groups, groupRuntimes, spawnerState.CurrentWaveIndex + 1);
+                // Keep this wave running in parallel behind the new lead.
+                ArmWave(waves, groups, waveRuntimes, groupRuntimes, lead);
             }
+            else
+            {
+                // A non-loop wave that has been passed stops spawning its remainder (matches prior behavior).
+                var done = waveRuntimes[lead];
+                done.Active = false;
+                waveRuntimes[lead] = done;
+            }
+        }
+        else if (leadWave.Loop && ShouldLoopRestart(leadWave, leadRt))
+        {
+            // Last wave, no successor to advance to: self-restart on the gated loop condition so a fast
+            // kill clear can't restart it every frame.
+            ArmWave(waves, groups, waveRuntimes, groupRuntimes, lead);
+        }
+        // else: last, non-loop wave -> stays active so its groups finish spawning, then idles.
+    }
+
+    /// <summary> Lead-advance / first-iteration completion: timeout or kill-% reached (no min-period gate). </summary>
+    private static bool ConditionMet(in Wave wave, in WaveRuntime rt)
+    {
+        return rt.Timer <= 0f || KillReached(wave, rt);
+    }
+
+    /// <summary>
+    /// Background loop restart: a full (floored) period elapsed, or kill-% reached but only after
+    /// MIN_LOOP_PERIOD of the current iteration, so leftover kills can't restart the loop every frame.
+    /// </summary>
+    private static bool ShouldLoopRestart(in Wave wave, in WaveRuntime rt)
+    {
+        if (rt.Timer <= 0f)
+            return true;
+
+        if (!KillReached(wave, rt))
+            return false;
+
+        float elapsed = LoopPeriod(wave) - rt.Timer;
+        return elapsed >= MIN_LOOP_PERIOD;
+    }
+
+    /// <summary> Kill-% condition. A KillPercentage of 0 (or no enemies) means the condition is disabled. </summary>
+    private static bool KillReached(in Wave wave, in WaveRuntime rt)
+    {
+        if (wave.TotalEnemyCount <= 0 || wave.KillPercentage <= 0f)
+            return false;
+
+        return (float)rt.KilledCount / wave.TotalEnemyCount >= wave.KillPercentage;
+    }
+
+    /// <summary> A loop wave's iteration length, floored so a tiny Duration can't restart it every frame. </summary>
+    private static float LoopPeriod(in Wave wave)
+    {
+        return math.max(wave.Duration, MIN_LOOP_PERIOD);
+    }
+
+    /// <summary>
+    /// Arms (or re-arms) a wave: marks its runtime Active, resets its iteration timer/kill count, and
+    /// re-initializes its group range so every group starts popcorning from its first enemy.
+    /// </summary>
+    private void ArmWave(DynamicBuffer<Wave> waves, DynamicBuffer<SpawnGroup> groups,
+        DynamicBuffer<WaveRuntime> waveRuntimes, DynamicBuffer<SpawnGroupRuntime> groupRuntimes, int index)
+    {
+        Wave wave = waves[index];
+
+        waveRuntimes[index] = new WaveRuntime
+        {
+            Active = true,
+            Timer = wave.Loop ? LoopPeriod(wave) : wave.Duration,
+            KilledCount = 0
+        };
+
+        int endGroupIndex = wave.GroupStartIndex + wave.GroupCount;
+        for (int gi = wave.GroupStartIndex; gi < endGroupIndex; gi++)
+        {
+            groupRuntimes[gi] = new SpawnGroupRuntime
+            {
+                Remaining = groups[gi].Amount,
+                SpawnTimer = 0f
+            };
         }
     }
 
     /// <summary>
-    /// Advances every group of the active wave independently and in parallel. Each group "popcorns"
-    /// its enemies, releasing one every <see cref="SpawnGroup.SpawnDelay"/> seconds (a delay of 0 or
-    /// less dumps the whole group at once). A single per-frame budget (frame-rate + hard enemy cap) is
-    /// shared across all groups; spawns the budget cannot fit are deferred, never dropped.
+    /// Spawns from every active wave (the lead wave plus any looping waves behind it). Each group still
+    /// "popcorns" its enemies one every <see cref="SpawnGroup.SpawnDelay"/> seconds (delay &lt;= 0 dumps
+    /// the whole group). A single per-frame budget (frame-rate + hard enemy cap) and a single monotonic
+    /// ECB sort-key range are shared across all waves; the lead wave is served first so background loops
+    /// can't starve it. Spawns the budget can't fit are deferred, never dropped.
     /// </summary>
     private void ManageSpawning(ref EntityCommandBuffer ecb, ref SystemState systemState, ref SpawnerState spawnerState,
-        DynamicBuffer<Wave> waves, DynamicBuffer<SpawnGroup> groups, DynamicBuffer<SpawnGroupRuntime> groupRuntimes,
-        int maxEnemies)
+        DynamicBuffer<Wave> waves, DynamicBuffer<SpawnGroup> groups, DynamicBuffer<WaveRuntime> waveRuntimes,
+        DynamicBuffer<SpawnGroupRuntime> groupRuntimes, int maxEnemies)
     {
-        if (spawnerState.CurrentWaveIndex < 0)
+        int lead = spawnerState.CurrentWaveIndex;
+        if (lead < 0)
             return;
 
-        // Global per-frame safety budget shared by every group (frame-rate spike guard + hard enemy cap).
+        // Global per-frame safety budget shared by every active wave (frame-rate spike guard + hard cap).
         int frameBudget = math.min(MAX_SPAWNS_PER_FRAME, maxEnemies - spawnerState.ActiveEnemyCount);
         if (frameBudget <= 0)
             return;
 
-        var currentWave = waves[spawnerState.CurrentWaveIndex];
-        int endGroupIndex = currentWave.GroupStartIndex + currentWave.GroupCount;
+        // The player may be mid-respawn this frame; bail rather than letting GetSingletonEntity throw.
+        if (!SystemAPI.TryGetSingletonEntity<Player>(out var playerEntity))
+            return;
+
+        // Fetch the frame-invariant spawn inputs ONCE (this would otherwise run per active group).
+        var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
+        var planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
+        var planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
+        var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
+        var playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
+
+        var ctx = new SpawnContext
+        {
+            CollisionWorld = physicsWorld.CollisionWorld,
+            PlayerTransform = playerTransform,
+            PlanetCenter = planetTransform.Position,
+            PlanetRadius = planetData.Radius,
+            BaseSeed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1
+        };
 
         float dt = SystemAPI.Time.DeltaTime;
-        // Distinct ECB sort-key range per group scheduled this frame so their commands never collide.
+        // One monotonic sort-key range across ALL waves spawned this frame so their ECB commands never collide.
         int sortKeyBase = 0;
 
-        for (int gi = currentWave.GroupStartIndex; gi < endGroupIndex && frameBudget > 0; gi++)
+        // Lead wave first so the current wave is never starved by background loops...
+        if (waveRuntimes[lead].Active)
+            SpawnWaveGroups(ref ecb, ref systemState, ref spawnerState, groups, groupRuntimes, waves[lead], lead,
+                dt, in ctx, ref frameBudget, ref sortKeyBase);
+
+        // ...then the looping waves behind it.
+        for (int wi = 0; wi < lead && frameBudget > 0; wi++)
+        {
+            if (waveRuntimes[wi].Active)
+                SpawnWaveGroups(ref ecb, ref systemState, ref spawnerState, groups, groupRuntimes, waves[wi], wi,
+                    dt, in ctx, ref frameBudget, ref sortKeyBase);
+        }
+    }
+
+    /// <summary>
+    /// Spawns from one wave's group range, consuming the shared frame budget and advancing the shared
+    /// sort-key base. See <see cref="ManageSpawning"/> for the popcorn/budget contract.
+    /// </summary>
+    private void SpawnWaveGroups(ref EntityCommandBuffer ecb, ref SystemState systemState,
+        ref SpawnerState spawnerState, DynamicBuffer<SpawnGroup> groups, DynamicBuffer<SpawnGroupRuntime> groupRuntimes,
+        in Wave wave, int waveIndex, float dt, in SpawnContext ctx, ref int frameBudget, ref int sortKeyBase)
+    {
+        int endGroupIndex = wave.GroupStartIndex + wave.GroupCount;
+
+        for (int gi = wave.GroupStartIndex; gi < endGroupIndex && frameBudget > 0; gi++)
         {
             var runtime = groupRuntimes[gi];
             if (runtime.Remaining <= 0)
-                continue; // group finished (or not part of this wave)
+                continue; // group finished this iteration
 
             var group = groups[gi];
 
@@ -181,12 +346,11 @@ public partial struct EnemiesSpawnerSystem : ISystem
             {
                 // Enemies already released in this group -> preserves the geometric layout across batches.
                 int startIndex = group.Amount - runtime.Remaining;
-                ScheduleSpawnJob(ref ecb, ref systemState, group, startIndex, countToSpawn,
-                    spawnerState.CurrentWaveIndex, sortKeyBase);
+                ScheduleSpawnJob(ref ecb, ref systemState, in ctx, group, startIndex, countToSpawn, waveIndex,
+                    sortKeyBase);
 
                 runtime.Remaining -= countToSpawn;
                 spawnerState.ActiveEnemyCount += countToSpawn;
-                spawnerState.TotalEnemiesSpawnedInWave += countToSpawn;
 
                 frameBudget -= countToSpawn;
                 sortKeyBase += countToSpawn;
@@ -196,54 +360,16 @@ public partial struct EnemiesSpawnerSystem : ISystem
         }
     }
 
-    private void StartWave(ref SpawnerState spawnerState, DynamicBuffer<Wave> waves, DynamicBuffer<SpawnGroup> groups,
-        DynamicBuffer<SpawnGroupRuntime> groupRuntimes, int index)
+    private void ScheduleSpawnJob(ref EntityCommandBuffer ecb, ref SystemState state, in SpawnContext ctx,
+        SpawnGroup group, int startIndex, int count, int waveIndex, int sortKeyBase)
     {
-        Wave wave = waves[index];
-        spawnerState.CurrentWaveIndex = index;
-        spawnerState.WaveTimer = wave.Duration;
-
-        // Reset counters
-        spawnerState.EnemiesKilledInWave = 0;
-        spawnerState.TotalEnemiesSpawnedInWave = 0;
-        spawnerState.TotalEnemiesToSpawnInWave = wave.TotalEnemyCount;
-
-        // Activate every group of this wave at once: they all start popcorning in parallel, with the
-        // first enemy of each popping on the next spawn tick (SpawnTimer = 0).
-        int endGroupIndex = wave.GroupStartIndex + wave.GroupCount;
-        for (int gi = wave.GroupStartIndex; gi < endGroupIndex; gi++)
-        {
-            groupRuntimes[gi] = new SpawnGroupRuntime
-            {
-                Remaining = groups[gi].Amount,
-                SpawnTimer = 0f
-            };
-        }
-    }
-
-    private void ScheduleSpawnJob(ref EntityCommandBuffer ecb, ref SystemState state, SpawnGroup group, int startIndex,
-        int count, int waveIndex, int sortKeyBase)
-    {
-        var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
-
-        var planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
-        var planetData = SystemAPI.GetComponentRO<PlanetData>(planetEntity).ValueRO;
-        var planetTransform = SystemAPI.GetComponentRO<LocalTransform>(planetEntity).ValueRO;
-
-        var playerEntity = SystemAPI.GetSingletonEntity<Player>();
-
-        if (playerEntity == Entity.Null)
-            return;
-
-        var playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
-
         var spawnJob = new SpawnJob
         {
             ECB = ecb.AsParallelWriter(),
 
-            CollisionWorld = physicsWorld.CollisionWorld,
+            CollisionWorld = ctx.CollisionWorld,
 
-            PlayerTransform = playerTransform,
+            PlayerTransform = ctx.PlayerTransform,
             Prefab = group.Prefab,
 
             TotalAmount = group.Amount,
@@ -253,18 +379,31 @@ public partial struct EnemiesSpawnerSystem : ISystem
             SortKeyBase = sortKeyBase,
             // Scale = group.Scale, // issue ? @todo
 
-            PlanetCenter = planetTransform.Position,
-            PlanetRadius = planetData.Radius,
+            PlanetCenter = ctx.PlanetCenter,
+            PlanetRadius = ctx.PlanetRadius,
 
             SpawnOrigin = group.Position,
             MinRange = group.MinRange,
             MaxRange = group.MaxRange,
 
-            // Offset by sortKeyBase so groups spawning on the same frame don't share random seeds.
-            Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1 + (uint)sortKeyBase
+            BaseSeed = ctx.BaseSeed
         };
 
+        // Chained on state.Dependency so the shared ECB.ParallelWriter is written by one job at a time
+        // (concurrent jobs on one ParallelWriter would race its per-thread command buffers).
         state.Dependency = spawnJob.ScheduleParallel(count, 64, state.Dependency);
+    }
+
+    /// <summary> Frame-invariant inputs for spawning, fetched once per frame and shared by every wave/group. </summary>
+    private struct SpawnContext
+    {
+        public CollisionWorld CollisionWorld;
+        public LocalTransform PlayerTransform;
+        public float3 PlanetCenter;
+        public float PlanetRadius;
+
+        /// <summary> Frame-stable base; combined with the frame-global sort key for a unique per-entity seed. </summary>
+        public uint BaseSeed;
     }
 
     [BurstCompile]
@@ -297,12 +436,13 @@ public partial struct EnemiesSpawnerSystem : ISystem
         public float MaxRange;
 
         // Random
-        public uint Seed;
+        public uint BaseSeed;
 
         public void Execute(int index)
         {
             int globalIndex = StartIndex + index;
-            var rand = Random.CreateFromIndex(Seed + (uint)globalIndex);
+            // Frame-global unique seed: SortKeyBase + index never collides across waves/groups this frame.
+            var rand = Random.CreateFromIndex(BaseSeed + (uint)(SortKeyBase + index));
 
             float3 spawnPosition = float3.zero;
             float3 surfaceNormal = float3.zero;

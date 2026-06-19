@@ -36,11 +36,8 @@ public partial struct RunInitializationSystem : ISystem
             if (SystemAPI.TryGetSingletonRW<SpawnerState>(out var spawnerState))
             {
                 spawnerState.ValueRW.CurrentWaveIndex = -1;
-                spawnerState.ValueRW.IsWaveActive = true;
                 spawnerState.ValueRW.ActiveEnemyCount = 0;
-                spawnerState.ValueRW.TotalEnemiesSpawnedInWave = 0;
-                spawnerState.ValueRW.EnemiesKilledInWave = 0;
-                // Per-group runtime is (re)initialized by StartWave when CurrentWaveIndex == -1.
+                // Per-wave and per-group runtime are (re)initialized by the spawner when CurrentWaveIndex == -1.
             }
 
             // Destroy start run request
