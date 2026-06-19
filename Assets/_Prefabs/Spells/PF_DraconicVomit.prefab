@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 8253438287353100344}
   - component: {fileID: 3299946372054861272}
   - component: {fileID: 183588355693653372}
+  - component: {fileID: 8445532862024603410}
   m_Layer: 0
   m_Name: PF_DraconicVomit
   m_TagString: Untagged
@@ -315,6 +316,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d93933d99a2930547b531600fc30fb85, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageOnTickAuthoring
+  DamagePerTick: 10
+  TickRate: 1
+  AreaRadius: 1
+  Shape: 0
+  HalfAngle: 30
+  SweepStart: 0
+  SweepEnd: 0
+  RingThickness: 0.5
 --- !u!114 &183588355693653372
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -327,3 +336,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DestructibleAuthoring
+--- !u!114 &8445532862024603410
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1676050848477030820}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83f3b54e7ba2dd64986e1900caf88de4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunScopeAuthoring

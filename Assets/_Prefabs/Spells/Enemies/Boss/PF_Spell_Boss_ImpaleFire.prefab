@@ -24209,6 +24209,7 @@ GameObject:
   - component: {fileID: 4965893249955169764}
   - component: {fileID: 3416584097624340705}
   - component: {fileID: 8339371886526630225}
+  - component: {fileID: 3277519878159997889}
   m_Layer: 0
   m_Name: PF_Spell_Boss_ImpaleFire
   m_TagString: Untagged
@@ -29170,6 +29171,18 @@ MonoBehaviour:
   RingThickness: 0.5
   ActivationDelay: 0
   ActiveDuration: 1.5
+--- !u!114 &3277519878159997889
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7470252180303246380}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83f3b54e7ba2dd64986e1900caf88de4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunScopeAuthoring
 --- !u!1 &7471388375503079356
 GameObject:
   m_ObjectHideFlags: 0

@@ -9834,6 +9834,7 @@ GameObject:
   - component: {fileID: 6977015285347934202}
   - component: {fileID: 1024561827942631229}
   - component: {fileID: 4034104899245612422}
+  - component: {fileID: 1430090664679222910}
   m_Layer: 0
   m_Name: PF_Spell_Boss_FireVortex
   m_TagString: Untagged
@@ -14797,6 +14798,18 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
+--- !u!114 &1430090664679222910
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5284930186813762420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83f3b54e7ba2dd64986e1900caf88de4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunScopeAuthoring
 --- !u!1 &5284930187459922055
 GameObject:
   m_ObjectHideFlags: 0

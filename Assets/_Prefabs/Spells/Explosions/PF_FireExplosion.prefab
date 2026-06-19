@@ -14699,6 +14699,7 @@ GameObject:
   - component: {fileID: 3803366553473119979}
   - component: {fileID: 8858792441650426097}
   - component: {fileID: 5356559924620498423}
+  - component: {fileID: 2807220804204842537}
   m_Layer: 0
   m_Name: PF_FireExplosion
   m_TagString: Untagged
@@ -19860,6 +19861,18 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
+--- !u!114 &2807220804204842537
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5356559924620498424}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83f3b54e7ba2dd64986e1900caf88de4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunScopeAuthoring
 --- !u!1 &5356559924658292341
 GameObject:
   m_ObjectHideFlags: 0

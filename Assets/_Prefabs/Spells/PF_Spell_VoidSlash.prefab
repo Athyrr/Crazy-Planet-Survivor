@@ -24742,6 +24742,7 @@ GameObject:
   - component: {fileID: 2793163255239962769}
   - component: {fileID: 1824063731932232182}
   - component: {fileID: -4797223014985188212}
+  - component: {fileID: 602926044796795402}
   m_Layer: 0
   m_Name: PF_Spell_VoidSlash
   m_TagString: Untagged
@@ -29627,6 +29628,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LifetimeAuthoring
   OverrideData: 0
   Lifetime: 0
+--- !u!114 &602926044796795402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8462075292813735881}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83f3b54e7ba2dd64986e1900caf88de4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunScopeAuthoring
 --- !u!1 &8462075293426731623
 GameObject:
   m_ObjectHideFlags: 0

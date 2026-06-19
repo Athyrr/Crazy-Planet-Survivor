@@ -9767,6 +9767,7 @@ GameObject:
   - component: {fileID: 5330116335979923535}
   - component: {fileID: 2758490273393860567}
   - component: {fileID: 240449067818214970}
+  - component: {fileID: 563271172558404781}
   m_Layer: 0
   m_Name: PF_Spell_LightningTornado
   m_TagString: Untagged
@@ -14830,6 +14831,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d93933d99a2930547b531600fc30fb85, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageOnTickAuthoring
+  DamagePerTick: 10
+  TickRate: 1
+  AreaRadius: 1
+  Shape: 0
+  HalfAngle: 30
+  SweepStart: 0
+  SweepEnd: 0
+  RingThickness: 0.5
 --- !u!114 &2758490273393860567
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14856,6 +14865,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DestructibleAuthoring
+--- !u!114 &563271172558404781
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8415228870159460076}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83f3b54e7ba2dd64986e1900caf88de4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunScopeAuthoring
 --- !u!1 &8415919219335558668
 GameObject:
   m_ObjectHideFlags: 0
