@@ -51,31 +51,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b275e5f92732148048d7b77e264ac30e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Physics.Custom::Unity.Physics.Authoring.PhysicsShapeAuthoring
-  m_ShapeType: 2
+  m_ShapeType: 1
   m_PrimitiveCenter:
     x: 0
-    y: 0.50346214
-    z: -0.000000059604645
+    y: 0
+    z: 0.5
   m_PrimitiveSize:
-    x: 8.9
-    y: 8.9
-    z: 8.9
+    x: 5.0884895
+    y: 5.0884895
+    z: 13.78
   m_PrimitiveOrientation:
     Value:
-      x: -0
+      x: 90
       y: 0
       z: 0
     RotationOrder: 4
   m_Capsule:
-    Height: 8.9
-    Radius: 4.45
+    Height: 13.78
+    Radius: 2.5442448
     Axis: 2
   m_Cylinder:
-    Height: 8.9
-    Radius: 4.45
+    Height: 13.78
+    Radius: 2.5442448
     Axis: 2
   m_CylinderSideCount: 20
-  m_SphereRadius: 4.45
+  m_SphereRadius: 6.89
   m_MinimumSkinnedVertexWeight: 0.1
   m_ConvexHullGenerationParameters:
     m_SimplificationTolerance: 0.015
@@ -194,7 +194,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03db88175c3880e4d91f5497f684801e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
-  MainRenderer: {fileID: 7315231307354453235}
+  MainRenderer: {fileID: 2059771960780494281}
   UseSnappedMovement: 1
   BaseStats:
     MaxHealth: 50
@@ -295,36 +295,24 @@ PrefabInstance:
     m_TransformParent: {fileID: 834412683046234062}
     m_Modifications:
     - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 7.27
-      objectReference: {fileID: 0}
-    - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 7.27
-      objectReference: {fileID: 0}
-    - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 7.27
-      objectReference: {fileID: 0}
-    - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.87053
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.61732
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 2.38675
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
       propertyPath: m_LocalRotation.y
@@ -336,7 +324,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
+      value: -90
       objectReference: {fileID: 0}
     - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
@@ -346,27 +334,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
-      propertyPath: m_ConstrainProportionsScale
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 8395280566231798710, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
       propertyPath: m_Name
       value: PF_WaspRender
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 282810237536785947, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
+--- !u!23 &2059771960780494281 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5614190757043470365, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
+  m_PrefabInstance: {fileID: 5871668142328649172}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2230206198232149037 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
-  m_PrefabInstance: {fileID: 5871668142328649172}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &7315231307354453235 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 3817001951243510055, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
   m_PrefabInstance: {fileID: 5871668142328649172}
   m_PrefabAsset: {fileID: 0}

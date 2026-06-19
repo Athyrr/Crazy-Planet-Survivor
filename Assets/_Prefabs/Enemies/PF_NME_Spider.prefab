@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: 5661740293285117394}
   - component: {fileID: 9020855171300096482}
   m_Layer: 0
-  m_Name: PF_Cube_Melee
+  m_Name: PF_NME_Spider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -51,15 +51,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b275e5f92732148048d7b77e264ac30e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Physics.Custom::Unity.Physics.Authoring.PhysicsShapeAuthoring
-  m_ShapeType: 0
+  m_ShapeType: 2
   m_PrimitiveCenter:
     x: 0
     y: 0
-    z: 0
+    z: -1.21
   m_PrimitiveSize:
     x: 2.7506933
-    y: 1.4642035
-    z: 2.342484
+    y: 2.7506933
+    z: 2.7506933
   m_PrimitiveOrientation:
     Value:
       x: -0
@@ -68,12 +68,12 @@ MonoBehaviour:
     RotationOrder: 4
   m_Capsule:
     Height: 2.7506933
-    Radius: 1.171242
-    Axis: 0
-  m_Cylinder:
-    Height: 1.4642035
     Radius: 1.3753467
-    Axis: 1
+    Axis: 2
+  m_Cylinder:
+    Height: 2.7506933
+    Radius: 1.3753467
+    Axis: 2
   m_CylinderSideCount: 20
   m_SphereRadius: 1.3753467
   m_MinimumSkinnedVertexWeight: 0.1
@@ -194,7 +194,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03db88175c3880e4d91f5497f684801e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
-  MainRenderer: {fileID: 3952327285013133465}
+  MainRenderer: {fileID: 2646651805170495814}
   UseSnappedMovement: 1
   BaseStats:
     MaxHealth: 50
@@ -303,19 +303,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 287592402806530305, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.665
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 287592402806530305, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.062
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 287592402806530305, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 287592402806530305, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 287592402806530305, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
       propertyPath: m_LocalRotation.y
@@ -327,7 +327,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 287592402806530305, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
+      value: -90
       objectReference: {fileID: 0}
     - target: {fileID: 287592402806530305, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
@@ -341,15 +341,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_SpiderRender
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 8530870838956337445, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
---- !u!23 &3952327285013133465 stripped
+--- !u!23 &2646651805170495814 stripped
 MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 8255378415593235224, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
+  m_CorrespondingSourceObject: {fileID: 6986008385569385159, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
   m_PrefabInstance: {fileID: 4920607380881152897}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &5166817979948890752 stripped
