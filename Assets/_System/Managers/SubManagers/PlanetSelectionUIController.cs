@@ -18,7 +18,9 @@ public class PlanetSelectionUIController : MonoBehaviour
 
     public Button ExploreButton;
     
-    private EPlanetID _focusedPlanet; 
+    public Button BackButton;
+
+    private EPlanetID _focusedPlanet;
     private EPlanetID _hoveredPlanet;   
 
     private GameInputs _inputs;
@@ -34,6 +36,8 @@ public class PlanetSelectionUIController : MonoBehaviour
     private void OnEnable()
     {
         ExploreButton.gameObject.SetActive(false);
+        if (BackButton != null)
+            BackButton.gameObject.SetActive(false);
 
         if (_inputs == null)
             _inputs = new GameInputs();
@@ -51,6 +55,8 @@ public class PlanetSelectionUIController : MonoBehaviour
     private void OnDisable()
     {
         ExploreButton.gameObject.SetActive(false);
+        if (BackButton != null)
+            BackButton.gameObject.SetActive(false);
         _focusedPlanet = EPlanetID.None;
         _hoveredPlanet = EPlanetID.None;
 
@@ -162,8 +168,28 @@ public class PlanetSelectionUIController : MonoBehaviour
         var planet = _focusedPlanet;
         _focusedPlanet = EPlanetID.None;
         ExploreButton.gameObject.SetActive(false);
+        if (BackButton != null)
+            BackButton.gameObject.SetActive(false);
 
         GameManager.Instance.StartRun(planet);
+    }
+
+
+    public void BackToLobby()
+    {
+        if (!IsSelecting())
+            return;
+
+        _focusedPlanet = EPlanetID.None;
+        _hoveredPlanet = EPlanetID.None;
+        ExploreButton.gameObject.SetActive(false);
+        if (BackButton != null)
+            BackButton.gameObject.SetActive(false);
+
+        OnPlanetSelected?.Invoke(EPlanetID.None, null, default);
+        OnPlanetHovered?.Invoke(EPlanetID.None);
+
+        GameManager.Instance.ChangeState(EGameState.Lobby);
     }
 
     public void OpenView()
@@ -171,6 +197,10 @@ public class PlanetSelectionUIController : MonoBehaviour
         _focusedPlanet = EPlanetID.None;
         _hoveredPlanet = EPlanetID.None;
         ExploreButton.gameObject.SetActive(false);
+
+        // Back is always available while the galaxy is open.
+        if (BackButton != null)
+            BackButton.gameObject.SetActive(true);
 
         RefreshPlanets();
 
@@ -181,6 +211,8 @@ public class PlanetSelectionUIController : MonoBehaviour
     public void CloseView()
     {
         ExploreButton.gameObject.SetActive(false);
+        if (BackButton != null)
+            BackButton.gameObject.SetActive(false);
         _focusedPlanet = EPlanetID.None;
         _hoveredPlanet = EPlanetID.None;
     }
@@ -252,10 +284,14 @@ public class PlanetSelectionUIController : MonoBehaviour
         if (!IsSelecting())
             return;
 
-        // Drop the focus but keep the hover (so navigation can continue from here).
-        if (_focusedPlanet == EPlanetID.None)
+        // A planet is focused → drop the focus but keep the hover (navigation can continue from here).
+        if (_focusedPlanet != EPlanetID.None)
+        {
+            SelectPlanet(_focusedPlanet); // same id → toggles the focus off
             return;
+        }
 
-        SelectPlanet(_focusedPlanet); // same id → toggles the focus off
+        // Nothing focused → leave the galaxy and return to the lobby.
+        BackToLobby();
     }
 }
