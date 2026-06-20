@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 834412683046234062}
   - component: {fileID: -809601175486125950}
-  - component: {fileID: 1377867983948317024}
   - component: {fileID: -795139794179562712}
   - component: {fileID: 7077652745905088192}
   - component: {fileID: 4190783909020484761}
@@ -52,31 +51,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b275e5f92732148048d7b77e264ac30e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Physics.Custom::Unity.Physics.Authoring.PhysicsShapeAuthoring
-  m_ShapeType: 2
+  m_ShapeType: 1
   m_PrimitiveCenter:
     x: 0
-    y: 0
-    z: -1.21
+    y: 0.98
+    z: 0.12
   m_PrimitiveSize:
-    x: 2.7506933
-    y: 2.7506933
-    z: 2.7506933
+    x: 3
+    y: 3
+    z: 6.24
   m_PrimitiveOrientation:
     Value:
-      x: -0
+      x: 90
       y: 0
       z: 0
     RotationOrder: 4
   m_Capsule:
-    Height: 2.7506933
-    Radius: 1.3753467
+    Height: 6.24
+    Radius: 1.5
     Axis: 2
   m_Cylinder:
-    Height: 2.7506933
-    Radius: 1.3753467
+    Height: 6.24
+    Radius: 1.5
     Axis: 2
   m_CylinderSideCount: 20
-  m_SphereRadius: 1.3753467
+  m_SphereRadius: 3.12
   m_MinimumSkinnedVertexWeight: 0.1
   m_ConvexHullGenerationParameters:
     m_SimplificationTolerance: 0.015
@@ -142,7 +141,7 @@ MonoBehaviour:
         Category01: 0
         Category02: 1
         Category03: 1
-        Category04: 1
+        Category04: 0
         Category05: 1
         Category06: 1
         Category07: 1
@@ -183,57 +182,6 @@ MonoBehaviour:
         Tag07: 0
     m_SerializedVersion: 1
   m_SerializedVersion: 1
---- !u!114 &1377867983948317024
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4960229139857780973}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ccea9ea98e38942e0b0938c27ed1903e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.Physics.Custom::Unity.Physics.Authoring.PhysicsBodyAuthoring
-  m_MotionType: 1
-  m_Smoothing: 0
-  m_Mass: 1
-  m_LinearDamping: 0.01
-  m_AngularDamping: 0.05
-  m_InitialLinearVelocity:
-    x: 0
-    y: 0
-    z: 0
-  m_InitialAngularVelocity:
-    x: 0
-    y: 0
-    z: 0
-  m_GravityFactor: 1
-  m_OverrideDefaultMassDistribution: 0
-  m_CenterOfMass:
-    x: 0
-    y: 0
-    z: 0
-  m_Orientation:
-    Value:
-      x: 0
-      y: 0
-      z: 0
-    RotationOrder: 4
-  m_InertiaTensor:
-    x: 0.4
-    y: 0.4
-    z: 0.4
-  m_WorldIndex: 0
-  m_CustomTags:
-    Tag00: 0
-    Tag01: 0
-    Tag02: 0
-    Tag03: 0
-    Tag04: 0
-    Tag05: 0
-    Tag06: 0
-    Tag07: 0
 --- !u!114 &-795139794179562712
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -270,6 +218,7 @@ MonoBehaviour:
     CritDamage: 0
     Luck: 0
   InitialSpells: []
+  ContactDamage: 20
 --- !u!114 &7077652745905088192
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -359,7 +308,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 287592402806530305, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: 287592402806530305, guid: b69b743d4e247f54f8cda0fa69647c97, type: 3}
       propertyPath: m_LocalRotation.w
