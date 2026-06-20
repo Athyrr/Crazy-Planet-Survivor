@@ -56,26 +56,32 @@ namespace FMODUnity
                 if (string.IsNullOrEmpty(settings.SourceProjectPath))
                 {
                     valid = false;
-                    reason = "The FMOD Studio project path must be set to an .fspro file.";
+                    reason =L10n.Tr("The FMOD Studio project path must be set to an .fspro file.");
                     return;
                 }
                 if (!File.Exists(settings.SourceProjectPath))
                 {
                     valid = false;
-                    reason = string.Format("The FMOD Studio project path '{0}' does not exist.", settings.SourceProjectPath);
+                    reason = string.Format(L10n.Tr("The FMOD Studio project path '{0}' does not exist."), settings.SourceProjectPath);
                     return;
                 }
 
                 string projectPath = settings.SourceProjectPath;
                 string projectFolder = Path.GetDirectoryName(projectPath);
                 string buildFolder = RuntimeUtils.GetCommonPlatformPath(Path.Combine(projectFolder, BuildFolder));
-                if (!Directory.Exists(buildFolder) ||
-                    Directory.GetDirectories(buildFolder).Length == 0 ||
-                    Directory.GetFiles(Directory.GetDirectories(buildFolder)[0], "*.bank", SearchOption.AllDirectories).Length == 0
-                    )
+                if (!Directory.Exists(buildFolder) || !Directory.EnumerateDirectories(buildFolder).Any())
                 {
                     valid = false;
-                    reason = string.Format("The FMOD Studio project '{0}' does not contain any built banks. Please build your project in FMOD Studio.", settings.SourceProjectPath);
+                    reason = string.Format(L10n.Tr("The FMOD Studio project '{0}' does not contain any built banks. Please build your project in FMOD Studio."), settings.SourceProjectPath);
+                    return;
+                }
+
+                string defaultBankFolder = RuntimeUtils.GetCommonPlatformPath(Path.Combine(buildFolder, EditorSettings.Instance.CurrentEditorPlatform.BuildDirectory));
+
+                if (!Directory.Exists(defaultBankFolder))
+                {
+                    valid = false;
+                    reason = string.Format(L10n.Tr("Platform build directory '{0}' does not exist. Please build your project in FMOD Studio."), defaultBankFolder);
                     return;
                 }
             }
@@ -84,22 +90,29 @@ namespace FMODUnity
                 if (String.IsNullOrEmpty(settings.SourceBankPath))
                 {
                     valid = false;
-                    reason = "The build path has not been set.";
+                    reason = L10n.Tr("The build path has not been set.");
                     return;
                 }
                 if (!Directory.Exists(settings.SourceBankPath))
                 {
                     valid = false;
-                    reason = string.Format("The build path '{0}' does not exist.", settings.SourceBankPath);
+                    reason = string.Format(L10n.Tr("The build path '{0}' does not exist."), settings.SourceBankPath);
                     return;
                 }
 
                 if (settings.HasPlatforms)
                 {
+                    string defaultBankFolder = RuntimeUtils.GetCommonPlatformPath(Path.Combine(settings.SourceBankPath, EditorSettings.Instance.CurrentEditorPlatform.BuildDirectory));
                     if (Directory.GetDirectories(settings.SourceBankPath).Length == 0)
                     {
                         valid = false;
-                        reason = string.Format("Build path '{0}' does not contain any platform sub-directories. Please check that the build path is correct.", settings.SourceBankPath);
+                        reason = string.Format(L10n.Tr("Build path '{0}' does not contain any platform sub-directories. Please check that the build path is correct."), settings.SourceBankPath);
+                        return;
+                    }
+                    else if (!Directory.Exists(defaultBankFolder))
+                    {
+                        valid = false;
+                        reason = string.Format(L10n.Tr("Platform sub-directory '{0}' does not exist. Please check that the build path is correct."), defaultBankFolder);
                         return;
                     }
                 }
@@ -108,7 +121,7 @@ namespace FMODUnity
                     if (Directory.GetFiles(settings.SourceBankPath, "*.strings.bank").Length == 0)
                     {
                         valid = false;
-                        reason = string.Format("Build path '{0}' does not contain any built banks.", settings.SourceBankPath);
+                        reason = string.Format(L10n.Tr("Build path '{0}' does not contain any built banks."), settings.SourceBankPath);
                         return;
                     }
                 }
@@ -126,7 +139,7 @@ namespace FMODUnity
                     string[] buildNames = new string[buildDirectories.Length];
                     for (int i = 0; i < buildDirectories.Length; i++)
                     {
-                        buildNames[i] = Path.GetFileNameWithoutExtension(buildDirectories[i]);
+                        buildNames[i] = Path.GetFileName(buildDirectories[i]);
                     }
                     return buildNames;
                 }
@@ -153,19 +166,19 @@ namespace FMODUnity
 
             if (hours >= 1)
             {
-                return Pluralize(Mathf.FloorToInt(hours), "hour", "hours");
+                return Pluralize(Mathf.FloorToInt(hours), L10n.Tr("hour"), L10n.Tr("hours"));
             }
             else if (minutes >= 1)
             {
-                return Pluralize(Mathf.FloorToInt(minutes), "minute", "minutes");
+                return Pluralize(Mathf.FloorToInt(minutes), L10n.Tr("minute"), L10n.Tr("minutes"));
             }
             else if (seconds >= 1)
             {
-                return Pluralize(Mathf.FloorToInt(seconds), "second", "seconds");
+                return Pluralize(Mathf.FloorToInt(seconds), L10n.Tr("second"), L10n.Tr("seconds"));
             }
             else
             {
-                return "a moment";
+                return L10n.Tr("a moment");
             }
         }
 
@@ -268,12 +281,12 @@ namespace FMODUnity
             // Display the legacy event field if it is not empty
             if (!string.IsNullOrEmpty(property.stringValue))
             {
-                EditorGUILayout.PropertyField(property, new GUIContent("Legacy Event"));
+                EditorGUILayout.PropertyField(property, new GUIContent(L10n.Tr("Legacy Event")));
 
                 using (new EditorGUI.IndentLevelScope())
                 {
                     GUIContent content = new GUIContent(
-                        string.Format("Will be migrated to <b>{0}</b>", migrationTarget),
+                        string.Format(L10n.Tr("Will be migrated to <b>{0}</b>"), migrationTarget),
                         EditorGUIUtility.IconContent("console.infoicon.sml").image);
                     GUIStyle style = new GUIStyle(GUI.skin.label) { richText = true };
 
@@ -506,11 +519,19 @@ namespace FMODUnity
             SetupWizardWindow.Startup();
         }
 
-        private static void RecreateSystem()
+        public static void RecreateSystem()
         {
+            // If preview banks loaded, reload them after the system is recreated
+            bool reloadBanks = PreviewBanksLoaded;
+
             StopAllPreviews();
             DestroySystem();
             CreateSystem();
+
+            if (reloadBanks)
+            {
+                LoadPreviewBanks();
+            }
         }
 
         private static void DestroySystem()
@@ -563,7 +584,14 @@ namespace FMODUnity
                 CheckResult(system.setAdvancedSettings(studioAdvancedSettings, encryptionKey));
             }
 
-            FMOD.RESULT result =  system.initialize(256, FMOD.Studio.INITFLAGS.ALLOW_MISSING_PLUGINS | FMOD.Studio.INITFLAGS.SYNCHRONOUS_UPDATE, FMOD.INITFLAGS.NORMAL, IntPtr.Zero);
+            Settings.Instance.PlayInEditorPlatform.LoadDynamicPlugins(lowlevel, (dynamicLoadResult, cause) => {
+                if (dynamicLoadResult != FMOD.RESULT.OK)
+                {
+                    RuntimeUtils.DebugLogError($"[FMOD] Error loading dynamic plugins: {dynamicLoadResult.ToString()} ({FMOD.Error.String(dynamicLoadResult)}): {cause}");
+                }
+            });
+
+            FMOD.RESULT result = system.initialize(256, FMOD.Studio.INITFLAGS.ALLOW_MISSING_PLUGINS | FMOD.Studio.INITFLAGS.SYNCHRONOUS_UPDATE, FMOD.INITFLAGS.NORMAL, IntPtr.Zero);
             if (result == FMOD.RESULT.OK)
             {
                 FMOD.ChannelGroup master;
@@ -701,14 +729,15 @@ namespace FMODUnity
             CheckResult(System.getCoreSystem(out lowlevel));
 
             uint version;
-            CheckResult(lowlevel.getVersion(out version));
+            uint buildNumber;
+            CheckResult(lowlevel.getVersion(out version, out buildNumber));
 
             string text = string.Format(
-                "Version: {0}\n\nCopyright \u00A9 Firelight Technologies Pty, Ltd. 2014-2026 \n\n" +
-                "See LICENSE.TXT for additional license information.",
-                VersionString(version));
+                L10n.Tr("Version: {0}\nBuild Number: {1}\n\nCopyright \u00A9 Firelight Technologies Pty, Ltd. 2014-2026 \n\nSee LICENSE.TXT for additional license information."),
+                VersionString(version),
+                buildNumber);
 
-            EditorUtility.DisplayDialog("FMOD Studio Unity Integration", text, "OK");
+            EditorUtility.DisplayDialog(L10n.Tr("FMOD Studio Unity Integration"), text, "OK");
         }
 
         private static List<FMOD.Studio.EventInstance> previewEventInstances = new List<FMOD.Studio.EventInstance>();
@@ -816,9 +845,9 @@ namespace FMODUnity
 
         public static void StopAllPreviews()
         {
-            foreach (FMOD.Studio.EventInstance eventInstance in previewEventInstances)
+            for (int i = previewEventInstances.Count - 1; i >= 0; i--)
             {
-                PreviewStop(eventInstance);
+                PreviewStop(previewEventInstances[i]);
             }
         }
 
@@ -843,7 +872,7 @@ namespace FMODUnity
             float[] data = new float[channels];
             if (outputMetering.numchannels > 0)
             {
-                Array.Copy(outputMetering.rmslevel, data, channels);
+                outputMetering.rmslevel.CopyTo(data);
             }
             return data;
         }
@@ -1081,7 +1110,7 @@ namespace FMODUnity
 
             if (CheckForNameConflict(folderGuid, eventName))
             {
-                EditorUtility.DisplayDialog("Name Conflict", string.Format("The event {0} already exists under {1}", eventName, eventPath), "OK");
+                EditorUtility.DisplayDialog(L10n.Tr("Name Conflict"), string.Format(L10n.Tr("The event {0} already exists under {1}"), eventName, eventPath), "OK");
                 return null;
             }
 
@@ -1324,6 +1353,25 @@ namespace FMODUnity
                 return $"Assets/Plugins/FMOD/Cache/Editor/{cacheAssetName}.asset";
             }
         }
+
+#if FMOD_SERIALIZE_GUID_ONLY
+        public static string PathFromGUID(FMOD.GUID guid)
+        {
+            string path = "";
+
+            if (!guid.IsNull)
+            {
+                // If referenced event was deleted, editorEventRef will be null, need to check to avoid null ref
+                EditorEventRef editorEventRef = EventManager.EventFromGUID(guid);
+                if (editorEventRef != null)
+                {
+                    path = editorEventRef.Path;
+                }
+            }
+
+            return path;
+        }
+#endif
     }
 
     public class StagingSystem
@@ -1444,9 +1492,8 @@ namespace FMODUnity
         public static readonly UpdateStep[] UpdateSteps = {
             UpdateStep.Create(
                 stage: Settings.SharedLibraryUpdateStages.DisableExistingLibraries,
-                name: "Disable Existing Native Libraries",
-                description: "Disable the existing FMOD native libraries so that Unity will not load them " +
-                    "at startup time.",
+                name: L10n.Tr("Disable Existing Native Libraries"),
+                description: L10n.Tr("Disable the existing FMOD native libraries so that Unity will not load them at startup time."),
                 details: () => {
                     IEnumerable<PluginImporter> importers =
                         LibrariesToUpdate.Select(GetPluginImporter).Where(p => p != null);
@@ -1458,7 +1505,7 @@ namespace FMODUnity
 
                     IEnumerable<string> paths = importers.Select(p => $"\n* {p.assetPath}");
 
-                    return $"This will disable these native libraries:{string.Join(string.Empty, paths)}";
+                    return string.Format(L10n.Tr("This will disable these native libraries:{0}"),string.Join(string.Empty, paths));
                 },
                 execute: () => {
                     foreach (LibInfo libInfo in LibrariesToUpdate)
@@ -1481,11 +1528,10 @@ namespace FMODUnity
 
             UpdateStep.Create(
                 stage: Settings.SharedLibraryUpdateStages.RestartUnity,
-                name: "Restart Unity",
-                description: "Restart Unity so that it releases its lock on the existing FMOD native libraries.",
+                name: L10n.Tr("Restart Unity"),
+                description: L10n.Tr("Restart Unity so that it releases its lock on the existing FMOD native libraries."),
                 details: () => {
-                    return "This will restart Unity. You will be prompted to save your work if you have unsaved " +
-                        "scene modifications.";
+                    return L10n.Tr("This will restart Unity. You will be prompted to save your work if you have unsaved scene modifications.");
                 },
                 execute: () => {
                     if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
@@ -1497,8 +1543,8 @@ namespace FMODUnity
 
             UpdateStep.Create(
                 stage: Settings.SharedLibraryUpdateStages.CopyNewLibraries,
-                name: "Copy New Native Libraries",
-                description: "Copy the new FMOD native libraries to the correct location and enable them.",
+                name: L10n.Tr("Copy New Native Libraries"),
+                description: L10n.Tr("Copy the new FMOD native libraries to the correct location and enable them."),
                 details: () => {
                     List<string> actions = new List<string>();
 
@@ -1527,7 +1573,7 @@ namespace FMODUnity
 
                     actions.Add($"Remove {StagingFolder}");
 
-                    return $"This will do the following:\n* {string.Join("\n* ", actions)}";
+                    return string.Format(L10n.Tr("This will do the following:\n* {0}"), string.Join("\n* ", actions));
                 },
                 execute: () => {
                     bool allCopiesSucceeded = true;
@@ -1884,7 +1930,7 @@ namespace FMODUnity
             }
         }
 
-        private static FMOD.GUID GetGuid(this SerializedProperty property)
+        public static FMOD.GUID GetGuid(this SerializedProperty property)
         {
             return new FMOD.GUID() {
                 Data1 = property.FindPropertyRelative("Data1").intValue,
@@ -1907,19 +1953,29 @@ namespace FMODUnity
             SerializedProperty guidProperty = property.FindPropertyRelative("Guid");
             guidProperty.SetGuid(guid);
 
+#if !FMOD_SERIALIZE_GUID_ONLY
             SerializedProperty pathProperty = property.FindPropertyRelative("Path");
             pathProperty.stringValue = path;
+#endif
         }
 
         public static EventReference GetEventReference(this SerializedProperty property)
         {
-            SerializedProperty pathProperty = property.FindPropertyRelative("Path");
             SerializedProperty guidProperty = property.FindPropertyRelative("Guid");
-
-            return new EventReference() {
-                Path = pathProperty.stringValue,
+            return new EventReference()
+            {
+                Path = property.GetEventReferencePath(),
                 Guid = guidProperty.GetGuid(),
             };
+        }
+
+        public static string GetEventReferencePath(this SerializedProperty property)
+        {
+#if FMOD_SERIALIZE_GUID_ONLY
+            return EditorUtils.PathFromGUID(property.FindPropertyRelative("Guid").GetGuid());
+#else
+            return property.FindPropertyRelative("Path").stringValue;
+#endif
         }
     }
 
