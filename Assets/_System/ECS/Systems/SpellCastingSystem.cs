@@ -112,21 +112,15 @@ public partial struct SpellCastingSystem : ISystem
         var mainSpellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
         var childSpellPrefabs = SystemAPI.GetSingletonBuffer<ChildSpellPrefab>(true);
 
-        // Resolve the player once so enemy NearestTarget spells can target it directly.
-        Entity playerEntity = Entity.Null;
-        float3 playerPosition = float3.zero;
-        if (SystemAPI.TryGetSingletonEntity<Player>(out var playerSingleton))
-        {
-            playerEntity = playerSingleton;
-            playerPosition = SystemAPI.GetComponent<LocalToWorld>(playerSingleton).Position;
-        }
+        Entity playerEntity = SystemAPI.TryGetSingletonEntity<Player>(out var playerSingleton)
+            ? playerSingleton
+            : Entity.Null;
 
         var castJob = new CastSpellJob
         {
             ECB = ecb.AsParallelWriter(),
             Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
             PlayerEntity = playerEntity,
-            PlayerPosition = playerPosition,
             CollisionWorld = physicsWorldSingleton.CollisionWorld,
             SpellDatabaseRef = spellDatabase.Blobs,
             MainSpellPrefabs = mainSpellPrefabs,
@@ -165,7 +159,6 @@ public partial struct SpellCastingSystem : ISystem
         public EntityCommandBuffer.ParallelWriter ECB;
         public uint Seed;
         public Entity PlayerEntity;
-        public float3 PlayerPosition;
 
         [ReadOnly] public CollisionWorld CollisionWorld;
         [ReadOnly] public DynamicBuffer<SpellPrefab> MainSpellPrefabs;
@@ -308,8 +301,11 @@ public partial struct SpellCastingSystem : ISystem
                             ECB.DestroyEntity(chunkIndex, requestEntity);
                             return;
                         }
+
                         targetEntity = PlayerEntity;
-                        targetPosition = PlayerPosition;
+                        targetPosition = LocalToWorldLookup.HasComponent(PlayerEntity)
+                            ? LocalToWorldLookup[PlayerEntity].Position
+                            : casterTransform.Position;
                         targetFound = true;
                     }
                     else
@@ -398,7 +394,7 @@ public partial struct SpellCastingSystem : ISystem
             for (int i = 0; i < finalProjectileCount; i++)
             {
                 var spellEntity = ECB.Instantiate(chunkIndex, spellPrefab);
-                
+
                 ECB.SetComponent(chunkIndex, spellEntity, new SpellSource
                 {
                     CasterEntity = request.Caster,

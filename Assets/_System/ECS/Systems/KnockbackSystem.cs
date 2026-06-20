@@ -25,8 +25,7 @@ public partial struct KnockbackSystem : ISystem
 
         var deltaTime = SystemAPI.Time.DeltaTime;
 
-        var planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
-        var planetPos = SystemAPI.GetComponent<LocalTransform>(planetEntity).Position;
+         var planetPos = SystemAPI.GetSingleton<PlanetData>().Center;
 
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
 

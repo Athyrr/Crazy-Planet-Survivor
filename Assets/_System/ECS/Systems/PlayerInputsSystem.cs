@@ -29,16 +29,15 @@ public partial struct PlayerInputSystem : ISystem
             {
                 movement.ValueRW.Direction = float3.zero;
             }
+
             return;
         }
+
+        float3 planetCenter = SystemAPI.GetSingleton<PlanetData>().Center;
 
         foreach (var (transform, movement) in
                  SystemAPI.Query<RefRO<LocalTransform>, RefRW<LinearMovement>>().WithAll<Player>())
         {
-            // Get planet data
-            Entity planetEntity = SystemAPI.GetSingletonEntity<PlanetData>();
-            float3 planetCenter = SystemAPI.GetComponent<LocalTransform>(planetEntity).Position;
-
             float3 playerPos = transform.ValueRO.Position;
             float3 normal = math.normalize(playerPos - planetCenter);
 
