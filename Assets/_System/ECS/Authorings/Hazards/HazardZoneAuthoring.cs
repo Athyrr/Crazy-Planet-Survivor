@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Unity.Entities;
+using Unity.Mathematics;
 using UnityEngine;
 
 /// <summary>
@@ -41,6 +42,11 @@ public class HazardZoneAuthoring : MonoBehaviour
         new EffectEntry { Type = EHazardEffectType.Burn, Magnitude = 5f, TickRate = 0.5f, Linger = 1f },
     };
 
+    [Header("Performance")]
+    [Tooltip("Seconds between effect refreshes. The zone re-applies its effects at this cadence instead " +
+             "of every frame. Keep every effect's Linger >= this value, or the effect flickers off between refreshes.")]
+    public float RefreshInterval = 0.25f;
+
     private class Baker : Baker<HazardZoneAuthoring>
     {
         public override void Bake(HazardZoneAuthoring authoring)
@@ -51,12 +57,19 @@ public class HazardZoneAuthoring : MonoBehaviour
             if (authoring.AffectPlayer) targetLayers |= CollisionLayers.Player;
             if (authoring.AffectEnemies) targetLayers |= CollisionLayers.Enemy;
 
+            float refreshInterval = math.max(0.01f, authoring.RefreshInterval);
+            // Deterministic staggered start phase from world position, so zones don't all refresh on the same frame.
+            float3 p = authoring.transform.position;
+            float phase = math.frac(math.dot(p, new float3(12.9898f, 78.233f, 37.719f)) * 43758.5453f) * refreshInterval;
+
             AddComponent(entity, new HazardZone
             {
                 Shape = authoring.Shape,
                 Radius = authoring.Radius,
                 BoxHalfExtents = authoring.BoxHalfExtents,
                 TargetLayers = targetLayers,
+                RefreshInterval = refreshInterval,
+                RefreshTimer = phase,
             });
 
             var buffer = AddBuffer<HazardZoneEffectElement>(entity);
@@ -64,6 +77,11 @@ public class HazardZoneAuthoring : MonoBehaviour
             {
                 foreach (var e in authoring.Effects)
                 {
+                    if (e.Linger < refreshInterval)
+                        Debug.LogWarning(
+                            $"[HazardZone] '{authoring.name}': effect Linger ({e.Linger}s) < RefreshInterval ({refreshInterval}s) — the effect may flicker. Increase Linger.",
+                            authoring);
+
                     buffer.Add(new HazardZoneEffectElement
                     {
                         Type = e.Type,

@@ -46,13 +46,13 @@ public partial struct HazardZoneSystem : ISystem
         _burnLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
         
-        Entity playerEntity = Entity.Null;
-        float3 playerPosition = default;
-        if (SystemAPI.HasSingleton<Player>())
-        {
-            playerEntity = SystemAPI.GetSingletonEntity<Player>();
-            playerPosition = SystemAPI.GetComponent<LocalTransform>(playerEntity).Position;
-        }
+        // NOTE: do NOT read the player's LocalTransform here. Reading it on the main thread would
+        // force-complete every job that writes LocalTransform (the movement systems) → a sync stall.
+        // The player's position is read inside the job via TransformLookup, where the dependency is
+        // resolved in the job graph instead of blocking the main thread.
+        Entity playerEntity = SystemAPI.HasSingleton<Player>()
+            ? SystemAPI.GetSingletonEntity<Player>()
+            : Entity.Null;
 
         var job = new HazardZoneJob
         {
@@ -63,7 +63,7 @@ public partial struct HazardZoneSystem : ISystem
             BurnLookup = _burnLookup,
             DamageBufferLookup = _damageBufferLookup,
             PlayerEntity = playerEntity,
-            PlayerPosition = playerPosition,
+            DeltaTime = SystemAPI.Time.DeltaTime,
         };
 
         state.Dependency = job.ScheduleParallel(state.Dependency);
@@ -79,12 +79,20 @@ public partial struct HazardZoneSystem : ISystem
         [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
         public Entity PlayerEntity;
-        public float3 PlayerPosition;
+        public float DeltaTime;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity zoneEntity,
-            in HazardZone zone, in LocalToWorld zoneTransform,
+            ref HazardZone zone, in LocalToWorld zoneTransform,
             in DynamicBuffer<HazardZoneEffectElement> effects)
         {
+            // Throttle: refresh effects only every RefreshInterval seconds (per-zone, staggered phase),
+            // instead of every frame. Effects keep ticking via ActiveEffects/TickDamage; the zone only
+            // tops up their Linger. Requires each effect's Linger >= RefreshInterval (see authoring warning).
+            zone.RefreshTimer -= DeltaTime;
+            if (zone.RefreshTimer > 0f)
+                return;
+            zone.RefreshTimer += zone.RefreshInterval > 0f ? zone.RefreshInterval : 0.25f;
+
             if (effects.Length == 0 || zone.TargetLayers == 0)
                 return;
 
@@ -138,8 +146,9 @@ public partial struct HazardZoneSystem : ISystem
             if (PlayerEntity != Entity.Null
                 && (zone.TargetLayers & CollisionLayers.Player) != 0
                 && DamageBufferLookup.HasBuffer(PlayerEntity)
+                && TransformLookup.HasComponent(PlayerEntity)
                 && !(DestroyFlagLookup.HasComponent(PlayerEntity) && DestroyFlagLookup.IsComponentEnabled(PlayerEntity))
-                && IsInside(zone, zonePos, PlayerPosition))
+                && IsInside(zone, zonePos, TransformLookup[PlayerEntity].Position))
             {
                 for (int e = 0; e < effects.Length; e++)
                     ApplyEffect(chunkIndex, PlayerEntity, effects[e]);

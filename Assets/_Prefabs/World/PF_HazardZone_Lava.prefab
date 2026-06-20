@@ -45,12 +45,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HazardZoneAuthoring
   Shape: 0
-  Radius: 3
+  Radius: 46.07
   BoxHalfExtents: {x: 3, y: 2, z: 3}
   AffectPlayer: 1
   AffectEnemies: 1
   Effects:
   - Type: 0
-    Magnitude: 5
-    TickRate: 0.5
+    Magnitude: 10
+    TickRate: 0.3
     Linger: 1
+  RefreshInterval: 0.25

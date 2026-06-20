@@ -36,6 +36,19 @@ public struct HazardZone : IComponentData
 
     /// <summary>Layers whose entities are affected (e.g. CollisionLayers.Player | CollisionLayers.Enemy).</summary>
     public uint TargetLayers;
+
+    /// <summary>
+    /// Seconds between effect refreshes. The zone re-applies its effects at this cadence instead of
+    /// every frame. Keep every effect's <see cref="HazardZoneEffectElement.Linger"/> &gt;= this value,
+    /// otherwise the effect flickers off between refreshes.
+    /// </summary>
+    public float RefreshInterval;
+
+    /// <summary>
+    /// Countdown until the next refresh. Initialised to a staggered phase at bake time so zones do not
+    /// all refresh on the same frame (avoids a synchronised cost spike).
+    /// </summary>
+    public float RefreshTimer;
 }
 
 /// <summary>

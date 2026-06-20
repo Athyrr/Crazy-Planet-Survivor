@@ -399,7 +399,6 @@ public partial struct SpellCastingSystem : ISystem
             {
                 var spellEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
-                ECB.AddComponent(0, spellEntity, new RunScope()); // todo authoring
                 ECB.AddComponent(chunkIndex, spellEntity, new SpellSource // todo authoring
                 {
                     CasterEntity = request.Caster,
