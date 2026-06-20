@@ -193,7 +193,7 @@ MonoBehaviour:
         Category01: 0
         Category02: 1
         Category03: 1
-        Category04: 1
+        Category04: 0
         Category05: 1
         Category06: 1
         Category07: 1
@@ -271,6 +271,7 @@ MonoBehaviour:
     Luck: 0
   InitialSpells:
   - {fileID: 11400000, guid: 9e39f75e475110447adf8ec004d90448, type: 2}
+  ContactDamage: 10
 --- !u!114 &7077652745905088192
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -299,8 +300,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 569916e10732eba4caf53ace7f5ac10d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
-  _avoidanceDetectionRadius: 2.5
-  _avoidanceWeight: 0.8
+  _avoidanceDetectionRadius: 3
+  _avoidanceWeight: 1
 --- !u!114 &6713757152409590747
 MonoBehaviour:
   m_ObjectHideFlags: 0

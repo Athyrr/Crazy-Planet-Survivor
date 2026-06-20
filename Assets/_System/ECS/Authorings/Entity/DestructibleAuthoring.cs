@@ -13,8 +13,6 @@ public class DestructibleAuthoring : MonoBehaviour
 
             AddComponent(entity, new DestroyEntityFlag());
             SetComponentEnabled<DestroyEntityFlag>(entity, false);
-
-            // Force damage buffer added when destructible added.
         }
     }
 }

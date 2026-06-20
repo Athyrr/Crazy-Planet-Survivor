@@ -15,6 +15,10 @@ public class EnemyAuthoring : MonoBehaviour
 
     [Header("Spells")] public SpellDataSO[] InitialSpells;
 
+    [Header("Contact damage")]
+    [Tooltip("Damage dealt to whatever Destructible this enemy's body touches (the player). ")]
+    public float ContactDamage = 10f;
+
     private class Baker : Baker<EnemyAuthoring>
     {
         public override void Bake(EnemyAuthoring authoring)
@@ -25,7 +29,6 @@ public class EnemyAuthoring : MonoBehaviour
                 AddComponentObject(entity, new VisualRendererLink { Renderer = authoring.MainRenderer });
 
             AddComponent(entity, new Enemy());
-            // AddComponent(entity, new FollowTargetMovement { Speed = authoring.BaseStats.BaseMoveSpeed });
             AddComponent(entity, new FlowFieldFollowerMovement());
             AddComponent(entity, new RunScope());
 
@@ -36,6 +39,17 @@ public class EnemyAuthoring : MonoBehaviour
 
             AddBuffer<EnemySpellReady>(entity);
             AddBuffer<DamageBufferElement>(entity);
+
+            AddComponent(entity, new DamageOnContact
+            {
+                Damage = authoring.ContactDamage,
+                TargetLayers = CollisionLayers.Player | CollisionLayers.Obstacle,
+                Tags = ESpellTag.None,
+                TotalCritChance = 0,
+                TotalCritMultiplier = 1,
+            });
+            SetComponentEnabled<DamageOnContact>(entity, true);
+            AddBuffer<HitEntityMemory>(entity);
 
             AddComponent(entity, new CoreStats
             {
@@ -86,9 +100,9 @@ public class EnemyAuthoring : MonoBehaviour
                 }
             }
 
-            var hitColor = new HitFrameFeedbackSystem.HitFrameColor { Value = 0 };
-            AddComponent(entity, hitColor);
-            SetComponentEnabled<HitFrameFeedbackSystem.HitFrameColor>(entity, false);
+            // var hitColor = new HitFrameFeedbackSystem.HitFrameColor { Value = 0 };
+            // AddComponent(entity, hitColor);
+            // SetComponentEnabled<HitFrameFeedbackSystem.HitFrameColor>(entity, false);
         }
     }
 }
