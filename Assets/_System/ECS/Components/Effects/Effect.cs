@@ -34,7 +34,7 @@ public struct FinalStats : IComponentData
     public float RangeMultiplier;
 }
 
-public struct ActiveKnockback : IComponentData
+public struct ActiveKnockback : IComponentData, IEnableableComponent
 {
     public float3 Direction;
     public float InitialForce;

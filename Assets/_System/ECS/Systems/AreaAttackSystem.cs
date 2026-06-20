@@ -205,7 +205,10 @@ public partial struct AreaAttackSystem : ISystem
                     };
 
                     if (KnockbackLookup.HasComponent(hitEntity))
+                    {
                         ECB.SetComponent(chunkIndex, hitEntity, kbData);
+                        ECB.SetComponentEnabled<ActiveKnockback>(chunkIndex, hitEntity, true);
+                    }
                     else
                         ECB.AddComponent(chunkIndex, hitEntity, kbData);
                 }

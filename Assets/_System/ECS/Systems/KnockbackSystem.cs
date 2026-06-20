@@ -57,7 +57,7 @@ public partial struct KnockbackSystem : ISystem
 
             if (knockback.DurationLeft <= 0)
             {
-                ECB.RemoveComponent<ActiveKnockback>(chunkIndex, entity);
+              ECB.SetComponentEnabled<ActiveKnockback>(chunkIndex, entity, false);
                 return;
             }
 
@@ -77,7 +77,7 @@ public partial struct KnockbackSystem : ISystem
 
             float3 desiredPos = transform.Position + (flatDirection * currentForce * DeltaTime);
 
-            // Handle obstacles 
+            // todo Handle obstacles 
 
             // PlanetUtils.SnapToSurfaceRaycast()
 

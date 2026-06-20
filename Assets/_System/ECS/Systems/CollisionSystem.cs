@@ -126,11 +126,11 @@ public partial struct CollisionSystem : ISystem
         {
             Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
 
-            ECB = ecb.AsParallelWriter(),
+            ECB = ecb,
             CurrentTime = SystemAPI.Time.ElapsedTime,
             CollisionWorld = physicsWorld.CollisionWorld,
 
-            PlayerPosition = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO.Position,
+           PlayerEntity = playerEntity,
 
             // EffectsConfig = _effectsConfig,
             EffectsConfig = effectsConfig,
@@ -156,7 +156,7 @@ public partial struct CollisionSystem : ISystem
             KnockbackLookup = _knockbackLookup,
 
             SpellSourceLookup = _subSpellRootLookup,
-            DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
+            DamageEventsWriter = _damageEventsQueue,
 
             ColliderLookup = _colliderLookup
         };
@@ -179,11 +179,11 @@ public partial struct CollisionSystem : ISystem
     {
         public uint Seed;
 
-        public EntityCommandBuffer.ParallelWriter ECB;
+        public EntityCommandBuffer ECB;
         public double CurrentTime;
         [ReadOnly] public CollisionWorld CollisionWorld;
 
-        [ReadOnly] public float3 PlayerPosition;
+        public Entity PlayerEntity;
 
 
         [ReadOnly] public ActiveEffectsConfig EffectsConfig;
@@ -209,7 +209,7 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
         [ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeOnContactLookup;
 
-        public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
+        public NativeQueue<SpellDamageEvent> DamageEventsWriter;
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
 
@@ -274,7 +274,7 @@ public partial struct CollisionSystem : ISystem
                     // todo let target receive damge even if invincible. Consume damage on Health system and avoid health loss instead
                     if (!InvincibleLookup.HasComponent(target))
                     {
-                        var random = Random.CreateFromIndex(Seed);
+                        var random = Random.CreateFromIndex((Seed ^ ((uint)entityA.Index * 0x9E3779B1u) ^ ((uint)entityB.Index * 0x85EBCA77u)) | 1u);
 
                         bool isCrit = random.NextFloat(0f, 1f) <= damageData.TotalCritChance;
                         float criticalDamagesMultiplier = 1f;
@@ -284,7 +284,6 @@ public partial struct CollisionSystem : ISystem
                         int damageDealt = (int)(damageData.Damage * criticalDamagesMultiplier);
 
                         ECB.AppendToBuffer(
-                            0,
                             target,
                             new DamageBufferElement
                             {
@@ -306,12 +305,12 @@ public partial struct CollisionSystem : ISystem
 
                             if (SlowLookup.HasComponent(target))
                             {
-                                ECB.SetComponent(0, target, slow);
-                                ECB.SetComponentEnabled<SlowEffect>(0, target, true);
+                                ECB.SetComponent(target, slow);
+                                ECB.SetComponentEnabled<SlowEffect>(target, true);
                             }
                             else
                             {
-                                ECB.AddComponent(0, target, slow);
+                                ECB.AddComponent(target, slow);
                             }
                         }
 
@@ -324,12 +323,12 @@ public partial struct CollisionSystem : ISystem
 
                             if (StunLookup.HasComponent(target))
                             {
-                                ECB.SetComponent(0, target, stun);
-                                ECB.SetComponentEnabled<StunEffect>(0, target, true);
+                                ECB.SetComponent(target, stun);
+                                ECB.SetComponentEnabled<StunEffect>(target, true);
                             }
                             else
                             {
-                                ECB.AddComponent(0, target, stun);
+                                ECB.AddComponent(target, stun);
                             }
                         }
 
@@ -338,8 +337,8 @@ public partial struct CollisionSystem : ISystem
                             // float3 damagerPos = LocalTransformLookup[damagerEntity].Position;
                             float3 targetPos = LocalTransformLookup[target].Position;
 
-                            // Normalize direction
-                            float3 pushDir = targetPos - PlayerPosition;
+                            // Normalize direction (push the target away from the player)
+                            float3 pushDir = targetPos - LocalTransformLookup[PlayerEntity].Position;
                             float distSq = math.lengthsq(pushDir);
 
                             if (distSq > 0.001f)
@@ -356,14 +355,14 @@ public partial struct CollisionSystem : ISystem
                                 MaxDuration = EffectsConfig.KnockbackDuration
                             };
 
-                            if (KnockbackLookup.HasComponent(target))
+                           if (KnockbackLookup.HasComponent(target))
                             {
-                                ECB.SetComponent(0, target, kbData);
-                                // ECB.SetComponentEnabled<ActiveKnockback>(0, target, true);
+                                ECB.SetComponent(target, kbData);
+                                ECB.SetComponentEnabled<ActiveKnockback>(target, true);
                             }
                             else
                             {
-                                ECB.AddComponent(0, target, kbData);
+                                ECB.AddComponent(target, kbData);
                             }
                         }
 
@@ -379,12 +378,12 @@ public partial struct CollisionSystem : ISystem
 
                             if (BurnLookup.HasComponent(target))
                             {
-                                ECB.SetComponent(0, target, burn);
-                                ECB.SetComponentEnabled<BurnEffect>(0, target, true);
+                                ECB.SetComponent(target, burn);
+                                ECB.SetComponentEnabled<BurnEffect>(target, true);
                             }
                             else
                             {
-                                ECB.AddComponent(0, target, burn);
+                                ECB.AddComponent(target, burn);
                             }
                         }
 
@@ -404,7 +403,7 @@ public partial struct CollisionSystem : ISystem
                     if (ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
                         ExplodeOnContactLookup.IsComponentEnabled(damagerEntity))
                     {
-                        var random = Random.CreateFromIndex(Seed);
+                        var random = Random.CreateFromIndex((Seed ^ ((uint)entityA.Index * 0x9E3779B1u) ^ ((uint)entityB.Index * 0x85EBCA77u)) | 1u);
 
                         bool isCrit = random.NextFloat(0f, 1f) <= damageData.TotalCritChance;
                         float criticalDamagesMultiplier = 1f;
@@ -428,11 +427,11 @@ public partial struct CollisionSystem : ISystem
                             //         out float3 newDirection))
                             {
                                 if (LinearMovementLookup.IsComponentEnabled(damagerEntity))
-                                    ECB.SetComponentEnabled<LinearMovement>(0, damagerEntity, false);
+                                    ECB.SetComponentEnabled<LinearMovement>(damagerEntity, false);
 
-                                ECB.SetComponentEnabled<FollowTargetMovement>(0, damagerEntity, true);
+                                ECB.SetComponentEnabled<FollowTargetMovement>(damagerEntity, true);
 
-                                ECB.SetComponent(0, damagerEntity, new FollowTargetMovement
+                                ECB.SetComponent(damagerEntity, new FollowTargetMovement
                                 {
                                     Target = newTarget,
                                     Speed = math.max(1, bounce.BounceSpeed)
@@ -459,7 +458,7 @@ public partial struct CollisionSystem : ISystem
                         if (pierce.RemainingPierces > 0)
                         {
                             pierce.RemainingPierces--;
-                            ECB.SetComponent(0, damagerEntity, pierce);
+                            ECB.SetComponent(damagerEntity, pierce);
                             shouldDestroy = false;
                         }
                         else
@@ -470,7 +469,7 @@ public partial struct CollisionSystem : ISystem
 
                     if (shouldDestroy && DestructibleLookup.HasComponent(damagerEntity))
                     {
-                        ECB.SetComponentEnabled<DestroyEntityFlag>(0, damagerEntity, true);
+                        ECB.SetComponentEnabled<DestroyEntityFlag>(damagerEntity, true);
                     }
                 }
             }
@@ -478,9 +477,9 @@ public partial struct CollisionSystem : ISystem
 
         private void CreateExplosion(Entity damager, uint targetLayers, ExplodeOnContact explosionData,
             float criticalDamagesMultiplier,
-            bool isCrit, EntityCommandBuffer.ParallelWriter ECB)
+            bool isCrit, EntityCommandBuffer ECB)
         {
-            var requestEntity = ECB.CreateEntity(0);
+            var requestEntity = ECB.CreateEntity();
 
             ESpellTag tags = ESpellTag.None;
             if (DamageOnContactLookup.HasComponent(damager))
@@ -497,7 +496,6 @@ public partial struct CollisionSystem : ISystem
             float3 pos = LocalTransformLookup[damager].Position;
 
             ECB.AddComponent(
-                0,
                 requestEntity,
                 new ExplosionRequest()
                 {

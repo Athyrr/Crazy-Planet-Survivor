@@ -22,6 +22,9 @@ public class ActiveEffectsAuthoring : MonoBehaviour
             
             AddComponent<SlowEffect>(entity);
             SetComponentEnabled<SlowEffect>(entity, false);
+
+            AddComponent<ActiveKnockback>(entity);
+            SetComponentEnabled<ActiveKnockback>(entity, false);
         }
     }
 }
