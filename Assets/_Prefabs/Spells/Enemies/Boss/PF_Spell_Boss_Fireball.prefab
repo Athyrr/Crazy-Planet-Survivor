@@ -20,6 +20,7 @@ GameObject:
   - component: {fileID: -415595907012932318}
   - component: {fileID: 509902482592499581}
   - component: {fileID: 173887972981764198}
+  - component: {fileID: 6338384761525214098}
   m_Layer: 0
   m_Name: PF_Spell_Boss_Fireball
   m_TagString: Untagged
@@ -349,6 +350,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83f3b54e7ba2dd64986e1900caf88de4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunScopeAuthoring
+--- !u!114 &6338384761525214098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486797506737824905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b190e382b9e1f3c4ab04b4d3ef392336, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpellSourceAuthoring
 --- !u!1 &1318994946831284682
 GameObject:
   m_ObjectHideFlags: 0

@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 7077652745905088192}
   - component: {fileID: 4190783909020484761}
   - component: {fileID: 6197895928645730550}
+  - component: {fileID: 4414017155519186128}
   m_Layer: 0
   m_Name: PF_Wasp_AnimToVAT
   m_TagString: Untagged
@@ -215,6 +216,7 @@ MonoBehaviour:
     Bounce: 0
     CritChance: 0
     CritDamage: 0
+    Luck: 0
   InitialSpells: []
 --- !u!114 &7077652745905088192
 MonoBehaviour:
@@ -258,6 +260,57 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DestructibleAuthoring
+--- !u!114 &4414017155519186128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4960229139857780973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ccea9ea98e38942e0b0938c27ed1903e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Physics.Custom::Unity.Physics.Authoring.PhysicsBodyAuthoring
+  m_MotionType: 1
+  m_Smoothing: 0
+  m_Mass: 1
+  m_LinearDamping: 0.01
+  m_AngularDamping: 0.05
+  m_InitialLinearVelocity:
+    x: 0
+    y: 0
+    z: 0
+  m_InitialAngularVelocity:
+    x: 0
+    y: 0
+    z: 0
+  m_GravityFactor: 1
+  m_OverrideDefaultMassDistribution: 0
+  m_CenterOfMass:
+    x: 0
+    y: 0
+    z: 0
+  m_Orientation:
+    Value:
+      x: 0
+      y: 0
+      z: 0
+    RotationOrder: 4
+  m_InertiaTensor:
+    x: 0.4
+    y: 0.4
+    z: 0.4
+  m_WorldIndex: 0
+  m_CustomTags:
+    Tag00: 0
+    Tag01: 0
+    Tag02: 0
+    Tag03: 0
+    Tag04: 0
+    Tag05: 0
+    Tag06: 0
+    Tag07: 0
 --- !u!1001 &6440811714500341561
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3146,7 +3199,7 @@ MonoBehaviour:
   sampleRate: 30
   smr: {fileID: 1112340330820789657}
   replaceMeshIfObjectOffset: 0
-  destinationMeshFilter: {fileID: 6289840999179379261}
+  destinationMeshFilter: {fileID: 0}
   materialToChange: {fileID: 2100000, guid: c5280f900198a1f49b61acd559330b50, type: 2}
 --- !u!4 &6838968219027032274 stripped
 Transform:
@@ -3213,10 +3266,5 @@ PrefabInstance:
 --- !u!4 &3856737487420575437 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5732822465021377017, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
-  m_PrefabInstance: {fileID: 8794107200631519028}
-  m_PrefabAsset: {fileID: 0}
---- !u!33 &6289840999179379261 stripped
-MeshFilter:
-  m_CorrespondingSourceObject: {fileID: 3260871076877358345, guid: 70849bf2db98667468c3d6cc0d708174, type: 3}
   m_PrefabInstance: {fileID: 8794107200631519028}
   m_PrefabAsset: {fileID: 0}

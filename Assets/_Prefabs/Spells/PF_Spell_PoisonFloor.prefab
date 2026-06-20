@@ -14557,6 +14557,7 @@ GameObject:
   - component: {fileID: -8110359488852876842}
   - component: {fileID: 3610674534403862663}
   - component: {fileID: 3028355523357078027}
+  - component: {fileID: 5083475427036693592}
   m_Layer: 0
   m_Name: PF_Spell_PoisonFloor
   m_TagString: Untagged
@@ -19596,6 +19597,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83f3b54e7ba2dd64986e1900caf88de4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunScopeAuthoring
+--- !u!114 &5083475427036693592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5827605842356583559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b190e382b9e1f3c4ab04b4d3ef392336, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SpellSourceAuthoring
 --- !u!1 &7040382457846114307
 GameObject:
   m_ObjectHideFlags: 0
