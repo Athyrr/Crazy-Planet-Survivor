@@ -398,8 +398,8 @@ public partial struct SpellCastingSystem : ISystem
             for (int i = 0; i < finalProjectileCount; i++)
             {
                 var spellEntity = ECB.Instantiate(chunkIndex, spellPrefab);
-
-                ECB.AddComponent(chunkIndex, spellEntity, new SpellSource // todo authoring
+                
+                ECB.SetComponent(chunkIndex, spellEntity, new SpellSource
                 {
                     CasterEntity = request.Caster,
                     DatabaseIndex = request.DatabaseIndex
