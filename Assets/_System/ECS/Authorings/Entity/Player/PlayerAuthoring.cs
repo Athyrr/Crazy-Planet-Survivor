@@ -175,7 +175,7 @@ public class PlayerAuthoring : MonoBehaviour
             {
                 Experience = 0,
                 Level = 1,
-                NextLevelExperienceRequired = 500,
+                NextLevelExperienceRequired = PlayerExperience.XpForNextLevel(1),
             });
             
             // Player resources earned during a run.

@@ -54,11 +54,10 @@ public static class DefaultConsoleCommands
         var em = world.EntityManager;
         for (int i = 0; i < count; i++)
         {
-            // Mirror PlayerProgressionSystem.GainExperienceJob's level-up math.
+            // Shared level-up math (single source of truth in PlayerExperience).
             experience.Experience = 0f;
             experience.Level++;
-            float nextLevelExperience = experience.Level * 500 + (experience.NextLevelExperienceRequired * 0.5f) + 1000;
-            experience.NextLevelExperienceRequired = (int)nextLevelExperience;
+            experience.NextLevelExperienceRequired = PlayerExperience.XpForNextLevel(experience.Level);
         }
         em.SetComponentData(entity, experience);
 

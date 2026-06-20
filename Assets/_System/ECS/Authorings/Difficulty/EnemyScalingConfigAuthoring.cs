@@ -12,13 +12,16 @@ public class EnemyScalingConfigAuthoring : MonoBehaviour
     public float SecondsPerUnit = 60f;
 
     [Tooltip("Enemies killed per difficulty unit. Lower = faster ramp from kills.")]
-    public float KillsPerUnit = 100f;
+    public float KillsPerUnit = 150f;
 
-    [Tooltip("HP multiplier added per difficulty unit (linear). 0.5 = +50% of base HP per unit.")]
-    public float HealthGrowthPerUnit = 0.5f;
+    [Tooltip("Difficulty units (D) at which enemies reach MaxHealthMult (~end of run; D at ~10 min).")]
+    public float ReferenceUnits = 16f;
 
-    [Tooltip("Hard cap on the spawned-enemy HP multiplier.")]
-    public float MaxHealthMult = 20f;
+    [Tooltip("CURVE SHAPE (main knob). <1 = harder early; 1 = linear ramp; >1 = easy early, spikes late.")]
+    public float CurveExponent = 0.5f;
+
+    [Tooltip("Late-game HP multiplier plateau (lower = easier endgame).")]
+    public float MaxHealthMult = 2.5f;
 
     private class Baker : Baker<EnemyScalingConfigAuthoring>
     {
@@ -29,7 +32,8 @@ public class EnemyScalingConfigAuthoring : MonoBehaviour
             {
                 SecondsPerUnit = authoring.SecondsPerUnit,
                 KillsPerUnit = authoring.KillsPerUnit,
-                HealthGrowthPerUnit = authoring.HealthGrowthPerUnit,
+                ReferenceUnits = authoring.ReferenceUnits,
+                CurveExponent = authoring.CurveExponent,
                 MaxHealthMult = authoring.MaxHealthMult
             });
         }
