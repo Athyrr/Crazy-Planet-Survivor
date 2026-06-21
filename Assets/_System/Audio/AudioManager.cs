@@ -12,6 +12,12 @@ namespace _System.Audio
     public class AudioManager : MonoBehaviour
     {
         [SerializeField]
+        private CharacterShopUIController characterShopUIController;
+
+        [SerializeField]
+        private AmuletShopUIController amuletShopUIController;
+
+        [SerializeField]
         private EventReference gemCollectedSound;
 
         [SerializeField]
@@ -40,6 +46,15 @@ namespace _System.Audio
 
         [SerializeField]
         private EventReference levelUp;
+
+        [SerializeField]
+        private EventReference uiSfxSelect;
+
+        [SerializeField]
+        private EventReference uiSfxConfirm;
+
+        [SerializeField]
+        private EventReference uiSfxBack;
 
         private EntityManager _entityManager;
         private EntityQuery _soundQuery;
@@ -72,12 +87,26 @@ namespace _System.Audio
         {
             if (GameManager.Instance != null)
                 GameManager.Instance.OnGameStateChanged += ProcessMusic;
+
+            characterShopUIController.OnSelected += ProcessUiSelectSfx;
+            characterShopUIController.OnConfirmed += ProcessUiConfirmSfx;
+            characterShopUIController.OnBack += ProcessUiBackSfx;
+            amuletShopUIController.OnSelected += ProcessUiSelectSfx;
+            amuletShopUIController.OnConfirmed += ProcessUiConfirmSfx;
+            amuletShopUIController.OnBack += ProcessUiBackSfx;
         }
 
         private void OnDisable()
         {
             if (GameManager.Instance != null)
                 GameManager.Instance.OnGameStateChanged -= ProcessMusic;
+
+            characterShopUIController.OnSelected -= ProcessUiSelectSfx;
+            characterShopUIController.OnConfirmed -= ProcessUiConfirmSfx;
+            characterShopUIController.OnBack -= ProcessUiBackSfx;
+            amuletShopUIController.OnSelected -= ProcessUiSelectSfx;
+            amuletShopUIController.OnConfirmed -= ProcessUiConfirmSfx;
+            amuletShopUIController.OnBack -= ProcessUiBackSfx;
         }
 
         private void Start()
@@ -340,6 +369,21 @@ namespace _System.Audio
                 soundPlayerTag.PlayerTookDamageSound = 0;
                 _soundQuery.SetSingleton(soundPlayerTag);
             }
+        }
+
+        private void ProcessUiSelectSfx()
+        {
+            RuntimeManager.PlayOneShot(uiSfxSelect);
+        }
+
+        private void ProcessUiConfirmSfx()
+        {
+            RuntimeManager.PlayOneShot(uiSfxConfirm);
+        }
+
+        private void ProcessUiBackSfx()
+        {
+            RuntimeManager.PlayOneShot(uiSfxBack);
         }
     }
 }

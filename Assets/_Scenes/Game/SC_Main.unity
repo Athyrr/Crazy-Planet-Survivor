@@ -530,6 +530,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e48d1601b3f4e7ba37563f8d0bda866, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::_System.Audio.AudioManager
+  characterShopUIController: {fileID: 1488603913}
+  amuletShopUIController: {fileID: 1143203180}
   gemCollectedSound:
     Guid:
       Data1: -1638216150
@@ -600,6 +602,27 @@ MonoBehaviour:
       Data3: -579082056
       Data4: 575708324
     Path: event:/Level Up
+  uiSfxSelect:
+    Guid:
+      Data1: -1559475243
+      Data2: 1295405774
+      Data3: -1849079897
+      Data4: 969681076
+    Path: event:/UI/UI Choose
+  uiSfxConfirm:
+    Guid:
+      Data1: -1202138267
+      Data2: 1223408172
+      Data3: 505659564
+      Data4: 543458627
+    Path: event:/UI/UI Valid
+  uiSfxBack:
+    Guid:
+      Data1: 866892636
+      Data2: 1241440451
+      Data3: 869277094
+      Data4: 1461590434
+    Path: event:/UI/UI Back
   musicFadeDuration: 1.5
 --- !u!4 &196344613 stripped
 Transform:

@@ -5,7 +5,8 @@ using UnityEngine;
 public class AmuletShopUIController
     : ShopUIControllerBase<AmuletSO, AmuletShopListView, AmuletShopDetailView, AmuletViewItem>
 {
-    [Header("Database")] public AmuletsDatabaseSO Database;
+    [Header("Database")]
+    public AmuletsDatabaseSO Database;
 
     private EntityQuery _gameStateQuery;
 
@@ -111,8 +112,11 @@ public class AmuletShopUIController
         var gameStateEntity = _gameStateQuery.GetSingletonEntity();
 
         // Skip if it is already equipped.
-        if (_entityManager.HasComponent<EquippedAmulet>(gameStateEntity) &&
-            _entityManager.GetComponentData<EquippedAmulet>(gameStateEntity).DbIndex == _focusedItemIndex)
+        if (
+            _entityManager.HasComponent<EquippedAmulet>(gameStateEntity)
+            && _entityManager.GetComponentData<EquippedAmulet>(gameStateEntity).DbIndex
+                == _focusedItemIndex
+        )
             return;
 
         _entityManager.SetComponentData(

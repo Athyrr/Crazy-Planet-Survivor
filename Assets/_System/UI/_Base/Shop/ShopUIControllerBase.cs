@@ -30,27 +30,35 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
     where TDetailView : ShopDetailViewBase<TData>
     where TItem : UIViewItemBase
 {
-    [Header("Views")] public TListView ListView;
+    [Header("Views")]
+    public TListView ListView;
     public TDetailView DetailView;
 
     [Header("Animation")]
-    [Tooltip("Panel entrance/exit animators (UISlidePanel / UIFadePanel) driven as a group on open " +
-             "and close — e.g. list from left, stats from right, detail from bottom, title from top, " +
-             "and the background fades. Slid/faded out (then the shop deactivates) on close.")]
+    [Tooltip(
+        "Panel entrance/exit animators (UISlidePanel / UIFadePanel) driven as a group on open "
+            + "and close — e.g. list from left, stats from right, detail from bottom, title from top, "
+            + "and the background fades. Slid/faded out (then the shop deactivates) on close."
+    )]
     public MonoBehaviour[] PanelAnimators;
 
-    [Header("Button")] public Button ActionButton;
+    [Header("Button")]
+    public Button ActionButton;
     public TMP_Text ActionButtonText;
 
     [Tooltip("Scale applied to the purchase button while it is focused (controller feedback).")]
     public float PurchaseFocusScale = 1.1f;
 
-    [Tooltip("Label shown on the action button when the action is a purchase (e.g. \"BUY\"). " +
-             "The text color is centralized in CpUISettings.PurchaseTextColor.")]
+    [Tooltip(
+        "Label shown on the action button when the action is a purchase (e.g. \"BUY\"). "
+            + "The text color is centralized in CpUISettings.PurchaseTextColor."
+    )]
     public string PurchaseText = String.Empty;
 
-    [Tooltip("Columns of the list, used for controller up/down navigation. 1 = a linear list " +
-             "(up/down step by one, like left/right).")]
+    [Tooltip(
+        "Columns of the list, used for controller up/down navigation. 1 = a linear list "
+            + "(up/down step by one, like left/right)."
+    )]
     public int Columns = 1;
 
     protected EntityManager _entityManager;
@@ -70,6 +78,16 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
 
     /// <summary>The game state this shop lives in, used to gate input handling.</summary>
     protected abstract EGameState ShopState { get; }
+
+    public delegate void OnSelectedDelegate();
+
+    public delegate void OnConfirmDelegate();
+
+    public delegate void OnBackDelegate();
+
+    public event OnSelectedDelegate OnSelected;
+    public event OnConfirmDelegate OnConfirmed;
+    public event OnBackDelegate OnBack;
 
     protected virtual void Awake()
     {
@@ -115,6 +133,8 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
     {
         SetPurchaseFocused(false);
 
+        OnBack?.Invoke();
+
         ListView.CloseView();
         DetailView.CloseView();
     }
@@ -131,6 +151,8 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
         if (!gameObject.activeSelf)
             return;
 
+        OnBack?.Invoke();
+
         OnClosing();
         UIPanelGroup.Hide(PanelAnimators, () => gameObject.SetActive(false));
     }
@@ -139,9 +161,7 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
     /// Hook invoked the instant a close begins (before the exit animation). Override to cancel any
     /// in-flight effects that must stop exactly when the player leaves (not when the slide-out ends).
     /// </summary>
-    protected virtual void OnClosing()
-    {
-    }
+    protected virtual void OnClosing() { }
 
     // Hover (PC pointer): highlight only, no detail change
 
@@ -184,7 +204,10 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
         _selectedItemIndex = index;
 
         TData data = GetDataAtIndex(index);
+
         RefreshDetailView(data, index);
+
+        OnSelected?.Invoke();
     }
 
     // Commit (focus the purchase button)
@@ -225,6 +248,7 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
 
         SelectItem(index);
         SetPurchaseFocused(true);
+        OnConfirmed?.Invoke();
     }
 
     /// <summary>Releases the committed purchase focus and returns control to list navigation.</summary>
@@ -263,26 +287,21 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
     }
 
     /// <summary>Derived shops commit their focused selection here (no-op if locked/none/unchanged).</summary>
-    protected virtual void CommitFocusedSelection()
-    {
-    }
+    protected virtual void CommitFocusedSelection() { }
 
     /// <summary>Whether the player can currently afford the item at <paramref name="index"/>.</summary>
     protected virtual bool CanAffordSelected(int index) => false;
 
     /// <summary>Buy the item at <paramref name="index"/> (controller confirm while committed).</summary>
-    protected virtual void ExecutePurchase(int index)
-    {
-    }
+    protected virtual void ExecutePurchase(int index) { }
 
     /// <summary>Confirm an already-owned item (equip it / choose it and leave).</summary>
-    protected virtual void ConfirmUnlockedItem(int index)
-    {
-    }
+    protected virtual void ConfirmUnlockedItem(int index) { }
 
     /// <summary>Feedback hook when confirming an item that cannot be purchased (e.g. too expensive).</summary>
     protected virtual void OnConfirmRejected(int index)
     {
+        OnBack?.Invoke();
     }
 
     // Navigation
@@ -458,7 +477,8 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
                 targetVec,
                 CpUISettings.HoverDuration,
                 CpUISettings.HoverEase,
-                useUnscaledTime: true);
+                useUnscaledTime: true
+            );
         }
     }
 

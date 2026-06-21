@@ -12,7 +12,11 @@ using UnityEngine.EventSystems;
 /// </list>
 /// Content states (locked / maxed / unlocked) are handled by each concrete item.
 /// </summary>
-public abstract class UIViewItemBase : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
+public abstract class UIViewItemBase
+    : MonoBehaviour,
+        IPointerEnterHandler,
+        IPointerExitHandler,
+        IPointerClickHandler
 {
     /// <summary>Pointer hover (PC). Pure visual highlight — must not show details or commit.</summary>
     public virtual void SetHovered(bool isHovered) { }
