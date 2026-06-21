@@ -486,6 +486,92 @@ Transform:
   - {fileID: 1732741294}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &140775454
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 140775455}
+  - component: {fileID: 140775456}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &140775455
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 140775454}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 810295173}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &140775456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 140775454}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e48d1601b3f4e7ba37563f8d0bda866, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::_System.Audio.AudioManager
+  gemCollectedSound:
+    Guid:
+      Data1: -1638216150
+      Data2: 1332234701
+      Data3: -2095557472
+      Data4: 820566232
+    Path: event:/GEMMES
+  lobbyMusicNoDrums:
+    Guid:
+      Data1: 447110975
+      Data2: 1182704047
+      Data3: -1490073720
+      Data4: -2007501353
+    Path: event:/MUSIQUE Lobby ND
+  lobbyMusicWithDrums:
+    Guid:
+      Data1: -75938939
+      Data2: 1265757235
+      Data3: -802197111
+      Data4: -1214851908
+    Path: event:/MUSIQUE Lobby WD
+  runMusic:
+    Guid:
+      Data1: 448901178
+      Data2: 1101387943
+      Data3: 551922599
+      Data4: 315760552
+    Path: event:/MUSIQUE RUN
+  bossMusic:
+    Guid:
+      Data1: -974853012
+      Data2: 1309469418
+      Data3: -1440323185
+      Data4: 1532819005
+    Path: event:/MUSIQUE BOSS
+  whoosh:
+    Guid:
+      Data1: 522476245
+      Data2: 1222632460
+      Data3: -769189714
+      Data4: -2143037601
+    Path: event:/WHOOSH
 --- !u!4 &196344613 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 706719281777951490, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
@@ -2164,6 +2250,7 @@ Transform:
   - {fileID: 1913163516}
   - {fileID: 2036106887}
   - {fileID: 720411130}
+  - {fileID: 140775455}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &823969035
