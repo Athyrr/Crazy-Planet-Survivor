@@ -69,7 +69,7 @@ public class FloatingNumberFeedbackManager : MonoBehaviour
 
     private ComputeBuffer _damageBuffer;
     private List<DamageData> _activeDamages = new();
-    private const int _maxNumbers = 1000;
+    private const int _maxNumbers = 50;
 
     private EntityManager _entityManager;
     private EntityQuery _damageFeedbackQuery;
