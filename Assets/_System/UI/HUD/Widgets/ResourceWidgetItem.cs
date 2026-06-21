@@ -21,10 +21,11 @@ public class ResourceWidgetItem : UIViewItemBase
     /// <summary>
     /// Configures this widget to track a resource type for the HUD (reads from Player entity).
     /// </summary>
-    public void Refresh(EResourceType resourceType, Sprite resourceImageTexture, int defaultValue = -1)
+    public void Refresh(EResourceType resourceType, Sprite resourceImageTexture, Color iconColor, int defaultValue = -1)
     {
         _resourceType = resourceType;
         _resourceImage.sprite = resourceImageTexture;
+        _resourceImage.color = iconColor;
 
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
@@ -48,10 +49,11 @@ public class ResourceWidgetItem : UIViewItemBase
     /// <summary>
     /// Configures this widget to track a resource type for a shop (reads from GameState entity).
     /// </summary>
-    public void RefreshMeta(EResourceType resourceType, Sprite resourceImageTexture)
+    public void RefreshMeta(EResourceType resourceType, Sprite resourceImageTexture, Color iconColor)
     {
         _resourceType = resourceType;
         _resourceImage.sprite = resourceImageTexture;
+        _resourceImage.color = iconColor;
 
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         _sourceQuery = _entityManager.CreateEntityQuery(ComponentType.ReadOnly<GameState>());

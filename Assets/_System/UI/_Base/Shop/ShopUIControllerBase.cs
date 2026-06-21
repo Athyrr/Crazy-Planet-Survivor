@@ -45,6 +45,14 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
     [Tooltip("Scale applied to the purchase button while it is focused (controller feedback).")]
     public float PurchaseFocusScale = 1.1f;
 
+    [Tooltip("Graphic on the purchase button that uses the UI outline shader (SGI_UI_ElementOutline, " +
+             "property _OutlineColor). Its _OutlineColor is driven to CpUISettings.ItemOutlineSelected " +
+             "while the purchase is focused, transparent otherwise. Defaults to the button's own Image.")]
+    [SerializeField] private Image _actionButtonOutline;
+    private Material _actionButtonOutlineMat;
+    private bool _outlineResolved;
+    private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
+
     [Tooltip("Label shown on the action button when the action is a purchase (e.g. \"BUY\"). " +
              "The text color is centralized in CpUISettings.PurchaseTextColor.")]
     public string PurchaseText = String.Empty;
@@ -428,8 +436,28 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
     }
 
     /// <summary>
-    /// Highlights the purchase button when an item is committed via controller, using a subtle scale.
-    /// The committed item's own border outline carries the frame/glow. No-op while the button is hidden.
+    /// The UI-outline-shader material instance on the purchase button — from the serialized graphic,
+    /// else the button's own Image. Instanced once via Graphic.material (per-button color); null if
+    /// neither has a material. We drive its _OutlineColor for commit feedback.
+    /// </summary>
+    private Material ResolveActionButtonOutlineMat()
+    {
+        if (_actionButtonOutlineMat != null)
+            return _actionButtonOutlineMat;
+        if (_outlineResolved)
+            return null;
+        _outlineResolved = true;
+
+        Graphic graphic = _actionButtonOutline != null ? _actionButtonOutline : ActionButton.image;
+        if (graphic != null)
+            _actionButtonOutlineMat = graphic.material; // instances the material → per-button color
+        return _actionButtonOutlineMat;
+    }
+
+    /// <summary>
+    /// Highlights the purchase button when an item is committed via controller: a subtle scale-pop
+    /// plus a colored outline driven on the UI outline shader (_OutlineColor =
+    /// CpUISettings.ItemOutlineSelected while committed, transparent otherwise). No-op while hidden.
     /// </summary>
     protected void SetPurchaseFocused(bool focused)
     {
@@ -437,6 +465,17 @@ public abstract class ShopUIControllerBase<TData, TListView, TDetailView, TItem>
             return;
 
         bool canShow = focused && ActionButton.gameObject.activeSelf;
+
+        // Outline feedback via the UI outline shader, reusing the committed list item's outline token
+        // so the button and its item read as one selected unit.
+        var outlineMat = ResolveActionButtonOutlineMat();
+        if (outlineMat != null)
+        {
+            Color outlineColor = CpUISettings.ItemOutlineSelected;
+            if (!canShow)
+                outlineColor.a = 0f;
+            outlineMat.SetColor(OutlineColorId, outlineColor);
+        }
 
         if (_purchaseFocusTween.isAlive)
             _purchaseFocusTween.Stop();

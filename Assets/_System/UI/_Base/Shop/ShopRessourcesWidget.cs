@@ -52,7 +52,7 @@ public class ShopRessourcesWidget : MonoBehaviour
         foreach (var resource in _resourceDatabase.Resources)
         {
             var instance = Instantiate(resourceItemPrefab, _container);
-            instance.RefreshMeta(resource.Type, resource.Icon);
+            instance.RefreshMeta(resource.Type, resource.Icon, resource.Color);
         }
 
         _initialized = true;

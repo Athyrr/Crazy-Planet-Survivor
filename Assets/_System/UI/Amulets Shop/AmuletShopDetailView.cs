@@ -200,7 +200,8 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         {
             var resource = ResourceDatabase.GetResource(cost.Type);
             var instance = Instantiate(CostItemPrefab, parent);
-            instance.Refresh(cost.Type, resource != null ? resource.Icon : null, cost.Amount);
+            instance.Refresh(cost.Type, resource != null ? resource.Icon : null,
+                resource != null ? resource.Color : Color.white, cost.Amount);
         }
     }
 

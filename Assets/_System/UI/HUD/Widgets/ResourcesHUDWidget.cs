@@ -29,7 +29,7 @@ public class ResourcesHUDWidget : MonoBehaviour
         foreach (var resource in _resourceDatabase.Resources)
         {
             var instance = Instantiate(resourceModel, _container.transform);
-            instance.Refresh(resource.Type, resource.Icon);
+            instance.Refresh(resource.Type, resource.Icon, resource.Color);
         }
     }
 }
