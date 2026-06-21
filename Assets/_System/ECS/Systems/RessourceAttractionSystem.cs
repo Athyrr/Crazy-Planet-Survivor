@@ -1,15 +1,14 @@
+using _System.ECS.Components.Audio;
 using Unity.Burst;
-using Unity.Entities;
-using Unity.Transforms;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Entities;
 using Unity.Mathematics;
-using _System.ECS.Authorings.Resources;
-using UnityEngine;
+using Unity.Transforms;
 
 /// <summary>
-/// Manages the lifecycle of any ressources / xp orbs, handling both the detection of nearby orbs (attraction) 
-/// and the final collection when they reach the player. 
+/// Manages the lifecycle of any ressources / xp orbs, handling both the detection of nearby orbs (attraction)
+/// and the final collection when they reach the player.
 /// Uses a throttled scanning approach to minimize performance impact.
 /// Orbs are identified by LootTag and differentiated by ExperienceOrb (XP) vs Resource (material) components.
 /// </summary>
@@ -17,11 +16,21 @@ using UnityEngine;
 [BurstCompile]
 public partial struct RessourceAttractionSystem : ISystem
 {
-    [ReadOnly] private ComponentLookup<LocalTransform> _transformLookup;
-    [ReadOnly] private ComponentLookup<CoreStats> _statsLookup;
-    [ReadOnly] private ComponentLookup<PlanetData> _planetLookup;
-    [ReadOnly] private ComponentLookup<ExperienceOrb> _experienceOrbLookup;
-    [ReadOnly] private ComponentLookup<Resource> _resourceLookup;
+    [ReadOnly]
+    private ComponentLookup<LocalTransform> _transformLookup;
+
+    [ReadOnly]
+    private ComponentLookup<CoreStats> _statsLookup;
+
+    [ReadOnly]
+    private ComponentLookup<PlanetData> _planetLookup;
+
+    [ReadOnly]
+    private ComponentLookup<ExperienceOrb> _experienceOrbLookup;
+
+    [ReadOnly]
+    private ComponentLookup<Resource> _resourceLookup;
+    private ComponentLookup<SoundPlayerTag> _soundPlayerLookup;
 
     private EntityQuery _playerQuery;
 
@@ -43,6 +52,7 @@ public partial struct RessourceAttractionSystem : ISystem
         _planetLookup = state.GetComponentLookup<PlanetData>(isReadOnly: true);
         _experienceOrbLookup = state.GetComponentLookup<ExperienceOrb>(isReadOnly: true);
         _resourceLookup = state.GetComponentLookup<Resource>(isReadOnly: true);
+        _soundPlayerLookup = state.GetComponentLookup<SoundPlayerTag>(isReadOnly: false);
 
         ComponentType playerComponentType = ComponentType.ReadOnly<Player>();
         _playerQuery = state.GetEntityQuery(playerComponentType);
@@ -73,11 +83,19 @@ public partial struct RessourceAttractionSystem : ISystem
 
         var planetCenter = SystemAPI.GetSingleton<PlanetData>().Center;
 
-        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var ecbSingleton =
+            SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var ecbParallel = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter();
         var resourceBuffer = SystemAPI.GetBufferLookup<ResourceBufferElement>(isReadOnly: false);
-        var playerExperienceLookup = SystemAPI.GetComponentLookup<PlayerExperience>(isReadOnly: false);
+        var playerExperienceLookup = SystemAPI.GetComponentLookup<PlayerExperience>(
+            isReadOnly: false
+        );
+
+        _soundPlayerLookup.Update(ref state);
+        var soundPlayerEntity = SystemAPI.TryGetSingletonEntity<SoundPlayerTag>(out var spe)
+            ? spe
+            : Entity.Null;
 
         // Move collection runs first so orbs are collected before new attraction
         // Single-threaded: directly modifies the Player's ResourceBuffer and PlayerExperience
@@ -93,6 +111,8 @@ public partial struct RessourceAttractionSystem : ISystem
             ResourceLookup = _resourceLookup,
             ResourceBuffer = resourceBuffer,
             PlayerExperienceLookup = playerExperienceLookup,
+            SoundPlayerLookup = _soundPlayerLookup,
+            SoundPlayerEntity = soundPlayerEntity,
         };
         state.Dependency = moveAndCollectJob.Schedule(state.Dependency);
 
@@ -121,7 +141,7 @@ public partial struct RessourceAttractionSystem : ISystem
     }
 
     /// <summary>
-    /// Scans for orbs within the player's collection range and attaches 
+    /// Scans for orbs within the player's collection range and attaches
     /// a movement component to pull them toward the player.
     /// </summary>
     [BurstCompile]
@@ -131,12 +151,19 @@ public partial struct RessourceAttractionSystem : ISystem
     {
         public EntityCommandBuffer.ParallelWriter ECB;
         public Entity PlayerEntity;
-        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
 
-        [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
+        [ReadOnly]
+        public ComponentLookup<LocalTransform> TransformLookup;
+
+        [ReadOnly]
+        public ComponentLookup<CoreStats> StatsLookup;
         public float AnimDuration;
 
-        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform)
+        private void Execute(
+            [ChunkIndexInQuery] int chunkIndex,
+            Entity entity,
+            in LocalTransform transform
+        )
         {
             var playerStats = StatsLookup[PlayerEntity];
             var finalCollectRange = playerStats.BasePickupRange * (1f + playerStats.PickupRange);
@@ -145,12 +172,16 @@ public partial struct RessourceAttractionSystem : ISystem
             var distSq = math.distancesq(playerPosition, transform.Position);
             if (distSq <= finalCollectRange * finalCollectRange)
             {
-                ECB.AddComponent(chunkIndex, entity, new AttractionAnimation
-                {
-                    StartPosition = transform.Position,
-                    ElapsedTime = 0f,
-                    Duration = AnimDuration,
-                });
+                ECB.AddComponent(
+                    chunkIndex,
+                    entity,
+                    new AttractionAnimation
+                    {
+                        StartPosition = transform.Position,
+                        ElapsedTime = 0f,
+                        Duration = AnimDuration,
+                    }
+                );
             }
         }
     }
@@ -169,19 +200,31 @@ public partial struct RessourceAttractionSystem : ISystem
 
         public Entity PlayerEntity;
 
-        [NativeDisableContainerSafetyRestriction] [ReadOnly]
+        [NativeDisableContainerSafetyRestriction]
+        [ReadOnly]
         public ComponentLookup<LocalTransform> TransformLookup;
 
         public float3 PlanetCenter;
 
-        [ReadOnly] public ComponentLookup<ExperienceOrb> ExperienceOrbLookup;
-        [ReadOnly] public ComponentLookup<Resource> ResourceLookup;
-        [ReadOnly] public BlobAssetReference<AttractionAnimationCurveBlob> CurveBlobRef;
+        [ReadOnly]
+        public ComponentLookup<ExperienceOrb> ExperienceOrbLookup;
+
+        [ReadOnly]
+        public ComponentLookup<Resource> ResourceLookup;
+
+        [ReadOnly]
+        public BlobAssetReference<AttractionAnimationCurveBlob> CurveBlobRef;
         public BufferLookup<ResourceBufferElement> ResourceBuffer;
         public ComponentLookup<PlayerExperience> PlayerExperienceLookup;
 
-        private void Execute(Entity entity, ref LocalTransform transform,
-            ref AttractionAnimation anim)
+        public ComponentLookup<SoundPlayerTag> SoundPlayerLookup;
+        public Entity SoundPlayerEntity;
+
+        private void Execute(
+            Entity entity,
+            ref LocalTransform transform,
+            ref AttractionAnimation anim
+        )
         {
             var playerPosition = TransformLookup[PlayerEntity].Position;
 
@@ -195,7 +238,11 @@ public partial struct RessourceAttractionSystem : ISystem
             var indexUpper = math.min(indexLower + 1, animCurve.SampleCount - 1);
             var lerpFactor = sampleIndexFloat - indexLower;
 
-            var curveValue = math.lerp(animCurve.Samples[indexLower], animCurve.Samples[indexUpper], lerpFactor);
+            var curveValue = math.lerp(
+                animCurve.Samples[indexLower],
+                animCurve.Samples[indexUpper],
+                lerpFactor
+            );
 
             // Follow the planet curvature
             var dirStart = math.normalize(anim.StartPosition - PlanetCenter);
@@ -219,6 +266,17 @@ public partial struct RessourceAttractionSystem : ISystem
                     exp.Experience += ExperienceOrbLookup[entity].Value;
                     PlayerExperienceLookup[PlayerEntity] = exp;
                 }
+
+                //fire next frame.
+                if (
+                    SoundPlayerEntity != Entity.Null
+                    && SoundPlayerLookup.HasComponent(SoundPlayerEntity)
+                )
+                {
+                    var soundTag = SoundPlayerLookup[SoundPlayerEntity];
+                    soundTag.GemsCollectedSound++;
+                    SoundPlayerLookup[SoundPlayerEntity] = soundTag;
+                }
             }
             else if (ResourceLookup.HasComponent(entity))
             {
@@ -234,7 +292,7 @@ public partial struct RessourceAttractionSystem : ISystem
                             buffer[i] = new ResourceBufferElement
                             {
                                 Type = resource.Type,
-                                Value = buffer[i].Value + 1
+                                Value = buffer[i].Value + 1,
                             };
                             found = true;
                             break;
@@ -243,11 +301,7 @@ public partial struct RessourceAttractionSystem : ISystem
 
                     if (!found)
                     {
-                        buffer.Add(new ResourceBufferElement
-                        {
-                            Type = resource.Type,
-                            Value = 1
-                        });
+                        buffer.Add(new ResourceBufferElement { Type = resource.Type, Value = 1 });
                     }
                 }
             }

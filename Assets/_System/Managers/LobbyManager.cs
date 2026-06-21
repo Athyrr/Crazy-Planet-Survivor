@@ -1,3 +1,4 @@
+using _System.Audio;
 using Unity.Cinemachine;
 using Unity.Entities;
 using UnityEngine;
@@ -11,7 +12,8 @@ public class LobbyManager : MonoBehaviour
     [Tooltip("Camera used to zoom in on a specific planet.")]
     public CinemachineCamera PlanetFocusCamera;
 
-    [Header("UI Controllers")] public CharacterShopUIController CharacterShopUIController;
+    [Header("UI Controllers")]
+    public CharacterShopUIController CharacterShopUIController;
     public PlanetSelectionUIController PlanetSelectionUIController;
     public AmuletShopUIController AmuletShopUIController;
     public MetaProgressionController MetaProgressionController;
@@ -22,7 +24,8 @@ public class LobbyManager : MonoBehaviour
     private EntityQuery _openAmuletShopViewQuery;
     private EntityQuery _openMetaProgressionViewQuery;
 
-    [Header("Galaxy 3D UI Controller")] [SerializeField]
+    [Header("Galaxy 3D UI Controller")]
+    [SerializeField]
     private GameObject _galaxy;
 
     [System.Serializable]
@@ -33,12 +36,16 @@ public class LobbyManager : MonoBehaviour
         [Tooltip("Local position the galaxy is moved to when a run starts on this planet.")]
         public Vector3 GalaxyPosition;
 
-        [Tooltip("Local rotation (euler angles) the galaxy is set to when a run starts on this planet.")]
+        [Tooltip(
+            "Local rotation (euler angles) the galaxy is set to when a run starts on this planet."
+        )]
         public Vector3 GalaxyRotation;
     }
 
-    [Tooltip("Per-planet galaxy placement applied when a run starts. " +
-             "Each entry stores the galaxy local position & rotation for the selected planet.")]
+    [Tooltip(
+        "Per-planet galaxy placement applied when a run starts. "
+            + "Each entry stores the galaxy local position & rotation for the selected planet."
+    )]
     [SerializeField]
     private GalaxyPlanetPlacement[] _galaxyPlacements;
 
@@ -70,15 +77,20 @@ public class LobbyManager : MonoBehaviour
             PlanetSelectionUIController.OnPlanetSelected -= HandlePlanetFocus;
     }
 
-
     private void Start()
     {
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
-        _openCharacterSelectionViewQuery = _entityManager.CreateEntityQuery(typeof(OpenCharactersShopRequest));
-        _openPlanetSelectionViewQuery = _entityManager.CreateEntityQuery(typeof(OpenPlanetSelectionViewRequest));
+        _openCharacterSelectionViewQuery = _entityManager.CreateEntityQuery(
+            typeof(OpenCharactersShopRequest)
+        );
+        _openPlanetSelectionViewQuery = _entityManager.CreateEntityQuery(
+            typeof(OpenPlanetSelectionViewRequest)
+        );
         _openAmuletShopViewQuery = _entityManager.CreateEntityQuery(typeof(OpenAmuletShopRequest));
-        _openMetaProgressionViewQuery = _entityManager.CreateEntityQuery(typeof(OpenMetaProgressionShopRequest));
+        _openMetaProgressionViewQuery = _entityManager.CreateEntityQuery(
+            typeof(OpenMetaProgressionShopRequest)
+        );
     }
 
     private void Update()
@@ -206,7 +218,11 @@ public class LobbyManager : MonoBehaviour
         }
     }
 
-    private void HandlePlanetFocus(EPlanetID planetID, Transform planetTransform, Vector3 focusOffset)
+    private void HandlePlanetFocus(
+        EPlanetID planetID,
+        Transform planetTransform,
+        Vector3 focusOffset
+    )
     {
         if (planetID != EPlanetID.None && planetTransform != null)
         {
