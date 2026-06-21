@@ -14,15 +14,22 @@ public class CharacterShopViewItem : UIViewItemBase
     public TMP_Text Text;
     public Button Button;
 
-    [Tooltip("Optional border image using the element-outline material (like the amulet item). " +
-             "Its _OutlineColor is driven by the shared CpBaseUISettings item-outline colors. " +
-             "Leave empty to fall back to tinting the label only.")]
-    [SerializeField] private Image _border;
+    [Tooltip(
+        "Optional border image using the element-outline material (like the amulet item). "
+            + "Its _OutlineColor is driven by the shared CpBaseUISettings item-outline colors. "
+            + "Leave empty to fall back to tinting the label only."
+    )]
+    [SerializeField]
+    private Image _border;
+
     [Tooltip("Badge shown when this character is the currently selected (equipped) one.")]
-    [SerializeField] private TMP_Text _equippedLabel;
+    [SerializeField]
+    private TMP_Text _equippedLabel;
 
     private static readonly int OutlineColorShaderProperty = Shader.PropertyToID("_OutlineColor");
-    private static readonly int BackgroundColorShaderProperty = Shader.PropertyToID("_BackgroundColor");
+    private static readonly int BackgroundColorShaderProperty = Shader.PropertyToID(
+        "_BackgroundColor"
+    );
 
     private CharacterShopUIController _controller;
     private CharacterSO _data;
@@ -36,8 +43,13 @@ public class CharacterShopViewItem : UIViewItemBase
 
     private Tween _scaleTween;
 
-    public void Init(CharacterShopUIController shopController, int index, CharacterSO data,
-        bool isUnlocked, bool isEquipped)
+    public void Init(
+        CharacterShopUIController shopController,
+        int index,
+        CharacterSO data,
+        bool isUnlocked,
+        bool isEquipped
+    )
     {
         _controller = shopController;
         _data = data;
@@ -129,7 +141,12 @@ public class CharacterShopViewItem : UIViewItemBase
             return;
 
         _scaleTween = Tween.Scale(
-            transform, target, CpUISettings.HoverDuration, CpUISettings.HoverEase, useUnscaledTime: true);
+            transform,
+            target,
+            CpUISettings.HoverDuration,
+            CpUISettings.HoverEase,
+            useUnscaledTime: true
+        );
     }
 
     // Shop items share the common content-color resolver (Complementary scheme), NOT the menu/settings
@@ -138,7 +155,11 @@ public class CharacterShopViewItem : UIViewItemBase
     private void RefreshVisual()
     {
         if (Text != null)
-            Text.color = CpUISettings.GetItemContentColor(_isSelected || IsHighlighted, isMaxed: false, isLocked: false);
+            Text.color = CpUISettings.GetItemContentColor(
+                _isSelected || IsHighlighted,
+                isMaxed: false,
+                isLocked: false
+            );
 
         if (_equippedLabel != null)
         {
@@ -149,10 +170,14 @@ public class CharacterShopViewItem : UIViewItemBase
         // Border material drives both the outline color and the background fill (like the amulet item).
         if (_border != null && _border.material != null)
         {
-            _border.material.SetColor(OutlineColorShaderProperty,
-                CpUISettings.GetItemOutlineColor(_isSelected, IsHighlighted, _isUnlocked));
-            _border.material.SetColor(BackgroundColorShaderProperty,
-                _isUnlocked ? CpUISettings.ItemBackgroundOwned : CpUISettings.ItemBackground);
+            _border.material.SetColor(
+                OutlineColorShaderProperty,
+                CpUISettings.GetItemOutlineColor(_isSelected, IsHighlighted, _isUnlocked)
+            );
+            _border.material.SetColor(
+                BackgroundColorShaderProperty,
+                _isUnlocked ? CpUISettings.ItemBackgroundOwned : CpUISettings.ItemBackground
+            );
         }
     }
 }

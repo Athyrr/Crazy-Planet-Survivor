@@ -1,3 +1,4 @@
+using _System.ECS.Components.Audio;
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
@@ -10,7 +11,9 @@ public class RunManager : MonoBehaviour
     public UpgradeSelectionUIController UpgradeSelectionController;
     public GameOverUIController GameOverUIController;
 
-    [Tooltip("Boss name card (disabled by default). Activated + played when the final boss appears.")]
+    [Tooltip(
+        "Boss name card (disabled by default). Activated + played when the final boss appears."
+    )]
     public BossAppearMessageUI BossAppearMessage;
 
     public GameObject PausePanel;
@@ -22,6 +25,7 @@ public class RunManager : MonoBehaviour
     private EntityQuery _openUpgradesRequestQuery;
     private EntityQuery _gameStateQuery;
     private EntityQuery _finalBossQuery;
+    private EntityQuery _audioPlayerQuery;
 
     // True once the current final boss's appear-message has been played (reset when no boss is present).
     private bool _bossAnnounced;
@@ -55,7 +59,9 @@ public class RunManager : MonoBehaviour
         _playerQuery = _entityManager.CreateEntityQuery(typeof(Player));
         _finalBossQuery = _entityManager.CreateEntityQuery(
             ComponentType.ReadOnly<FinalBossTag>(),
-            ComponentType.ReadOnly<BossPresentation>());
+            ComponentType.ReadOnly<BossPresentation>()
+        );
+        _audioPlayerQuery = _entityManager.CreateEntityQuery(typeof(SoundPlayerTag));
 
         InitPanels();
     }
@@ -99,6 +105,12 @@ public class RunManager : MonoBehaviour
                 bossName = presentation.DisplayName;
         }
         entities.Dispose();
+
+        if (!_audioPlayerQuery.TryGetSingleton<SoundPlayerTag>(out var soundPlayerTag))
+            return;
+
+        soundPlayerTag.HaveBossSpawnedSound = true;
+        _audioPlayerQuery.SetSingleton(soundPlayerTag);
 
         BossAppearMessage.gameObject.SetActive(true);
         BossAppearMessage.Show(bossName);

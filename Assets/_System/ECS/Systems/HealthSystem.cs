@@ -1,5 +1,7 @@
+using _System.ECS.Components.Audio;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -21,6 +23,7 @@ public partial struct HealthSystem : ISystem
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
     private ComponentLookup<ExplodeOnDeath> _explodeOnDeathLookup;
+    private ComponentLookup<SoundPlayerTag> _soundPlayaerTagLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -34,6 +37,7 @@ public partial struct HealthSystem : ISystem
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
         _explodeOnDeathLookup = state.GetComponentLookup<ExplodeOnDeath>(true);
+        _soundPlayaerTagLookup = state.GetComponentLookup<SoundPlayerTag>(false);
     }
 
     [BurstCompile]
@@ -59,6 +63,12 @@ public partial struct HealthSystem : ISystem
         _destroyFlagLookup.Update(ref state);
         _explodeOnDeathLookup.Update(ref state);
 
+        _soundPlayaerTagLookup.Update(ref state);
+
+        var _soundPlayerEntity = SystemAPI.TryGetSingletonEntity<SoundPlayerTag>(out var spe)
+            ? spe
+            : Entity.Null;
+
         var applyDamageJob = new ApplyDamageJob
         {
             ECB = ecb.AsParallelWriter(),
@@ -67,7 +77,9 @@ public partial struct HealthSystem : ISystem
             DestructibleLookup = _destrucibleLookup,
             EnemyLookup = _enemyLookup,
             BossLookup = _bossLookup,
-            ExplodeOnDeathLookup = _explodeOnDeathLookup
+            ExplodeOnDeathLookup = _explodeOnDeathLookup,
+            SoundPlayerTagLookup = _soundPlayaerTagLookup,
+            SoundPlayerEntity = _soundPlayerEntity,
         };
 
         state.Dependency = applyDamageJob.ScheduleParallel(state.Dependency);
@@ -82,12 +94,27 @@ public partial struct HealthSystem : ISystem
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
-        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
-        [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
-        [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
-        [ReadOnly] public ComponentLookup<Boss> BossLookup;
-        [ReadOnly] public ComponentLookup<ExplodeOnDeath> ExplodeOnDeathLookup;
+        [ReadOnly]
+        public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
+
+        [ReadOnly]
+        public ComponentLookup<Player> PlayerLookup;
+
+        [ReadOnly]
+        public ComponentLookup<Destructible> DestructibleLookup;
+
+        [ReadOnly]
+        public ComponentLookup<Enemy> EnemyLookup;
+
+        [ReadOnly]
+        public ComponentLookup<Boss> BossLookup;
+
+        [ReadOnly]
+        public ComponentLookup<ExplodeOnDeath> ExplodeOnDeathLookup;
+
+        [NativeDisableContainerSafetyRestriction]
+        public ComponentLookup<SoundPlayerTag> SoundPlayerTagLookup;
+        public Entity SoundPlayerEntity;
 
         // todo Opti here: If  possible use Query instead of lookup
 
@@ -95,13 +122,17 @@ public partial struct HealthSystem : ISystem
             [ChunkIndexInQuery] int index,
             Entity entity,
             ref Health health,
-            ref DynamicBuffer<DamageBufferElement> damageBuffer, in LocalTransform transform
+            ref DynamicBuffer<DamageBufferElement> damageBuffer,
+            in LocalTransform transform
         )
         {
-            // todo use skip condition in query -> Comp + EnabledRefRW  
+            // todo use skip condition in query -> Comp + EnabledRefRW
 
             // Skip entities already marked for destruction
-            if (DestroyFlagLookup.HasComponent(entity) && DestroyFlagLookup.IsComponentEnabled(entity))
+            if (
+                DestroyFlagLookup.HasComponent(entity)
+                && DestroyFlagLookup.IsComponentEnabled(entity)
+            )
                 return;
 
             // Skip if health is already zero or there is no damage to process
@@ -120,7 +151,7 @@ public partial struct HealthSystem : ISystem
                 var dbe = damageBuffer[i];
                 float damage = dbe.Damage;
 
-                //todo use stats 
+                //todo use stats
                 // Apply flat Armor reduction after elemental resistances
                 // damage -= stats.Armor;
                 damage = math.max(0, damage);
@@ -138,7 +169,29 @@ public partial struct HealthSystem : ISystem
             // Send feedback request
             if (!isPlayer)
             {
+                if (
+                    SoundPlayerEntity != Entity.Null
+                    && SoundPlayerTagLookup.HasComponent(SoundPlayerEntity)
+                )
+                {
+                    var soundTag = SoundPlayerTagLookup[SoundPlayerEntity];
+                    soundTag.EnemiesTookDamageSound++;
+                    SoundPlayerTagLookup[SoundPlayerEntity] = soundTag;
+                }
+
                 TriggerDamageVisual(index, ECB, (int)totalDamage, transform, isCritical, isBurn);
+            }
+            else
+            {
+                if (
+                    SoundPlayerEntity != Entity.Null
+                    && SoundPlayerTagLookup.HasComponent(SoundPlayerEntity)
+                )
+                {
+                    var soundTag = SoundPlayerTagLookup[SoundPlayerEntity];
+                    soundTag.PlayerTookDamageSound++;
+                    SoundPlayerTagLookup[SoundPlayerEntity] = soundTag;
+                }
             }
 
             // Check for death condition
@@ -146,7 +199,9 @@ public partial struct HealthSystem : ISystem
             {
                 health.Value = 0;
 
-                if (!isPlayer && ExplodeOnDeathLookup.TryGetComponent(entity, out var explosionData))
+                if (
+                    !isPlayer && ExplodeOnDeathLookup.TryGetComponent(entity, out var explosionData)
+                )
                 {
                     var explosionRequest = ECB.CreateEntity(0);
 
@@ -160,7 +215,10 @@ public partial struct HealthSystem : ISystem
                             VfxPrefab = explosionData.VfxPrefab,
                             IsCritical = false,
                             Tags = explosionData.Tags,
-                            TargetLayers = CollisionLayers.Enemy | CollisionLayers.Player | CollisionLayers.Obstacle,
+                            TargetLayers =
+                                CollisionLayers.Enemy
+                                | CollisionLayers.Player
+                                | CollisionLayers.Obstacle,
                         }
                     );
                 }
@@ -186,7 +244,10 @@ public partial struct HealthSystem : ISystem
                     );
 
                     // Defeating the planet's final boss is the only way to win a run.
-                    if (BossLookup.TryGetComponent(entity, out var boss) && boss.Kind == EBossKind.FinalBoss)
+                    if (
+                        BossLookup.TryGetComponent(entity, out var boss)
+                        && boss.Kind == EBossKind.FinalBoss
+                    )
                     {
                         var winEntity = ECB.CreateEntity(index);
                         ECB.AddComponent(
@@ -199,11 +260,7 @@ public partial struct HealthSystem : ISystem
                 else if (DestructibleLookup.HasComponent(entity))
                 {
                     var killedEventEntity = ECB.CreateEntity(index);
-                    ECB.AddComponent(
-                        index,
-                        killedEventEntity,
-                        new EntityKilledEvent { }
-                    );
+                    ECB.AddComponent(index, killedEventEntity, new EntityKilledEvent { });
                 }
             }
         }
@@ -226,7 +283,7 @@ public partial struct HealthSystem : ISystem
                     Amount = amount,
                     Transform = transform,
                     IsCritical = isCritical,
-                    IsBurn = isBurn
+                    IsBurn = isBurn,
                 }
             );
         }
@@ -239,6 +296,4 @@ public struct EnemyKilledEvent : IComponentData
 }
 
 // todo impl this and add enemyKilledEvent override EntityKill logic
-public struct EntityKilledEvent : IComponentData
-{
-}
+public struct EntityKilledEvent : IComponentData { }
