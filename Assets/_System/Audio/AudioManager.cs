@@ -3,6 +3,7 @@ using FMOD.Studio;
 using FMODUnity;
 using Unity.Entities;
 using UnityEngine;
+using UnityEngine.Serialization;
 using static FMOD.Studio.PLAYBACK_STATE;
 using STOP_MODE = FMOD.Studio.STOP_MODE;
 
@@ -26,7 +27,19 @@ namespace _System.Audio
         private EventReference bossMusic;
 
         [SerializeField]
-        private EventReference whoosh;
+        private EventReference whooshPlanet;
+
+        [SerializeField]
+        private EventReference whooshShop;
+
+        [SerializeField]
+        private EventReference playerDamagesSfx;
+
+        [SerializeField]
+        private EventReference enemiesDamagesSfx;
+
+        [SerializeField]
+        private EventReference levelUp;
 
         private EntityManager _entityManager;
         private EntityQuery _soundQuery;
@@ -40,10 +53,10 @@ namespace _System.Audio
         [SerializeField]
         private float musicFadeDuration = 1.5f;
 
-        private float _noDrumsPitchTarget = 1f;
-        private float _noDrumsPitchCurrent = 1f;
-        private float _withDrumsVolumeTarget;
-        private float _withDrumsVolumeCurrent;
+        private float _pitchTarget;
+        private float _pitchCurrent;
+        private float _filterTarget;
+        private float _filterCurrent;
 
         private float _runVolumeTarget;
         private float _runVolumeCurrent;
@@ -83,6 +96,8 @@ namespace _System.Audio
 
         private void Update()
         {
+            ProcessEnemiesDamagesSfx();
+            ProcessPlayerDamagesSfx();
             ProcessGemsCollection();
             ProcessBossMusic();
             UpdateMusicFade();
@@ -95,25 +110,33 @@ namespace _System.Audio
             switch (newState)
             {
                 case EGameState.Lobby:
+                    StopRunAndBossMusic();
+                    SetLobbyParams(pitch: 0f, filter: 0f, snap: EnsureLobbyMusicPlaying());
+                    break;
+
                 case EGameState.CharacterSelection:
                 case EGameState.AmuletShop:
                 case EGameState.MetaProgression:
+                    RuntimeManager.PlayOneShot(whooshShop);
                     StopRunAndBossMusic();
-                    SetDrumsLayer(true, snap: EnsureLobbyMusicPlaying());
+                    SetLobbyParams(pitch: 0f, filter: 1f, snap: EnsureLobbyMusicPlaying());
                     break;
 
                 case EGameState.PlanetSelection:
+                    RuntimeManager.PlayOneShot(whooshPlanet);
                     StopRunAndBossMusic();
-                    SetDrumsLayer(false, snap: EnsureLobbyMusicPlaying());
+                    SetLobbyParams(pitch: 1f, filter: 0f, snap: EnsureLobbyMusicPlaying());
                     break;
 
                 case EGameState.Running:
                     StopLobbyMusic();
+                    SetLobbyParams(pitch: 0f, filter: 0f, snap: false); // glide params back to neutral
                     EnterRunMusic();
                     break;
 
                 case EGameState.Paused:
                 case EGameState.UpgradeSelection:
+                    RuntimeManager.PlayOneShot(levelUp);
                     break;
 
                 case EGameState.GameOver:
@@ -121,6 +144,7 @@ namespace _System.Audio
                 default:
                     StopLobbyMusic();
                     StopRunAndBossMusic();
+                    SetLobbyParams(pitch: 0f, filter: 0f, snap: false); // neutral
                     break;
             }
         }
@@ -138,28 +162,28 @@ namespace _System.Audio
             return false;
         }
 
-        private void SetDrumsLayer(bool on, bool snap = false)
+        private void SetLobbyParams(float pitch, float filter, bool snap = false)
         {
-            _noDrumsPitchTarget = on ? 0f : 1f;
-            _withDrumsVolumeTarget = on ? 1f : 0f;
+            _pitchTarget = pitch;
+            _filterTarget = filter;
 
             if (!snap)
                 return;
 
-            _noDrumsPitchCurrent = _noDrumsPitchTarget;
-            _withDrumsVolumeCurrent = _withDrumsVolumeTarget;
-            ApplyMusicLayerValues();
+            _pitchCurrent = pitch;
+            _filterCurrent = filter;
+            ApplyGlobalParams();
         }
 
         private void UpdateMusicFade()
         {
             float step = musicFadeDuration <= 0f ? 1f : Time.unscaledDeltaTime / musicFadeDuration;
 
-            if (StepToward(ref _noDrumsPitchCurrent, _noDrumsPitchTarget, step))
-                lobbyMusicNoDrumsInstance.setParameterByName("Pitch", _noDrumsPitchCurrent);
+            if (StepToward(ref _pitchCurrent, _pitchTarget, step))
+                RuntimeManager.StudioSystem.setParameterByName("Pitch", _pitchCurrent);
 
-            if (StepToward(ref _withDrumsVolumeCurrent, _withDrumsVolumeTarget, step))
-                lobbyMusicWithDrumsInstance.setVolume(_withDrumsVolumeCurrent);
+            if (StepToward(ref _filterCurrent, _filterTarget, step))
+                RuntimeManager.StudioSystem.setParameterByName("Filter", _filterCurrent);
 
             if (StepToward(ref _runVolumeCurrent, _runVolumeTarget, step))
                 runMusicInstance.setVolume(_runVolumeCurrent);
@@ -190,10 +214,10 @@ namespace _System.Audio
                 instance.stop(STOP_MODE.ALLOWFADEOUT);
         }
 
-        private void ApplyMusicLayerValues()
+        private void ApplyGlobalParams()
         {
-            lobbyMusicNoDrumsInstance.setParameterByName("Pitch", _noDrumsPitchCurrent);
-            lobbyMusicWithDrumsInstance.setVolume(_withDrumsVolumeCurrent);
+            RuntimeManager.StudioSystem.setParameterByName("Pitch", _pitchCurrent);
+            RuntimeManager.StudioSystem.setParameterByName("Filter", _filterCurrent);
         }
 
         private void StopLobbyMusic()
@@ -282,6 +306,38 @@ namespace _System.Audio
             if (soundPlayerTag.GemsCollectedSound > 0)
             {
                 soundPlayerTag.GemsCollectedSound = 0;
+                _soundQuery.SetSingleton(soundPlayerTag);
+            }
+        }
+
+        private void ProcessEnemiesDamagesSfx()
+        {
+            //caca ?
+            if (!_soundQuery.TryGetSingleton<SoundPlayerTag>(out var soundPlayerTag))
+                return;
+
+            for (var i = 0; i < soundPlayerTag.EnemiesTookDamageSound; i++)
+                RuntimeManager.PlayOneShot(enemiesDamagesSfx);
+
+            if (soundPlayerTag.EnemiesTookDamageSound > 0)
+            {
+                soundPlayerTag.EnemiesTookDamageSound = 0;
+                _soundQuery.SetSingleton(soundPlayerTag);
+            }
+        }
+
+        private void ProcessPlayerDamagesSfx()
+        {
+            //caca ?
+            if (!_soundQuery.TryGetSingleton<SoundPlayerTag>(out var soundPlayerTag))
+                return;
+
+            for (var i = 0; i < soundPlayerTag.PlayerTookDamageSound; i++)
+                RuntimeManager.PlayOneShot(playerDamagesSfx);
+
+            if (soundPlayerTag.PlayerTookDamageSound > 0)
+            {
+                soundPlayerTag.PlayerTookDamageSound = 0;
                 _soundQuery.SetSingleton(soundPlayerTag);
             }
         }

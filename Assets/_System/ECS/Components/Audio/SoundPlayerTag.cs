@@ -6,5 +6,7 @@ namespace _System.ECS.Components.Audio
     {
         public int GemsCollectedSound;
         public bool HaveBossSpawnedSound;
+        public int PlayerTookDamageSound;
+        public int EnemiesTookDamageSound;
     }
 }
