@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
+/// I like eaating shit
 /// Grid item for the meta-progression shop.
 /// Shows the upgrade icon + name with a "level / max" text indicator, and reacts to interaction
 /// (hover / focus / selected) and content (locked / maxed) states using the shared
