@@ -18,21 +18,57 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
     private EntityManager _entityManager;
     private EntityQuery _playerQuery;
     private EntityQuery _gameStateQuery;
+    private bool _hasQueries;
 
     private Dictionary<int, ActiveSpellWidgetItem> _indexToActiveSpellsMap = new();
     private readonly List<int> _staleSpellKeys = new();
 
     private Entity _lastPlayerEntity = Entity.Null;
 
-    private void Start()
+    private void OnEnable()
     {
-        _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+        TryCreateQueries();
+    }
+
+    private void TryCreateQueries()
+    {
+        if (_hasQueries)
+            return;
+
+        var world = World.DefaultGameObjectInjectionWorld;
+        if (world == null || !world.IsCreated)
+            return;
+
+        _entityManager = world.EntityManager;
         _playerQuery = _entityManager.CreateEntityQuery(typeof(Player), typeof(ActiveSpell));
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
+        _hasQueries = true;
+    }
+
+    private void DisposeQueries()
+    {
+        if (!_hasQueries)
+            return;
+
+        var world = _entityManager.World;
+        if (world != null && world.IsCreated)
+        {
+            _playerQuery.Dispose();
+            _gameStateQuery.Dispose();
+        }
+
+        _hasQueries = false;
     }
 
     private void Update()
     {
+        if (!_hasQueries)
+        {
+            TryCreateQueries();
+            if (!_hasQueries)
+                return;
+        }
+
         if (_playerQuery.IsEmptyIgnoreFilter)
         {
             if (_indexToActiveSpellsMap.Count > 0)
@@ -62,6 +98,7 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
     private void OnDisable()
     {
         Clear();
+        DisposeQueries();
     }
 
     private void RefreshAmulet(EquippedAmulet amulet)
