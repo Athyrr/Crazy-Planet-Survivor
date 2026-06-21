@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: CharacterData_Warrior
   m_EditorClassIdentifier: Assembly-CSharp::CharacterDataSO
   DisplayName: Warrior
-  Description: 'Raaaaaaah je frappe avec un gourdin '
-  Icon: {fileID: 21300000, guid: fb1de6ba7b3685346b164a7ff688935c, type: 3}
+  Description: A relentless brawler who trades reach for raw muscle and an iron hide.
+  Icon: {fileID: 21300000, guid: e9ccaf8b88c39724ab588873049032cf, type: 3}
   UIPrefab: {fileID: 19448560152866022, guid: 193ab63a60e0cd74a995cbd36a527e08, type: 3}
   GamePrefab: {fileID: 5342180323788850383, guid: 20242c4b1ee73984abccbf50197d0db9, type: 3}
   StatsUpgradesPool: {fileID: 11400000, guid: 65be180b5958ee040864032b0a195caf, type: 2}
@@ -31,22 +31,23 @@ MonoBehaviour:
   - Type: 3
     Amount: 0
   coreStats:
-    MaxHealth: 0
-    HealthRecovery: 1
-    BaseArmor: 0
-    Armor: 0
+    MaxHealth: 1600
+    HealthRegen: 2
+    BaseArmor: 10
+    Armor: 0.1
     BaseMoveSpeed: 12
     MoveSpeed: 0
     BasePickupRange: 10
     PickupRange: 0
-    Damage: 0
-    AttackSpeed: 0
+    Damage: 0.15
+    AttackSpeed: 0.1
     SpellSize: 0
     SpellSpeed: 0
     SpellDuration: 0
-    CastRange: -0.15
+    CastRange: -0.1
     Amount: 0
     Pierce: 0
     Bounce: 0
-    CritChance: 0.1
+    CritChance: 0.05
     CritDamage: 0.5
+    Luck: 0

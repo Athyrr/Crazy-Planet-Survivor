@@ -15,20 +15,25 @@ public class ResourceWidgetItem : UIViewItemBase
 
     private EntityManager _entityManager;
     private EntityQuery _sourceQuery;
+    private bool _hasQuery;
     private bool _init;
     private bool _ecsContext;
+
+    // Cached last-displayed amount so we only rebuild the (allocating) text when it changes.
+    private int _lastAmount = int.MinValue;
 
     /// <summary>
     /// Configures this widget to track a resource type for the HUD (reads from Player entity).
     /// </summary>
-    public void Refresh(EResourceType resourceType, Sprite resourceImageTexture, int defaultValue = -1)
+    public void Refresh(EResourceType resourceType, Sprite resourceImageTexture, Color iconColor, int defaultValue = -1)
     {
         _resourceType = resourceType;
         _resourceImage.sprite = resourceImageTexture;
+        _resourceImage.color = iconColor;
 
+        DisposeQuery();
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-
-        _sourceQuery = default;
+        _lastAmount = int.MinValue;
 
         if (defaultValue >= 0)
         {
@@ -39,6 +44,7 @@ public class ResourceWidgetItem : UIViewItemBase
         {
             _sourceQuery = _entityManager.CreateEntityQuery(
                 ComponentType.ReadOnly<Player>());
+            _hasQuery = true;
             _ecsContext = true;
         }
 
@@ -48,13 +54,17 @@ public class ResourceWidgetItem : UIViewItemBase
     /// <summary>
     /// Configures this widget to track a resource type for a shop (reads from GameState entity).
     /// </summary>
-    public void RefreshMeta(EResourceType resourceType, Sprite resourceImageTexture)
+    public void RefreshMeta(EResourceType resourceType, Sprite resourceImageTexture, Color iconColor)
     {
         _resourceType = resourceType;
         _resourceImage.sprite = resourceImageTexture;
+        _resourceImage.color = iconColor;
 
+        DisposeQuery();
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+        _lastAmount = int.MinValue;
         _sourceQuery = _entityManager.CreateEntityQuery(ComponentType.ReadOnly<GameState>());
+        _hasQuery = true;
         _ecsContext = true;
         _init = true;
     }
@@ -79,7 +89,29 @@ public class ResourceWidgetItem : UIViewItemBase
             return;
 
         var resources = _entityManager.GetBuffer<ResourceBufferElement>(sourceEntity);
-        _resourceCountText.text = $"{resources.GetAmount(_resourceType)}";
+        int amount = resources.GetAmount(_resourceType);
+        if (amount != _lastAmount)
+        {
+            _lastAmount = amount;
+            _resourceCountText.text = $"{amount}";
+        }
+    }
+
+    private void OnDestroy()
+    {
+        DisposeQuery();
+    }
+
+    private void DisposeQuery()
+    {
+        if (!_hasQuery)
+            return;
+
+        var world = _entityManager.World;
+        if (world != null && world.IsCreated)
+            _sourceQuery.Dispose();
+
+        _hasQuery = false;
     }
 
     public override void OnPointerEnter(PointerEventData eventData)

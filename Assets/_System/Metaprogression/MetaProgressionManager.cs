@@ -74,6 +74,15 @@ public static class MetaProgressionManager
     }
 
     /// <summary>
+    /// Clears all purchased levels from memory (does NOT auto-save).
+    /// Call SaveToDisk() afterwards to persist the reset.
+    /// </summary>
+    public static void ResetAll()
+    {
+        _levels.Clear();
+    }
+
+    /// <summary>
     /// Returns all stat/level pairs currently in memory.
     /// </summary>
     public static Dictionary<ECharacterStat, int>.KeyCollection GetAllStats() => _levels.Keys;

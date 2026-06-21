@@ -135,6 +135,11 @@ public partial struct PlayerSpawnerSystem : ISystem
             case ECharacterStat.CritChance:     request.CritChanceBonus += bonus; break;
             case ECharacterStat.CritDamage:     request.CritDamageBonus += bonus; break;
             case ECharacterStat.SpellSpeed:     request.SpellSpeedBonus += bonus; break;
+            case ECharacterStat.SpellDuration:  request.SpellDurationBonus += bonus; break;
+            case ECharacterStat.CastRange:      request.CastRangeBonus += bonus; break;
+            case ECharacterStat.Amount:         request.AmountBonus += (int)bonus; break;
+            case ECharacterStat.Luck:           request.LuckBonus += bonus; break;
+            case ECharacterStat.HealthRegen:    request.HealthRegenBonus += bonus; break;
         }
     }
 }

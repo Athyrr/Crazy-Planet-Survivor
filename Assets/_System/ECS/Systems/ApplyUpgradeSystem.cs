@@ -320,6 +320,10 @@ public partial struct ApplyUpgradeSystem : ISystem
             // Critical
             if (request.CritChanceBonus != 0f) playerCoreStats.CritChance += request.CritChanceBonus;
             if (request.CritDamageBonus != 0f) playerCoreStats.CritDamage += request.CritDamageBonus;
+
+            // Misc
+            if (request.LuckBonus != 0f) playerCoreStats.Luck += request.LuckBonus;
+            if (request.HealthRegenBonus != 0f) playerCoreStats.HealthRegen += request.HealthRegenBonus;
         }
     }
 

@@ -13,14 +13,14 @@ MonoBehaviour:
   m_Name: CharacterData_Thybault
   m_EditorClassIdentifier: Assembly-CSharp::CharacterDataSO
   DisplayName: Thybault
-  Description: The best among us
-  Icon: {fileID: 21300000, guid: dbbcf1265d987174581670e08f1250c4, type: 3}
+  Description: A jack-of-all-trades blessed with uncanny fortune.
+  Icon: {fileID: 21300000, guid: 8dff5bd92c62d4f4eaa9f408c2da3a48, type: 3}
   UIPrefab: {fileID: 626314879109563849, guid: 32b0c74967a1e89478e97c1173089ef7, type: 3}
   GamePrefab: {fileID: 5342180323788850383, guid: d3056a56485aedd40b5a914984de17c6, type: 3}
   StatsUpgradesPool: {fileID: 11400000, guid: 65be180b5958ee040864032b0a195caf, type: 2}
   SpellUpgradesPool: {fileID: 11400000, guid: 3b3afd668e44913458431834eafc4ca5, type: 2}
   InitialSpells:
-  - {fileID: 11400000, guid: e5827aa156f6bff45ac808a6424db3cb, type: 2}
+  - {fileID: 11400000, guid: cd05c33d42552764aab5856b7fbbaaa6, type: 2}
   PurchaseCost:
   - Type: 0
     Amount: 0
@@ -31,22 +31,23 @@ MonoBehaviour:
   - Type: 3
     Amount: 0
   coreStats:
-    MaxHealth: 500
-    HealthRegen: 0
-    BaseArmor: 0
-    Armor: 0
+    MaxHealth: 1100
+    HealthRegen: 1
+    BaseArmor: 5
+    Armor: 0.05
     BaseMoveSpeed: 12
-    MoveSpeed: 0
+    MoveSpeed: 0.05
     BasePickupRange: 10
     PickupRange: 0
-    Damage: 0
-    AttackSpeed: 0
-    SpellSize: 0
-    SpellSpeed: 0
-    SpellDuration: 0
-    CastRange: 0
+    Damage: 0.1
+    AttackSpeed: 0.05
+    SpellSize: 0.05
+    SpellSpeed: 0.05
+    SpellDuration: 0.05
+    CastRange: 0.05
     Amount: 0
     Pierce: 0
     Bounce: 0
     CritChance: 0.1
     CritDamage: 0.5
+    Luck: 15

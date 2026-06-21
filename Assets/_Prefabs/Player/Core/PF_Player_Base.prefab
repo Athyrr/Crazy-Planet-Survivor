@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 1519524806616589538}
   - component: {fileID: 624156594545174874}
   - component: {fileID: 7867096471209253954}
+  - component: {fileID: 5277592717147027146}
   m_Layer: 0
   m_Name: PF_Player_Base
   m_TagString: Untagged
@@ -247,8 +248,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55673145199c3c142b35a50fd9665155, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAuthoring
-  CharacterData: {fileID: 0}
+  characterData: {fileID: 11400000, guid: d441876c705ac324ab32b64ab329c73d, type: 2}
   UseSnappedMovement: 1
   IsInvincible: 0
-  InitialModifiers: []
-  InitialUpgrades: []
+--- !u!114 &5277592717147027146
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5009445124166355485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DestructibleAuthoring

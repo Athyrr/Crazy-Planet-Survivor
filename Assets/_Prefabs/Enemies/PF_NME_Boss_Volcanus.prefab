@@ -52,15 +52,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b275e5f92732148048d7b77e264ac30e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Physics.Custom::Unity.Physics.Authoring.PhysicsShapeAuthoring
-  m_ShapeType: 0
+  m_ShapeType: 1
   m_PrimitiveCenter:
     x: 0
     y: 0
-    z: -1.23
+    z: -8.55
   m_PrimitiveSize:
-    x: 1.2
-    y: 1.2
-    z: 4.2217045
+    x: 10.2
+    y: 10.2
+    z: 20
   m_PrimitiveOrientation:
     Value:
       x: -0
@@ -68,15 +68,15 @@ MonoBehaviour:
       z: 0
     RotationOrder: 4
   m_Capsule:
-    Height: 4.2217045
-    Radius: 0.6
+    Height: 20
+    Radius: 5.1
     Axis: 2
   m_Cylinder:
-    Height: 4.2217045
-    Radius: 0.6
+    Height: 20
+    Radius: 5.1
     Axis: 2
   m_CylinderSideCount: 20
-  m_SphereRadius: 2.1108522
+  m_SphereRadius: 10
   m_MinimumSkinnedVertexWeight: 0.1
   m_ConvexHullGenerationParameters:
     m_SimplificationTolerance: 0.015
@@ -142,8 +142,8 @@ MonoBehaviour:
         Category01: 0
         Category02: 1
         Category03: 1
-        Category04: 1
-        Category05: 1
+        Category04: 0
+        Category05: 0
         Category06: 1
         Category07: 1
         Category08: 1
@@ -348,6 +348,18 @@ PrefabInstance:
     m_TransformParent: {fileID: 834412683046234062}
     m_Modifications:
     - target: {fileID: 287592402806530305, guid: e6bb02c0499618d479f81cf55201aa26, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 287592402806530305, guid: e6bb02c0499618d479f81cf55201aa26, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 287592402806530305, guid: e6bb02c0499618d479f81cf55201aa26, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 287592402806530305, guid: e6bb02c0499618d479f81cf55201aa26, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -386,6 +398,10 @@ PrefabInstance:
     - target: {fileID: 287592402806530305, guid: e6bb02c0499618d479f81cf55201aa26, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 287592402806530305, guid: e6bb02c0499618d479f81cf55201aa26, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6055187021023986098, guid: e6bb02c0499618d479f81cf55201aa26, type: 3}
       propertyPath: m_Name

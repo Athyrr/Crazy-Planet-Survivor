@@ -137,7 +137,8 @@ public class MetaProgressionDetailView : MonoBehaviour
 
         var resource = _resourceDatabase.GetResource(cost.Type);
         var instance = Instantiate(_costItemPrefab, _costContainer.transform);
-        instance.Refresh(cost.Type, resource != null ? resource.Icon : null, cost.Amount);
+        instance.Refresh(cost.Type, resource != null ? resource.Icon : null,
+            resource != null ? resource.Color : Color.white, cost.Amount);
     }
 
     private void SetVisible(bool visible)

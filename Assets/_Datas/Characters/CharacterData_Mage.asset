@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: CharacterData_Mage
   m_EditorClassIdentifier: Assembly-CSharp::CharacterDataSO
   DisplayName: Mage
-  Description: La magie abracadabra
-  Icon: {fileID: 21300000, guid: 4591dbbbcae8d004dbcd4bf8fb3f5009, type: 3}
+  Description: A frail archmage who annihilates foes from afar with overwhelming spell
+    power.
+  Icon: {fileID: 21300000, guid: 00a291417d0f12541ac72d8c985825cb, type: 3}
   UIPrefab: {fileID: 19448560152866022, guid: a8137bc0b51337a4385f5119c3acea89, type: 3}
   GamePrefab: {fileID: 5342180323788850383, guid: 6ecfb52b658f42d409bc20abc8921769, type: 3}
   StatsUpgradesPool: {fileID: 11400000, guid: 65be180b5958ee040864032b0a195caf, type: 2}
@@ -31,23 +32,23 @@ MonoBehaviour:
   - Type: 3
     Amount: 0
   coreStats:
-    MaxHealth: 1500
+    MaxHealth: 750
     HealthRegen: 0
-    BaseArmor: 10
+    BaseArmor: 0
     Armor: 0
     BaseMoveSpeed: 12
     MoveSpeed: -0.1
     BasePickupRange: 10
     PickupRange: 0
-    Damage: 0.15
+    Damage: 0.2
     AttackSpeed: 0
-    SpellSize: 0
-    SpellSpeed: 0
-    SpellDuration: 0
-    CastRange: 0.1
+    SpellSize: 0.15
+    SpellSpeed: 0.1
+    SpellDuration: 0.15
+    CastRange: 0.2
     Amount: 0
     Pierce: 0
     Bounce: 0
-    CritChance: 0.1
+    CritChance: 0.05
     CritDamage: 0.5
     Luck: 0
