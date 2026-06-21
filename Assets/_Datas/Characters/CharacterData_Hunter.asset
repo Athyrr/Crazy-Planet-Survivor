@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: CharacterData_Hunter
   m_EditorClassIdentifier: Assembly-CSharp::CharacterDataSO
   DisplayName: Hunter
-  Description: "Chasseur de prime ? Chasseur de t\xEAte ? "
-  Icon: {fileID: 21300000, guid: d7f1555b0ff90e447af8af1145d6b843, type: 3}
+  Description: A swift marksman whose piercing shots seek the weak spot of every foe.
+  Icon: {fileID: 21300000, guid: 7b77d3d2f54a53c45978149c39abbf02, type: 3}
   UIPrefab: {fileID: 19448560152866022, guid: 1fa5e04772c4ab240933213654e48502, type: 3}
   GamePrefab: {fileID: 5342180323788850383, guid: e72517f9b2f62d241a83ebc819c9f092, type: 3}
   StatsUpgradesPool: {fileID: 11400000, guid: 65be180b5958ee040864032b0a195caf, type: 2}
@@ -31,23 +31,23 @@ MonoBehaviour:
   - Type: 3
     Amount: 0
   coreStats:
-    MaxHealth: 500
+    MaxHealth: 1000
     HealthRegen: 0
     BaseArmor: 0
     Armor: 0
     BaseMoveSpeed: 12
-    MoveSpeed: 0
+    MoveSpeed: 0.1
     BasePickupRange: 10
-    PickupRange: 0
+    PickupRange: 0.1
     Damage: 0
-    AttackSpeed: 0
+    AttackSpeed: 0.15
     SpellSize: 0
     SpellSpeed: 0
     SpellDuration: 0
-    CastRange: 0
+    CastRange: 0.1
     Amount: 0
     Pierce: 3
     Bounce: 0
-    CritChance: 0.15
-    CritDamage: 0.5
+    CritChance: 0.2
+    CritDamage: 0.75
     Luck: 0

@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 885789f7c8bde3945bc4f3c73a1a5d5d, type: 3}
+  m_Name: CharacterData_Jester
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterDataSO
+  DisplayName: Jester
+  Description: A grinning cube of pure chaos - it juggles fortune, ricochets and gaudy
+    geometry at every foe.
+  Icon: {fileID: 21300000, guid: 5c18dd20ba3bbb546937321b432537e9, type: 3}
+  UIPrefab: {fileID: 19448560152866022, guid: 193ab63a60e0cd74a995cbd36a527e08, type: 3}
+  GamePrefab: {fileID: 5342180323788850383, guid: c3a2048516374859f0a1122334455678, type: 3}
+  StatsUpgradesPool: {fileID: 11400000, guid: 65be180b5958ee040864032b0a195caf, type: 2}
+  SpellUpgradesPool: {fileID: 11400000, guid: 58171efd1d1c66b428a33360e869d815, type: 2}
+  InitialSpells:
+  - {fileID: 11400000, guid: a13ca1f0a33c36a46bac651b45432abc, type: 2}
+  PurchaseCost:
+  - Type: 0
+    Amount: 0
+  - Type: 1
+    Amount: 0
+  - Type: 2
+    Amount: 0
+  - Type: 3
+    Amount: 0
+  coreStats:
+    MaxHealth: 800
+    HealthRegen: 0
+    BaseArmor: 0
+    Armor: 0
+    BaseMoveSpeed: 12
+    MoveSpeed: 0.05
+    BasePickupRange: 10
+    PickupRange: 0.1
+    Damage: 0.1
+    AttackSpeed: 0.1
+    SpellSize: 0.1
+    SpellSpeed: 0
+    SpellDuration: 0
+    CastRange: 0
+    Amount: 1
+    Pierce: 0
+    Bounce: 2
+    CritChance: 0.15
+    CritDamage: 0.75
+    Luck: 25

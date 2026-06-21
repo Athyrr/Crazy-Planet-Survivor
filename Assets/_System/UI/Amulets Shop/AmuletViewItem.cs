@@ -14,11 +14,6 @@ public class AmuletViewItem : UIViewItemBase
     [Tooltip("Badge shown when this amulet is the currently equipped one.")]
     [SerializeField] private TMP_Text _equippedLabel;
 
-    [SerializeField] private ResourceDatabaseSO _resourceDatabase;
-
-    [SerializeField] private ResourceWidgetItem resourceComponent;
-    [SerializeField] private GameObject _ressourceComponentParent;
-
     private AmuletShopUIController _controller;
     private int _databaseIndex;
     private bool _isUnlocked;
@@ -41,7 +36,6 @@ public class AmuletViewItem : UIViewItemBase
 
         _label.text = amuletData.DisplayName;
         _icon.sprite = amuletData.Icon;
-        _ressourceComponentParent.SetActive(!isUnlocked);
 
         // The item receives pointer events directly (OnPointerEnter/Exit/Click); the button is kept
         // only as a raycast target, so it must not also trigger focus on click (would double-fire).
@@ -62,7 +56,7 @@ public class AmuletViewItem : UIViewItemBase
         RefreshColor();
     }
 
-    // Pointer hover (PC): highlight only — does not show details.
+    // Pointer hover (PC): highlight only
     public override void OnPointerEnter(PointerEventData eventData)
     {
         if (_controller != null)

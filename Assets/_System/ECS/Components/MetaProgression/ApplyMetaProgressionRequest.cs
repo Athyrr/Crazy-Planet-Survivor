@@ -31,4 +31,8 @@ public struct ApplyMetaProgressionRequest : IComponentData
     // Critical
     public float CritChanceBonus;
     public float CritDamageBonus;
+
+    // Misc
+    public float LuckBonus;
+    public float HealthRegenBonus;
 }

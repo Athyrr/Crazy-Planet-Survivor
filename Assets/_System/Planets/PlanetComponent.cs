@@ -25,12 +25,22 @@ public class PlanetComponent : MonoBehaviour,
     private Vector3 _targetScale;
     private float _currentSpeed;
 
+    // Outline shown only on the playable planets while the planet-selection view is open.
+    private Outline _outline;
+
+    /// <summary>Only real, selectable planets are playable (decorative planets carry PlanetID.None / Lobby).</summary>
+    private bool IsPlayable => PlanetID != EPlanetID.None && PlanetID != EPlanetID.Lobby;
+
     private void Awake()
     {
         _controller = FindFirstObjectByType<PlanetSelectionUIController>();
         _baseScale = transform.localScale;
         _targetScale = _baseScale;
         _currentSpeed = IdleSpeed;
+
+        _outline = GetComponent<Outline>();
+        if (_outline != null)
+            _outline.enabled = false;
     }
 
     private void OnEnable()
@@ -42,6 +52,12 @@ public class PlanetComponent : MonoBehaviour,
         {
             _controller.OnPlanetSelected += HandleSelectionChanged;
             _controller.OnPlanetHovered += HandleHoverChanged;
+        }
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnGameStateChanged += HandleGameStateChanged;
+            ApplyOutline(GameManager.Instance.GetGameState());
         }
 
         _baseScale = transform.localScale;
@@ -56,6 +72,22 @@ public class PlanetComponent : MonoBehaviour,
             _controller.OnPlanetSelected -= HandleSelectionChanged;
             _controller.OnPlanetHovered -= HandleHoverChanged;
         }
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnGameStateChanged -= HandleGameStateChanged;
+    }
+
+    private void HandleGameStateChanged(EGameState newState) => ApplyOutline(newState);
+
+    /// <summary>Outline is on only for playable planets while the planet-selection view is open.</summary>
+    private void ApplyOutline(EGameState state)
+    {
+        if (_outline == null)
+            return;
+
+        bool shouldOutline = IsPlayable && state == EGameState.PlanetSelection;
+        if (_outline.enabled != shouldOutline)
+            _outline.enabled = shouldOutline;
     }
 
     private void HandleSelectionChanged(EPlanetID planetID, Transform planetTransform, Vector3 focusOffset)

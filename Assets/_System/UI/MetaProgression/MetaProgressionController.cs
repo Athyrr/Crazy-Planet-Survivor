@@ -364,6 +364,64 @@ public class MetaProgressionController : MonoBehaviour
             UncommitItem();
     }
 
+    // ---------- Reset (respec) ----------
+
+    /// <summary>
+    /// Resets the whole meta-progression: refunds every resource spent on purchased levels, then
+    /// clears all upgrade levels back to 0. Persists both resources and levels, re-syncs the ECS
+    /// buffers, and rebuilds the grid.
+    ///
+    /// Public + parameterless so it can be wired directly to a Button's onClick (UnityEvent), like
+    /// PurchaseUpgrade. Executes immediately — no confirmation; wire a confirm popup on the button
+    /// side if needed. Safe no-op when nothing has been purchased.
+    /// </summary>
+    public void ResetMetaProgression()
+    {
+        if (_database == null || _entityManager == null)
+            return;
+
+        if (_gameStateQuery.IsEmptyIgnoreFilter)
+            return;
+
+        var gameStateEntity = _gameStateQuery.GetSingletonEntity();
+        if (!_entityManager.HasBuffer<ResourceBufferElement>(gameStateEntity))
+            return;
+
+        // 1 + 2. Refund every resource spent on purchased levels. Read the levels BEFORE clearing
+        // them: a stat at level N paid CostPerLevel[0..N-1] (buying N-1 -> N costs CostPerLevel[N-1]).
+        var resourceBuffer = _entityManager.GetBuffer<ResourceBufferElement>(gameStateEntity);
+        for (int u = 0; u < _database.Count; u++)
+        {
+            var data = _database.Upgrades[u];
+            if (data == null || data.CostPerLevel == null)
+                continue;
+
+            int level = MetaProgressionManager.GetLevel(data.TargetStat);
+            int paidLevels = Mathf.Min(level, data.CostPerLevel.Length);
+            for (int i = 0; i < paidLevels; i++)
+            {
+                var cost = data.CostPerLevel[i];
+                if (cost.Amount > 0)
+                    resourceBuffer.AddOrDeduct(cost.Type, cost.Amount);
+            }
+        }
+        resourceBuffer.Save();
+
+        // 3. Clear all purchased levels, persist them, and clear the runtime meta buffer.
+        MetaProgressionManager.ResetAll();
+        MetaProgressionManager.SaveToDisk();
+        SyncBufferFromManager();
+
+        // 4. Rebuild the grid (items back to level 0, affordability reflects the refunded resources)
+        // and reset navigation / detail focus.
+        BuildGrid();
+        _committedIndex = -1;
+        _focusedIndex = -1;
+        if (_detailView != null)
+            _detailView.SetPurchaseFocused(false);
+        FocusItem(0);
+    }
+
     private void RefreshGridItem(int index, int newLevel)
     {
         if (_gridItems != null && index >= 0 && index < _gridItems.Length && _gridItems[index] != null)
