@@ -61,7 +61,8 @@ public class PlayerController : MonoBehaviour
             math.lerp(_previewLerpValue.y, direction.y, Time.deltaTime * CpBasePlayerSettings.PlayerMovementMitigationSpeed));
         
         InjectInputDirectionToECS(lerpValue);
-        Shader.SetGlobalFloat("_BATBlend", lerpValue.magnitude);
+        // Shader.SetGlobalFloat("_BATBlend", lerpValue.magnitude);
+        Shader.SetGlobalFloat("_BlendingValue", lerpValue.magnitude);
         
         _previewLerpValue = lerpValue;
     }

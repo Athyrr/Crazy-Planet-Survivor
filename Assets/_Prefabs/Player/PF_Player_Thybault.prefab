@@ -10,11 +10,10 @@ GameObject:
   m_Component:
   - component: {fileID: 3255012537959666215}
   - component: {fileID: 3226047968165442144}
-  - component: {fileID: 3331089168914062969}
   - component: {fileID: 4740713711614623851}
   - component: {fileID: 2838922754984806007}
   m_Layer: 0
-  m_Name: SK_ThybaultSetup
+  m_Name: SM_ThybaultRender
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -57,28 +56,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &3331089168914062969
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5928390089565903418}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b50c77c6ddb18b45b813b4bd0e156c7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BatMatrixBaker
-  clip: {fileID: 0}
-  clips:
-  - {fileID: 8993902097722301239, guid: 94cd94bce71dbab4497b72654f37caf4, type: 3}
-  - {fileID: 8993902097722301239, guid: cd5866ef5dc5f664d8f1d0a9b9bd57f5, type: 3}
-  animator: {fileID: 3226047968165442144}
-  smr: {fileID: 0}
-  materialToChange: {fileID: 2100000, guid: aa082e719ca6d824baad3bfdae000074, type: 2}
-  sampleRate: 30
-  outputMeshFilter: {fileID: 4740713711614623851}
-  createSOForEachClip: 1
 --- !u!33 &4740713711614623851
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -112,7 +89,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: aa082e719ca6d824baad3bfdae000074, type: 2}
+  - {fileID: 2100000, guid: 5698b0fc124a37441b5c03513f4c8634, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
