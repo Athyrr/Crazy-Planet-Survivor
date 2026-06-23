@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 495458000078008930}
   - component: {fileID: 740579416435608428}
+  - component: {fileID: 3690768899979157413}
   m_Layer: 0
   m_Name: AudioManager
   m_TagString: Untagged
@@ -144,3 +145,39 @@ MonoBehaviour:
   maxEnemyHitBacklog: 4
   playerHitSoundInterval: 0.04
   maxPlayerHitBacklog: 8
+--- !u!114 &3690768899979157413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4483182189123542676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e508893a22204f41aef57d8c098e282, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::_System.Audio.VolumeSettings
+  channels:
+  - displayName: Master
+    type: 0
+    busPath: bus:/
+    parameterName: 
+    parameterMax: 1
+    slider: {fileID: 0}
+    defaultVolume: 1
+  - displayName: Music
+    type: 1
+    busPath: 
+    parameterName: MenuVol
+    parameterMax: 1
+    slider: {fileID: 0}
+    defaultVolume: 1
+  - displayName: SFX
+    type: 1
+    busPath: 
+    parameterName: MenuSFX
+    parameterMax: 1
+    slider: {fileID: 0}
+    defaultVolume: 1
+  useDecibelCurve: 1
+  minDecibels: -40
