@@ -211,6 +211,7 @@ GameObject:
   - component: {fileID: 7711000000000000012}
   - component: {fileID: 7711000000000000013}
   - component: {fileID: 7711000000000000014}
+  - component: {fileID: 1329885393263810439}
   m_Layer: 0
   m_Name: 'Button - Back '
   m_TagString: Untagged
@@ -332,6 +333,25 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &1329885393263810439
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7711000000000000010}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 0
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
+  _playOnEnable: 1
+  _delayBeforePlay: -1
 --- !u!1 &7711000000000000020
 GameObject:
   m_ObjectHideFlags: 0
@@ -481,6 +501,7 @@ GameObject:
   - component: {fileID: 5350843888137576277}
   - component: {fileID: 8547243066090906457}
   - component: {fileID: 5908095232838205458}
+  - component: {fileID: 3923608161574261700}
   m_Layer: 0
   m_Name: Button - Explore
   m_TagString: Untagged
@@ -602,6 +623,25 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &3923608161574261700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9165457164202338734}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 1
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
+  _playOnEnable: 1
+  _delayBeforePlay: -1
 --- !u!1001 &413664702444830706
 PrefabInstance:
   m_ObjectHideFlags: 0
