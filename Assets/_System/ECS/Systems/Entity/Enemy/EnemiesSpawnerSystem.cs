@@ -647,6 +647,41 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     }
 
                     break;
+
+                case SpawnMode.CircleAroundPlayer:
+                    // Uniform ring: enemy i sits at angle i*(2*PI/N) on a single circle of radius MaxRange,
+                    // centered on the player's live position. Equal angular spacing => a perfect circle once
+                    // the whole group is out (set the group's SpawnDelay to 0 for an instant ring; a positive
+                    // delay releases enemies one-by-one, sweeping around the circle).
+                    const float twoPiCircle = 6.28318530718f;
+                    float countCircle = math.max(1f, (float)cmd.TotalAmount);
+                    float angleCircle = globalIndex * (twoPiCircle / countCircle);
+                    float radiusCircle = cmd.MaxRange;
+
+                    float2 ringPoint = new float2(math.cos(angleCircle), math.sin(angleCircle)) * radiusCircle;
+
+                    // Build the player's local tangent frame on the sphere, same as AroundPlayer, so the ring
+                    // lies flat on the surface around the player wherever they stand.
+                    float3 centerCircle = PlayerTransform.Position;
+                    float3 upCircle = math.normalize(centerCircle - PlanetCenter);
+                    float3 tangentCircle = math.cross(upCircle, new float3(0, 1, 0));
+                    if (math.lengthsq(tangentCircle) < 0.001f)
+                        tangentCircle = math.cross(upCircle, new float3(1, 0, 0));
+
+                    quaternion alignmentRotCircle = quaternion.LookRotationSafe(tangentCircle, upCircle);
+                    float3 localOffsetCircle = new float3(ringPoint.x, 0f, ringPoint.y);
+                    float3 worldOffsetCircle = math.rotate(alignmentRotCircle, localOffsetCircle);
+                    float3 roughPosCircle = centerCircle + worldOffsetCircle;
+
+                    if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, roughPosCircle, PlanetCenter,
+                            groundFilter, 100f, out var hitCircle))
+                    {
+                        spawnPosition = hitCircle.Position;
+                        surfaceNormal = hitCircle.SurfaceNormal;
+                        positionFound = true;
+                    }
+
+                    break;
             }
 
             if (!positionFound)
@@ -678,7 +713,10 @@ public partial struct EnemiesSpawnerSystem : ISystem
             float3 tangentDirection =
                 math.normalize(randomTangent - math.dot(randomTangent, surfaceNormal) * surfaceNormal);
 
-            float3 spawnOffset = rand.NextFloat(0f, 8f); // Avoid overlap
+            // Anti-overlap jitter, skipped for the clean uniform ring so the circle stays crisp (the random
+            // orientation above is kept; only the positional offset is dropped).
+            bool cleanRing = !cmd.AroundBoss && cmd.Mode == SpawnMode.CircleAroundPlayer;
+            float spawnOffset = cleanRing ? 0f : rand.NextFloat(0f, 8f); // Avoid overlap
             float3 finalPosition =
                 spawnPosition + (tangentDirection * spawnOffset) + (surfaceNormal * 0.5f);
 

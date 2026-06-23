@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: MetaUpgradeSO_Amount
   m_EditorClassIdentifier: Assembly-CSharp::MetaUpgradeSO
   DisplayName: Amount
-  Description: 
+  Description: Start each run with extra projectiles.
   Icon: {fileID: 21300000, guid: 5d0ae84ce089c5643bc230e890779482, type: 3}
   TargetStat: 30
   BonusPerLevel:
@@ -25,9 +25,9 @@ MonoBehaviour:
   CostPerLevel:
   - Type: 0
     Amount: 0
-  - Type: 0
-    Amount: 1
-  - Type: 0
-    Amount: 2
-  - Type: 0
-    Amount: 3
+  - Type: 1
+    Amount: 0
+  - Type: 2
+    Amount: 0
+  - Type: 3
+    Amount: 0

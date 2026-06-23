@@ -15,7 +15,7 @@ MonoBehaviour:
   ID: 11
   Icon: {fileID: 21300000, guid: 03ef564891652544fb62659ea6f2aa26, type: 3}
   DisplayName: Poison Needle
-  Description: 
+  Description: Fires a needle that pierces through the first enemy it hits, dealing damage.
   SpellPrefab: {fileID: 6887593587544738312, guid: 51933d6499942224a9bceba1adce5407, type: 3}
   Rarity: 0
   Tags: 4260096
@@ -30,7 +30,7 @@ MonoBehaviour:
   Lifetime: 3
   Bounces: 0
   BounceRange: 0
-  Pierces: 0
+  Pierces: 1
   TickRate: 1
   ChildPrefab: {fileID: 0}
   BaseAmount: 1

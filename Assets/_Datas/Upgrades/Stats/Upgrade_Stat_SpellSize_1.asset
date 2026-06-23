@@ -12,15 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 816579ba2fd64870a3846486ac045f27, type: 3}
   m_Name: Upgrade_Stat_SpellSize_1
   m_EditorClassIdentifier: Assembly-CSharp::StatUpgradeSO
-  DisplayName: AoE Boost
-  Description: 
+  DisplayName: Amplify
+  Description: Everything, but bigger.
   Icon: {fileID: 0}
   UpgradeType: 0
-  ModifierStrategy: 0
+  ModifierStrategy: 1
   Value: 0
   Rarity: 0
   Modifiers:
   - CharacterStat: 20
-    Strategy: 0
+    Strategy: 1
     Value: 0.1
+  RequiredSpellTag: 0
   _legacyCharacterStat: 0

@@ -43,7 +43,15 @@ public enum SpawnMode
     /// <summary>
     /// Around the player using min and max range.
     /// </summary>
-    AroundPlayer
+    AroundPlayer,
+
+    /// <summary>
+    /// Uniform ring around the player: every enemy sits on a single circle of radius MaxRange, at an
+    /// angle of i*(2*PI/N) so the N enemies are equally spaced. MinRange is ignored. Set the group's
+    /// SpawnDelay to 0 for an instant full ring; a positive delay makes them appear one-by-one sweeping
+    /// around the circle.
+    /// </summary>
+    CircleAroundPlayer
 }
 
 /// <summary>
