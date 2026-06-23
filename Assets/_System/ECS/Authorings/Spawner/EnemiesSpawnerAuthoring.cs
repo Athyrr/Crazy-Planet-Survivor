@@ -30,10 +30,11 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
         [Tooltip("Delay in seconds between each spawn in this group.")]
         public float Delay;
 
-        [Tooltip("Minimum distance from the player (Only used for 'AroundPlayer' mode).")]
+        [Tooltip("Minimum distance from the player (Only used for 'AroundPlayer' mode; ignored by 'CircleAroundPlayer').")]
         public float MinRange;
 
-        [Tooltip("Maximum distance from the player (Only used for 'AroundPlayer' mode).")]
+        [Tooltip("Maximum distance from the player. 'AroundPlayer' uses it as the band outer edge; " +
+                 "'CircleAroundPlayer' uses it as the single ring radius.")]
         public float MaxRange;
 
         [Tooltip("Uniform scale of the spawned entities. 0 = default (1). Use >1 for bosses.")]
@@ -118,6 +119,15 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
                 else if (groupData.Mode == SpawnMode.AroundPlayer && DebugPlayer != null)
                 {
                     DrawSpawnRange(planetCenter, playerPos, planetRadius, groupData.MinRange, groupData.MaxRange);
+                }
+                // Visualizing the uniform ring (single circle at MaxRange around the player)
+                else if (groupData.Mode == SpawnMode.CircleAroundPlayer && DebugPlayer != null)
+                {
+                    Vector3 ringUp = (playerPos - planetCenter).normalized;
+                    if (ringUp == Vector3.zero) ringUp = Vector3.up;
+
+                    UnityEditor.Handles.color = Color.yellow;
+                    UnityEditor.Handles.DrawWireDisc(playerPos, ringUp, groupData.MaxRange);
                 }
                 // Visualizing Opposite Player Point
                 else if (groupData.Mode == SpawnMode.PlayerOpposite && DebugPlayer != null)

@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 816579ba2fd64870a3846486ac045f27, type: 3}
   m_Name: Upgrade_Stat_Speed_1
   m_EditorClassIdentifier: Assembly-CSharp::StatUpgradeSO
-  DisplayName: Haste
-  Description: 
+  DisplayName: Tailwind
+  Description: The ground can't keep up.
   Icon: {fileID: 0}
   UpgradeType: 0
   ModifierStrategy: 1
@@ -22,5 +22,6 @@ MonoBehaviour:
   Modifiers:
   - CharacterStat: 3
     Strategy: 1
-    Value: 0.1
+    Value: 0.08
+  RequiredSpellTag: 0
   _legacyCharacterStat: 0

@@ -16,6 +16,7 @@ public enum ESpellID : byte
     PoisonFloor = 9,
     FireOrbs = 10,
     PoisonNeedle = 11,
+    DiscoWaveSlash = 18,
 
     // Enemy Spells
     Enemy_Projectile = 12,
@@ -25,6 +26,8 @@ public enum ESpellID : byte
 
     VoidSlash = 13,
     VoidPulse = 14,
+    FreezingBlow = 19,
+    ProjecttileGeometric = 20   
 }
 
 /// <summary>

@@ -291,7 +291,12 @@ public class UpgradeViewItem : MonoBehaviour,
             ref var mod = ref modifiers[i];
 
             string label = StatsFormatUtils.Humanize(mod.CharacterStat.ToString());
-            string value = context.HasPlayerStats
+
+            // Health stats (MaxHealth / Health / HealthRegen) always show a fixed flat bonus
+            // (+40 / -40), never a current-total "before → after", so the card reads as a fixed value.
+            bool fixedValue = StatsFormatUtils.IsHealthStat(mod.CharacterStat);
+            string value = !fixedValue
+                           && context.HasPlayerStats
                            && TryGetCurrentStat(in context.PlayerStats, mod.CharacterStat, out float before)
                 ? StatsFormatUtils.FormatStatBeforeAfter(mod.CharacterStat, before, before + mod.Value)
                 : StatsFormatUtils.FormatModifier(mod.CharacterStat, mod.Value);

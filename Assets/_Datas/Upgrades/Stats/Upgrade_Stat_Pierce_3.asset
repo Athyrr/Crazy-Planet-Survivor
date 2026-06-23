@@ -12,16 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 816579ba2fd64870a3846486ac045f27, type: 3}
   m_Name: Upgrade_Stat_Pierce_3
   m_EditorClassIdentifier: Assembly-CSharp::StatUpgradeSO
-  DisplayName: Piercer
-  Description: 
+  DisplayName: Perforate
+  Description: Line them up.
   Icon: {fileID: 0}
   UpgradeType: 0
-  ModifierStrategy: 0
+  ModifierStrategy: 1
   Value: 0
   Rarity: 2
   Modifiers:
   - CharacterStat: 17
     Strategy: 0
-    Value: 5
+    Value: 3
+  - CharacterStat: 29
+    Strategy: 1
+    Value: -0.05
   RequiredSpellTag: 65536
   _legacyCharacterStat: 0
