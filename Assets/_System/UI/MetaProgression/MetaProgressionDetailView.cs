@@ -33,6 +33,9 @@ public class MetaProgressionDetailView : MonoBehaviour
     [Tooltip("Scale applied to the purchase button while it is focused (controller feedback).")]
     [SerializeField] private float _purchaseFocusScale = 1.1f;
 
+    private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
+    private Material _purchaseOutlineMat;
+
     [Header("Maxed Out")]
     [SerializeField] private GameObject _maxedContainer;
     [SerializeField] private TMP_Text _maxedText;
@@ -151,8 +154,9 @@ public class MetaProgressionDetailView : MonoBehaviour
 
     /// <summary>
     /// Highlights the purchase button when an upgrade is committed via controller (so the player
-    /// sees what the next Interact will buy), using a subtle scale. No-op while the button is hidden
-    /// (maxed upgrade).
+    /// sees what the next Interact will buy): a subtle scale-pop plus a colored outline driven on
+    /// the button image's UI outline shader (_OutlineColor = CpUISettings.ItemOutlineSelected while
+    /// committed, transparent otherwise). No-op while the button is hidden (maxed upgrade).
     /// </summary>
     public void SetPurchaseFocused(bool focused)
     {
@@ -160,6 +164,22 @@ public class MetaProgressionDetailView : MonoBehaviour
             return;
 
         bool canShow = focused && _purchaseButton.gameObject.activeSelf;
+
+        // Material cloned on first use so we don't repaint other UI graphics sharing the same outline
+        // asset (Back button, grid items).
+        if (_purchaseButton.image != null && _purchaseButton.image.material != null)
+        {
+            if (_purchaseOutlineMat == null)
+            {
+                _purchaseOutlineMat = new Material(_purchaseButton.image.material);
+                _purchaseButton.image.material = _purchaseOutlineMat;
+            }
+
+            Color outlineColor = CpUISettings.ItemOutlineSelected;
+            if (!canShow)
+                outlineColor.a = 0f;
+            _purchaseOutlineMat.SetColor(OutlineColorId, outlineColor);
+        }
 
         _purchaseButton.transform.localScale =
             canShow ? Vector3.one * _purchaseFocusScale : Vector3.one;

@@ -58,6 +58,7 @@ namespace _System.Audio
 
         private EntityManager _entityManager;
         private EntityQuery _soundQuery;
+        private EntityQuery _playerExperienceQuery;
 
         private EventInstance lobbyMusicNoDrumsInstance;
         private EventInstance lobbyMusicWithDrumsInstance;
@@ -67,6 +68,30 @@ namespace _System.Audio
         [Header("Music fade")]
         [SerializeField]
         private float musicFadeDuration = 1.5f;
+
+        [Header("Gem collection SFX")]
+        [SerializeField]
+        private float gemSoundInterval = 0.04f;
+
+        [SerializeField]
+        private int maxGemSoundsBacklog = 12;
+
+        [Header("Damage SFX")]
+        [SerializeField]
+        private float enemyHitSoundInterval = 0.03f;
+
+        [SerializeField]
+        private int maxEnemyHitBacklog = 16;
+
+        [SerializeField]
+        private float playerHitSoundInterval = 0.04f;
+
+        [SerializeField]
+        private int maxPlayerHitBacklog = 8;
+
+        private float _gemSoundTimer;
+        private float _enemyHitTimer;
+        private float _playerHitTimer;
 
         private float _pitchTarget;
         private float _pitchCurrent;
@@ -113,6 +138,7 @@ namespace _System.Audio
         {
             _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             _soundQuery = _entityManager.CreateEntityQuery(typeof(SoundPlayerTag));
+            _playerExperienceQuery = _entityManager.CreateEntityQuery(typeof(PlayerExperience));
 
             lobbyMusicNoDrumsInstance = RuntimeManager.CreateInstance(lobbyMusicNoDrums);
             lobbyMusicWithDrumsInstance = RuntimeManager.CreateInstance(lobbyMusicWithDrums);
@@ -165,6 +191,7 @@ namespace _System.Audio
 
                 case EGameState.Paused:
                 case EGameState.UpgradeSelection:
+                    ClearSfxBuffers();
                     RuntimeManager.PlayOneShot(levelUp);
                     break;
 
@@ -325,50 +352,101 @@ namespace _System.Audio
 
         private void ProcessGemsCollection()
         {
-            //caca ?
-            if (!_soundQuery.TryGetSingleton<SoundPlayerTag>(out var soundPlayerTag))
+            if (!_soundQuery.TryGetSingletonRW<SoundPlayerTag>(out var soundPlayerTag))
                 return;
 
-            for (var i = 0; i < soundPlayerTag.GemsCollectedSound; i++)
-                RuntimeManager.PlayOneShot(gemCollectedSound);
+            ref var count = ref soundPlayerTag.ValueRW.GemsCollectedSound;
 
-            if (soundPlayerTag.GemsCollectedSound > 0)
+            if (count <= 0)
             {
-                soundPlayerTag.GemsCollectedSound = 0;
-                _soundQuery.SetSingleton(soundPlayerTag);
+                _gemSoundTimer = 0f;
+                return;
             }
+
+            if (count > maxGemSoundsBacklog)
+                count = maxGemSoundsBacklog;
+
+            _gemSoundTimer -= Time.deltaTime;
+            if (_gemSoundTimer > 0f)
+                return;
+
+            var pitch = _playerExperienceQuery.TryGetSingleton<PlayerExperience>(
+                out var runProgression
+            )
+                ? runProgression.GetRatio()
+                : 0f;
+
+            var gemSoundInstance = RuntimeManager.CreateInstance(gemCollectedSound);
+            gemSoundInstance.setParameterByName("Pitch Gems", pitch);
+            gemSoundInstance.start();
+            gemSoundInstance.release();
+
+            count--;
+            _gemSoundTimer = gemSoundInterval;
         }
 
         private void ProcessEnemiesDamagesSfx()
         {
-            //caca ?
-            if (!_soundQuery.TryGetSingleton<SoundPlayerTag>(out var soundPlayerTag))
+            if (!_soundQuery.TryGetSingletonRW<SoundPlayerTag>(out var soundPlayerTag))
                 return;
 
-            for (var i = 0; i < soundPlayerTag.EnemiesTookDamageSound; i++)
-                RuntimeManager.PlayOneShot(enemiesDamagesSfx);
+            ref var count = ref soundPlayerTag.ValueRW.EnemiesTookDamageSound;
 
-            if (soundPlayerTag.EnemiesTookDamageSound > 0)
+            if (count <= 0)
             {
-                soundPlayerTag.EnemiesTookDamageSound = 0;
-                _soundQuery.SetSingleton(soundPlayerTag);
+                _enemyHitTimer = 0f;
+                return;
             }
+
+            if (count > maxEnemyHitBacklog)
+                count = maxEnemyHitBacklog;
+
+            _enemyHitTimer -= Time.deltaTime;
+            if (_enemyHitTimer > 0f)
+                return;
+
+            RuntimeManager.PlayOneShot(enemiesDamagesSfx);
+            count--;
+            _enemyHitTimer = enemyHitSoundInterval;
         }
 
         private void ProcessPlayerDamagesSfx()
         {
-            //caca ?
-            if (!_soundQuery.TryGetSingleton<SoundPlayerTag>(out var soundPlayerTag))
+            if (!_soundQuery.TryGetSingletonRW<SoundPlayerTag>(out var soundPlayerTag))
                 return;
 
-            for (var i = 0; i < soundPlayerTag.PlayerTookDamageSound; i++)
-                RuntimeManager.PlayOneShot(playerDamagesSfx);
+            ref var count = ref soundPlayerTag.ValueRW.PlayerTookDamageSound;
 
-            if (soundPlayerTag.PlayerTookDamageSound > 0)
+            if (count <= 0)
             {
-                soundPlayerTag.PlayerTookDamageSound = 0;
-                _soundQuery.SetSingleton(soundPlayerTag);
+                _playerHitTimer = 0f;
+                return;
             }
+
+            if (count > maxPlayerHitBacklog)
+                count = maxPlayerHitBacklog;
+
+            _playerHitTimer -= Time.deltaTime;
+            if (_playerHitTimer > 0f)
+                return;
+
+            RuntimeManager.PlayOneShot(playerDamagesSfx);
+            count--;
+            _playerHitTimer = playerHitSoundInterval;
+        }
+
+        private void ClearSfxBuffers()
+        {
+            if (_soundQuery.TryGetSingletonRW<SoundPlayerTag>(out var soundPlayerTag))
+            {
+                soundPlayerTag.ValueRW.GemsCollectedSound = 0;
+                soundPlayerTag.ValueRW.PlayerTookDamageSound = 0;
+                soundPlayerTag.ValueRW.EnemiesTookDamageSound = 0;
+            }
+
+            _gemSoundTimer = 0f;
+            _enemyHitTimer = 0f;
+            _playerHitTimer = 0f;
         }
 
         private void ProcessUiSelectSfx()

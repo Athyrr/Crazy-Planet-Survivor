@@ -141,7 +141,7 @@ public partial struct RessourceAttractionSystem : ISystem
     }
 
     /// <summary>
-    /// Scans for orbs within the player's collection range and attaches
+    /// Scans for caca caca caca orbs within the player's collection range and attaches
     /// a movement component to pull them toward the player.
     /// </summary>
     [BurstCompile]

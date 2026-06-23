@@ -153,6 +153,7 @@ public partial struct EntitiesMovementSystem : ISystem
         public ComponentLookup<Player> PlayerLookup;
 
         private const float OBSTACLE_CHECK_DIST = 1.0f;
+        private const float FRONTAL_STOP_THRESHOLD = 0.9f;
 
         private const float SNAP_DISTANCE = 500;
 
@@ -186,10 +187,14 @@ public partial struct EntitiesMovementSystem : ISystem
                 // If is moving
                 if (math.lengthsq(tangentDirection) > 0.001f)
                 {
+                    float3 dirNormalized = math.normalize(tangentDirection);
+                    // Raycast covers the actual step plus a buffer to avoid tunneling at high speeds / low framerates
+                    float rayLen = speed * DeltaTime + OBSTACLE_CHECK_DIST;
+
                     var obstacleInput = new RaycastInput
                     {
                         Start = transform.Position + (currentNormal * 0.5f),
-                        End = transform.Position + (currentNormal * 0.5f) + (tangentDirection * OBSTACLE_CHECK_DIST),
+                        End = transform.Position + (currentNormal * 0.5f) + (dirNormalized * rayLen),
                         Filter = new CollisionFilter
                         {
                             BelongsTo = CollisionLayers.Raycast,
@@ -199,15 +204,18 @@ public partial struct EntitiesMovementSystem : ISystem
 
                     if (PhysicsCollisionWorld.CastRay(obstacleInput, out var obstacleHit))
                     {
-                        // Stop movement
-                        // tangentDirection = float3.zero;
-
-                        // Slide along the wall
                         float3 wallNormal = obstacleHit.SurfaceNormal;
-                        tangentDirection =
-                            tangentDirection -
-                            wallNormal *
-                            math.dot(tangentDirection, wallNormal); // project the tangent direction onto the wall plane
+                        // Frontal collision (~within 25° of head-on): stop entirely so player can't push through
+                        // Otherwise slide along the wall plane for grazing angles
+                        float frontalDot = math.dot(dirNormalized, -wallNormal);
+                        if (frontalDot > FRONTAL_STOP_THRESHOLD)
+                        {
+                            tangentDirection = float3.zero;
+                        }
+                        else
+                        {
+                            tangentDirection = tangentDirection - wallNormal * math.dot(tangentDirection, wallNormal);
+                        }
                     }
                 }
             }

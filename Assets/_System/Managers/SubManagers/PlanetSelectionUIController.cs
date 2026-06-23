@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using _System.Settings;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -17,7 +18,10 @@ public class PlanetSelectionUIController : MonoBehaviour
     public event OnPlanetHoveredDelegate OnPlanetHovered = null;
 
     public Button ExploreButton;
-    
+
+    private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
+    private Material _exploreOutlineMat;
+
     public Button BackButton;
 
     private EPlanetID _focusedPlanet;
@@ -36,6 +40,7 @@ public class PlanetSelectionUIController : MonoBehaviour
     private void OnEnable()
     {
         ExploreButton.gameObject.SetActive(false);
+        SetExploreOutlineFocused(false);
         if (BackButton != null)
             BackButton.gameObject.SetActive(false);
 
@@ -55,6 +60,7 @@ public class PlanetSelectionUIController : MonoBehaviour
     private void OnDisable()
     {
         ExploreButton.gameObject.SetActive(false);
+        SetExploreOutlineFocused(false);
         if (BackButton != null)
             BackButton.gameObject.SetActive(false);
         _focusedPlanet = EPlanetID.None;
@@ -101,6 +107,9 @@ public class PlanetSelectionUIController : MonoBehaviour
             return;
 
         _hoveredPlanet = EPlanetID.None;
+        
+        // BackButton.gameObject.SetActive(true);
+        
         OnPlanetHovered?.Invoke(EPlanetID.None);
     }
 
@@ -121,10 +130,13 @@ public class PlanetSelectionUIController : MonoBehaviour
 
         bool hasSelection = _focusedPlanet != EPlanetID.None;
         ExploreButton.gameObject.SetActive(hasSelection);
+        SetExploreOutlineFocused(hasSelection);
 
         if (hasSelection)
             Debug.Log($"[Planet Selection] Focused Planet: {_focusedPlanet}");
 
+        BackButton.gameObject.SetActive(!hasSelection);
+        
         OnPlanetSelected?.Invoke(_focusedPlanet, planetTransform, focusOffset);
     }
 
@@ -168,6 +180,7 @@ public class PlanetSelectionUIController : MonoBehaviour
         var planet = _focusedPlanet;
         _focusedPlanet = EPlanetID.None;
         ExploreButton.gameObject.SetActive(false);
+        SetExploreOutlineFocused(false);
         if (BackButton != null)
             BackButton.gameObject.SetActive(false);
 
@@ -183,6 +196,7 @@ public class PlanetSelectionUIController : MonoBehaviour
         _focusedPlanet = EPlanetID.None;
         _hoveredPlanet = EPlanetID.None;
         ExploreButton.gameObject.SetActive(false);
+        SetExploreOutlineFocused(false);
         if (BackButton != null)
             BackButton.gameObject.SetActive(false);
 
@@ -197,6 +211,7 @@ public class PlanetSelectionUIController : MonoBehaviour
         _focusedPlanet = EPlanetID.None;
         _hoveredPlanet = EPlanetID.None;
         ExploreButton.gameObject.SetActive(false);
+        SetExploreOutlineFocused(false);
 
         // Back is always available while the galaxy is open.
         if (BackButton != null)
@@ -211,10 +226,34 @@ public class PlanetSelectionUIController : MonoBehaviour
     public void CloseView()
     {
         ExploreButton.gameObject.SetActive(false);
+        SetExploreOutlineFocused(false);
         if (BackButton != null)
             BackButton.gameObject.SetActive(false);
         _focusedPlanet = EPlanetID.None;
         _hoveredPlanet = EPlanetID.None;
+    }
+
+    /// <summary>
+    /// Drives the Explore button image's UI outline shader so the button reads as one selected unit
+    /// with the committed planet (_OutlineColor = CpUISettings.ItemOutlineSelected while a planet
+    /// is committed, transparent otherwise). The button material is cloned on first use so we don't
+    /// repaint other UI graphics that share the same SGI_UI_ElementOutline asset (e.g. the Back button).
+    /// </summary>
+    private void SetExploreOutlineFocused(bool focused)
+    {
+        if (ExploreButton == null || ExploreButton.image == null || ExploreButton.image.material == null)
+            return;
+
+        if (_exploreOutlineMat == null)
+        {
+            _exploreOutlineMat = new Material(ExploreButton.image.material);
+            ExploreButton.image.material = _exploreOutlineMat;
+        }
+
+        Color outlineColor = CpUISettings.ItemOutlineSelected;
+        if (!focused)
+            outlineColor.a = 0f;
+        _exploreOutlineMat.SetColor(OutlineColorId, outlineColor);
     }
 
     // ---------- Internals ----------

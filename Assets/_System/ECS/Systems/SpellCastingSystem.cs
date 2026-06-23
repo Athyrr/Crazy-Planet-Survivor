@@ -261,8 +261,10 @@ public partial struct SpellCastingSystem : ISystem
             Entity targetEntity = Entity.Null;
             bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
 
+            // BaseSpawnOffset is a caster-local offset (x = right, y = up, z = forward).
+            // Rotate it by the caster rotation so it points relative to where the caster faces.
             float3 baseSpawnPos =
-                casterTransform.Position + (casterTransform.Forward() * baseSpellData.BaseSpawnOffset);
+                casterTransform.Position + math.mul(casterTransform.Rotation, baseSpellData.BaseSpawnOffset);
             quaternion baseRotation = casterTransform.Rotation;
             float3 fireDirection = casterTransform.Forward();
 
@@ -458,7 +460,8 @@ public partial struct SpellCastingSystem : ISystem
                     ECB.AddComponent(chunkIndex, spellEntity, new Parent { Value = request.Caster });
                     ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
                     {
-                        Position = float3.zero,
+                        // Parent-local offset: caster-local x/y/z relative to the caster transform.
+                        Position = baseSpellData.BaseSpawnOffset,
                         Rotation = quaternion.identity,
                         Scale = finalSize
                     });
@@ -468,6 +471,8 @@ public partial struct SpellCastingSystem : ISystem
                 {
                     var copyPos = CopyPositionLookup[spellPrefab];
                     copyPos.Target = request.Caster;
+                    // Keep the spell offset from the caster every frame (rotated into caster space by the system).
+                    copyPos.Offset = baseSpellData.BaseSpawnOffset;
 
                     ECB.SetComponent(chunkIndex, spellEntity, copyPos);
                 }
