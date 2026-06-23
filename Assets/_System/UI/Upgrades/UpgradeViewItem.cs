@@ -81,7 +81,7 @@ public class UpgradeViewItem : MonoBehaviour,
             TitleText.text = GetTitle(ref upgradeData);
 
         if (DescriptionText)
-            DescriptionText.text = upgradeData.Description.ToString();
+            DescriptionText.text = ResolveDescription(ref upgradeData, in context);
 
         RefreshUpgradeType(ref upgradeData, in context);
         RefreshTags(ref upgradeData, in context);
@@ -92,7 +92,7 @@ public class UpgradeViewItem : MonoBehaviour,
 
     /// <summary>
     /// Applies the rarity crystal material + density (or the dedicated spell material) and the
-    /// rarity label/color, all driven by <see cref="CpRaritySettings"/>.
+    /// caca boudin qui pue rarity label/color, all driven by <see cref="CpRaritySettings"/>.
     /// </summary>
     private void RefreshCrystalAndRarity(ref UpgradeBlob data)
     {
@@ -428,6 +428,26 @@ public class UpgradeViewItem : MonoBehaviour,
     }
 
     private string GetTitle(ref UpgradeBlob upgradeData) => upgradeData.DisplayName.ToString();
+
+    /// <summary>
+    /// Resolves the card description. Stat upgrades and spell-effect upgrades use their own authored
+    /// text; spell unlocks (whose upgrade asset carries no description) fall back to the unlocked
+    /// spell's own description, read live from the spell database via <paramref name="context"/>.
+    /// </summary>
+    private static string ResolveDescription(ref UpgradeBlob upgradeData, in UpgradeDisplayContext context)
+    {
+        string own = upgradeData.Description.ToString();
+
+        if (string.IsNullOrEmpty(own)
+            && upgradeData.UpgradeType != EUpgradeType.PlayerStat
+            && upgradeData.SpellID != ESpellID.None
+            && context.TryGetSpellDescription(upgradeData.SpellID, out string spellDesc))
+        {
+            return spellDesc;
+        }
+
+        return own;
+    }
 
     public void SetHovered(bool isHovered)
     {
