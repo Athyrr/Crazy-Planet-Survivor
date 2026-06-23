@@ -34,6 +34,10 @@ public class SpawnGroupDataDrawer : PropertyDrawer
         {
             lines += 2; // MinRange + MaxRange
         }
+        else if (currentMode == SpawnMode.CircleAroundPlayer)
+        {
+            lines += 1; // MaxRange only (the ring radius; MinRange is unused)
+        }
         // "RandomInPlanet" and "PlayerOpposite" use default lines
 
         // Calculate final height with standard spacing
@@ -110,6 +114,13 @@ public class SpawnGroupDataDrawer : PropertyDrawer
                     minRangeProp.floatValue = maxRangeProp.floatValue;
                 }
             }
+            rect.y += EditorGUIUtility.singleLineHeight + VerticalSpacing;
+        }
+        else if (currentMode == SpawnMode.CircleAroundPlayer)
+        {
+            // Uniform ring: only the radius matters (MinRange is ignored). Relabel for clarity.
+            EditorGUI.PropertyField(rect, maxRangeProp, new GUIContent("Ring Radius",
+                "Radius of the uniform circle the enemies spawn on, centered on the player."));
             rect.y += EditorGUIUtility.singleLineHeight + VerticalSpacing;
         }
 
