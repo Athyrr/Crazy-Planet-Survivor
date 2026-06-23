@@ -178,6 +178,11 @@ public class PlayerAuthoring : MonoBehaviour
                 NextLevelExperienceRequired = 500,
             });
             
+            AddComponent(entity, new PlayerLevelUpRequest
+            {
+                PendingLevels = 0
+            });
+            
             // Player resources earned during a run.
             AddBuffer<ResourceBufferElement>(entity);
 

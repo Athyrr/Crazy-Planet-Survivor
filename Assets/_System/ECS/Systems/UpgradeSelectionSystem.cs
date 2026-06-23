@@ -20,6 +20,8 @@ public partial struct UpgradeSelectionSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<Player>();
         state.RequireForUpdate<GameState>();
         state.RequireForUpdate<SpellsDatabase>();
         state.RequireForUpdate<UpgradesDatabase>();
@@ -35,6 +37,10 @@ public partial struct UpgradeSelectionSystem : ISystem
     {
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
         if (!SystemAPI.HasComponent<PlayerLevelUpRequest>(playerEntity))
+            return;
+
+        var pendingLvls = SystemAPI.GetComponent<PlayerLevelUpRequest>(playerEntity).PendingLevels;
+        if (pendingLvls <= 0)
             return;
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
@@ -58,6 +64,7 @@ public partial struct UpgradeSelectionSystem : ISystem
             RaritySettingsRef = raritySettings.Blob,
 
             PlayerExperienceLookup = SystemAPI.GetComponentLookup<PlayerExperience>(true),
+            PlayerLevelRequestLookup = SystemAPI.GetComponentLookup<PlayerLevelUpRequest>(false),
             CoreStatsLookup = SystemAPI.GetComponentLookup<CoreStats>(true),
             ActiveSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(true),
             StatsUpgradePoolBufferLookup = SystemAPI.GetBufferLookup<StatsUpgradePoolBufferElement>(true),
@@ -81,6 +88,7 @@ public partial struct UpgradeSelectionSystem : ISystem
         [ReadOnly] public BlobAssetReference<RaritySettingsBlob> RaritySettingsRef;
 
         [ReadOnly] public ComponentLookup<PlayerExperience> PlayerExperienceLookup;
+        public ComponentLookup<PlayerLevelUpRequest> PlayerLevelRequestLookup;
         [ReadOnly] public ComponentLookup<CoreStats> CoreStatsLookup;
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [ReadOnly] public BufferLookup<StatsUpgradePoolBufferElement> StatsUpgradePoolBufferLookup;
@@ -123,7 +131,13 @@ public partial struct UpgradeSelectionSystem : ISystem
             // Add display upgrades flag
             ECB.AddComponent<OpenUpgradesSelectionViewRequest>(GameStateEntity);
             // Remove player lvl up request
-            ECB.RemoveComponent<PlayerLevelUpRequest>(PlayerEntity);
+
+            var pendingLevels = PlayerLevelRequestLookup[PlayerEntity].PendingLevels;
+            pendingLevels -= 1;
+            ECB.SetComponent<PlayerLevelUpRequest>(PlayerEntity, new PlayerLevelUpRequest()
+            {
+                PendingLevels = pendingLevels
+            });
         }
 
         /// <summary>Picks up to 3 stat upgrades, each card rolling its own (Luck-weighted) rarity.</summary>

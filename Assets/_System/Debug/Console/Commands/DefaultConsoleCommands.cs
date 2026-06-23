@@ -60,10 +60,17 @@ public static class DefaultConsoleCommands
             float nextLevelExperience = experience.Level * 500 + (experience.NextLevelExperienceRequired * 0.5f) + 1000;
             experience.NextLevelExperienceRequired = (int)nextLevelExperience;
         }
+
         em.SetComponentData(entity, experience);
 
-        if (!em.HasComponent<PlayerLevelUpRequest>(entity))
-            em.AddComponentData(entity, new PlayerLevelUpRequest());
+        if (!em.TryGetComponentObject<PlayerLevelUpRequest>(entity, out var pendingLvls))
+            return "no lvl pending request found.";
+
+        var pendings = pendingLvls.PendingLevels;
+        em.SetComponentData(entity, new PlayerLevelUpRequest
+        {
+            PendingLevels = pendings + 1,
+        });
 
         return $"Player is now level {experience.Level} (+{count}).";
     }
@@ -98,7 +105,11 @@ public static class DefaultConsoleCommands
         if (query.IsEmpty) return false;
 
         var entities = query.ToEntityArray(Unity.Collections.Allocator.Temp);
-        if (entities.Length == 0) { entities.Dispose(); return false; }
+        if (entities.Length == 0)
+        {
+            entities.Dispose();
+            return false;
+        }
 
         entity = entities[0];
         entities.Dispose();
