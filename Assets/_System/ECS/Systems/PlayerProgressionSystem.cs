@@ -37,7 +37,7 @@ public partial struct PlayerProgressionSystem : ISystem
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        private void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, ref PlayerExperience experience)
+        private void Execute([ChunkIndexInQuery] int chunkIndex, in Entity entity, ref PlayerExperience experience, ref PlayerLevelUpRequest levelUpRequest)
         {
             if (experience.Experience < experience.NextLevelExperienceRequired)
                 return;
@@ -49,7 +49,7 @@ public partial struct PlayerProgressionSystem : ISystem
                 experience.Level * 500 + (experience.NextLevelExperienceRequired * 0.5f) + 1000;
             experience.NextLevelExperienceRequired = (int)nextLevelExperience;
 
-            ECB.AddComponent(chunkIndex, entity, new PlayerLevelUpRequest());
+            levelUpRequest.PendingLevels++;
         }
     }
 }
