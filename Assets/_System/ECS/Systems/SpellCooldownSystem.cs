@@ -20,6 +20,7 @@ public partial struct SpellCooldownSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<CoreStats>();
         state.RequireForUpdate<Player>();
         state.RequireForUpdate<ActiveSpell>();

@@ -3958,6 +3958,30 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1415758814}
   m_CullTransparentMesh: 1
+--- !u!1 &1448824975 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9165457164202338734, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+  m_PrefabInstance: {fileID: 685410021970099145}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1448824980
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1448824975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 1
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
+  _playOnEnable: 1
+  _delayBeforePlay: -1
 --- !u!1 &1453333771
 GameObject:
   m_ObjectHideFlags: 0
@@ -5040,6 +5064,30 @@ Animation:
   m_AnimatePhysics: 0
   m_UpdateMode: 0
   m_CullingType: 0
+--- !u!1 &1501090528 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7711000000000000010, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+  m_PrefabInstance: {fileID: 685410021970099145}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1501090533
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1501090528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 502e5cd88e1cd064d84b895654ca737b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UISlidePanel
+  _panel: {fileID: 0}
+  _slideFrom: 0
+  _offScreenPadding: 100
+  _offScreenOffsetOverride: {x: 0, y: 0}
+  _durationOverride: -1
+  _playOnEnable: 1
+  _delayBeforePlay: -1
 --- !u!1 &1502661129
 GameObject:
   m_ObjectHideFlags: 0
@@ -7952,10 +8000,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_UI_PlanetSelection
       objectReference: {fileID: 0}
-    - target: {fileID: 376679043464644700, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -37.836426
-      objectReference: {fileID: 0}
     - target: {fileID: 4731708443538085709, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -8039,7 +8083,13 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 9165457164202338734, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1448824980}
+    - targetCorrespondingSourceObject: {fileID: 7711000000000000010, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1501090533}
   m_SourcePrefab: {fileID: 100100000, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
 --- !u!1001 &1219562214961267394
 PrefabInstance:
@@ -8314,6 +8364,14 @@ PrefabInstance:
     - target: {fileID: 2701690237863967213, guid: 7c95734c3806eea4e9e90636ae581dac, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7711000000000000010, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9165457164202338734, guid: 0e7a52bb8e998f04292dbc7509121926, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -9510,7 +9568,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 204934315005493261, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -40.338
+      value: -40.33789
       objectReference: {fileID: 0}
     - target: {fileID: 284674618286317272, guid: 13abb0c27be93d34b9e26b67cafa9948, type: 3}
       propertyPath: m_AnchorMax.y

@@ -101,6 +101,9 @@ public class PlanetSelectionUIController : MonoBehaviour
             return;
 
         _hoveredPlanet = EPlanetID.None;
+        
+        // BackButton.gameObject.SetActive(true);
+        
         OnPlanetHovered?.Invoke(EPlanetID.None);
     }
 
@@ -125,6 +128,8 @@ public class PlanetSelectionUIController : MonoBehaviour
         if (hasSelection)
             Debug.Log($"[Planet Selection] Focused Planet: {_focusedPlanet}");
 
+        BackButton.gameObject.SetActive(!hasSelection);
+        
         OnPlanetSelected?.Invoke(_focusedPlanet, planetTransform, focusOffset);
     }
 

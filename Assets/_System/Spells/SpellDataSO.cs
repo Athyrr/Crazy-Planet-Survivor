@@ -40,7 +40,9 @@ public class SpellDataSO : ScriptableObject
     public float BaseSpeed = 5f;
 
     [Tooltip(
-        "Distance from the caster where the spell spawns (e.g., Orbit Radius or Forward Offset)."
+        "Caster-local spawn offset (X = right, Y = up, Z = forward). " +
+        "Use Z > 0 to spawn the spell in front of the caster instead of on it (e.g. Void Slash, Freezing Blow). " +
+        "For orbit spells this vector's length is used as the orbit radius."
     )]
     public Vector3 BaseSpawnOffset = Vector3.zero;
     
