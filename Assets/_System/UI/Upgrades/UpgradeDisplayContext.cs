@@ -53,6 +53,24 @@ public struct UpgradeDisplayContext
         return true;
     }
 
+    /// <summary>
+    /// Resolves the authored description of the spell carrying <paramref name="id"/>.
+    /// Used as the card text for spell unlocks (whose upgrade asset has no description of its own).
+    /// </summary>
+    public bool TryGetSpellDescription(ESpellID id, out string description)
+    {
+        description = string.Empty;
+        if (!TryGetSpellIndex(id, out int index))
+            return false;
+
+        var spell = SpellsDatabase.Spells[index];
+        if (spell == null || string.IsNullOrEmpty(spell.Description))
+            return false;
+
+        description = spell.Description;
+        return true;
+    }
+
     /// <summary>Finds the player's currently-owned active spell for <paramref name="id"/>, if any.</summary>
     public bool TryGetActiveSpell(ESpellID id, out ActiveSpell spell)
     {

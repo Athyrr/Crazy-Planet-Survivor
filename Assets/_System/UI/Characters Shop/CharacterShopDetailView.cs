@@ -10,8 +10,7 @@ using UnityEngine;
 /// </summary>
 public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
 {
-    [Header("Preview")]
-    public Transform CharacterPreviewContainer;
+    [Header("Preview")] public Transform CharacterPreviewContainer;
     public GameObject DefaultCharacter;
     public TMP_Text CharacterNameText;
 
@@ -29,8 +28,7 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
     [Tooltip("Unlocked-state panel, toggled on when the character is unlocked.")]
     public GameObject InfoContainer;
 
-    [Header("Cost Display (locked)")]
-    public ResourceWidgetItem CostItemPrefab;
+    [Header("Cost Display (locked)")] public ResourceWidgetItem CostItemPrefab;
     public ResourceDatabaseSO ResourceDatabase;
 
     [Header("Description Display (unlocked)")]
@@ -39,11 +37,9 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
     public Transform CharacterStatsContainer;
     public CharacterShopStatItemComponent CharacterShopStatItemPrefab;
 
-    [Header("Default Strings")]
-    public string DefaultName = "???";
+    [Header("Default Strings")] public string DefaultName = "???";
 
-    [Header("NFC Purchase VFX")]
-    public GameObject UnlockVfxPrefab;
+    [Header("NFC Purchase VFX")] public GameObject UnlockVfxPrefab;
     public Vector3 VfxLocalOffset = new Vector3(0f, 0f, 1.5f);
     public float VfxLifetime = 3f;
     public float SpawnDelay = 1.05f;
@@ -129,7 +125,8 @@ public class CharacterShopDetailView : ShopDetailViewBase<CharacterSO>
         }
 
         if (CharacterNameText != null)
-            CharacterNameText.text = DefaultName;
+            // CharacterNameText.text = DefaultName;
+            CharacterNameText.text = data.DisplayName;
 
         // Locked panel visible, info hidden
         var lockedView = ResolveLockedView();

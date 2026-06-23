@@ -132,8 +132,8 @@ public class MetaProgressionDetailView : MonoBehaviour
             return;
 
         var cost = data.GetCostForLevel(level); // cost at current level index
-        if (cost.Amount <= 0)
-            return;
+        // if (cost.Amount <= 0)
+        //     return;
 
         var resource = _resourceDatabase.GetResource(cost.Type);
         var instance = Instantiate(_costItemPrefab, _costContainer.transform);
