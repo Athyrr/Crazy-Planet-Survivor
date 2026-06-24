@@ -1,6 +1,7 @@
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
@@ -31,6 +32,11 @@ public partial struct AreaAttackSystem : ISystem
     private ComponentLookup<StunEffect> _stunLookup;
     private ComponentLookup<BurnEffect> _burnLookup;
 
+    private ComponentLookup<SpellSource> _spellSourceLookup;
+    private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
+
+    private NativeQueue<SpellDamageEvent> _damageEventsQueue;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -47,6 +53,17 @@ public partial struct AreaAttackSystem : ISystem
         _slowLookup = state.GetComponentLookup<SlowEffect>(true);
         _stunLookup = state.GetComponentLookup<StunEffect>(true);
         _burnLookup = state.GetComponentLookup<BurnEffect>(true);
+
+        _spellSourceLookup = state.GetComponentLookup<SpellSource>(true);
+        _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
+
+        _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
+    }
+
+    public void OnDestroy(ref SystemState state)
+    {
+        if (_damageEventsQueue.IsCreated)
+            _damageEventsQueue.Dispose();
     }
 
     [BurstCompile]
@@ -73,6 +90,8 @@ public partial struct AreaAttackSystem : ISystem
         _slowLookup.Update(ref state);
         _stunLookup.Update(ref state);
         _burnLookup.Update(ref state);
+        _spellSourceLookup.Update(ref state);
+        _activeSpellBufferLookup.Update(ref state);
 
         var job = new AreaAttackJob
         {
@@ -88,9 +107,20 @@ public partial struct AreaAttackSystem : ISystem
             SlowLookup = _slowLookup,
             StunLookup = _stunLookup,
             BurnLookup = _burnLookup,
+            SpellSourceLookup = _spellSourceLookup,
+            DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
         };
 
         state.Dependency = job.ScheduleParallel(state.Dependency);
+
+        var trackDamageJob = new TrackDamageJob
+        {
+            DamageEventsQueue = _damageEventsQueue,
+            ActiveSpellLookup = _activeSpellBufferLookup,
+            PlayerEntity = playerEntity,
+        };
+
+        state.Dependency = trackDamageJob.Schedule(state.Dependency);
     }
 
     [BurstCompile]
@@ -109,6 +139,9 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
         [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
+
+        [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
+        public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity,
             ref AreaAttack areaAttack, in LocalToWorld localToWorld,
@@ -175,13 +208,24 @@ public partial struct AreaAttackSystem : ISystem
 
                 // Apply damage
                 bool isCrit = random.NextFloat(0f, 1f) < areaAttack.CritChance;
+                int damageDealt = (int)areaAttack.Damage;
 
                 ECB.AppendToBuffer(chunkIndex, hitEntity, new DamageBufferElement
                 {
-                    Damage = (int)areaAttack.Damage,
+                    Damage = damageDealt,
                     Tag = areaAttack.Tags,
                     IsCritical = isCrit,
                 });
+
+                // Track damage dealt per spell (mirrors CollisionSystem)
+                if (SpellSourceLookup.TryGetComponent(entity, out var spellSource))
+                {
+                    DamageEventsWriter.Enqueue(new SpellDamageEvent
+                    {
+                        DatabaseIndex = spellSource.DatabaseIndex,
+                        DamageAmount = damageDealt,
+                    });
+                }
 
                 // Active effects (based on spell tags)
 
@@ -328,6 +372,47 @@ public partial struct AreaAttackSystem : ISystem
                 default:
                     return false;
             }
+        }
+    }
+
+    /// <summary>
+    /// Sums queued <see cref="SpellDamageEvent"/>s per spell and accumulates them into the
+    /// player's <see cref="ActiveSpell.TotalDamageDealt"/>. Mirrors CollisionSystem's tracking.
+    /// </summary>
+    [BurstCompile]
+    private struct TrackDamageJob : IJob
+    {
+        public NativeQueue<SpellDamageEvent> DamageEventsQueue;
+        public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        public Entity PlayerEntity;
+
+        public void Execute()
+        {
+            // Sums damage per spell map
+            var sums = new NativeHashMap<int, int>(16, Allocator.Temp);
+
+            while (DamageEventsQueue.TryDequeue(out var evt))
+            {
+                if (sums.ContainsKey(evt.DatabaseIndex))
+                    sums[evt.DatabaseIndex] += evt.DamageAmount;
+                else
+                    sums.Add(evt.DatabaseIndex, evt.DamageAmount);
+            }
+
+            if (ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var buffer))
+            {
+                for (int i = 0; i < buffer.Length; i++)
+                {
+                    var spell = buffer[i];
+                    if (sums.TryGetValue(spell.DatabaseIndex, out int totalAdded))
+                    {
+                        spell.TotalDamageDealt += totalAdded;
+                        buffer[i] = spell;
+                    }
+                }
+            }
+
+            sums.Dispose();
         }
     }
 }
