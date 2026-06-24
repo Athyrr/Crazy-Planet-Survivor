@@ -76,6 +76,9 @@ namespace _System.Audio
         [SerializeField]
         private int maxGemSoundsBacklog = 12;
 
+        [SerializeField]
+        private int gemVoicePoolSize = 8;
+
         [Header("Damage SFX")]
         [SerializeField]
         private float enemyHitSoundInterval = 0.03f;
@@ -92,6 +95,9 @@ namespace _System.Audio
         private float _gemSoundTimer;
         private float _enemyHitTimer;
         private float _playerHitTimer;
+
+        private EventInstance[] _gemVoices;
+        private int _gemVoiceCursor;
 
         private float _pitchTarget;
         private float _pitchCurrent;
@@ -134,6 +140,21 @@ namespace _System.Audio
             amuletShopUIController.OnBack -= ProcessUiBackSfx;
         }
 
+        private void OnDestroy()
+        {
+            if (_gemVoices == null)
+                return;
+
+            foreach (var voice in _gemVoices)
+            {
+                if (!voice.isValid())
+                    continue;
+
+                voice.stop(STOP_MODE.IMMEDIATE);
+                voice.release();
+            }
+        }
+
         private void Start()
         {
             _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -144,6 +165,8 @@ namespace _System.Audio
             lobbyMusicWithDrumsInstance = RuntimeManager.CreateInstance(lobbyMusicWithDrums);
             runMusicInstance = RuntimeManager.CreateInstance(runMusic);
             bossMusicInstance = RuntimeManager.CreateInstance(bossMusic);
+
+            _gemVoices = new EventInstance[Mathf.Max(1, gemVoicePoolSize)];
 
             if (GameManager.Instance != null)
                 ProcessMusic(GameManager.Instance.GetGameState());
@@ -376,13 +399,27 @@ namespace _System.Audio
                 ? runProgression.GetRatio()
                 : 0f;
 
-            var gemSoundInstance = RuntimeManager.CreateInstance(gemCollectedSound);
-            gemSoundInstance.setParameterByName("Pitch Gems", pitch);
-            gemSoundInstance.start();
-            gemSoundInstance.release();
+            EmitGemSound(pitch);
 
             count--;
             _gemSoundTimer = gemSoundInterval;
+        }
+
+        private void EmitGemSound(float pitch)
+        {
+            var slot = _gemVoices[_gemVoiceCursor];
+            if (slot.isValid())
+            {
+                slot.stop(STOP_MODE.ALLOWFADEOUT);
+                slot.release();
+            }
+
+            var gem = RuntimeManager.CreateInstance(gemCollectedSound);
+            gem.setParameterByName("Pitch Gems", pitch);
+            gem.start();
+
+            _gemVoices[_gemVoiceCursor] = gem;
+            _gemVoiceCursor = (_gemVoiceCursor + 1) % _gemVoices.Length;
         }
 
         private void ProcessEnemiesDamagesSfx()
