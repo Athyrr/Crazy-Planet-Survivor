@@ -122,7 +122,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: -142.9748}
-  m_SizeDelta: {x: 1210.9, y: -285.95}
+  m_SizeDelta: {x: 917.39, y: -285.95}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!222 &943659087296636610
 CanvasRenderer:
@@ -226,7 +226,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: -148.31982}
-  m_SizeDelta: {x: 710.09, y: -300.66}
+  m_SizeDelta: {x: 416.61, y: -300.66}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!222 &8409383008857221533
 CanvasRenderer:
@@ -423,7 +423,6 @@ MonoBehaviour:
   ActionButton: {fileID: 7749487441257734574}
   ActionButtonText: {fileID: 242349759389688987}
   PurchaseFocusScale: 1.1
-  _actionButtonOutline: {fileID: 910101199157947104}
   PurchaseText: Purchase
   Columns: 3
   Database: {fileID: 11400000, guid: b18eb864ea520be4893624ac14c6c17b, type: 2}
@@ -3365,17 +3364,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
---- !u!114 &910101199157947104 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8018244562667924967, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}
-  m_PrefabInstance: {fileID: 7198954275029911303}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
 --- !u!224 &4639492447899336795 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 2559481691422181212, guid: 252df6ea1fe5b0545a881af0b760d2d3, type: 3}

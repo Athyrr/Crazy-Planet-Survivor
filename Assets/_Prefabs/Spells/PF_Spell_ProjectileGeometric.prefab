@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 3956088532702685700}
   - component: {fileID: 9076390419123034732}
   - component: {fileID: -5609009633945430334}
+  - component: {fileID: 3896538700784233528}
   m_Layer: 0
   m_Name: PF_Spell_ProjectileGeometric
   m_TagString: Untagged
@@ -375,6 +376,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2268193949dea0248bc200c261edadd0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BounceAuthoring
+--- !u!114 &3896538700784233528
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 486797506737824905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3340c3376cd3294d9e8613d09ce72cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PierceAuthoring
 --- !u!1001 &6586514295715353282
 PrefabInstance:
   m_ObjectHideFlags: 0
