@@ -24,6 +24,7 @@ public partial struct HealthSystem : ISystem
     private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
     private ComponentLookup<ExplodeOnDeath> _explodeOnDeathLookup;
     private ComponentLookup<SoundPlayerTag> _soundPlayaerTagLookup;
+    private ComponentLookup<CoreStats> _coreStatsLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -38,6 +39,7 @@ public partial struct HealthSystem : ISystem
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
         _explodeOnDeathLookup = state.GetComponentLookup<ExplodeOnDeath>(true);
         _soundPlayaerTagLookup = state.GetComponentLookup<SoundPlayerTag>(false);
+        _coreStatsLookup = state.GetComponentLookup<CoreStats>(true);
     }
 
     [BurstCompile]
@@ -64,10 +66,21 @@ public partial struct HealthSystem : ISystem
         _explodeOnDeathLookup.Update(ref state);
 
         _soundPlayaerTagLookup.Update(ref state);
+        _coreStatsLookup.Update(ref state);
 
         var _soundPlayerEntity = SystemAPI.TryGetSingletonEntity<SoundPlayerTag>(out var spe)
             ? spe
             : Entity.Null;
+
+        // Run-difficulty armor penetration: a fixed flat armor mitigates less as the run advances,
+        // so the player must keep raising armor to stay ahead (strong early, useless late).
+        EnemyScalingConfig scaleCfg = SystemAPI.TryGetSingleton<EnemyScalingConfig>(out var cfg)
+            ? cfg
+            : EnemyScalingConfig.Default;
+
+        float playerArmorPen = 0f;
+        if (SystemAPI.TryGetSingleton<RunProgression>(out var runProg))
+            playerArmorPen = scaleCfg.ComputeArmorPenetration(runProg.Timer, runProg.EnemiesKilledCount);
 
         var applyDamageJob = new ApplyDamageJob
         {
@@ -80,6 +93,9 @@ public partial struct HealthSystem : ISystem
             ExplodeOnDeathLookup = _explodeOnDeathLookup,
             SoundPlayerTagLookup = _soundPlayaerTagLookup,
             SoundPlayerEntity = _soundPlayerEntity,
+            CoreStatsLookup = _coreStatsLookup,
+            PlayerArmorPen = playerArmorPen,
+            MinDamagePerHit = scaleCfg.MinDamagePerHit,
         };
 
         state.Dependency = applyDamageJob.ScheduleParallel(state.Dependency);
@@ -111,6 +127,14 @@ public partial struct HealthSystem : ISystem
 
         public Entity SoundPlayerEntity;
 
+        [ReadOnly] public ComponentLookup<CoreStats> CoreStatsLookup;
+
+        // Flat armor neutralized this frame against the player (run-difficulty scaled).
+        public float PlayerArmorPen;
+
+        // Damage floor per hit after armor mitigation.
+        public float MinDamagePerHit;
+
         // todo Opti here: If  possible use Query instead of lookup
 
         private void Execute(
@@ -136,6 +160,16 @@ public partial struct HealthSystem : ISystem
 
             var isPlayer = PlayerLookup.HasComponent(entity);
 
+            // Flat armor mitigation. Total armor = BaseArmor + Armor; for the player it is eroded
+            // by the run-difficulty armor penetration so a fixed armor value decays over the run.
+            float effectiveArmor = 0f;
+            if (CoreStatsLookup.TryGetComponent(entity, out var coreStats))
+            {
+                float totalArmor = coreStats.BaseArmor + coreStats.Armor;
+                float pen = isPlayer ? PlayerArmorPen : 0f;
+                effectiveArmor = math.max(0f, totalArmor - pen);
+            }
+
             float totalDamage = 0;
             bool isCritical = false;
             bool isBurn = false;
@@ -147,10 +181,12 @@ public partial struct HealthSystem : ISystem
                 var dbe = damageBuffer[i];
                 float damage = dbe.Damage;
 
-                //todo use stats
-                // Apply flat Armor reduction after elemental resistances
-                // damage -= stats.Armor;
-                damage = math.max(0, damage);
+                // Flat armor reduction, applied per hit (so it scales with the number of hits,
+                // not the frame's summed total).
+                if (damage > 0f && effectiveArmor > 0f)
+                    damage = math.max(MinDamagePerHit, damage - effectiveArmor);
+
+                damage = math.max(0f, damage);
 
                 totalDamage += damage;
                 isCritical = dbe.IsCritical;

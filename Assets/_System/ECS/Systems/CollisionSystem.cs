@@ -40,6 +40,7 @@ public partial struct CollisionSystem : ISystem
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
     private ComponentLookup<PhysicsCollider> _colliderLookup;
+    private ComponentLookup<Lifetime> _lifetimeLookup;
 
     // private ActiveEffectsConfig _effectsConfig;
 
@@ -78,6 +79,7 @@ public partial struct CollisionSystem : ISystem
         _bossLookup = state.GetComponentLookup<Boss>(true);
 
         _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
+        _lifetimeLookup = state.GetComponentLookup<Lifetime>(false);
 
         // _effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
 
@@ -122,6 +124,7 @@ public partial struct CollisionSystem : ISystem
         _activeSpellBufferLookup.Update(ref state);
         _colliderLookup.Update(ref state);
         _bossLookup.Update(ref state);
+        _lifetimeLookup.Update(ref state);
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
@@ -162,7 +165,8 @@ public partial struct CollisionSystem : ISystem
             DamageEventsWriter = _damageEventsQueue,
 
             ColliderLookup = _colliderLookup,
-            BossLookup = _bossLookup
+            BossLookup = _bossLookup,
+            LifetimeLookup = _lifetimeLookup
         };
 
         JobHandle triggerHandle =
@@ -217,6 +221,7 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
         [ReadOnly] public ComponentLookup<Boss> BossLookup;
+        public ComponentLookup<Lifetime> LifetimeLookup;
 
         private const double MultiHitDelay = 1f; // Delay before allowing another hit if collision stays.
 
@@ -471,6 +476,17 @@ public partial struct CollisionSystem : ISystem
                         {
                             shouldDestroy = true;
                         }
+                    }
+
+                    // A bounce/pierce spell that survives a hit gets its lifetime refreshed, so
+                    // chained hits keep it alive instead of letting it expire mid-flight.
+                    if (!shouldDestroy
+                        && (BounceLookup.HasComponent(damagerEntity) || PierceLookup.HasComponent(damagerEntity))
+                        && LifetimeLookup.HasComponent(damagerEntity))
+                    {
+                        var lifetime = LifetimeLookup[damagerEntity];
+                        lifetime.TimeLeft = lifetime.Duration;
+                        LifetimeLookup[damagerEntity] = lifetime;
                     }
 
                     if (shouldDestroy && DestructibleLookup.HasComponent(damagerEntity))

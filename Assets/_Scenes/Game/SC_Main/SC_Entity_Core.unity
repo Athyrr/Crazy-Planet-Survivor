@@ -124,6 +124,59 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 273279087897545282, guid: 51002f96c250505408f6f0465afd0836, type: 3}
   m_PrefabInstance: {fileID: 5741502204498917819}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &415610906
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 415610907}
+  - component: {fileID: 415610908}
+  m_Layer: 0
+  m_Name: EnemyScalingConfig
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &415610907
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 415610906}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1735218710}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &415610908
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 415610906}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0fbe457b7b7ff24fa5eb91a808a6627, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyScalingConfigAuthoring
+  SecondsPerUnit: 120
+  KillsPerUnit: 100
+  HealthGrowthPerUnit: 0.5
+  MaxHealthMult: 20
+  DamageGrowthPerUnit: 0.3
+  MaxDamageMult: 10
+  ArmorPenPerUnit: 0
+  MaxArmorPen: 0
+  MinDamagePerHit: 1
 --- !u!1 &1194183370
 GameObject:
   m_ObjectHideFlags: 0
@@ -363,6 +416,7 @@ Transform:
   - {fileID: 1264659906}
   - {fileID: 1709414323}
   - {fileID: 1611068210}
+  - {fileID: 415610907}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1909188547 stripped

@@ -32,12 +32,14 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
     //todo allocate Ms budget et dispacth into frames
 
-    // Base (prefab) stats read at spawn to apply difficulty HP scaling without touching live enemies.
+    // Base (prefab) stats read at spawn to apply difficulty scaling without touching live enemies.
     private ComponentLookup<Health> _baseHealthLookup;
     private ComponentLookup<CoreStats> _baseCoreStatsLookup;
+    private ComponentLookup<DamageOnContact> _baseDamageOnContactLookup;
 
-    // Current spawn-time HP multiplier from time + kills (1 = no scaling). Recomputed each frame.
+    // Current spawn-time multipliers from time + kills (1 = no scaling). Recomputed each frame.
     private float _healthMult;
+    private float _damageMult;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -52,6 +54,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
         _baseHealthLookup = state.GetComponentLookup<Health>(true);
         _baseCoreStatsLookup = state.GetComponentLookup<CoreStats>(true);
+        _baseDamageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
 
         //_playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
     }
@@ -72,13 +75,15 @@ public partial struct EnemiesSpawnerSystem : ISystem
         DynamicBuffer<SpawnGroupRuntime> groupRuntimes = SystemAPI.GetSingletonBuffer<SpawnGroupRuntime>(false);
         SpawnerSettings settings = SystemAPI.GetSingleton<SpawnerSettings>();
 
-        // Difficulty HP scaling (time + kills): recompute the spawn-time multiplier this frame.
+        // Difficulty scaling (time + kills): recompute the spawn-time multipliers this frame.
         _baseHealthLookup.Update(ref state);
         _baseCoreStatsLookup.Update(ref state);
+        _baseDamageOnContactLookup.Update(ref state);
         EnemyScalingConfig scaleCfg = SystemAPI.TryGetSingleton<EnemyScalingConfig>(out var cfg)
             ? cfg
             : EnemyScalingConfig.Default;
         _healthMult = 1f;
+        _damageMult = 1f;
         if (SystemAPI.HasSingleton<RunProgression>())
         {
             // Read RunProgression via EntityManager (not a ComponentTypeHandle/SystemAPI query read) so the
@@ -86,6 +91,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
             var runProgEntity = SystemAPI.GetSingletonEntity<RunProgression>();
             var runProg = state.EntityManager.GetComponentData<RunProgression>(runProgEntity);
             _healthMult = scaleCfg.ComputeHealthMult(runProg.Timer, runProg.EnemiesKilledCount);
+            _damageMult = scaleCfg.ComputeDamageMult(runProg.Timer, runProg.EnemiesKilledCount);
         }
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
@@ -341,8 +347,10 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 BossPosition = bossPosition,
                 BaseSeed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
                 HealthMult = _healthMult,
+                DamageMult = _damageMult,
                 BaseHealthLookup = _baseHealthLookup,
-                BaseCoreStatsLookup = _baseCoreStatsLookup
+                BaseCoreStatsLookup = _baseCoreStatsLookup,
+                BaseDamageOnContactLookup = _baseDamageOnContactLookup
             };
 
             systemState.Dependency = spawnJob.ScheduleParallel(commands.Length, 64, systemState.Dependency);
@@ -463,10 +471,12 @@ public partial struct EnemiesSpawnerSystem : ISystem
         // Frame-stable base; combined with the command index for a unique per-entity seed.
         public uint BaseSeed;
 
-        // Difficulty HP scaling (1 = none). Base stats are read from the prefab entity.
+        // Difficulty scaling (1 = none). Base stats are read from the prefab entity.
         public float HealthMult;
+        public float DamageMult;
         [ReadOnly] public ComponentLookup<Health> BaseHealthLookup;
         [ReadOnly] public ComponentLookup<CoreStats> BaseCoreStatsLookup;
+        [ReadOnly] public ComponentLookup<DamageOnContact> BaseDamageOnContactLookup;
 
         public void Execute(int index)
         {
@@ -706,6 +716,14 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     cs.MaxHealth *= HealthMult;
                     ECB.SetComponent(index, entity, cs);
                 }
+            }
+
+            // Difficulty contact-damage scaling: a unit's hit is fixed by WHEN it spawned, like its HP.
+            if (DamageMult > 1f && BaseDamageOnContactLookup.HasComponent(cmd.Prefab))
+            {
+                var doc = BaseDamageOnContactLookup[cmd.Prefab];
+                doc.Damage *= DamageMult;
+                ECB.SetComponent(index, entity, doc);
             }
 
             // Entity orientation

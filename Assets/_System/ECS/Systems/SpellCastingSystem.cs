@@ -116,11 +116,20 @@ public partial struct SpellCastingSystem : ISystem
             ? playerSingleton
             : Entity.Null;
 
+        // Enemy-cast spells scale their damage with run difficulty (same clock as enemy HP/contact damage).
+        EnemyScalingConfig scaleCfg = SystemAPI.TryGetSingleton<EnemyScalingConfig>(out var scfg)
+            ? scfg
+            : EnemyScalingConfig.Default;
+        float enemyDamageMult = 1f;
+        if (SystemAPI.TryGetSingleton<RunProgression>(out var runProg))
+            enemyDamageMult = scaleCfg.ComputeDamageMult(runProg.Timer, runProg.EnemiesKilledCount);
+
         var castJob = new CastSpellJob
         {
             ECB = ecb.AsParallelWriter(),
             Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
             PlayerEntity = playerEntity,
+            EnemyDamageMult = enemyDamageMult,
             CollisionWorld = physicsWorldSingleton.CollisionWorld,
             SpellDatabaseRef = spellDatabase.Blobs,
             MainSpellPrefabs = mainSpellPrefabs,
@@ -159,6 +168,7 @@ public partial struct SpellCastingSystem : ISystem
         public EntityCommandBuffer.ParallelWriter ECB;
         public uint Seed;
         public Entity PlayerEntity;
+        public float EnemyDamageMult;
 
         [ReadOnly] public CollisionWorld CollisionWorld;
         [ReadOnly] public DynamicBuffer<SpellPrefab> MainSpellPrefabs;
@@ -260,6 +270,10 @@ public partial struct SpellCastingSystem : ISystem
             bool targetFound = false;
             Entity targetEntity = Entity.Null;
             bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
+
+            // Enemy-cast spells scale their damage with run difficulty (player spells are untouched).
+            if (!isPlayerCaster)
+                finalDamage *= EnemyDamageMult;
 
             // BaseSpawnOffset is a caster-local offset (x = right, y = up, z = forward).
             // Rotate it by the caster rotation so it points relative to where the caster faces.
