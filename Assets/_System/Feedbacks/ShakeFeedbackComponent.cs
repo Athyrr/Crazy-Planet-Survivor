@@ -1,3 +1,4 @@
+using _System.Settings;
 using Unity.Cinemachine;
 using Unity.Collections;
 using Unity.Entities;
@@ -10,6 +11,7 @@ public class ShakeFeedbackComponent : MonoBehaviour
     private EntityManager _entityManager;
     private EntityQuery _shakeRequestQuery;
 
+    [Header("Fallback (used only when the CameraShakeSettings SO cannot be resolved)")]
     [SerializeField]
     private float _shakeDuration = 0f;
 
@@ -62,12 +64,36 @@ public class ShakeFeedbackComponent : MonoBehaviour
             return;
 
         NativeArray<Entity> requestEntities = _shakeRequestQuery.ToEntityArray(Allocator.Temp);
-        Entity shakeRequestEntity = requestEntities[0];
-        //var shakeRequest = _entityManager.GetComponentData<ShakeFeedbackRequest>(shakeRequestEntity);
 
-        _shakeTimer = _shakeDuration;
-        CinemachineBasicMultiChannelPerlin.AmplitudeGain =  _amplitude;
-        CinemachineBasicMultiChannelPerlin.FrequencyGain = _frequency;
+        // Several requests can land in the same frame (e.g. a DoT tick + a boss hit, or the
+        // death-shake). Keep the strongest source so the heaviest shake wins.
+        EDamageShakeSource strongest = EDamageShakeSource.None;
+        for (int i = 0; i < requestEntities.Length; i++)
+        {
+            var request = _entityManager.GetComponentData<ShakeFeedbackRequest>(requestEntities[i]);
+            if ((byte)request.Source >= (byte)strongest)
+                strongest = request.Source;
+        }
+
+        float amplitude, frequency, duration;
+        var settings = CpCameraShakeSettings.I;
+        if (settings != null)
+        {
+            var profile = settings.GetProfile(strongest);
+            amplitude = profile.Amplitude;
+            frequency = profile.Frequency;
+            duration = profile.Duration;
+        }
+        else
+        {
+            amplitude = _amplitude;
+            frequency = _frequency;
+            duration = _shakeDuration;
+        }
+
+        _shakeTimer = duration;
+        CinemachineBasicMultiChannelPerlin.AmplitudeGain = amplitude;
+        CinemachineBasicMultiChannelPerlin.FrequencyGain = frequency;
 
         _entityManager.DestroyEntity(requestEntities);
         requestEntities.Dispose();

@@ -177,14 +177,14 @@ public class FloatingNumberFeedbackManager : MonoBehaviour, IDisposable
             return;
 
 #if UNITY_EDITOR
-        if (!Application.isPlaying && world != _lastWorld)
-        {
-            _entityManager = world.EntityManager;
-            DisposeQueries();
-            _damageFeedbackQuery = _entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
-            _healFeedbackQuery = _entityManager.CreateEntityQuery(typeof(HealFeedbackRequest));
-            _lastWorld = world;
-        }
+        // if (!Application.isPlaying && world != _lastWorld)
+        // {
+        //     _entityManager = world.EntityManager;
+        //     DisposeQueries();
+        //     _damageFeedbackQuery = _entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
+        //     _healFeedbackQuery = _entityManager.CreateEntityQuery(typeof(HealFeedbackRequest));
+        //     _lastWorld = world;
+        // }
 #endif
 
         // Process damage feedback

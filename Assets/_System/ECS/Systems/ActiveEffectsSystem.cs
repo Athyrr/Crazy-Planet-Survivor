@@ -92,7 +92,8 @@ public partial struct ActiveEffectsSystem : ISystem
                 {
                     Damage = (int)burn.DamageOnTick,
                     Tag = ESpellTag.Burn,
-                    IsCritical = false // todo crit burn
+                    IsCritical = false, // todo crit burn
+                    ShakeSource = EDamageShakeSource.DoT,
                 });
             }
         }

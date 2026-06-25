@@ -35,6 +35,7 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<ExplodeOnContact> _explodeLookup;
     private ComponentLookup<SpellSource> _subSpellRootLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
+    private ComponentLookup<Boss> _bossLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -74,6 +75,7 @@ public partial struct CollisionSystem : ISystem
         _explodeLookup = state.GetComponentLookup<ExplodeOnContact>(true);
         _subSpellRootLookup = state.GetComponentLookup<SpellSource>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
+        _bossLookup = state.GetComponentLookup<Boss>(true);
 
         _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
 
@@ -119,6 +121,7 @@ public partial struct CollisionSystem : ISystem
         _subSpellRootLookup.Update(ref state);
         _activeSpellBufferLookup.Update(ref state);
         _colliderLookup.Update(ref state);
+        _bossLookup.Update(ref state);
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
@@ -158,7 +161,8 @@ public partial struct CollisionSystem : ISystem
             SpellSourceLookup = _subSpellRootLookup,
             DamageEventsWriter = _damageEventsQueue,
 
-            ColliderLookup = _colliderLookup
+            ColliderLookup = _colliderLookup,
+            BossLookup = _bossLookup
         };
 
         JobHandle triggerHandle =
@@ -212,6 +216,7 @@ public partial struct CollisionSystem : ISystem
         public NativeQueue<SpellDamageEvent> DamageEventsWriter;
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
+        [ReadOnly] public ComponentLookup<Boss> BossLookup;
 
         private const double MultiHitDelay = 1f; // Delay before allowing another hit if collision stays.
 
@@ -290,6 +295,7 @@ public partial struct CollisionSystem : ISystem
                                 Damage = damageDealt,
                                 Tag = damageData.Tags,
                                 IsCritical = isCrit,
+                                ShakeSource = ResolveShakeSource(damagerEntity, damageData.Tags),
                             }
                         );
 
@@ -550,6 +556,29 @@ public partial struct CollisionSystem : ISystem
             damager = Entity.Null;
             target = Entity.Null;
             return false;
+        }
+
+        /// <summary>
+        /// Maps a damager to a camera-shake category. Explosions win (Explosive tag); otherwise the
+        /// attacker rank is read from the damager directly (contact) or, for a projectile/spell,
+        /// from its <see cref="SpellSource.CasterEntity"/>.
+        /// </summary>
+        private EDamageShakeSource ResolveShakeSource(Entity damager, ESpellTag tags)
+        {
+            if ((tags & ESpellTag.Explosive) != 0)
+                return EDamageShakeSource.Explosion;
+
+            Entity attacker = damager;
+            if (SpellSourceLookup.TryGetComponent(damager, out var spellSource)
+                && spellSource.CasterEntity != Entity.Null)
+                attacker = spellSource.CasterEntity;
+
+            if (BossLookup.TryGetComponent(attacker, out var boss))
+                return boss.Kind == EBossKind.FinalBoss
+                    ? EDamageShakeSource.Boss
+                    : EDamageShakeSource.Elite;
+
+            return EDamageShakeSource.Enemy;
         }
 
         // todo try resolve player collide with enemies/damaging obstacles

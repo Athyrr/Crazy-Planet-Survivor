@@ -229,6 +229,7 @@ public partial struct TickDamageSystem : ISystem
                 {
                     Damage = (int)damage,
                     Tag = damageOnTick.Tags,
+                    ShakeSource = EDamageShakeSource.DoT,
                 });
 
                 DamageEventsWriter.Enqueue(new SpellDamageEvent

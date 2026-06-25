@@ -94,26 +94,21 @@ public partial struct HealthSystem : ISystem
     {
         public EntityCommandBuffer.ParallelWriter ECB;
 
-        [ReadOnly]
-        public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
+        [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
 
-        [ReadOnly]
-        public ComponentLookup<Player> PlayerLookup;
+        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
 
-        [ReadOnly]
-        public ComponentLookup<Destructible> DestructibleLookup;
+        [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
 
-        [ReadOnly]
-        public ComponentLookup<Enemy> EnemyLookup;
+        [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
 
-        [ReadOnly]
-        public ComponentLookup<Boss> BossLookup;
+        [ReadOnly] public ComponentLookup<Boss> BossLookup;
 
-        [ReadOnly]
-        public ComponentLookup<ExplodeOnDeath> ExplodeOnDeathLookup;
+        [ReadOnly] public ComponentLookup<ExplodeOnDeath> ExplodeOnDeathLookup;
 
         [NativeDisableContainerSafetyRestriction]
         public ComponentLookup<SoundPlayerTag> SoundPlayerTagLookup;
+
         public Entity SoundPlayerEntity;
 
         // todo Opti here: If  possible use Query instead of lookup
@@ -144,6 +139,7 @@ public partial struct HealthSystem : ISystem
             float totalDamage = 0;
             bool isCritical = false;
             bool isBurn = false;
+            EDamageShakeSource shakeSource = EDamageShakeSource.None;
 
             // Process every damage instance stored in the buffer this frame
             for (int i = 0; i < damageBuffer.Length; i++)
@@ -159,6 +155,10 @@ public partial struct HealthSystem : ISystem
                 totalDamage += damage;
                 isCritical = dbe.IsCritical;
                 isBurn = dbe.Tag == ESpellTag.Burn;
+
+                // Keep the strongest source this frame (values ordered by intensity)
+                if ((byte)dbe.ShakeSource > (byte)shakeSource)
+                    shakeSource = dbe.ShakeSource;
             }
 
             // Apply the accumulated damage to the health component
@@ -191,6 +191,17 @@ public partial struct HealthSystem : ISystem
                     var soundTag = SoundPlayerTagLookup[SoundPlayerEntity];
                     soundTag.PlayerTookDamageSound++;
                     SoundPlayerTagLookup[SoundPlayerEntity] = soundTag;
+                }
+
+                // Camera shake whenever the player actually takes damage, scaled by the
+                // strongest incoming source (boss > elite > explosion > enemy > DoT).
+                if (totalDamage > 0 && shakeSource != EDamageShakeSource.None)
+                {
+                    var shakeReqEntity = ECB.CreateEntity(index);
+                    ECB.AddComponent(index, shakeReqEntity, new ShakeFeedbackRequest
+                    {
+                        Source = shakeSource,
+                    });
                 }
             }
 
@@ -296,4 +307,6 @@ public struct EnemyKilledEvent : IComponentData
 }
 
 // todo impl this and add enemyKilledEvent override EntityKill logic
-public struct EntityKilledEvent : IComponentData { }
+public struct EntityKilledEvent : IComponentData
+{
+}

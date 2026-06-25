@@ -34,6 +34,7 @@ public partial struct AreaAttackSystem : ISystem
 
     private ComponentLookup<SpellSource> _spellSourceLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
+    private ComponentLookup<Boss> _bossLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -56,6 +57,7 @@ public partial struct AreaAttackSystem : ISystem
 
         _spellSourceLookup = state.GetComponentLookup<SpellSource>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
+        _bossLookup = state.GetComponentLookup<Boss>(true);
 
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
@@ -92,6 +94,7 @@ public partial struct AreaAttackSystem : ISystem
         _burnLookup.Update(ref state);
         _spellSourceLookup.Update(ref state);
         _activeSpellBufferLookup.Update(ref state);
+        _bossLookup.Update(ref state);
 
         var job = new AreaAttackJob
         {
@@ -108,6 +111,7 @@ public partial struct AreaAttackSystem : ISystem
             StunLookup = _stunLookup,
             BurnLookup = _burnLookup,
             SpellSourceLookup = _spellSourceLookup,
+            BossLookup = _bossLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
         };
 
@@ -141,6 +145,7 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
 
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
+        [ReadOnly] public ComponentLookup<Boss> BossLookup;
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity,
@@ -183,6 +188,17 @@ public partial struct AreaAttackSystem : ISystem
             // Per-entity random seed for crit checks
             var random = Random.CreateFromIndex((uint)(entity.Index + 1));
 
+            // Camera-shake category for this attack (constant per entity: depends on caster + tags)
+            EDamageShakeSource shakeSource;
+            if ((areaAttack.Tags & ESpellTag.Explosive) != 0)
+                shakeSource = EDamageShakeSource.Explosion;
+            else if (BossLookup.TryGetComponent(areaAttack.Caster, out var casterBoss))
+                shakeSource = casterBoss.Kind == EBossKind.FinalBoss
+                    ? EDamageShakeSource.Boss
+                    : EDamageShakeSource.Elite;
+            else
+                shakeSource = EDamageShakeSource.Enemy;
+
             for (int i = 0; i < hits.Length; i++)
             {
                 Entity hitEntity = hits[i].Entity;
@@ -215,6 +231,7 @@ public partial struct AreaAttackSystem : ISystem
                     Damage = damageDealt,
                     Tag = areaAttack.Tags,
                     IsCritical = isCrit,
+                    ShakeSource = shakeSource,
                 });
 
                 // Track damage dealt per spell (mirrors CollisionSystem)
