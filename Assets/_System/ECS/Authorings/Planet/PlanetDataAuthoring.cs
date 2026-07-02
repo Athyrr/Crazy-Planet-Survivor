@@ -23,6 +23,12 @@ public class PlanetDataAuthoring : MonoBehaviour
     private float _finalRadius => _autoCalculate ? CalculateWorldRadius() : _manualRadius;
     private float3 _finalCenter => _autoCalculate ? CalculateWorldCenter() : transform.position + _manualCenterOffset;
 
+    // Public read-only accessors so editor tooling (e.g. the Prop Placer) can query the exact surface
+    // sphere the game bakes on ANY planet, instead of guessing it from renderer bounds.
+    public EPlanetID PlanetID => _planetID;
+    public float WorldRadius => _finalRadius;
+    public float3 WorldCenter => _finalCenter;
+
     private class Baker : Baker<PlanetDataAuthoring>
     {
         public override void Bake(PlanetDataAuthoring authoring)

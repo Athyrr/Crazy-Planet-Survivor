@@ -5,19 +5,21 @@ using UnityEngine;
 using Random = UnityEngine.Random;
 
 /// <summary>
-/// Editor tool to drop lobby prefabs (Assets/_Prefabs/Lobby) onto the spherical lobby planet, snapping
-/// each placement to the surface and aligning it to the surface normal ("standing up" on the sphere).
+/// Editor tool to drop prefabs onto any spherical planet, snapping each placement to the surface and
+/// aligning it to the surface normal ("standing up" on the sphere).
+///
+/// The surface sphere is read from the planet's <see cref="PlanetDataAuthoring"/> (the exact center/radius
+/// the game bakes) so it works on any planet — lobby, Volcanus, etc. — regardless of how its renderers are
+/// nested. It falls back to the largest renderer's bounds when no authoring is present, and to a classic
+/// collider raycast when "Snap To Colliders" is enabled (true bumpy terrain if a MeshCollider exists).
 ///
 /// Click the planet in the Scene view to place the active prefab; use "Snap Selection" to re-stick
-/// already-placed objects. Surface queries mirror <c>PlanetFoliagePainterWindow</c> (Tools/Planet Foliage
-/// Painter): a classic-collider raycast first (true terrain if a MeshCollider exists), else an analytic
-/// ray-vs-sphere using the planet renderer bounds — which is what the lobby planet actually needs, since
-/// it carries a DOTS PhysicsShape (not a classic collider).
+/// already-placed objects.
 /// </summary>
 public class LobbyPropPlacerWindow : EditorWindow
 {
-    [MenuItem("Tools/Lobby/Prop Placer")]
-    public static void Open() => GetWindow<LobbyPropPlacerWindow>("Lobby Prop Placer");
+    [MenuItem("Tools/Planet/Prop Placer")]
+    public static void Open() => GetWindow<LobbyPropPlacerWindow>("Planet Prop Placer");
 
     // --- Target ---
     private GameObject _planet;
@@ -58,12 +60,17 @@ public class LobbyPropPlacerWindow : EditorWindow
     private void OnGUI()
     {
         EditorGUILayout.LabelField("Target", EditorStyles.boldLabel);
-        _planet = (GameObject)EditorGUILayout.ObjectField("Lobby Planet", _planet, typeof(GameObject), true);
+        _planet = (GameObject)EditorGUILayout.ObjectField("Planet", _planet, typeof(GameObject), true);
         if (_planet == null)
         {
-            EditorGUILayout.HelpBox("Assign the lobby planet (open SC_Lobby, then drag PF_Planet_Lobby here).", MessageType.Warning);
+            EditorGUILayout.HelpBox("Assign the planet you want to decorate (its root, or any object under it). Auto-Find picks the planet defined by a PlanetDataAuthoring in the open scene(s).", MessageType.Warning);
             if (GUILayout.Button("Try Auto-Find Planet"))
                 AutoFindPlanet();
+        }
+        else if (_planet.GetComponentInParent<PlanetDataAuthoring>(true) == null
+                 && _planet.GetComponentInChildren<PlanetDataAuthoring>(true) == null)
+        {
+            EditorGUILayout.HelpBox("No PlanetDataAuthoring found on this object — falling back to the largest renderer's bounds for the surface sphere. Set 'Radius Override' if the detected radius looks wrong.", MessageType.Info);
         }
         _parent = (Transform)EditorGUILayout.ObjectField(
             new GUIContent("Place Under", "Optional parent for placed objects (e.g. a '--- Props ---' container in SC_Lobby)."),
@@ -169,9 +176,31 @@ public class LobbyPropPlacerWindow : EditorWindow
 
     private void AutoFindPlanet()
     {
+        // Preferred: any planet defined by a PlanetDataAuthoring (works on every planet). If something
+        // planet-ish is selected, prefer that one; otherwise take the first found.
+        var authorings = FindObjectsByType<PlanetDataAuthoring>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        if (authorings != null && authorings.Length > 0)
+        {
+            var sel = Selection.activeGameObject;
+            if (sel != null)
+            {
+                foreach (var a in authorings)
+                {
+                    if (a.gameObject == sel || a.transform.IsChildOf(sel.transform) || sel.transform.IsChildOf(a.transform))
+                    {
+                        _planet = a.gameObject;
+                        return;
+                    }
+                }
+            }
+            _planet = authorings[0].gameObject;
+            return;
+        }
+
+        // Fallback: match by name (any planet, not just the lobby).
         foreach (var go in FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
-            if (go.name.Contains("Planet_Lobby"))
+            if (go.name.Contains("Planet"))
             {
                 _planet = go;
                 return;
@@ -351,10 +380,27 @@ public class LobbyPropPlacerWindow : EditorWindow
         if (_planet == null)
             return false;
 
+        // Preferred source: the same PlanetDataAuthoring the game bakes from. This gives the exact
+        // surface sphere for any planet regardless of how its renderers are nested (Volcanus in
+        // particular has a nested renderer prefab that the old "first child renderer" logic missed).
+        var authoring = _planet.GetComponent<PlanetDataAuthoring>()
+                        ?? _planet.GetComponentInParent<PlanetDataAuthoring>(true)
+                        ?? _planet.GetComponentInChildren<PlanetDataAuthoring>(true);
+
+        if (authoring != null)
+        {
+            Unity.Mathematics.float3 c = authoring.WorldCenter;
+            center = new Vector3(c.x, c.y, c.z);
+            radius = _radiusOverride > 0f ? _radiusOverride : authoring.WorldRadius;
+            return radius > 0f;
+        }
+
+        // Fallback: pick the largest renderer under the planet root (encompassing bounds), not just the
+        // first one found. On multi-renderer prefabs (rings, decals, atmospheres) "first" is often wrong.
         center = _planet.transform.position;
-        var renderer = _planet.GetComponent<Renderer>() ?? _planet.GetComponentInChildren<Renderer>();
-        if (renderer != null)
-            center = renderer.bounds.center;
+
+        if (TryGetEncompassingRendererBounds(_planet, out Bounds b))
+            center = b.center;
 
         if (_radiusOverride > 0f)
         {
@@ -362,12 +408,54 @@ public class LobbyPropPlacerWindow : EditorWindow
             return true;
         }
 
-        if (renderer != null)
+        if (b.size.sqrMagnitude > 0f)
         {
-            Vector3 ext = renderer.bounds.extents;
+            Vector3 ext = b.extents;
             radius = Mathf.Max(ext.x, ext.y, ext.z);
         }
         return radius > 0f;
+    }
+
+    /// <summary>
+    /// Returns an encompassing world-space bounds over the largest renderer(s) under <paramref name="root"/>.
+    /// Picks the renderer with the biggest bounding volume as the "planet" and merges anything similarly-
+    /// sized (within 20%) so multi-mesh planets (e.g. rocky shells) contribute their full extent.
+    /// </summary>
+    private static bool TryGetEncompassingRendererBounds(GameObject root, out Bounds bounds)
+    {
+        bounds = default;
+        var renderers = root.GetComponentsInChildren<Renderer>(true);
+        if (renderers == null || renderers.Length == 0)
+            return false;
+
+        Renderer biggest = null;
+        float biggestVol = -1f;
+        foreach (var r in renderers)
+        {
+            if (r == null) continue;
+            Vector3 s = r.bounds.size;
+            float vol = s.x * s.y * s.z;
+            if (vol > biggestVol)
+            {
+                biggestVol = vol;
+                biggest = r;
+            }
+        }
+
+        if (biggest == null)
+            return false;
+
+        bounds = biggest.bounds;
+        float threshold = biggestVol * 0.8f;
+        foreach (var r in renderers)
+        {
+            if (r == null || r == biggest) continue;
+            Vector3 s = r.bounds.size;
+            float vol = s.x * s.y * s.z;
+            if (vol >= threshold)
+                bounds.Encapsulate(r.bounds);
+        }
+        return true;
     }
 
     /// <summary>Nearest ray-vs-sphere intersection (near side; far side if the camera is inside).</summary>

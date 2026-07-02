@@ -5,9 +5,12 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
-[UpdateInGroup(typeof(CustomUpdateGroup))]
+// Runs every frame alongside the movement systems it copies from, so followed positions stay in sync
+// with the smooth per-frame movement (rather than the old ~66 Hz CustomUpdateGroup tick).
+[UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateBefore(typeof(TransformSystemGroup))]
 [UpdateAfter(typeof(EntitiesMovementSystem))]
+[UpdateAfter(typeof(FlowFieldMovementSystem))]
 [BurstCompile]
 public partial struct CopyEntityPositionSystem : ISystem
 {

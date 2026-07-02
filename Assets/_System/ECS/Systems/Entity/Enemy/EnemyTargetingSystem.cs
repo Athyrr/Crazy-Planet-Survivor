@@ -8,8 +8,12 @@ using Unity.Burst;
 /// Evaluates enemies with ready spells and issues <see cref="CastSpellRequest"/> entities if the player is within range.
 /// This system calculates distances along the surface of a spherical planet using optimized chord-length math.
 /// </summary>
-[UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(PlayerSpawnerSystem))]
+// Enemy cast decisions are staleness-tolerant (a cast a few ms late is imperceptible) and this scans
+// every enemy with ready spells, so it lives in the rate-capped CustomUpdateGroup (~30 Hz) rather than
+// running every frame. It emits CastSpellRequest via the EndSimulation ECB, played back per-frame.
+// PlayerSpawnerSystem (OrderFirst in the parent SimulationSystemGroup) still runs before this group,
+// so the previous [UpdateAfter(PlayerSpawnerSystem)] is no longer needed.
+[UpdateInGroup(typeof(CustomUpdateGroup))]
 [BurstCompile]
 public partial struct EnemyTargetingSystem : ISystem
 {

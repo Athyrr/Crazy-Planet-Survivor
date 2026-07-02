@@ -16,8 +16,8 @@ MonoBehaviour:
   Icon: {fileID: 21300000, guid: 7c8026600ee9f974386901e672741be7, type: 3}
   Kind: 1
   BaseStats:
-    MaxHealth: 5000
-    HealthRegen: 2
+    MaxHealth: 15000
+    HealthRegen: 0
     BaseArmor: 0
     Armor: 0
     BaseMoveSpeed: 4
@@ -36,5 +36,6 @@ MonoBehaviour:
     CritChance: 0.2
     CritDamage: 0.5
     Luck: 0
+    LifeStealChance: 0
   InitialSpells:
   - {fileID: 11400000, guid: 661b2319623c54740bf8ef45f265f093, type: 2}

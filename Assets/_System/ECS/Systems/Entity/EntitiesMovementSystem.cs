@@ -11,7 +11,13 @@ using Unity.Jobs;
 /// system for entity locomotion. Handles Linear, Follow, and Orbital movement patterns.
 /// Supports two modes: "Snapped" (uses Physics Raycasts for terrain) and "Bare" (uses mathematical radius for perfect spheres).
 /// </summary>
-[UpdateInGroup(typeof(CustomUpdateGroup))]
+// Runs every frame (not in the rate-capped CustomUpdateGroup) so movement is applied at the render
+// rate — otherwise the ~66 Hz tick stutters against a higher/variable framerate (visible jitter).
+// The expensive flow-field grid recompute (FlowFieldSystem) and avoidance (AvoidanceSystem) stay
+// capped in CustomUpdateGroup; this system just consumes their latest outputs each frame.
+[UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(CustomUpdateGroup))]
+[UpdateBefore(typeof(TransformSystemGroup))]
 [BurstCompile]
 public partial struct EntitiesMovementSystem : ISystem
 {
@@ -167,6 +173,17 @@ public partial struct EntitiesMovementSystem : ISystem
             {
                 var stats = FinalStatsLookup[entity];
                 speed = stats.MoveSpeed;
+            }
+
+            // Analog throttle: the joystick / stick tilt magnitude is carried in movement.Direction
+            // (input.x/input.y are not normalized upstream). ProjectDirectionOnSurface below normalizes
+            // the direction and would discard that magnitude, so capture it here and scale the speed:
+            // light tilt = slow, full tilt = max speed. Only the player is throttled — projectiles and
+            // other LinearMovement users keep their full speed via their unit direction.
+            if (PlayerLookup.HasComponent(entity))
+            {
+                float throttle = math.saturate(math.length(movement.Direction));
+                speed *= throttle;
             }
 
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);

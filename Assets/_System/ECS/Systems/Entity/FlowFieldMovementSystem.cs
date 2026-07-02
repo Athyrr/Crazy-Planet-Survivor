@@ -12,8 +12,13 @@ using Unity.Burst;
 /// Intended as an alternative to FollowTargetMovement — entities should have one or the other, not both.
 /// Runs after AvoidanceSystem so SteeringForce values are already populated.
 /// </summary>
-[UpdateInGroup(typeof(CustomUpdateGroup))]
-[UpdateAfter(typeof(AvoidanceSystem))]
+// Runs every frame (like EntitiesMovementSystem) so flow-field followers move smoothly at the render
+// rate instead of stepping at the ~66 Hz CustomUpdateGroup tick. It reads the flow-field grid and the
+// avoidance SteeringForce, both still computed at 66 Hz in CustomUpdateGroup — sampling their latest
+// values each frame is fine and much smoother.
+[UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(CustomUpdateGroup))]
+[UpdateBefore(typeof(TransformSystemGroup))]
 [BurstCompile]
 public partial struct FlowFieldMovementSystem : ISystem
 {
