@@ -2,6 +2,8 @@ using System.Collections;
 using _System.Settings;
 using Unity.Entities;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using TMPro;
 
 public class GameOverUIController : UIControllerBase
@@ -9,11 +11,11 @@ public class GameOverUIController : UIControllerBase
     [Header("Game Over Fields")]
     public GameObject GameOverView;
     public TMP_Text GameOverText;
-    
+
     [Header("Game Over Text")]
     public string VictoryText;
     public string DefeatText;
-    
+
     [Header("Game Over Animation")]
     public float FadeInDuration = 2f;
     public float DisplayDuration = 1f;
@@ -21,9 +23,13 @@ public class GameOverUIController : UIControllerBase
     [Header("Summary View")]
     public SummaryListView runSummaryListView;
 
+    [Tooltip("Button on the summary screen that returns to the lobby. Wired for mouse (onClick) and " +
+             "gamepad (auto-selected when the summary appears so Submit/A triggers it).")]
+    public Button BackToLobbyButton;
+
     private EntityManager _entityManager;
     private EntityQuery _gameStateQuery;
-    
+
     private void Awake()
     {
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -32,8 +38,19 @@ public class GameOverUIController : UIControllerBase
 
     private void OnEnable()
     {
-        //if gameinput is null, create instance
-        
+        // Mouse: drive the lobby return through BackToLobby(). Remove-before-add so a re-enable can't
+        // double-subscribe.
+        if (BackToLobbyButton != null)
+        {
+            BackToLobbyButton.onClick.RemoveListener(BackToLobby);
+            BackToLobbyButton.onClick.AddListener(BackToLobby);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (BackToLobbyButton != null)
+            BackToLobbyButton.onClick.RemoveListener(BackToLobby);
     }
     
     public void OpenView(EEndRunState endState, ResourceBufferElement[] resources)
@@ -115,6 +132,11 @@ public class GameOverUIController : UIControllerBase
         GameOverView.SetActive(false);
         runSummaryListView.gameObject.SetActive(true);
         runSummaryListView.RefreshView();
+
+        // Gamepad: select the lobby button so the Submit action (A) routes to it. Mouse is unaffected
+        // (it clicks/hovers directly). The button only exists now that the summary view is active.
+        if (BackToLobbyButton != null && EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(BackToLobbyButton.gameObject);
     }
 
     private IEnumerator FadeTextAlpha(float startAlpha, float endAlpha, float duration)
@@ -140,4 +162,6 @@ public class GameOverUIController : UIControllerBase
         color.a = endAlpha;
         GameOverText.color = color;
     }
+
+    public void BackToLobby()=> GameManager.Instance.ReturnToLobby();
 }

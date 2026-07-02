@@ -1,9 +1,7 @@
 public enum EPlanetID
 {
+    None,
     Lobby,
-    Lava,
-    Ice,
-    Forest,
-    Sand,
-    None
+    Volcanus,
+    Earth,
 }

@@ -24,44 +24,44 @@ public class FPSDisplay : MonoBehaviour
     }
     
 #if UNITY_EDITOR
-    void OnValidate()
-    {
-        if (fpsText == null)
-        {
-            // Try to find existing Text in children
-            fpsText = GetComponentInChildren<Text>();
-            if (fpsText == null)
-            {
-                // Ensure there's a Canvas
-                Canvas canvas = GetComponentInParent<Canvas>();
-                if (canvas == null)
-                {
-                    GameObject canvasObj = new GameObject("FPSCanvas", typeof(Canvas));
-                    canvas = canvasObj.GetComponent<Canvas>();
-                    canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                }
-
-                // Create the Text UI element
-                GameObject textObj = new GameObject("FPSText", typeof(Text));
-                textObj.transform.SetParent(canvas.transform, false);
-
-                fpsText = textObj.GetComponent<Text>();
-                fpsText.text = "FPS: 0";
-                fpsText.color = textColor;
-                fpsText.fontSize = fontSize;
-                // fpsText.font = Resources.GetBuiltinResource<Font>("Arial.ttf"); // not: can't work if u try build & spam console. pls switch Font
-
-                // Position at top-left
-                RectTransform rect = fpsText.GetComponent<RectTransform>();
-                rect.anchorMin = new Vector2(0, 1);
-                rect.anchorMax = new Vector2(0, 1);
-                rect.pivot = new Vector2(0, 1);
-                rect.anchoredPosition = new Vector2(10, -10);
-
-                Debug.Log("[FPSDisplay] Created new FPS Text UI element.");
-            }
-        }
-    }
+    // void OnValidate()
+    // {
+    //     if (fpsText == null)
+    //     {
+    //         // Try to find existing Text in children
+    //         fpsText = GetComponentInChildren<Text>();
+    //         if (fpsText == null)
+    //         {
+    //             // Ensure there's a Canvas
+    //             Canvas canvas = GetComponentInParent<Canvas>();
+    //             if (canvas == null)
+    //             {
+    //                 GameObject canvasObj = new GameObject("FPSCanvas", typeof(Canvas));
+    //                 canvas = canvasObj.GetComponent<Canvas>();
+    //                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+    //             }
+    //
+    //             // Create the Text UI element
+    //             GameObject textObj = new GameObject("FPSText", typeof(Text));
+    //             textObj.transform.SetParent(canvas.transform, false);
+    //
+    //             fpsText = textObj.GetComponent<Text>();
+    //             fpsText.text = "FPS: 0";
+    //             fpsText.color = textColor;
+    //             fpsText.fontSize = fontSize;
+    //             // fpsText.font = Resources.GetBuiltinResource<Font>("Arial.ttf"); // not: can't work if u try build & spam console. pls switch Font
+    //
+    //             // Position at top-left
+    //             RectTransform rect = fpsText.GetComponent<RectTransform>();
+    //             rect.anchorMin = new Vector2(0, 1);
+    //             rect.anchorMax = new Vector2(0, 1);
+    //             rect.pivot = new Vector2(0, 1);
+    //             rect.anchoredPosition = new Vector2(10, -10);
+    //
+    //             Debug.Log("[FPSDisplay] Created new FPS Text UI element.");
+    //         }
+    //     }
+    // }
 #endif
     
     // void OnGUI()
