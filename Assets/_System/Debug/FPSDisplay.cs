@@ -64,24 +64,24 @@ public class FPSDisplay : MonoBehaviour
     }
 #endif
     
-    void OnGUI()
-    {
-        if (!enable) return;
-        
-        int w = Screen.width, h = Screen.height;
-        guiStyle.alignment = TextAnchor.UpperLeft;
-        guiStyle.fontSize = h * 2 / 50;
-        guiStyle.normal.textColor = textColor;
-
-        float msec = deltaTime * 1000.0f;
-        float fps = 1.0f / deltaTime;
-        string text = string.Format("{0:0.0} ms ({1:0.} FPS)", msec, fps);
-
-        Rect rect = new Rect(10, 10, w, h * 2 * 0.01f);
-        GUI.Label(rect, text, guiStyle);
-
-        // Optional: update linked Text component
-        if (fpsText != null)
-            fpsText.text = text;
-    }
+    // void OnGUI()
+    // {
+    //     if (!enable) return;
+    //     
+    //     int w = Screen.width, h = Screen.height;
+    //     guiStyle.alignment = TextAnchor.UpperLeft;
+    //     guiStyle.fontSize = h * 2 / 50;
+    //     guiStyle.normal.textColor = textColor;
+    //
+    //     float msec = deltaTime * 1000.0f;
+    //     float fps = 1.0f / deltaTime;
+    //     string text = string.Format("{0:0.0} ms ({1:0.} FPS)", msec, fps);
+    //
+    //     Rect rect = new Rect(10, 10, w, h * 2 * 0.01f);
+    //     GUI.Label(rect, text, guiStyle);
+    //
+    //     // Optional: update linked Text component
+    //     if (fpsText != null)
+    //         fpsText.text = text;
+    // }
 }

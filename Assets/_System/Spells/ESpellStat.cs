@@ -19,8 +19,11 @@ public enum ESpellStat
     TickRate,           
 
     // Specifics
-    BounceCount,        
-    PierceCount,        
+    BounceCount,
+    PierceCount,
     CritChance,
-    CritDamage
+    CritDamage,
+
+    // Sustain
+    LifeStealChance
 }

@@ -84,6 +84,9 @@ public partial struct AreaAttackSystem : ISystem
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
         float3 playerPosition = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO.Position;
         var effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
+        float lifeStealConversion = SystemAPI.TryGetSingleton<LifeStealConfig>(out var lifeStealCfg)
+            ? lifeStealCfg.Conversion
+            : 0.075f;
 
         _destructibleLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
@@ -113,6 +116,9 @@ public partial struct AreaAttackSystem : ISystem
             SpellSourceLookup = _spellSourceLookup,
             BossLookup = _bossLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
+            ActiveSpellLookup = _activeSpellBufferLookup,
+            LifeStealConversion = lifeStealConversion,
+            PlayerEntity = playerEntity,
         };
 
         state.Dependency = job.ScheduleParallel(state.Dependency);
@@ -147,6 +153,10 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
         [ReadOnly] public ComponentLookup<Boss> BossLookup;
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
+
+        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        public float LifeStealConversion;
+        public Entity PlayerEntity;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity,
             ref AreaAttack areaAttack, in LocalToWorld localToWorld,
@@ -242,6 +252,23 @@ public partial struct AreaAttackSystem : ISystem
                         DatabaseIndex = spellSource.DatabaseIndex,
                         DamageAmount = damageDealt,
                     });
+
+                    // Life steal: a player area-attack hit rolls its FinalLifeStealChance to heal the player.
+                    if (spellSource.CasterEntity == PlayerEntity && LifeStealConversion > 0f
+                        && ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var playerSpells))
+                    {
+                        for (int li = 0; li < playerSpells.Length; li++)
+                        {
+                            if (playerSpells[li].DatabaseIndex != spellSource.DatabaseIndex)
+                                continue;
+
+                            float lsChance = playerSpells[li].FinalLifeStealChance;
+                            if (lsChance > 0f && random.NextFloat() < lsChance)
+                                ECB.AppendToBuffer(chunkIndex, PlayerEntity,
+                                    new LifeStealProcBufferElement { Heal = LifeStealConversion * damageDealt });
+                            break;
+                        }
+                    }
                 }
 
                 // Active effects (based on spell tags)

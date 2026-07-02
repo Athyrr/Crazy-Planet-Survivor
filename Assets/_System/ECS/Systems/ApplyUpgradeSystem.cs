@@ -394,6 +394,11 @@ public partial struct ApplyUpgradeSystem : ISystem
             case ECharacterStat.Luck:
                 playerCoreStats.Luck += value;
                 break;
+            case ECharacterStat.LifeStealChance:
+                playerCoreStats.LifeStealChance += value;
+                // Global life steal feeds each spell's cached FinalLifeStealChance → recalc spells.
+                needSpellUpdate = true;
+                break;
 
             // case ECharacterStat.BurnDamage:
             //     playerCoreStats.GlobalBurnDamageMultiplier += value;
@@ -471,6 +476,10 @@ public partial struct ApplyUpgradeSystem : ISystem
 
             case ESpellStat.Size:
                 spell.LocalSizeBonusMultiplier += value;
+                break;
+
+            case ESpellStat.LifeStealChance:
+                spell.LocalLifeStealChanceBonus += value;
                 break;
         }
 

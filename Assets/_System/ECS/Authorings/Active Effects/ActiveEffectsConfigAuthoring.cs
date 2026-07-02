@@ -1,34 +1,17 @@
+using _System.Settings;
 using Unity.Entities;
 using UnityEngine;
 
+/// <summary>
+/// Bakes the enemy-debuff rules (burn/stun/slow/knockback) and the status-effect VFX prefabs from the
+/// shared <see cref="CpCombatEffectsSettings"/> SO into the <see cref="ActiveEffectsConfig"/> and
+/// <see cref="ActiveEffectsVfxConfig"/> singletons. The SO is the single source of truth; rebake
+/// SC_Entity_Core after changing its values. Life steal lives in <see cref="LifeStealConfigAuthoring"/>.
+/// </summary>
 public class ActiveEffectsConfigAuthoring : MonoBehaviour
 {
-    [Header("Burn Rules")]
-    [Tooltip("Multiplier applied to the spell's damage to calculate burn damage. " +
-             "\n0.3 = Burn deals 30% of the spell damage.")]
-    public float DefaultBurnDamageRatio = 5f;
-
-    public float DefaultBurnDuration = 3f;
-
-    [Tooltip("How often the burn damage is applied." +
-             "\n0.5f = every 0.5 seconds.")]
-    public float DefaultBurnTickRate = 1f;
-
-    public GameObject BurnEffectPrefab;
-
-    [Header("Stun Rules")] public float DefaultStunDuration = 1.5f;
-    public GameObject StunEffectPrefab;
-
-    [Header("Slow Rules")]
-    [Tooltip(("Multiplier applied to the target's speed." +
-              "\n0.5f = -50% speed."))]
-    public float DefaultSlowMultiplier = 0.3f;
-
-    public float DefaultSlowDuration = 2.0f;
-    public GameObject SlowEffectPrefab;
-
-    [Header("Knockback Rules")] public float DefaultKnockbackForce = 15f;
-    public float DefaultKnockbackDuration = 0.3f;
+    [Tooltip("Shared combat effects settings SO. The debuff rules + VFX prefabs are baked from it.")]
+    public CpCombatEffectsSettings Settings;
 
     private class Baker : Baker<ActiveEffectsConfigAuthoring>
     {
@@ -36,26 +19,31 @@ public class ActiveEffectsConfigAuthoring : MonoBehaviour
         {
             var entity = GetEntity(TransformUsageFlags.None);
 
+            var s = authoring.Settings;
+            if (s != null)
+                DependsOn(s);
+
+            // Fall back to the design defaults if the SO is unassigned, so the bake never zeroes out.
             AddComponent(entity, new ActiveEffectsConfig
             {
-                BurnDamageRatio = authoring.DefaultBurnDamageRatio,
-                BurnDuration = authoring.DefaultBurnDuration,
-                BurnTickRate = authoring.DefaultBurnTickRate,
+                BurnDamageRatio = s != null ? s.BurnDamageRatio : 0.125f,
+                BurnDuration = s != null ? s.BurnDuration : 3f,
+                BurnTickRate = s != null ? s.BurnTickRate : 0.3f,
 
-                StunDuration = authoring.DefaultStunDuration,
+                StunDuration = s != null ? s.StunDuration : 1.5f,
 
-                BaseSlowMultiplier = authoring.DefaultSlowMultiplier,
-                SlowDuration = authoring.DefaultSlowDuration,
+                BaseSlowMultiplier = s != null ? s.SlowMultiplier : 2f,
+                SlowDuration = s != null ? s.SlowDuration : 3f,
 
-                KnockbackForce = authoring.DefaultKnockbackForce,
-                KnockbackDuration = authoring.DefaultKnockbackDuration,
+                KnockbackForce = s != null ? s.KnockbackForce : 50f,
+                KnockbackDuration = s != null ? s.KnockbackDuration : 0.5f,
             });
 
             AddComponentObject(entity, new ActiveEffectsVfxConfig
             {
-                BurnEffectPrefab = authoring.BurnEffectPrefab,
-                StunEffectPrefab = authoring.StunEffectPrefab,
-                SlowEffectPrefab = authoring.SlowEffectPrefab,
+                BurnEffectPrefab = s != null ? s.BurnEffectPrefab : null,
+                StunEffectPrefab = s != null ? s.StunEffectPrefab : null,
+                SlowEffectPrefab = s != null ? s.SlowEffectPrefab : null,
             });
         }
     }

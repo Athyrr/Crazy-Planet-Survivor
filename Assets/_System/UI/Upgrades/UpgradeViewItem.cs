@@ -377,6 +377,7 @@ public class UpgradeViewItem : MonoBehaviour,
             case ECharacterStat.CritChance: value = stats.CritChance; return true;
             case ECharacterStat.CritDamage: value = stats.CritDamage; return true;
             case ECharacterStat.Luck: value = stats.Luck; return true;
+            case ECharacterStat.LifeStealChance: value = stats.LifeStealChance; return true;
             default:
                 // Health / status stats (Burn, Slow, Stun…) are not tracked on CoreStats.
                 value = 0f;

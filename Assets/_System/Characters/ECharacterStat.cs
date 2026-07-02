@@ -37,4 +37,7 @@ public enum ECharacterStat
 
     /// <summary>Increases the chance of drawing rarer stat upgrades on level up.</summary>
     Luck = 31,
+
+    /// <summary>Chance per hit to life steal (heal a fraction of the damage dealt).</summary>
+    LifeStealChance = 32,
 }

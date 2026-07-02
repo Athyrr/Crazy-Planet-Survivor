@@ -173,6 +173,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 float critChanceAdd = coreStats.CritChance + spell.LocalCritChanceBonusPercent;
                 float critDmgAdd = 1f + coreStats.CritDamage + spell.LocalCritDamageBonus;
 
+                // Life steal proc chance (global + per-spell), clamped to 0..1 below
+                float lifeStealChanceAdd = coreStats.LifeStealChance + spell.LocalLifeStealChanceBonus;
+
                 // Spell modifier buffer
                 for (int j = 0; j < spellModifiers.Length; j++)
                 {
@@ -222,6 +225,10 @@ public partial struct SpellStatsCalculationSystem : ISystem
                             case ESpellStat.CritDamage:
                                 critDmgAdd += mod.Value;
                                 break;
+
+                            case ESpellStat.LifeStealChance:
+                                lifeStealChanceAdd += mod.Value;
+                                break;
                         }
                     }
                 }
@@ -254,6 +261,8 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
                 spell.FinalCritChance = math.clamp(critChanceAdd, 0f, 1f);
                 spell.FinalCritDamageMultiplier = math.max(1f, critDmgAdd);
+
+                spell.FinalLifeStealChance = math.clamp(lifeStealChanceAdd, 0f, 1f);
 
                 // Save
                 activeSpells[i] = spell;

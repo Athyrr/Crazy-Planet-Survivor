@@ -90,4 +90,10 @@ public struct CoreStats : IComponentData
     [Tooltip("Increases the chance of drawing rarer stat upgrades on level up (see CpRaritySettings luck curve).")]
     [UIStat("Luck", ECharacterStat.Luck, absolute: true)]
     public float Luck;
+
+    [Header("Sustain")]
+    [Tooltip("Chance per damaging hit to life steal (0.0 to 1.0). On proc, heals a fraction of the damage " +
+             "dealt and is rate-limited (see CpCombatEffectsSettings). Total = this + the spell's local bonus.")]
+    [UIStat("Life Steal", ECharacterStat.LifeStealChance)]
+    public float LifeStealChance;
 }

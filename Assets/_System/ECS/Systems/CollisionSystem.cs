@@ -103,6 +103,9 @@ public partial struct CollisionSystem : ISystem
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
 
         var effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
+        float lifeStealConversion = SystemAPI.TryGetSingleton<LifeStealConfig>(out var lifeStealCfg)
+            ? lifeStealCfg.Conversion
+            : 0.075f;
 
         _slowLookup.Update(ref state);
         _stunLookup.Update(ref state);
@@ -166,7 +169,9 @@ public partial struct CollisionSystem : ISystem
 
             ColliderLookup = _colliderLookup,
             BossLookup = _bossLookup,
-            LifetimeLookup = _lifetimeLookup
+            LifetimeLookup = _lifetimeLookup,
+            ActiveSpellLookup = _activeSpellBufferLookup,
+            LifeStealConversion = lifeStealConversion
         };
 
         JobHandle triggerHandle =
@@ -222,6 +227,9 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
         [ReadOnly] public ComponentLookup<Boss> BossLookup;
         public ComponentLookup<Lifetime> LifetimeLookup;
+
+        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        public float LifeStealConversion;
 
         private const double MultiHitDelay = 1f; // Delay before allowing another hit if collision stays.
 
@@ -405,6 +413,23 @@ public partial struct CollisionSystem : ISystem
                                 DatabaseIndex = spellSource.DatabaseIndex,
                                 DamageAmount = (int)damageDealt
                             });
+
+                            // Life steal: a player spell hit rolls its FinalLifeStealChance to heal the player.
+                            if (spellSource.CasterEntity == PlayerEntity && LifeStealConversion > 0f
+                                && ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var playerSpells))
+                            {
+                                for (int li = 0; li < playerSpells.Length; li++)
+                                {
+                                    if (playerSpells[li].DatabaseIndex != spellSource.DatabaseIndex)
+                                        continue;
+
+                                    float lsChance = playerSpells[li].FinalLifeStealChance;
+                                    if (lsChance > 0f && random.NextFloat() < lsChance)
+                                        ECB.AppendToBuffer(PlayerEntity,
+                                            new LifeStealProcBufferElement { Heal = LifeStealConversion * damageDealt });
+                                    break;
+                                }
+                            }
                         }
 
                         // Feedbacks

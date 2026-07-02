@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 504564905038885134}
   - component: {fileID: 7473641823754550623}
+  - component: {fileID: 4492131406172930918}
   m_Layer: 0
   m_Name: PF_ActiveEffectsRulesConfig
   m_TagString: Untagged
@@ -44,14 +45,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2bae444c1ad385d4a886d0ca15544249, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActiveEffectsConfigAuthoring
-  DefaultBurnDamageRatio: 0.125
-  DefaultBurnDuration: 3
-  DefaultBurnTickRate: 0.3
-  BurnEffectPrefab: {fileID: 3199540439946060812, guid: bfa5e1ad8aae47f4b9f353e36ebdf7aa, type: 3}
-  DefaultStunDuration: 1.5
-  StunEffectPrefab: {fileID: 817199253556409379, guid: 54fafe7f54f665344b39d6b2162c5549, type: 3}
-  DefaultSlowMultiplier: 2
-  DefaultSlowDuration: 3
-  SlowEffectPrefab: {fileID: 2080067106486110468, guid: ee2150003cc5bc146b7591e1727fe79c, type: 3}
-  DefaultKnockbackForce: 50
-  DefaultKnockbackDuration: 0.5
+  Settings: {fileID: 11400000, guid: 53a10a713f540524aba090f11a38f2b4, type: 2}
+--- !u!114 &4492131406172930918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4366280865654686526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c9bad19bf082784fb361f7bed099f59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LifeStealConfigAuthoring
+  Settings: {fileID: 11400000, guid: 53a10a713f540524aba090f11a38f2b4, type: 2}

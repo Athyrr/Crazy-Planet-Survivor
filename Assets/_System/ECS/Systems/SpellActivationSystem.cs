@@ -134,6 +134,8 @@ public partial struct SpellActivationSystem : ISystem
                         LocalCritChanceBonusPercent = 0f,
                         LocalCritDamageBonus = 0f,
 
+                        LocalLifeStealChanceBonus = 0f,
+
                         AddedTags = ESpellTag.None,
 
                         // final
@@ -149,6 +151,8 @@ public partial struct SpellActivationSystem : ISystem
                         FinalPierces = 0,
                         FinalCritChance = 0f,
                         FinalCritDamageMultiplier = 0f,
+
+                        FinalLifeStealChance = 0f,
 
                         TotalDamageDealt = 0f
                     });

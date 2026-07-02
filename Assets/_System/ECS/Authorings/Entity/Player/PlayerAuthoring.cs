@@ -78,6 +78,10 @@ public class PlayerAuthoring : MonoBehaviour
 
             AddBuffer<DamageBufferElement>(entity);
 
+            // Life steal: rate-limiter state + per-frame proc queue (filled by the damage systems).
+            AddComponent(entity, new LifeStealState());
+            AddBuffer<LifeStealProcBufferElement>(entity);
+
             AddComponent(entity, new CoreStats
             {
                 // Bases
@@ -106,6 +110,8 @@ public class PlayerAuthoring : MonoBehaviour
                 CritDamage = baseStats.CritDamage,
 
                 Luck = baseStats.Luck,
+
+                LifeStealChance = baseStats.LifeStealChance,
             });
 
             AddComponent<FinalStats>(entity);

@@ -71,6 +71,11 @@ public partial struct TickDamageSystem : ISystem
 
         // Tick damage processing — entry detection via OverlapSphere,
         // exit detection via distance check, damage via ECB
+        var playerEntity = SystemAPI.GetSingletonEntity<Player>();
+        float lifeStealConversion = SystemAPI.TryGetSingleton<LifeStealConfig>(out var lifeStealCfg)
+            ? lifeStealCfg.Conversion
+            : 0.075f;
+
         var processTickJob = new ProcessTickDamageJob
         {
             ECB = ecb.AsParallelWriter(),
@@ -83,6 +88,11 @@ public partial struct TickDamageSystem : ISystem
             DamageBufferLookup = _damageBufferLookup,
 
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
+
+            ActiveSpellLookup = _activeSpellBufferLookup,
+            LifeStealConversion = lifeStealConversion,
+            PlayerEntity = playerEntity,
+            Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
         };
         JobHandle processHandle = processTickJob.ScheduleParallel(state.Dependency);
 
@@ -91,7 +101,7 @@ public partial struct TickDamageSystem : ISystem
         {
             DamageEventsQueue = _damageEventsQueue,
             ActiveSpellLookup = _activeSpellBufferLookup,
-            PlayerEntity = SystemAPI.GetSingletonEntity<Player>(),
+            PlayerEntity = playerEntity,
         };
         state.Dependency = trackJob.Schedule(processHandle);
     }
@@ -115,6 +125,11 @@ public partial struct TickDamageSystem : ISystem
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
 
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
+
+        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        public float LifeStealConversion;
+        public Entity PlayerEntity;
+        public uint Seed;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity zoneEntity,
             ref DamageOnTick damageOnTick, in LocalToWorld zoneTransform,
@@ -237,6 +252,27 @@ public partial struct TickDamageSystem : ISystem
                     DatabaseIndex = spellSource.DatabaseIndex,
                     DamageAmount = (int)damage,
                 });
+
+                // Life steal: a player tick-zone hit rolls its FinalLifeStealChance to heal the player.
+                if (spellSource.CasterEntity == PlayerEntity && LifeStealConversion > 0f
+                    && ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var playerSpells))
+                {
+                    for (int li = 0; li < playerSpells.Length; li++)
+                    {
+                        if (playerSpells[li].DatabaseIndex != spellSource.DatabaseIndex)
+                            continue;
+
+                        float lsChance = playerSpells[li].FinalLifeStealChance;
+                        if (lsChance > 0f)
+                        {
+                            var lsRand = Random.CreateFromIndex(Seed ^ (uint)(target.Index + 1));
+                            if (lsRand.NextFloat() < lsChance)
+                                ECB.AppendToBuffer(chunkIndex, PlayerEntity,
+                                    new LifeStealProcBufferElement { Heal = LifeStealConversion * damage });
+                        }
+                        break;
+                    }
+                }
             }
         }
 

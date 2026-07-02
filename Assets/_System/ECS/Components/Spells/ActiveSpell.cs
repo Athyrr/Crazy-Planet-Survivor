@@ -28,6 +28,8 @@ public struct ActiveSpell : IBufferElementData
     public float LocalCritChanceBonusPercent;
     public float LocalCritDamageBonus;
 
+    public float LocalLifeStealChanceBonus;
+
     public ESpellTag AddedTags;
 
     // Final values (cache)
@@ -51,6 +53,9 @@ public struct ActiveSpell : IBufferElementData
 
     public float FinalCritChance;
     public float FinalCritDamageMultiplier;
+
+    // Total life-steal proc chance (global CoreStats.LifeStealChance + LocalLifeStealChanceBonus), clamped 0..1.
+    public float FinalLifeStealChance;
 
     // Tracking
     public float TotalDamageDealt;
