@@ -25,7 +25,7 @@ public class PlanetComponent : MonoBehaviour,
     private Vector3 _targetScale;
     private float _currentSpeed;
 
-    // Outline shown only on the playable planets while the planet-selection view is open.
+    // Outline shown only on the hovered playable planet while the planet-selection view is open.
     private Outline _outline;
 
     /// <summary>Only real, selectable planets are playable (decorative planets carry PlanetID.None / Lobby).</summary>
@@ -79,13 +79,13 @@ public class PlanetComponent : MonoBehaviour,
 
     private void HandleGameStateChanged(EGameState newState) => ApplyOutline(newState);
 
-    /// <summary>Outline is on only for playable planets while the planet-selection view is open.</summary>
+    /// <summary>Outline is on only for the hovered playable planet while the planet-selection view is open.</summary>
     private void ApplyOutline(EGameState state)
     {
         if (_outline == null)
             return;
 
-        bool shouldOutline = IsPlayable && state == EGameState.PlanetSelection;
+        bool shouldOutline = IsPlayable && state == EGameState.PlanetSelection && _isHovered;
         if (_outline.enabled != shouldOutline)
             _outline.enabled = shouldOutline;
     }
@@ -99,6 +99,10 @@ public class PlanetComponent : MonoBehaviour,
     private void HandleHoverChanged(EPlanetID planetID)
     {
         _isHovered = planetID == PlanetID;
+
+        if (GameManager.Instance != null)
+            ApplyOutline(GameManager.Instance.GetGameState());
+
         UpdateVisual();
     }
 

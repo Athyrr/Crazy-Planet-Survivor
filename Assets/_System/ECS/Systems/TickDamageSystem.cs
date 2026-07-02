@@ -21,6 +21,12 @@ public partial struct TickDamageSystem : ISystem
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
 
+    // Status-effect lookups — used only to decide add-vs-set; the ECB does the write.
+    private ComponentLookup<SlowEffect> _slowLookup;
+    private ComponentLookup<StunEffect> _stunLookup;
+    private ComponentLookup<BurnEffect> _burnLookup;
+    private ComponentLookup<ActiveKnockback> _knockbackLookup;
+
     private EntityQuery _playerQuery;
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -29,6 +35,7 @@ public partial struct TickDamageSystem : ISystem
     {
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<Player>();
+        state.RequireForUpdate<ActiveEffectsConfig>();
 
         _playerQuery = state.GetEntityQuery(ComponentType.ReadOnly<Player>());
 
@@ -37,6 +44,11 @@ public partial struct TickDamageSystem : ISystem
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
+
+        _slowLookup = state.GetComponentLookup<SlowEffect>(true);
+        _stunLookup = state.GetComponentLookup<StunEffect>(true);
+        _burnLookup = state.GetComponentLookup<BurnEffect>(true);
+        _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(true);
 
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
@@ -68,6 +80,12 @@ public partial struct TickDamageSystem : ISystem
         _destroyFlagLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
         _activeSpellBufferLookup.Update(ref state);
+        _slowLookup.Update(ref state);
+        _stunLookup.Update(ref state);
+        _burnLookup.Update(ref state);
+        _knockbackLookup.Update(ref state);
+
+        var effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
 
         // Tick damage processing — entry detection via OverlapSphere,
         // exit detection via distance check, damage via ECB
@@ -93,6 +111,12 @@ public partial struct TickDamageSystem : ISystem
             LifeStealConversion = lifeStealConversion,
             PlayerEntity = playerEntity,
             Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
+
+            EffectsConfig = effectsConfig,
+            SlowLookup = _slowLookup,
+            StunLookup = _stunLookup,
+            BurnLookup = _burnLookup,
+            KnockbackLookup = _knockbackLookup,
         };
         JobHandle processHandle = processTickJob.ScheduleParallel(state.Dependency);
 
@@ -130,6 +154,12 @@ public partial struct TickDamageSystem : ISystem
         public float LifeStealConversion;
         public Entity PlayerEntity;
         public uint Seed;
+
+        [ReadOnly] public ActiveEffectsConfig EffectsConfig;
+        [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
+        [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
+        [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
+        [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity zoneEntity,
             ref DamageOnTick damageOnTick, in LocalToWorld zoneTransform,
@@ -247,6 +277,11 @@ public partial struct TickDamageSystem : ISystem
                     ShakeSource = EDamageShakeSource.DoT,
                 });
 
+                // Apply/refresh status effects from the zone's tags each tick, mirroring the
+                // contact-damage path (CollisionSystem). Without this, DoT zones dealt raw damage
+                // but never applied burn/slow/stun/knockback.
+                ApplyTickEffects(chunkIndex, target, zonePos, damageOnTick.Tags, damage);
+
                 DamageEventsWriter.Enqueue(new SpellDamageEvent
                 {
                     DatabaseIndex = spellSource.DatabaseIndex,
@@ -272,6 +307,95 @@ public partial struct TickDamageSystem : ISystem
                         }
                         break;
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Applies/refreshes the status effects encoded in the zone's tags to a single target.
+        /// Mirrors the effect logic in CollisionSystem: reuses the baked (disabled) effect components
+        /// when present, otherwise adds them. Knockback pushes away from the zone centre.
+        /// </summary>
+        private void ApplyTickEffects(int chunkIndex, Entity target, float3 zonePos, ESpellTag tags, float damage)
+        {
+            if ((tags & ESpellTag.Slow) != 0)
+            {
+                var slow = new SlowEffect
+                {
+                    SpeedReductionMultiplier = EffectsConfig.BaseSlowMultiplier,
+                    DurationLeft = EffectsConfig.SlowDuration
+                };
+
+                if (SlowLookup.HasComponent(target))
+                {
+                    ECB.SetComponent(chunkIndex, target, slow);
+                    ECB.SetComponentEnabled<SlowEffect>(chunkIndex, target, true);
+                }
+                else
+                {
+                    ECB.AddComponent(chunkIndex, target, slow);
+                }
+            }
+
+            if ((tags & ESpellTag.Stun) != 0)
+            {
+                var stun = new StunEffect { DurationLeft = EffectsConfig.StunDuration };
+
+                if (StunLookup.HasComponent(target))
+                {
+                    ECB.SetComponent(chunkIndex, target, stun);
+                    ECB.SetComponentEnabled<StunEffect>(chunkIndex, target, true);
+                }
+                else
+                {
+                    ECB.AddComponent(chunkIndex, target, stun);
+                }
+            }
+
+            if ((tags & ESpellTag.Burn) != 0)
+            {
+                var burn = new BurnEffect
+                {
+                    DamageOnTick = EffectsConfig.BurnDamageRatio * damage,
+                    TickRate = EffectsConfig.BurnTickRate,
+                    TickTimer = 0f,
+                    RemainingTime = EffectsConfig.BurnDuration
+                };
+
+                if (BurnLookup.HasComponent(target))
+                {
+                    ECB.SetComponent(chunkIndex, target, burn);
+                    ECB.SetComponentEnabled<BurnEffect>(chunkIndex, target, true);
+                }
+                else
+                {
+                    ECB.AddComponent(chunkIndex, target, burn);
+                }
+            }
+
+            if ((tags & ESpellTag.Knockback) != 0 && TransformLookup.HasComponent(target))
+            {
+                float3 targetPos = TransformLookup[target].Position;
+                float3 pushDir = targetPos - zonePos;
+                float distSq = math.lengthsq(pushDir);
+                pushDir = distSq > 0.001f ? math.normalize(pushDir) : new float3(0f, 0f, 1f);
+
+                var kbData = new ActiveKnockback
+                {
+                    Direction = pushDir,
+                    InitialForce = EffectsConfig.KnockbackForce,
+                    DurationLeft = EffectsConfig.KnockbackDuration,
+                    MaxDuration = EffectsConfig.KnockbackDuration
+                };
+
+                if (KnockbackLookup.HasComponent(target))
+                {
+                    ECB.SetComponent(chunkIndex, target, kbData);
+                    ECB.SetComponentEnabled<ActiveKnockback>(chunkIndex, target, true);
+                }
+                else
+                {
+                    ECB.AddComponent(chunkIndex, target, kbData);
                 }
             }
         }
