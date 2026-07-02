@@ -47,6 +47,16 @@ public partial class CameraTargetUpdaterSystem : SystemBase
         bool playerChanged = playerEntity != _lastPlayerEntity;
         _lastPlayerEntity = playerEntity;
 
+        // A character swap preserves the player's position/rotation, so the camera should keep its
+        // current orientation rather than re-seed to world up (which would snap the angle). The tag
+        // is only relevant on the frame the swapped player first appears; consume it right after.
+        bool preserveOrientation = false;
+        if (playerChanged && EntityManager.HasComponent<PreserveCameraOrientation>(playerEntity))
+        {
+            preserveOrientation = true;
+            EntityManager.RemoveComponent<PreserveCameraOrientation>(playerEntity);
+        }
+
         LocalTransform playerTransform = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO;
 
         float3 playerPos = playerTransform.Position;
@@ -59,7 +69,7 @@ public partial class CameraTargetUpdaterSystem : SystemBase
         // The target transform stays at the planet center (0,0,0) to act as a pivot
         _cameraTargetTransform.position = Vector3.zero;
 
-        Vector3 currentUp = playerChanged ? Vector3.up : _cameraTargetTransform.up;
+        Vector3 currentUp = (playerChanged && !preserveOrientation) ? Vector3.up : _cameraTargetTransform.up;
         if (math.abs(math.dot(toCenter, (float3)currentUp)) > 0.99f) currentUp = math.rotate(playerTransform.Rotation, new float3(0, 0, 1));
 
         _cameraTargetTransform.rotation = Quaternion.LookRotation(toCenter, currentUp);

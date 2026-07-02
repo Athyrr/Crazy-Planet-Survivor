@@ -108,3 +108,10 @@ public struct ForceSpawnPosition : IComponentData
     public float3 Position;
     public quaternion Rotation;
 }
+
+/// <summary>
+/// Marks a freshly spawned player as coming from a character swap (position/rotation preserved),
+/// so the camera keeps its current orientation instead of re-seeding the 'up' vector to world up.
+/// Consumed (removed) by the camera system on the first frame it sees the new player.
+/// </summary>
+public struct PreserveCameraOrientation : IComponentData { }

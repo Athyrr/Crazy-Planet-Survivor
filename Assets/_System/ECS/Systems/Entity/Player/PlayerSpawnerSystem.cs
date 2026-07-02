@@ -59,6 +59,10 @@ public partial struct PlayerSpawnerSystem : ISystem
         float3 position = float3.zero;
         quaternion rot = quaternion.identity;
 
+        // A character swap preserves the previous player's position/rotation. Tag the new player so
+        // the camera keeps its current orientation instead of snapping its 'up' back to world up.
+        bool preserveCameraOrientation = false;
+
         if (SystemAPI.TryGetSingletonEntity<ForceSpawnPosition>(out var forceEntity))
         {
             var force = SystemAPI.GetComponent<ForceSpawnPosition>(forceEntity);
@@ -66,6 +70,7 @@ public partial struct PlayerSpawnerSystem : ISystem
             rot = force.Rotation;
 
             state.EntityManager.DestroyEntity(forceEntity);
+            preserveCameraOrientation = true;
         }
         else if (SystemAPI.TryGetSingleton<PlayerStart>(out PlayerStart startPoint))
         {
@@ -88,6 +93,9 @@ public partial struct PlayerSpawnerSystem : ISystem
             Rotation = rot,
             Scale = 1
         });
+
+        if (preserveCameraOrientation)
+            state.EntityManager.AddComponent<PreserveCameraOrientation>(playerEntity);
 
         if (SystemAPI.TryGetSingleton<EquippedAmulet>(out var equippedAmulet) && equippedAmulet.DbIndex > -1)
         {

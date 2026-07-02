@@ -24,6 +24,10 @@ public class PlanetComponent : MonoBehaviour,
     private Vector3 _baseScale;
     private Vector3 _targetScale;
     private float _currentSpeed;
+    // Base scale is captured exactly once. The planet gets deactivated (while scaled up) when a run
+    // starts and reactivated on return, so recapturing on every OnEnable would bake the inflated
+    // selection scale in as the new base and the planet would stay permanently scaled up.
+    private bool _baseScaleCaptured;
 
     // Outline shown only on the hovered playable planet while the planet-selection view is open.
     private Outline _outline;
@@ -34,7 +38,7 @@ public class PlanetComponent : MonoBehaviour,
     private void Awake()
     {
         _controller = FindFirstObjectByType<PlanetSelectionUIController>();
-        _baseScale = transform.localScale;
+        CaptureBaseScale();
         _targetScale = _baseScale;
         _currentSpeed = IdleSpeed;
 
@@ -60,9 +64,25 @@ public class PlanetComponent : MonoBehaviour,
             ApplyOutline(GameManager.Instance.GetGameState());
         }
 
-        _baseScale = transform.localScale;
+        CaptureBaseScale();
+
+        // Re-entering the view starts fresh: no planet is hovered/selected yet, so snap back to the
+        // base scale in case this planet was deactivated mid-selection (e.g. it was the one played).
+        _isSelected = false;
+        _isHovered = false;
         _targetScale = _baseScale;
+        transform.localScale = _baseScale;
         UpdateVisual();
+    }
+
+    /// <summary>Captures the authored base scale once; subsequent calls are no-ops.</summary>
+    private void CaptureBaseScale()
+    {
+        if (_baseScaleCaptured)
+            return;
+
+        _baseScale = transform.localScale;
+        _baseScaleCaptured = true;
     }
 
     private void OnDisable()
