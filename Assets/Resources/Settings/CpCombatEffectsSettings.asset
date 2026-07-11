@@ -20,8 +20,51 @@ MonoBehaviour:
   _stunDuration: 1.5
   _slowMultiplier: 2
   _slowDuration: 3
-  _knockbackForce: 50
-  _knockbackDuration: 0.5
+  _knockbackForce: 25
+  _knockbackDuration: 0.25
+  _knockbackForceCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0.04500653
+      outSlope: 0.04500653
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.14956796
+    - serializedVersion: 3
+      time: 0.85
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 136
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.92
+      value: 0.8
+      inSlope: -5.333334
+      outSlope: -5.333334
+      tangentMode: 136
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 136
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  _knockbackCurveResolution: 32
   _burnEffectPrefab: {fileID: 3199540439946060812, guid: bfa5e1ad8aae47f4b9f353e36ebdf7aa, type: 3}
   _stunEffectPrefab: {fileID: 817199253556409379, guid: 54fafe7f54f665344b39d6b2162c5549, type: 3}
   _slowEffectPrefab: {fileID: 2080067106486110468, guid: ee2150003cc5bc146b7591e1727fe79c, type: 3}

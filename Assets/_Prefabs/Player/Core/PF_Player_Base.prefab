@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 624156594545174874}
   - component: {fileID: 7867096471209253954}
   - component: {fileID: 5277592717147027146}
+  - component: {fileID: 310579523702815971}
   m_Layer: 0
   m_Name: PF_Player_Base
   m_TagString: Untagged
@@ -205,6 +206,49 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 644c6526ee1b4f29908dddaa90cc3c93, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DestructibleAuthoring
+--- !u!114 &310579523702815971
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5009445124166355485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 761fde624644c044e8a63e1bb5748b8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DashAuthoring
+  Distance: 6
+  Duration: 0.15
+  Radius: 0.5
+  PathSampleCount: 8
+  GlobalCooldown: 0.2
+  IFrames: 1
+  MotionCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  CurveResolution: 32
 --- !u!1001 &4486681620804546828
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -219,17 +219,18 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
 
     private static string FormatModifier(AmuletModifier mod)
     {
+        // Resolve the human-readable target name (already humanized / overridden per branch).
         string target;
         if (mod.CharacterStat != ECharacterStat.None)
-            target = mod.CharacterStat.ToString();
+            target = StatsFormatUtils.StatDisplayName(mod.CharacterStat);
         else if (mod.SpellStat != ESpellStat.None)
-            target = mod.SpellStat.ToString();
+            target = StatsFormatUtils.StatDisplayName(mod.SpellStat);
         else if (mod.SpellTags != ESpellTag.None)
-            target = mod.SpellTags.ToString();
+            target = StatsFormatUtils.Humanize(mod.SpellTags.ToString());
         else if (mod.SpellID != ESpellID.None)
-            target = mod.SpellID.ToString();
+            target = StatsFormatUtils.Humanize(mod.SpellID.ToString());
         else
-            target = mod.UpgradeType.ToString();
+            target = StatsFormatUtils.Humanize(mod.UpgradeType.ToString());
 
         // Centralized formatting: percent/flat rule comes from the stat (Health is always flat),
         // sign + color (green positive / red negative) are handled by StatsFormatUtils.
@@ -241,7 +242,7 @@ public class AmuletShopDetailView : ShopDetailViewBase<AmuletSO>
         else
             formattedValue = StatsFormatUtils.FormatValue(mod.Value, isPercentage: false);
 
-        return $"{formattedValue} {StatsFormatUtils.Humanize(target)}";
+        return $"{formattedValue} {target}";
     }
 
     public void Clear()

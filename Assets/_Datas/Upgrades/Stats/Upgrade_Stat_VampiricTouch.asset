@@ -13,18 +13,18 @@ MonoBehaviour:
   m_Name: Upgrade_Stat_VampiricTouch
   m_EditorClassIdentifier: Assembly-CSharp::StatUpgradeSO
   DisplayName: Vampiric Touch
-  Description: Take less, last longer.
+  Description: Each blow drinks life.
   Icon: {fileID: 0}
   UpgradeType: 0
   ModifierStrategy: 1
   Value: 0
-  Rarity: 1
+  Rarity: 3
   Modifiers:
-  - CharacterStat: 27
-    Strategy: 0
-    Value: 3
-  - CharacterStat: 4
+  - CharacterStat: 32
     Strategy: 1
-    Value: -0.06
+    Value: 0.15
+  - CharacterStat: 13
+    Strategy: 1
+    Value: 0.1
   RequiredSpellTag: 0
   _legacyCharacterStat: 0

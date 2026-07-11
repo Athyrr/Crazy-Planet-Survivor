@@ -40,4 +40,10 @@ public enum ECharacterStat
 
     /// <summary>Chance per hit to life steal (heal a fraction of the damage dealt).</summary>
     LifeStealChance = 32,
+
+    /// <summary>Number of dash charges the entity can store.</summary>
+    DashCount = 33,
+
+    /// <summary>Recharge time (seconds) for a single dash charge.</summary>
+    DashCooldown = 34,
 }

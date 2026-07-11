@@ -19,6 +19,7 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<DamageOnContact> _damageOnContactLookup;
     private ComponentLookup<DestroyOnContact> _destroyOnContactLookup;
     private ComponentLookup<Invincible> _invincibleLookup;
+    private ComponentLookup<DashIFrames> _dashIFramesLookup;
     private BufferLookup<HitEntityMemory> _hitMemoryLookup;
 
     private ComponentLookup<Bounce> _ricochetLookup;
@@ -66,6 +67,7 @@ public partial struct CollisionSystem : ISystem
         _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
         _destroyOnContactLookup = state.GetComponentLookup<DestroyOnContact>(true);
         _invincibleLookup = state.GetComponentLookup<Invincible>(true);
+        _dashIFramesLookup = state.GetComponentLookup<DashIFrames>(true);
         _hitMemoryLookup = state.GetBufferLookup<HitEntityMemory>(false);
 
         _ricochetLookup = state.GetComponentLookup<Bounce>(false);
@@ -116,6 +118,7 @@ public partial struct CollisionSystem : ISystem
         _damageOnContactLookup.Update(ref state);
         _destroyOnContactLookup.Update(ref state);
         _invincibleLookup.Update(ref state);
+        _dashIFramesLookup.Update(ref state);
         _hitMemoryLookup.Update(ref state);
         _ricochetLookup.Update(ref state);
         _pierceLookup.Update(ref state);
@@ -157,6 +160,7 @@ public partial struct CollisionSystem : ISystem
 
             HitMemoryLookup = _hitMemoryLookup,
             InvincibleLookup = _invincibleLookup,
+            DashIFramesLookup = _dashIFramesLookup,
             ExplodeOnContactLookup = _explodeLookup,
 
             SlowLookup = _slowLookup,
@@ -207,6 +211,7 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
         [ReadOnly] public ComponentLookup<DestroyOnContact> DestroyOnContactLookup;
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
+        [ReadOnly] public ComponentLookup<DashIFrames> DashIFramesLookup;
 
         [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
@@ -289,8 +294,17 @@ public partial struct CollisionSystem : ISystem
 
                 if (canDealDamage)
                 {
+                    // Dash i-frames: a target mid-dash with invincibility enabled ignores this hit.
+                    bool dashInvincible = DashIFramesLookup.HasComponent(target)
+                                          && DashIFramesLookup.IsComponentEnabled(target);
+
+                    // An immune target lets the damager pass through untouched: no damage, and (below)
+                    // no destroy/explode either — so a dash's reflect can catch enemy projectiles instead
+                    // of them being consumed on contact with the invincible player.
+                    bool targetImmune = InvincibleLookup.HasComponent(target) || dashInvincible;
+
                     // todo let target receive damge even if invincible. Consume damage on Health system and avoid health loss instead
-                    if (!InvincibleLookup.HasComponent(target))
+                    if (!targetImmune)
                     {
                         var random = Random.CreateFromIndex((Seed ^ ((uint)entityA.Index * 0x9E3779B1u) ^ ((uint)entityB.Index * 0x85EBCA77u)) | 1u);
 
@@ -436,7 +450,8 @@ public partial struct CollisionSystem : ISystem
                         ApplyFeedbacks(target);
                     }
 
-                    if (ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
+                    if (!dashInvincible &&
+                        ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
                         ExplodeOnContactLookup.IsComponentEnabled(damagerEntity))
                     {
                         var random = Random.CreateFromIndex((Seed ^ ((uint)entityA.Index * 0x9E3779B1u) ^ ((uint)entityB.Index * 0x85EBCA77u)) | 1u);
@@ -450,9 +465,12 @@ public partial struct CollisionSystem : ISystem
                             isCrit, ECB);
                     }
 
-                    bool shouldDestroy = DestroyOnContactLookup.HasComponent(damagerEntity);
+                    // Only a dash's i-frames let the projectile pass through unharmed (so the dash's
+                    // reflect can catch it). The debug Invincible tag still destroys projectiles on
+                    // contact as before — it only cancels damage, not the impact.
+                    bool shouldDestroy = !dashInvincible && DestroyOnContactLookup.HasComponent(damagerEntity);
 
-                    if (BounceLookup.HasComponent(damagerEntity))
+                    if (!dashInvincible && BounceLookup.HasComponent(damagerEntity))
                     {
                         var bounce = BounceLookup[damagerEntity];
                         if (bounce.RemainingBounces > 0)
@@ -488,7 +506,7 @@ public partial struct CollisionSystem : ISystem
                         }
                     }
 
-                    else if (PierceLookup.HasComponent(damagerEntity))
+                    else if (!dashInvincible && PierceLookup.HasComponent(damagerEntity))
                     {
                         var pierce = PierceLookup[damagerEntity];
                         if (pierce.RemainingPierces > 0)

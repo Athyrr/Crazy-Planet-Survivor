@@ -30,7 +30,10 @@ public partial struct PlayerSpawnerSystem : ISystem
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
             return;
 
-        if (gameState.State != EGameState.Lobby && gameState.State != EGameState.Running)
+        // RunStarting is included so the player is visible on the planet during the intro window.
+        if (gameState.State != EGameState.Lobby
+            && gameState.State != EGameState.Running
+            && gameState.State != EGameState.RunStarting)
             return;
 
         if (!SystemAPI.TryGetSingleton<SelectedCharacter>(out SelectedCharacter selection))

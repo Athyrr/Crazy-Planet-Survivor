@@ -9,7 +9,7 @@ using UnityEditor;
 #endif
 using Random = UnityEngine.Random;
 
-[ExecuteAlways]
+// [ExecuteAlways]
 public class FloatingNumberFeedbackManager : MonoBehaviour, IDisposable
 {
     [Header("Damage Colors")] public Color BaseDamageColor = Color.white;
@@ -177,14 +177,14 @@ public class FloatingNumberFeedbackManager : MonoBehaviour, IDisposable
             return;
 
 #if UNITY_EDITOR
-        // if (!Application.isPlaying && world != _lastWorld)
-        // {
-        //     _entityManager = world.EntityManager;
-        //     DisposeQueries();
-        //     _damageFeedbackQuery = _entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
-        //     _healFeedbackQuery = _entityManager.CreateEntityQuery(typeof(HealFeedbackRequest));
-        //     _lastWorld = world;
-        // }
+        if (!Application.isPlaying && world != _lastWorld)
+        {
+            _entityManager = world.EntityManager;
+            DisposeQueries();
+            _damageFeedbackQuery = _entityManager.CreateEntityQuery(typeof(DamageFeedbackRequest));
+            _healFeedbackQuery = _entityManager.CreateEntityQuery(typeof(HealFeedbackRequest));
+            _lastWorld = world;
+        }
 #endif
 
         // Process damage feedback

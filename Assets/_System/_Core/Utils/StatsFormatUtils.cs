@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using _System.Settings;
@@ -9,10 +12,12 @@ using _System.Settings;
 ///
 /// Conventions:
 /// <list type="bullet">
-/// <item>Positive (and zero) values are shown in <see cref="PositiveColor"/> (green), negatives in <see cref="NegativeColor"/> (red).</item>
-/// <item>Percentage stats always keep their '%', including 0% (which stays green).</item>
+/// <item>Positive values are shown in <see cref="PositiveColor"/> (green) with no leading '+';
+/// negatives in <see cref="NegativeColor"/> (red) keeping their '-'.</item>
+/// <item>Zero values are shown in <see cref="ZeroColor"/> (white).</item>
+/// <item>Percentage stats always keep their '%', including 0% (which is white).</item>
 /// <item>Health stats (MaxHealth / Health / HealthRegen) and count stats (Pierce / Bounce / Amount)
-/// are always flat values (+X / -X), never percentages.</item>
+/// are always flat values (X / -X), never percentages.</item>
 /// </list>
 /// </summary>
 public static class StatsFormatUtils
@@ -25,6 +30,9 @@ public static class StatsFormatUtils
 
     /// <summary>Neutral (grey) rich-text color, used for the "before" side of a before → after preview.</summary>
     public static string NeutralColor => "#" + ColorUtility.ToHtmlStringRGB(CpUISettings.LabelColor);
+
+    /// <summary>Rich-text color for a zero value (white) — neither a bonus nor a malus.</summary>
+    public static string ZeroColor => "#" + ColorUtility.ToHtmlStringRGB(Color.white);
 
     // ----------------------------------------------------------------------------------
     // Naming
@@ -39,6 +47,49 @@ public static class StatsFormatUtils
         return Regex.Replace(camelCase, "(\\B[A-Z])", " $1");
     }
 
+    // Cached ECharacterStat -> UIStat display label, read once from the CoreStats fields.
+    private static Dictionary<ECharacterStat, string> _statLabels;
+
+    /// <summary>
+    /// Display name for a character stat: the <see cref="UIStatAttribute.DisplayName"/> declared on the
+    /// matching <see cref="CoreStats"/> field (humanized), or the humanized enum/property name when the
+    /// stat carries no <see cref="UIStatAttribute"/>.
+    /// </summary>
+    public static string StatDisplayName(ECharacterStat stat)
+    {
+        _statLabels ??= BuildStatLabels();
+        string label = _statLabels.TryGetValue(stat, out var l) && !string.IsNullOrEmpty(l)
+            ? l
+            : stat.ToString();
+        return Humanize(label);
+    }
+
+    /// <summary>
+    /// Display name for a spell stat. Reuses the character-stat label when an identically-named
+    /// counterpart exists (so LifeStealChance / Damage / CritChance share one display-name source);
+    /// otherwise falls back to the humanized property name.
+    /// </summary>
+    public static string StatDisplayName(ESpellStat stat)
+    {
+        if (Enum.TryParse<ECharacterStat>(stat.ToString(), out var charStat) && charStat != ECharacterStat.None)
+            return StatDisplayName(charStat);
+
+        return Humanize(stat.ToString());
+    }
+
+    /// <summary>Reads the UIStat display labels off the CoreStats fields into a lookup keyed by stat.</summary>
+    private static Dictionary<ECharacterStat, string> BuildStatLabels()
+    {
+        var map = new Dictionary<ECharacterStat, string>();
+        foreach (var field in typeof(CoreStats).GetFields(BindingFlags.Public | BindingFlags.Instance))
+        {
+            var attr = field.GetCustomAttribute<UIStatAttribute>();
+            if (attr != null && attr.Stat != ECharacterStat.None)
+                map[attr.Stat] = attr.DisplayName;
+        }
+        return map;
+    }
+
     // ----------------------------------------------------------------------------------
     // Stat classification (single source of truth for percent vs flat)
     // ----------------------------------------------------------------------------------
@@ -51,9 +102,13 @@ public static class StatsFormatUtils
     public static bool IsCountStat(ECharacterStat stat)
         => stat is ECharacterStat.PierceCount or ECharacterStat.BounceCount or ECharacterStat.Amount or ECharacterStat.Luck;
 
-    /// <summary>True when the character stat is displayed as a percentage (everything but health + counts).</summary>
+    /// <summary>Dash stats are absolute values (a charge count and a cooldown in seconds), never percentages.</summary>
+    public static bool IsDashStat(ECharacterStat stat)
+        => stat is ECharacterStat.DashCount or ECharacterStat.DashCooldown;
+
+    /// <summary>True when the character stat is displayed as a percentage (everything but health + counts + dash).</summary>
     public static bool IsPercentStat(ECharacterStat stat)
-        => !IsHealthStat(stat) && !IsCountStat(stat);
+        => !IsHealthStat(stat) && !IsCountStat(stat) && !IsDashStat(stat);
 
     /// <summary>True when the spell stat is displayed as a percentage (everything but the count stats).</summary>
     public static bool IsPercentStat(ESpellStat stat)
@@ -63,17 +118,20 @@ public static class StatsFormatUtils
     // Low-level signed formatting
     // ----------------------------------------------------------------------------------
 
-    /// <summary>Signed percentage from a ratio: 0.1 -> "+10%", -0.2 -> "-20%", 0 -> "0%".</summary>
+    /// <summary>Percentage from a ratio, no leading '+': 0.1 -> "10%", -0.2 -> "-20%", 0 -> "0" (no '%').</summary>
     public static string SignedPercent(float ratio)
     {
-        float pct = ratio * 100f;
-        return (pct >= 0f ? "+" : "") + pct.ToString("0") + "%";
+        string s = (ratio * 100f).ToString("0");
+        if (s == "-0") s = "0"; // avoid a "-0%" from a tiny negative that rounds to zero
+        return s == "0" ? s : s + "%"; // a zero value drops the '%' and shows just "0"
     }
 
-    /// <summary>Signed flat value: 3 -> "+3", -2 -> "-2", 0 -> "0".</summary>
+    /// <summary>Flat value, no leading '+': 3 -> "3", -2 -> "-2", 0 -> "0".</summary>
     public static string SignedFlat(float value)
     {
-        return (value >= 0f ? "+" : "") + value.ToString("0.##");
+        string s = value.ToString("0.##");
+        if (s == "-0") s = "0";
+        return s;
     }
 
     /// <summary>Formats a value as either a signed percentage or a signed flat number.</summary>
@@ -87,29 +145,46 @@ public static class StatsFormatUtils
     // ----------------------------------------------------------------------------------
 
     /// <summary>
-    /// Wraps text in a rich-text color tag based on the numeric value: green for >= 0
-    /// (including 0 / 0%), red for negatives. Prefer this when the numeric value is available.
+    /// Wraps text in a rich-text color tag based on the numeric value: green for &gt; 0,
+    /// white for exactly 0, red for negatives. Prefer this when the numeric value is available.
     /// </summary>
     public static string Colorize(string text, float value)
     {
         if (string.IsNullOrEmpty(text))
             return text;
 
-        string color = value < 0f ? NegativeColor : PositiveColor;
+        string color = value < 0f ? NegativeColor : value > 0f ? PositiveColor : ZeroColor;
         return $"<color={color}>{text}</color>";
     }
 
     /// <summary>
-    /// Wraps text in a color tag based on its leading sign. A leading '-' is red, everything else
-    /// (including an unsigned "0%") is green. Use when only the formatted string is available.
+    /// Wraps text in a color tag based on its leading sign: a leading '-' is red, a value that reads
+    /// as zero ("0", "0%", ...) is white, everything else is green. Use when only the formatted
+    /// string is available; prefer <see cref="Colorize"/> when the numeric value is known.
     /// </summary>
     public static string ColorizeBySign(string formatted)
     {
         if (string.IsNullOrEmpty(formatted))
             return formatted;
 
-        string color = formatted.StartsWith("-") ? NegativeColor : PositiveColor;
+        string color = formatted.StartsWith("-") ? NegativeColor
+            : RepresentsZero(formatted) ? ZeroColor
+            : PositiveColor;
         return $"<color={color}>{formatted}</color>";
+    }
+
+    /// <summary>True when the string's numeric part is entirely zeros (e.g. "0", "0%", "0.0/s").</summary>
+    private static bool RepresentsZero(string formatted)
+    {
+        bool hasDigit = false;
+        foreach (char c in formatted)
+        {
+            if (c >= '1' && c <= '9')
+                return false;
+            if (c == '0')
+                hasDigit = true;
+        }
+        return hasDigit;
     }
 
     /// <summary>Wraps text in the neutral grey color (used for the "before" value of a preview).</summary>
@@ -133,7 +208,7 @@ public static class StatsFormatUtils
     /// </summary>
     public static string FormatStatBeforeAfter(ECharacterStat stat, float before, float after)
     {
-        bool absolute = IsHealthStat(stat) || stat == ECharacterStat.Luck;
+        bool absolute = IsHealthStat(stat) || stat == ECharacterStat.Luck || IsDashStat(stat);
         bool percent = !absolute && IsPercentStat(stat);
 
         string beforeStr, afterStr;

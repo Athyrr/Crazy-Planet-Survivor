@@ -1,9 +1,9 @@
 using System;
 using System.Collections;
 using Unity.Entities;
-using Unity.Entities.Serialization;
-using Unity.Scenes;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 [DefaultExecutionOrder(-100)]
@@ -22,6 +22,18 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private float _minLoadingTime = 1.0f;
 
+    [Tooltip("Hard cap (seconds) before a stuck scene load bails out instead of hanging forever.")]
+    [SerializeField]
+    private float _loadTimeout = 30.0f;
+
+    [Tooltip(
+        "Intro delay (seconds) after the loading screen hides before a run actually starts. "
+            + "The planet and player are shown during this window (arrival animation / intro text) "
+            + "while enemies and the run timer stay frozen. 0 starts the run immediately."
+    )]
+    [SerializeField]
+    private float _runStartDelay = 5.0f;
+
     [SerializeField]
     private Canvas _joystickCanvas;
 
@@ -38,7 +50,11 @@ public class GameManager : MonoBehaviour
     private EntityManager _entityManager;
     private EntityQuery _gameStateQuery;
     private EntityQuery _planetScenesBufferQuery;
-    private Entity _currentSceneEntity = Entity.Null;
+    private EntityQuery _planetDataQuery;
+
+    // Mirror of the ECS GameState. The scene loader (SceneLoadingSystem) mutates the GameState
+    // singleton directly, so we poll it in Update and re-broadcast transitions to managed listeners.
+    private EGameState _lastKnownState = (EGameState)(-1);
 
     [Space]
     [Header("Starting State \nChoose only MainMenu or PlanetSelection \n(others not tested)")]
@@ -82,8 +98,7 @@ public class GameManager : MonoBehaviour
             yield return null;
         }
 
-        InternalLoadScene(EPlanetID.Lobby, EGameState.Lobby, sendStartRequest: false);
-        yield return null;
+        RequestLoad(EPlanetID.Lobby, EGameState.Lobby, sendStartRequest: false);
     }
 
     private void OnEnable()
@@ -95,6 +110,7 @@ public class GameManager : MonoBehaviour
         _planetScenesBufferQuery = _entityManager.CreateEntityQuery(
             typeof(PlanetSceneRefBufferElement)
         );
+        _planetDataQuery = _entityManager.CreateEntityQuery(typeof(PlanetData));
     }
 
     private void OnDisable()
@@ -102,9 +118,35 @@ public class GameManager : MonoBehaviour
         OnGameStateChanged -= HandleInternalStateChange;
     }
 
+    private void Update()
+    {
+        // The scene loader lives in ECS (SceneLoadingSystem) and drives the GameState singleton.
+        // Detect those transitions here and re-broadcast them to managed listeners (audio, camera,
+        // canvases...). Direct transitions via ChangeState keep _lastKnownState in sync so they are
+        // not re-fired here.
+        if (_gameStateQuery.IsEmpty)
+            return;
+
+        var current = _gameStateQuery.GetSingleton<GameState>().State;
+        if (current == _lastKnownState)
+            return;
+
+        var previous = _lastKnownState;
+        _lastKnownState = current;
+        OnGameStateChanged?.Invoke(current);
+
+        // A scene load just finished successfully (Loading -> gameplay state). MainMenu means the
+        // load was aborted, so no planet was actually selected.
+        if (previous == EGameState.Loading && current != EGameState.MainMenu)
+        {
+            if (_planetDataQuery.HasSingleton<PlanetData>())
+                OnPlanetSelected?.Invoke(_planetDataQuery.GetSingleton<PlanetData>().PlanetID);
+        }
+    }
+
     public void StartRun(EPlanetID planet)
     {
-        InternalLoadScene(planet, EGameState.Running, sendStartRequest: true);
+        RequestLoad(planet, EGameState.Running, sendStartRequest: true);
     }
 
     public void ReturnToLobby()
@@ -112,7 +154,7 @@ public class GameManager : MonoBehaviour
         var entity = _entityManager.CreateEntity();
         _entityManager.AddComponentData(entity, new ClearRunRequest());
 
-        InternalLoadScene(EPlanetID.Lobby, EGameState.Lobby, sendStartRequest: false);
+        RequestLoad(EPlanetID.Lobby, EGameState.Lobby, sendStartRequest: false);
     }
 
     public void Quit()
@@ -124,124 +166,28 @@ public class GameManager : MonoBehaviour
 #endif
     }
 
-    private void InternalLoadScene(
-        EPlanetID planetID,
-        EGameState targetState,
-        bool sendStartRequest
-    )
+    /// <summary>
+    /// Emit a scene-load request for the ECS <c>SceneLoadingSystem</c>, which owns the whole
+    /// unload/stream/transition sequence. Concurrent requests are rejected by the system, so this
+    /// is safe to call even while a load is in flight.
+    /// </summary>
+    private void RequestLoad(EPlanetID planetID, EGameState targetState, bool sendStartRequest)
     {
-        // Find scene ref
-        if (!TryGetSceneReference(planetID, out EntitySceneReference sceneRef))
-        {
-            Debug.LogError($"[GameManager] Scene not found: {planetID}");
-            return;
-        }
-
-        // Update game state
-        ChangeState(EGameState.Loading);
-
-        // Load scene
-        StartCoroutine(LoadSceneCoroutine(sceneRef, targetState, sendStartRequest));
-
-        Debug.Log($"[GameManager] Loading: {planetID}");
-    }
-
-    private bool TryGetSceneReference(EPlanetID planetID, out EntitySceneReference sceneRef)
-    {
-        sceneRef = default;
-
-        if (_planetScenesBufferQuery.IsEmpty)
-        {
-            Debug.Log($"[GameManager] _planetScenesBufferQuery is empty");
-
-            return false;
-        }
-
-        var bufferEntity = _planetScenesBufferQuery.GetSingletonEntity();
-        var sceneRefsBuffer = _entityManager.GetBuffer<PlanetSceneRefBufferElement>(bufferEntity);
-
-        foreach (var scene in sceneRefsBuffer)
-        {
-            if (scene.PlanetID == planetID)
+        var entity = _entityManager.CreateEntity();
+        _entityManager.AddComponentData(
+            entity,
+            new LoadSceneRequest
             {
-                sceneRef = scene.SceneReference;
-                return true;
+                PlanetID = planetID,
+                TargetState = targetState,
+                SendStartRequest = sendStartRequest,
+                MinScreenTime = _minLoadingTime,
+                Timeout = _loadTimeout,
+                RunStartDelay = _runStartDelay,
             }
-        }
+        );
 
-        return false;
-    }
-
-    private IEnumerator LoadSceneCoroutine(
-        EntitySceneReference sceneRef,
-        EGameState targetState,
-        bool sendStartRequest
-    )
-    {
-        // Unload
-        if (_currentSceneEntity != Entity.Null)
-        {
-            SceneSystem.UnloadScene(
-                World.DefaultGameObjectInjectionWorld.Unmanaged,
-                _currentSceneEntity,
-                SceneSystem.UnloadParameters.DestroyMetaEntities
-            );
-            _currentSceneEntity = Entity.Null;
-            yield return null;
-        }
-
-        // Load async
-        var worldUnmanaged = World.DefaultGameObjectInjectionWorld.Unmanaged;
-        _currentSceneEntity = SceneSystem.LoadSceneAsync(worldUnmanaged, sceneRef);
-
-        bool isLoaded = false;
-        float timer = 0f;
-
-        while (!isLoaded || timer < _minLoadingTime)
-        {
-            timer += Time.deltaTime;
-
-            // Get load state
-            var loadingState = SceneSystem.GetSceneStreamingState(
-                worldUnmanaged,
-                _currentSceneEntity
-            );
-            bool isStreamingDone = (
-                loadingState == SceneSystem.SceneStreamingState.LoadedSuccessfully
-            );
-
-            bool isDataReady = true;
-            if (sendStartRequest && isStreamingDone)
-            {
-                isDataReady = _entityManager
-                    .CreateEntityQuery(typeof(PlanetData))
-                    .HasSingleton<PlanetData>();
-            }
-
-            if (isStreamingDone && isDataReady)
-                isLoaded = true;
-
-            yield return null;
-        }
-
-        // Wait for physcis
-        yield return new WaitForFixedUpdate();
-
-        // Update state
-        ChangeState(targetState);
-
-        var planetData = _entityManager
-            .CreateEntityQuery(typeof(PlanetData))
-            .GetSingleton<PlanetData>();
-        OnPlanetSelected?.Invoke(planetData.PlanetID);
-
-        // Send Request if needed
-        if (sendStartRequest)
-        {
-            var reqEntity = _entityManager.CreateEntity();
-            _entityManager.AddComponent<StartRunRequest>(reqEntity);
-            Debug.Log("[GameManager] StartRunRequest");
-        }
+        Debug.Log($"[GameManager] Load requested: {planetID}");
     }
 
     public void ChangeState(EGameState newState)
@@ -252,7 +198,13 @@ public class GameManager : MonoBehaviour
             _entityManager.SetComponentData(entity, new GameState { State = newState });
         }
 
-        OnGameStateChanged?.Invoke(newState);
+        // Fire immediately for direct (non-load) transitions such as pause/unpause and shop exits,
+        // and keep the mirror in sync so Update() does not re-fire the same transition.
+        if (_lastKnownState != newState)
+        {
+            _lastKnownState = newState;
+            OnGameStateChanged?.Invoke(newState);
+        }
     }
 
     public EGameState GetGameState()

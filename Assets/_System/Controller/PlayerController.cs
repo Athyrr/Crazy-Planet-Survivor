@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     private bool _hasVirtualInput = false;
 
     private bool _isInteractPressed = false;
+    private bool _isDashPressed = false;
 
     private Vector2 _previewLerpValue =  Vector2.zero;
 
@@ -39,6 +40,7 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Player.Move.canceled += HandleMoveInput;
         _gameInputs.Player.Pause.started += HandlePauseInput;
         _gameInputs.Player.Interact.performed += HandleInteractInput;
+        _gameInputs.Player.Dash.performed += HandleDashInput;
 
         _gameInputs.Enable();
     }
@@ -49,6 +51,7 @@ public class PlayerController : MonoBehaviour
         _gameInputs.Player.Move.canceled -= HandleMoveInput;
         _gameInputs.Player.Pause.started -= HandlePauseInput;
         _gameInputs.Player.Interact.performed -= HandleInteractInput;
+        _gameInputs.Player.Dash.performed -= HandleDashInput;
 
         _gameInputs.Disable();
     }
@@ -87,10 +90,12 @@ public class PlayerController : MonoBehaviour
             new InputData
             {
                 Value = direction,
-                IsInteractPressed = _isInteractPressed
+                IsInteractPressed = _isInteractPressed,
+                IsDashPressed = _isDashPressed
             });
 
         _isInteractPressed = false;
+        _isDashPressed = false;
     }
 
     private void HandlePauseInput(CallbackContext ctx)
@@ -102,6 +107,11 @@ public class PlayerController : MonoBehaviour
     private void HandleInteractInput(CallbackContext ctx)
     {
         _isInteractPressed = true;
+    }
+
+    private void HandleDashInput(CallbackContext ctx)
+    {
+        _isDashPressed = true;
     }
 
     public void RequestInteract() => _isInteractPressed = true;

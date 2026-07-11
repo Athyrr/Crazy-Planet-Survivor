@@ -1,10 +1,7 @@
-using System;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Jobs;
 using Unity.Mathematics;
-using Unity.Transforms;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -212,6 +209,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         [ReadOnly] public BlobAssetReference<AmuletBlobs> AmuletsDatabaseRef;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
 
+        // todo remove that shit
         [NativeDisableParallelForRestriction] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [NativeDisableParallelForRestriction] public BufferLookup<SpellModifier> SpellModifierLookup;
 
@@ -398,6 +396,15 @@ public partial struct ApplyUpgradeSystem : ISystem
                 playerCoreStats.LifeStealChance += value;
                 // Global life steal feeds each spell's cached FinalLifeStealChance → recalc spells.
                 needSpellUpdate = true;
+                break;
+
+            case ECharacterStat.DashCount:
+                // Raises the dash charge ceiling; the extra charge is granted by the recharge cycle.
+                playerCoreStats.DashCount += (int)value;
+                break;
+            case ECharacterStat.DashCooldown:
+                // Negative value = faster recharge. Clamp so it never hits zero/negative.
+                playerCoreStats.DashCooldown = math.max(0.1f, playerCoreStats.DashCooldown + value);
                 break;
 
             // case ECharacterStat.BurnDamage:

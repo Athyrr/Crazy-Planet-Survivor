@@ -290,13 +290,12 @@ public class UpgradeViewItem : MonoBehaviour,
         {
             ref var mod = ref modifiers[i];
 
-            string label = StatsFormatUtils.Humanize(mod.CharacterStat.ToString());
+            string label = StatsFormatUtils.StatDisplayName(mod.CharacterStat);
 
-            // Health stats (MaxHealth / Health / HealthRegen) always show a fixed flat bonus
-            // (+40 / -40), never a current-total "before → after", so the card reads as a fixed value.
-            bool fixedValue = StatsFormatUtils.IsHealthStat(mod.CharacterStat);
-            string value = !fixedValue
-                           && context.HasPlayerStats
+            // Show a "current → after" preview when the player's live stats are known. Health stats
+            // show the real total (e.g. "1000 → 1250", "0 → 2"); percent stats show the accumulated
+            // bonus (e.g. "10% → 20%"). Falls back to the raw delta when no live stats are available.
+            string value = context.HasPlayerStats
                            && TryGetCurrentStat(in context.PlayerStats, mod.CharacterStat, out float before)
                 ? StatsFormatUtils.FormatStatBeforeAfter(mod.CharacterStat, before, before + mod.Value)
                 : StatsFormatUtils.FormatModifier(mod.CharacterStat, mod.Value);
@@ -315,7 +314,7 @@ public class UpgradeViewItem : MonoBehaviour,
             ? StatsFormatUtils.Humanize(data.SpellID.ToString())
             : data.SpellTags.ToString();
 
-        string label = $"{targetName} {StatsFormatUtils.Humanize(data.SpellStat.ToString())}";
+        string label = $"{targetName} {StatsFormatUtils.StatDisplayName(data.SpellStat)}";
 
         string value;
         if (data.SpellID != ESpellID.None && context.TryGetActiveSpell(data.SpellID, out var active))
