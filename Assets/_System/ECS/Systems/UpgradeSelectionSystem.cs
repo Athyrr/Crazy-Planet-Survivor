@@ -66,6 +66,7 @@ public partial struct UpgradeSelectionSystem : ISystem
             PlayerExperienceLookup = SystemAPI.GetComponentLookup<PlayerExperience>(true),
             PlayerLevelRequestLookup = SystemAPI.GetComponentLookup<PlayerLevelUpRequest>(false),
             CoreStatsLookup = SystemAPI.GetComponentLookup<CoreStats>(true),
+            DashEffectLookup = SystemAPI.GetComponentLookup<DashEffect>(true),
             ActiveSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(true),
             StatsUpgradePoolBufferLookup = SystemAPI.GetBufferLookup<StatsUpgradePoolBufferElement>(true),
             SpellsUpgradePoolBufferLookup = SystemAPI.GetBufferLookup<SpellsUpgradePoolBufferElement>(true)
@@ -90,6 +91,7 @@ public partial struct UpgradeSelectionSystem : ISystem
         [ReadOnly] public ComponentLookup<PlayerExperience> PlayerExperienceLookup;
         public ComponentLookup<PlayerLevelUpRequest> PlayerLevelRequestLookup;
         [ReadOnly] public ComponentLookup<CoreStats> CoreStatsLookup;
+        [ReadOnly] public ComponentLookup<DashEffect> DashEffectLookup;
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [ReadOnly] public BufferLookup<StatsUpgradePoolBufferElement> StatsUpgradePoolBufferLookup;
         [ReadOnly] public BufferLookup<SpellsUpgradePoolBufferElement> SpellsUpgradePoolBufferLookup;
@@ -153,6 +155,9 @@ public partial struct UpgradeSelectionSystem : ISystem
             // Player's equipped spells, used to gate behaviour-specific stat upgrades (Bounce, Pierce...).
             bool hasSpells = ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var activeSpells);
 
+            // Used to gate dash-effect upgrades (unique unlocks + stackables).
+            bool hasDash = DashEffectLookup.TryGetComponent(PlayerEntity, out var dashEffect);
+
             // Parallel lists: global db index + its rarity tier.
             var indices = new NativeList<int>(Allocator.Temp);
             var tiers = new NativeList<int>(Allocator.Temp);
@@ -164,6 +169,10 @@ public partial struct UpgradeSelectionSystem : ISystem
                 ESpellTag requiredTag = upgrades[idx].RequiredSpellTag;
                 if (requiredTag != ESpellTag.None &&
                     (!hasSpells || !HasAnySpellWithTag(requiredTag, activeSpells, ref spellBlobs)))
+                    continue;
+
+                // Dash-effect gating: hide unlocks once active, hide stackables until unlock is picked.
+                if (!IsDashUpgradeEligible(ref upgrades[idx], hasDash, dashEffect))
                     continue;
 
                 indices.Add(idx);
@@ -396,6 +405,35 @@ public partial struct UpgradeSelectionSystem : ISystem
             }
 
             return false;
+        }
+
+        /// <summary>Gates dash-effect upgrades on the player's current DashEffect flags.</summary>
+        private static bool IsDashUpgradeEligible(ref UpgradeBlob upgrade, bool hasDash, DashEffect dashEffect)
+        {
+            if (upgrade.UpgradeType != EUpgradeType.PlayerStat)
+                return true;
+
+            ref var modifiers = ref upgrade.StatModifiers;
+            for (int i = 0; i < modifiers.Length; i++)
+            {
+                switch (modifiers[i].CharacterStat)
+                {
+                    case ECharacterStat.DashKnockback:
+                        if (!hasDash || dashEffect.Knockback) return false;
+                        break;
+                    case ECharacterStat.DashReflect:
+                        if (!hasDash || dashEffect.Reflect) return false;
+                        break;
+                    case ECharacterStat.DashKnockbackForce:
+                    case ECharacterStat.DashKnockbackChain:
+                        if (!hasDash || !dashEffect.Knockback) return false;
+                        break;
+                    case ECharacterStat.DashReflectDamage:
+                        if (!hasDash || !dashEffect.Reflect) return false;
+                        break;
+                }
+            }
+            return true;
         }
 
         /// <summary>

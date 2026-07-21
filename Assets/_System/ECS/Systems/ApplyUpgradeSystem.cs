@@ -1,10 +1,7 @@
-using System;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Jobs;
 using Unity.Mathematics;
-using Unity.Transforms;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -111,7 +108,8 @@ public partial struct ApplyUpgradeSystem : ISystem
             Entity playerEntity,
             in ApplyUpgradeRequest request,
             ref CoreStats playerCoreStats,
-            ref Health health)
+            ref Health health,
+            ref DashEffect dashEffect)
         {
             ref var upgrade = ref UpgradesDatabaseRef.Value.Upgrades[request.DatabaseIndex];
             bool needSpellUpdate = false;
@@ -127,8 +125,8 @@ public partial struct ApplyUpgradeSystem : ISystem
                     if (mod.CharacterStat == ECharacterStat.None)
                         continue;
 
-                    ApplyPlayerStatUpgrade(ref playerCoreStats, ref health, mod.CharacterStat, mod.Value,
-                        ref needSpellUpdate);
+                    ApplyPlayerStatUpgrade(ref playerCoreStats, ref health, ref dashEffect,
+                        mod.CharacterStat, mod.Value, ref needSpellUpdate);
                 }
             }
 
@@ -212,11 +210,12 @@ public partial struct ApplyUpgradeSystem : ISystem
         [ReadOnly] public BlobAssetReference<AmuletBlobs> AmuletsDatabaseRef;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
 
+        // todo remove that shit
         [NativeDisableParallelForRestriction] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [NativeDisableParallelForRestriction] public BufferLookup<SpellModifier> SpellModifierLookup;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity playerEntity, in ApplyAmuletRequest request,
-            ref CoreStats playerCoreStats, ref Health health)
+            ref CoreStats playerCoreStats, ref Health health, ref DashEffect dashEffect)
         {
             // Remove request from player
             ECB.RemoveComponent<ApplyAmuletRequest>(chunkIndex, playerEntity);
@@ -231,8 +230,8 @@ public partial struct ApplyUpgradeSystem : ISystem
                 // Player Stat Upgrade
                 if (mod.UpgradeType == EUpgradeType.PlayerStat)
                 {
-                    ApplyPlayerStatUpgrade(ref playerCoreStats, ref health, mod.CharacterStat, mod.Value,
-                        ref needSpellUpdate);
+                    ApplyPlayerStatUpgrade(ref playerCoreStats, ref health, ref dashEffect,
+                        mod.CharacterStat, mod.Value, ref needSpellUpdate);
                 }
 
                 // Specific Spell Upgrade
@@ -327,8 +326,8 @@ public partial struct ApplyUpgradeSystem : ISystem
         }
     }
 
-    private static void ApplyPlayerStatUpgrade(ref CoreStats playerCoreStats, ref Health health, ECharacterStat stat,
-        float value, ref bool needSpellUpdate)
+    private static void ApplyPlayerStatUpgrade(ref CoreStats playerCoreStats, ref Health health,
+        ref DashEffect dashEffect, ECharacterStat stat, float value, ref bool needSpellUpdate)
     {
         switch (stat)
         {
@@ -398,6 +397,32 @@ public partial struct ApplyUpgradeSystem : ISystem
                 playerCoreStats.LifeStealChance += value;
                 // Global life steal feeds each spell's cached FinalLifeStealChance → recalc spells.
                 needSpellUpdate = true;
+                break;
+
+            case ECharacterStat.DashCount:
+                // Raises the dash charge ceiling; the extra charge is granted by the recharge cycle.
+                playerCoreStats.DashCount += (int)value;
+                break;
+            case ECharacterStat.DashCooldown:
+                // Negative value = faster recharge. Clamp so it never hits zero/negative.
+                playerCoreStats.DashCooldown = math.max(0.1f, playerCoreStats.DashCooldown + value);
+                break;
+
+            case ECharacterStat.DashKnockback:
+                // One-shot unlock; selection system filters it out once the flag is on.
+                dashEffect.Knockback = true;
+                break;
+            case ECharacterStat.DashReflect:
+                dashEffect.Reflect = true;
+                break;
+            case ECharacterStat.DashKnockbackForce:
+                dashEffect.KnockbackForce = math.max(0f, dashEffect.KnockbackForce + value);
+                break;
+            case ECharacterStat.DashKnockbackChain:
+                dashEffect.KnockbackChainDamage = math.max(0f, dashEffect.KnockbackChainDamage + value);
+                break;
+            case ECharacterStat.DashReflectDamage:
+                dashEffect.ReflectDamageMultiplier = math.max(0f, dashEffect.ReflectDamageMultiplier + value);
                 break;
 
             // case ECharacterStat.BurnDamage:

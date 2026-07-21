@@ -10,18 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 816579ba2fd64870a3846486ac045f27, type: 3}
-  m_Name: Upgrade_Stat_Armor_1
+  m_Name: Upgrade_Stat_DashReflect
   m_EditorClassIdentifier: Assembly-CSharp::StatUpgradeSO
-  DisplayName: Ironhide
-  Description: Let it bounce off.
+  DisplayName: Deflecting Slash
+  Description: Your dash reflects enemy projectiles back at them.
   Icon: {fileID: 0}
   UpgradeType: 0
-  ModifierStrategy: 1
+  ModifierStrategy: 0
   Value: 0
-  Rarity: 0
+  Rarity: 3
   Modifiers:
-  - CharacterStat: 5
-    Strategy: 1
-    Value: 0.05
+  - CharacterStat: 36
+    Strategy: 0
+    Value: 1
   RequiredSpellTag: 0
   _legacyCharacterStat: 0

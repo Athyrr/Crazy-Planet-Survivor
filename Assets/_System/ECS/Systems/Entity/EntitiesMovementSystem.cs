@@ -47,7 +47,9 @@ public partial struct EntitiesMovementSystem : ISystem
     [BurstCompile(OptimizeFor = OptimizeFor.Performance)]
     public void OnUpdate(ref SystemState state)
     {
-        // Only update movement if the game is in a valid active state
+        // Only update movement if the game is in a valid active state. RunStarting is intentionally
+        // excluded: during the intro window the player must stay frozen at its exact PlayerStart spawn
+        // point (no input-driven movement, no surface re-snapping).
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
             return;
         if (gameState.State != EGameState.Running && gameState.State != EGameState.Lobby)
@@ -158,7 +160,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [NativeDisableParallelForRestriction] [ReadOnly]
         public ComponentLookup<Player> PlayerLookup;
 
-        private const float OBSTACLE_CHECK_DIST = 1.0f;
+        private const float OBSTACLE_CHECK_DIST = 2.5f;
         private const float FRONTAL_STOP_THRESHOLD = 0.9f;
 
         private const float SNAP_DISTANCE = 500;

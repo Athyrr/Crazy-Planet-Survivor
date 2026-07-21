@@ -96,4 +96,13 @@ public struct CoreStats : IComponentData
              "dealt and is rate-limited (see CpCombatEffectsSettings). Total = this + the spell's local bonus.")]
     [UIStat("Life Steal", ECharacterStat.LifeStealChance)]
     public float LifeStealChance;
+
+    [Header("Dash")]
+    [Tooltip("Number of dash charges the entity can store (0 = cannot dash).")]
+    [UIStat("Dash Charges", ECharacterStat.DashCount, absolute: true)]
+    public int DashCount;
+
+    [Tooltip("Recharge time in seconds for a single dash charge.")]
+    [UIStat("Dash CD", ECharacterStat.DashCooldown, absolute: true, suffix: "s", decimals: 1)]
+    public float DashCooldown;
 }

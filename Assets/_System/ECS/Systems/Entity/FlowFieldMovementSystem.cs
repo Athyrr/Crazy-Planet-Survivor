@@ -25,6 +25,7 @@ public partial struct FlowFieldMovementSystem : ISystem
     private ComponentLookup<SteeringForce> _steeringLookup;
     private ComponentLookup<CoreStats> _statsLookup;
     private ComponentLookup<StunEffect> _stunLookup;
+    private ComponentLookup<ActiveKnockback> _knockbackLookup;
     private ComponentLookup<StopDistance> _stopDistanceLookup;
     private BufferLookup<FlowFieldCell> _cellBufferLookup;
 
@@ -41,6 +42,7 @@ public partial struct FlowFieldMovementSystem : ISystem
         _steeringLookup = state.GetComponentLookup<SteeringForce>(isReadOnly: true);
         _statsLookup = state.GetComponentLookup<CoreStats>(isReadOnly: true);
         _stunLookup = state.GetComponentLookup<StunEffect>(isReadOnly: true);
+        _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(isReadOnly: true);
         _stopDistanceLookup = state.GetComponentLookup<StopDistance>(isReadOnly: true);
         _cellBufferLookup = state.GetBufferLookup<FlowFieldCell>(isReadOnly: true);
     }
@@ -70,6 +72,7 @@ public partial struct FlowFieldMovementSystem : ISystem
         _steeringLookup.Update(ref state);
         _statsLookup.Update(ref state);
         _stunLookup.Update(ref state);
+        _knockbackLookup.Update(ref state);
         _stopDistanceLookup.Update(ref state);
         _cellBufferLookup.Update(ref state);
 
@@ -84,6 +87,7 @@ public partial struct FlowFieldMovementSystem : ISystem
             SteeringLookup = _steeringLookup,
             StatsLookup = _statsLookup,
             StunLookup = _stunLookup,
+            KnockbackLookup = _knockbackLookup,
             StopDistanceLookup = _stopDistanceLookup,
             RotationLerpSpeed = rotationLerpSpeed
         };
@@ -108,6 +112,7 @@ public partial struct FlowFieldMovementSystem : ISystem
         [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
         [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
+        [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
         [ReadOnly] public ComponentLookup<StopDistance> StopDistanceLookup;
 
         /// <summary> Rotation smoothing factor (lerp speed), sourced from CpBaseEnemySettings. </summary>
@@ -127,6 +132,11 @@ public partial struct FlowFieldMovementSystem : ISystem
         {
             // Stunned entities do not move
             if (StunLookup.TryGetComponent(entity, out var _) && StunLookup.IsComponentEnabled(entity))
+                return;
+
+            // Knocked-back entities yield to the KnockbackSystem (which drives their position); otherwise
+            // the flow field would overwrite the push every frame and knockback would have no visible effect.
+            if (KnockbackLookup.HasComponent(entity) && KnockbackLookup.IsComponentEnabled(entity))
                 return;
 
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);

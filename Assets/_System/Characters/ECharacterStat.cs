@@ -40,4 +40,25 @@ public enum ECharacterStat
 
     /// <summary>Chance per hit to life steal (heal a fraction of the damage dealt).</summary>
     LifeStealChance = 32,
+
+    /// <summary>Number of dash charges the entity can store.</summary>
+    DashCount = 33,
+
+    /// <summary>Recharge time (seconds) for a single dash charge.</summary>
+    DashCooldown = 34,
+
+    /// <summary>One-shot: enables dash knockback.</summary>
+    DashKnockback = 35,
+
+    /// <summary>One-shot: enables dash projectile reflection.</summary>
+    DashReflect = 36,
+
+    /// <summary>Stackable: dash knockback push force.</summary>
+    DashKnockbackForce = 37,
+
+    /// <summary>Stackable: chain damage dealt by knocked-back enemies.</summary>
+    DashKnockbackChain = 38,
+
+    /// <summary>Stackable: reflected-projectile damage multiplier.</summary>
+    DashReflectDamage = 39,
 }
