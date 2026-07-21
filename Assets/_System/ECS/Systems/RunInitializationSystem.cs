@@ -9,7 +9,10 @@ public partial struct RunInitializationSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<StartRunRequest>();
-        state.RequireForUpdate<RunProgression>();
+        // Not gated on RunProgression: that singleton is only created once the game reaches Running,
+        // but the run must be reset (player destroyed + respawned at PlayerStart) as soon as we enter
+        // the RunStarting intro window. The RunProgression/SpawnerState resets below use TryGet, so
+        // running before they exist is safe.
         state.RequireForUpdate<GameState>();
     }
 

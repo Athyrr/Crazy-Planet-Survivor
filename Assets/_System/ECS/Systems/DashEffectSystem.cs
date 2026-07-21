@@ -81,7 +81,6 @@ public partial struct DashEffectSystem : ISystem
         }.Schedule(knockbackHandle);
     }
 
-    /// <summary>On-contact dash effects within KnockbackRadius: knockback + one-shot damage + chain marker.</summary>
     [BurstCompile]
     [WithAll(typeof(ActiveDash))]
     private partial struct DashContactJob : IJobEntity

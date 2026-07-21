@@ -23,6 +23,16 @@ public partial struct PlayerInputSystem : ISystem
         var inputData = SystemAPI.GetSingleton<InputData>();
         float2 inputVector = inputData.Value;
 
+        // Dash trigger — handled before the movement early-return so it works while standing still.
+        // WithPresent is required: DashRequest is an enableable component and is disabled at rest, so a
+        // plain query would filter the resting player out and the request would never be raised.
+        if (inputData.IsDashPressed)
+        {
+            foreach (var dashRequest in SystemAPI.Query<EnabledRefRW<DashRequest>>()
+                         .WithPresent<DashRequest>().WithAll<Player>())
+                dashRequest.ValueRW = true;
+        }
+
         if (math.lengthsq(inputVector) < 0.01f)
         {
             foreach (var movement in SystemAPI.Query<RefRW<LinearMovement>>().WithAll<Player>())

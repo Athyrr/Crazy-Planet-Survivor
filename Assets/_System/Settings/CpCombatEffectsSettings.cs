@@ -52,11 +52,27 @@ namespace _System.Settings
         public float SlowDuration => _slowDuration;
 
         [Header("Knockback")]
-        [SerializeField] private float _knockbackForce = 50f;
-        [SerializeField] private float _knockbackDuration = 0.5f;
+        // Punchy default: strong initial push over a short-ish window that still leaves room for the
+        // "slide + settle" shape encoded in the force curve below.
+        [SerializeField] private float _knockbackForce = 90f;
+        [SerializeField] private float _knockbackDuration = 0.7f;
+
+        [Tooltip("Force falloff over the knockback duration. X = normalized elapsed time (0 = impact, " +
+                 "1 = end). Y = fraction of KnockbackForce applied at that time. Default = impact spike " +
+                 "then quick decay and a short slide, so the hit reads as punchy and the enemy visibly slides.")]
+        [SerializeField] private AnimationCurve _knockbackForceCurve = new AnimationCurve(
+            new Keyframe(0.00f, 1.00f, 0f, 0f),   // full force at impact
+            new Keyframe(0.10f, 0.85f, 0f, 0f),   // brief peak sustain — reads as the actual hit
+            new Keyframe(0.35f, 0.30f, 0f, 0f),   // fast decay — most speed bled off here
+            new Keyframe(1.00f, 0.00f, 0f, 0f));  // trailing slide down to rest
+
+        [Tooltip("How many samples the curve is baked into for Burst evaluation.")]
+        [SerializeField, Range(8, 128)] private int _knockbackCurveResolution = 32;
 
         public float KnockbackForce => _knockbackForce;
         public float KnockbackDuration => _knockbackDuration;
+        public AnimationCurve KnockbackForceCurve => _knockbackForceCurve;
+        public int KnockbackCurveResolution => _knockbackCurveResolution;
 
         [Header("Status Effect VFX")]
         [SerializeField] private GameObject _burnEffectPrefab;

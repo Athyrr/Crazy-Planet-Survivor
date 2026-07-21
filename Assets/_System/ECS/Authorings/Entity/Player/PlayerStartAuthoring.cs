@@ -5,9 +5,9 @@ public class PlayerStartAuthoring : MonoBehaviour
 {
     public Color DebugColor = Color.green;
 
-    private class Baker : Baker<PlayerAuthoring>
+    private class Baker : Baker<PlayerStartAuthoring>
     {
-        public override void Bake(PlayerAuthoring authoring)
+        public override void Bake(PlayerStartAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
             AddComponent(entity, new PlayerStart

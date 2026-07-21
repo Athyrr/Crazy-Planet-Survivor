@@ -112,6 +112,9 @@ public class PlayerAuthoring : MonoBehaviour
                 Luck = baseStats.Luck,
 
                 LifeStealChance = baseStats.LifeStealChance,
+
+                DashCount = baseStats.DashCount,
+                DashCooldown = baseStats.DashCooldown,
             });
 
             AddComponent<FinalStats>(entity);

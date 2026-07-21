@@ -51,6 +51,14 @@ public class EnemyAuthoring : MonoBehaviour
             SetComponentEnabled<DamageOnContact>(entity, true);
             AddBuffer<HitEntityMemory>(entity);
 
+            // NOTE: ActiveKnockback is already pre-added (disabled) by ActiveEffectsAuthoring, together
+            // with the other effect markers (Burn/Stun/Slow). We rely on that so the dash / collision
+            // systems only Set + Enable — no structural change means no ECB crash on same-frame death.
+
+            // Dash chain-damage marker: off until a chain-damage dash knocks this enemy (see DashChainDamageSystem).
+            AddComponent<DashChainDamage>(entity);
+            SetComponentEnabled<DashChainDamage>(entity, false);
+
             AddComponent(entity, new CoreStats
             {
                 // Bases
@@ -77,6 +85,9 @@ public class EnemyAuthoring : MonoBehaviour
 
                 CritChance = authoring.BaseStats.CritChance,
                 CritDamage = authoring.BaseStats.CritDamage,
+
+                DashCount = authoring.BaseStats.DashCount,
+                DashCooldown = authoring.BaseStats.DashCooldown,
             });
 
             AddComponent(entity, new FinalStats());

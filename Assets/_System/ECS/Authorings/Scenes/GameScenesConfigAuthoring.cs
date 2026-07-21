@@ -1,7 +1,6 @@
 using Unity.Entities;
 using Unity.Entities.Serialization;
 using UnityEngine;
-using UnityEditor;
 
 public class GameScenesConfigAuthoring : MonoBehaviour
 {
