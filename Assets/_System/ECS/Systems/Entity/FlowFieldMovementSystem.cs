@@ -1,6 +1,5 @@
 using _System.Settings;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -18,12 +17,14 @@ using Unity.Burst;
 // values each frame is fine and much smoother.
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(CustomUpdateGroup))]
+[UpdateAfter(typeof(ActiveEffectsSystem))]
 [UpdateBefore(typeof(TransformSystemGroup))]
 [BurstCompile]
 public partial struct FlowFieldMovementSystem : ISystem
 {
     private ComponentLookup<SteeringForce> _steeringLookup;
-    private ComponentLookup<CoreStats> _statsLookup;
+    private ComponentLookup<Avoidance> _avoidanceLookup;
+    private ComponentLookup<FinalStats> _finalStatsLookup;
     private ComponentLookup<StunEffect> _stunLookup;
     private ComponentLookup<ActiveKnockback> _knockbackLookup;
     private ComponentLookup<StopDistance> _stopDistanceLookup;
@@ -35,12 +36,14 @@ public partial struct FlowFieldMovementSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<FlowFieldData>();
         state.RequireForUpdate<PlanetData>();
         state.RequireForUpdate<GameState>();
 
         _steeringLookup = state.GetComponentLookup<SteeringForce>(isReadOnly: true);
-        _statsLookup = state.GetComponentLookup<CoreStats>(isReadOnly: true);
+        _avoidanceLookup = state.GetComponentLookup<Avoidance>(isReadOnly: true);
+        _finalStatsLookup = state.GetComponentLookup<FinalStats>(isReadOnly: true);
         _stunLookup = state.GetComponentLookup<StunEffect>(isReadOnly: true);
         _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(isReadOnly: true);
         _stopDistanceLookup = state.GetComponentLookup<StopDistance>(isReadOnly: true);
@@ -70,7 +73,8 @@ public partial struct FlowFieldMovementSystem : ISystem
             : DefaultRotationLerpSpeed;
 
         _steeringLookup.Update(ref state);
-        _statsLookup.Update(ref state);
+        _avoidanceLookup.Update(ref state);
+        _finalStatsLookup.Update(ref state);
         _stunLookup.Update(ref state);
         _knockbackLookup.Update(ref state);
         _stopDistanceLookup.Update(ref state);
@@ -85,7 +89,8 @@ public partial struct FlowFieldMovementSystem : ISystem
             FlowFieldEntity = flowFieldEntity,
             CellBufferLookup = _cellBufferLookup,
             SteeringLookup = _steeringLookup,
-            StatsLookup = _statsLookup,
+            AvoidanceLookup = _avoidanceLookup,
+            FinalStatsLookup = _finalStatsLookup,
             StunLookup = _stunLookup,
             KnockbackLookup = _knockbackLookup,
             StopDistanceLookup = _stopDistanceLookup,
@@ -110,7 +115,8 @@ public partial struct FlowFieldMovementSystem : ISystem
 
         [ReadOnly] public BufferLookup<FlowFieldCell> CellBufferLookup;
         [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
-        [ReadOnly] public ComponentLookup<CoreStats> StatsLookup;
+        [ReadOnly] public ComponentLookup<Avoidance> AvoidanceLookup;
+        [ReadOnly] public ComponentLookup<FinalStats> FinalStatsLookup;
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
         [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
         [ReadOnly] public ComponentLookup<StopDistance> StopDistanceLookup;
@@ -127,6 +133,10 @@ public partial struct FlowFieldMovementSystem : ISystem
         // (StopDistance * StopSlowBandFraction) units so it eases in ("adapts its speed")
         // instead of slamming to a halt.
         private const float StopSlowBandFraction = 0.5f;
+        // Angular gate for trusting the flow field, as cos(45 deg) against the grid normal. Expressed
+        // as an angle rather than a distance so it is independent of the planet radius: the same
+        // 45 deg of arc is ~39 units on Earth (R=50) and ~118 on Volcanus (R=150).
+        private const float FlowFieldMinCos = 0.7f;
 
         public void Execute(Entity entity, ref LocalTransform transform)
         {
@@ -142,27 +152,50 @@ public partial struct FlowFieldMovementSystem : ISystem
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
 
             // --- Direction straight to the player (goal), projected onto the surface. ---
-            // This is the orientation target: looking at the player is stable, whereas the
-            // flow/avoidance direction is noisy and makes packed entities spin in place.
+            // Removing the radial component of the straight-line chord leaves exactly the tangent to
+            // the great circle joining both points, i.e. the geodesic heading — the shortest path on
+            // the sphere. Serves two purposes: the orientation target (looking at the player is
+            // stable, whereas the flow/avoidance direction is noisy and makes packed entities spin
+            // in place) and the navigation fallback whenever the flow field cannot be trusted.
             float3 toGoal = FlowField.Origin - transform.Position;
             PlanetUtils.ProjectDirectionOnSurface(in toGoal, in currentNormal, out float3 goalDirection);
             bool hasGoalDirection = math.lengthsq(goalDirection) > 0.0001f;
+            // Degenerate only at the exact antipode (chord colinear with the normal), where every
+            // direction is equivalent anyway.
+            float3 fallbackDirection = hasGoalDirection ? goalDirection : transform.Forward();
 
-            // --- Sample flow field (bilinear) ---
-            float3 flowDirection = SampleFlowField(transform.Position);
-            if (math.lengthsq(flowDirection) < 0.001f)
-                flowDirection = transform.Forward();
+            // --- Navigation: flow field near the player, geodesic seek further out. ---
+            // The grid is an ORTHOGRAPHIC projection onto the tangent plane at the player, so a point
+            // at angle t lands at R*sin(t): past 90 deg the far hemisphere folds back onto the near
+            // one and the entity reads someone else's cell. A bounds test never catches this (every
+            // point of the sphere projects inside the grid), so the gate has to be angular.
+            // Losing the flow field out there only means losing obstacle routing — which is fine,
+            // entities re-enter the trusted zone long before reaching the player, and that is exactly
+            // where routing is visible and matters.
+            float3 flowDirection;
+            if (math.dot(currentNormal, FlowField.GridNormal) < FlowFieldMinCos)
+            {
+                flowDirection = fallbackDirection;
+            }
             else
-                flowDirection = math.normalize(flowDirection);
+            {
+                flowDirection = SampleFlowField(transform.Position);
+                flowDirection = math.lengthsq(flowDirection) > 0.001f
+                    ? math.normalize(flowDirection)
+                    : fallbackDirection; // blocked / unreachable cell: seek instead of drifting forward
+            }
 
             // --- Blend avoidance steering (capped so it never fully overrides flow) ---
+            // Gated on Avoidance being ENABLED: AvoidanceSystem's LOD disables it past its activation
+            // radius and then stops writing SteeringForce entirely. SteeringForce is not an enableable
+            // component, so without this gate its last computed value stays applied forever — a
+            // permanent sideways drift on every entity the player outruns.
             float3 steeringForce = float3.zero;
-            if (SteeringLookup.HasComponent(entity))
+            if (AvoidanceLookup.HasComponent(entity) && AvoidanceLookup.IsComponentEnabled(entity)
+                                                     && SteeringLookup.HasComponent(entity))
                 steeringForce = SteeringLookup[entity].Value;
 
             float3 desiredDirection = flowDirection + steeringForce * SteeringBlend;
-            bool hasMoveDirection = math.lengthsq(desiredDirection) > 0.001f;
-            desiredDirection = hasMoveDirection ? math.normalize(desiredDirection) : transform.Forward();
 
             // --- Stop distance: decelerate toward the ring, then hold position. ---
             // Inside the ring the entity has "arrived": it stops advancing instead of creeping
@@ -192,16 +225,23 @@ public partial struct FlowFieldMovementSystem : ISystem
             // player directly is stable and is what we want regardless of how it shuffles for spacing.
             float3 faceDirection = hasGoalDirection ? goalDirection : flowDirection;
 
-            // Movement still follows the flow field + avoidance so entities path in and keep spacing.
-            float3 moveDirection = desiredDirection;
+            // Movement still follows the flow field + avoidance so entities path in and keep spacing,
+            // but re-projected onto the LOCAL tangent plane first. The flow direction lives in the
+            // tangent plane at the PLAYER and the steering force is a raw world vector, so neither is
+            // tangent here: applied as-is they push partly into (or out of) the ground and the actual
+            // surface speed silently drops by cos(angle) the further the entity is from the player.
+            PlanetUtils.ProjectDirectionOnSurface(in desiredDirection, in currentNormal,
+                out float3 moveDirection);
+            if (math.lengthsq(moveDirection) < 0.0001f)
+                moveDirection = fallbackDirection;
 
             // --- Speed ---
+            // FinalStats is the single source of truth: ActiveEffectsSystem folds CoreStats and the
+            // active SlowEffect into it every frame. Recomputing it from CoreStats here (as this job
+            // used to) silently dropped every slow applied to enemies.
             float speed = 3f;
-            if (StatsLookup.HasComponent(entity))
-            {
-                var stats = StatsLookup[entity];
-                speed = stats.BaseMoveSpeed * (1f + stats.MoveSpeed);
-            }
+            if (FinalStatsLookup.HasComponent(entity))
+                speed = FinalStatsLookup[entity].MoveSpeed;
 
             float3 desiredPosition = transform.Position + moveDirection * (speed * speedFactor * DeltaTime);
 
