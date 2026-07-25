@@ -3,13 +3,15 @@ using Unity.Entities;
 
 public class AvoidanceAuthoring : MonoBehaviour
 {
-    [Tooltip("The radius within which the entity will detect and avoid obstacles.")]
+    [Tooltip("Avoidance footprint / detection radius (personal space) in world units. This is a GAMEPLAY " +
+             "size, independent of the visual mesh scale — how much room the entity claims in the horde.")]
     [SerializeField]
-    private float _avoidanceDetectionRadius = 5f;
+    private float _avoidanceRadius = 2f;
 
-    [Tooltip("The weight factor determining the strength of the avoidance behavior.")]
+    [Tooltip("Mass. Repulsion is split by mass ratio: a heavier entity shoves lighter ones aside while " +
+             "barely moving itself. Independent of the radius — a small entity can be very heavy.")]
     [SerializeField]
-    private float _avoidanceWeight = 1f;
+    private float _mass = 1f;
 
     private class Baker : Baker<AvoidanceAuthoring>
     {
@@ -19,8 +21,8 @@ public class AvoidanceAuthoring : MonoBehaviour
 
             AddComponent(entity, new Avoidance
             {
-                Radius = authoring._avoidanceDetectionRadius,
-                Weight = authoring._avoidanceWeight
+                Radius = authoring._avoidanceRadius,
+                Mass = Mathf.Max(0.0001f, authoring._mass)
             });
 
             AddComponent<SteeringForce>(entity);

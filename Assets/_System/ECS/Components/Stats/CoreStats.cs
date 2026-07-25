@@ -24,6 +24,11 @@ public struct CoreStats : IComponentData
     [UIStat("Armor", ECharacterStat.Armor)]
     public float Armor;
 
+    [Tooltip("Knockback resistance (0 = full knockback, 0.5 = halved, 1 = fully immune). Fixed per " +
+             "archetype (a small enemy can be as resistant as a big one); NOT scaled over the run.")]
+    [UIStat("KB Resist", ECharacterStat.KnockbackResistance)]
+    public float KnockbackResistance;
+
     [Header("Movement")]
     [Tooltip("Base movement speed in units/second.")] //todo
     public float BaseMoveSpeed;

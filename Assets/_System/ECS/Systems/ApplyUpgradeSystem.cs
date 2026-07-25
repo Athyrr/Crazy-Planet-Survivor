@@ -338,6 +338,11 @@ public partial struct ApplyUpgradeSystem : ISystem
             case ECharacterStat.Armor:
                 playerCoreStats.Armor += value;
                 break;
+            // Path wired so a knockback-resistance upgrade would apply out of the box; no such
+            // StatUpgradeSO exists yet by design. Clamped to 1 (full immunity) so stacking can't overshoot.
+            case ECharacterStat.KnockbackResistance:
+                playerCoreStats.KnockbackResistance = math.min(1f, playerCoreStats.KnockbackResistance + value);
+                break;
             case ECharacterStat.Speed:
                 playerCoreStats.MoveSpeed += value;
                 break;

@@ -12,4 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f17212ef93c22014a90f4535e17b1246, type: 3}
   m_Name: CpBaseEnemySettings
   m_EditorClassIdentifier: Assembly-CSharp::_System.Settings.CpBaseEnemySettings
-  _rotationLerpSpeed: 6
+  _acceleration: 40
+  _maxTurnRateDeg: 180
+  _facingSpeedThreshold: 0.1
+  _massAccelerationInfluence: 0.35
+  _massTurnRateInfluence: 0.35
+  _referenceMass: 1
+  _minMassFactor: 0.1

@@ -747,8 +747,10 @@ public partial struct EnemiesSpawnerSystem : ISystem
                 Rotation = quaternion.LookRotationSafe(tangentDirection, surfaceNormal)
             });
 
-            // Set Movement Target
-            ECB.SetComponent(index, entity, new FlowFieldFollowerMovement());
+            // NOTE: FlowFieldFollowerMovement is deliberately NOT re-set here. It used to be overwritten
+            // with a default value, which was a harmless no-op back when it was an empty tag. It now
+            // carries the prefab's baked Acceleration / MaxTurnRateDeg, so writing a default over it
+            // would silently wipe those per-prefab overrides on every spawn.
 
             // Set Wave Index
             // todo @hyverno passing Enemy in lookup

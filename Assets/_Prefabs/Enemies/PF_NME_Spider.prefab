@@ -201,8 +201,9 @@ MonoBehaviour:
     HealthRegen: 0
     BaseArmor: 0
     Armor: 0
+    KnockbackResistance: 0
     BaseMoveSpeed: 5
-    MoveSpeed: -0.1
+    MoveSpeed: 0
     BasePickupRange: 0
     PickupRange: 0
     Damage: 0
@@ -217,6 +218,9 @@ MonoBehaviour:
     CritChance: 0
     CritDamage: 0
     Luck: 0
+    LifeStealChance: 0
+    DashCount: 0
+    DashCooldown: 0
   InitialSpells: []
   ContactDamage: 20
 --- !u!114 &7077652745905088192
@@ -247,8 +251,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 569916e10732eba4caf53ace7f5ac10d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
-  _avoidanceDetectionRadius: 2
-  _avoidanceWeight: 0.8
+  _avoidanceRadius: 2
+  _mass: 1
 --- !u!114 &-8517440183909175222
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -8,7 +8,7 @@ using Unity.Transforms;
 
 /// <summary>
 /// Applies dash effects (knockback + projectile reflect) while <see cref="ActiveDash"/> is enabled.
-/// </summary>
+/// </summary>  
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(DashSystem))]
 [UpdateBefore(typeof(EntitiesMovementSystem))]

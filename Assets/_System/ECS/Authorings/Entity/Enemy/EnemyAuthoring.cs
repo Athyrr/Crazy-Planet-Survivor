@@ -11,6 +11,15 @@ public class EnemyAuthoring : MonoBehaviour
         "If true, the enemy will be snapped perfectly on the ground following the terrain height. Otherwise, it will follow the base radius.")]
     public bool UseSnappedMovement = true;
 
+    [Header("Movement feel")]
+    [Tooltip("Acceleration in units/s². Leave at 0 to inherit CpBaseEnemySettings. Raise for darting " +
+             "enemies, lower for heavy ones that take time to get going.")]
+    public float Acceleration = 0f;
+
+    [Tooltip("Max turn rate in degrees/second. Leave at 0 to inherit CpBaseEnemySettings. Lower it on " +
+             "big enemies so they describe wide curves instead of pivoting on the spot.")]
+    public float MaxTurnRateDeg = 0f;
+
     [Header("Stats")] public CoreStats BaseStats;
 
     [Header("Spells")] public SpellDataSO[] InitialSpells;
@@ -29,7 +38,12 @@ public class EnemyAuthoring : MonoBehaviour
                 AddComponentObject(entity, new VisualRendererLink { Renderer = authoring.MainRenderer });
 
             AddComponent(entity, new Enemy());
-            AddComponent(entity, new FlowFieldFollowerMovement());
+            // Velocity starts at zero; the two feel knobs are 0 = inherit the global settings.
+            AddComponent(entity, new FlowFieldFollowerMovement
+            {
+                Acceleration = authoring.Acceleration,
+                MaxTurnRateDeg = authoring.MaxTurnRateDeg
+            });
             AddComponent(entity, new RunScope());
 
             if (authoring.UseSnappedMovement)
@@ -69,6 +83,7 @@ public class EnemyAuthoring : MonoBehaviour
 
                 HealthRegen = authoring.BaseStats.HealthRegen,
                 Armor = authoring.BaseStats.Armor,
+                KnockbackResistance = authoring.BaseStats.KnockbackResistance,
                 MoveSpeed = authoring.BaseStats.MoveSpeed,
                 PickupRange = authoring.BaseStats.PickupRange,
 

@@ -92,6 +92,7 @@ public class PlayerAuthoring : MonoBehaviour
                 MaxHealth = baseStats.MaxHealth,
                 HealthRegen = baseStats.HealthRegen,
                 Armor = baseStats.Armor,
+                KnockbackResistance = baseStats.KnockbackResistance,
                 MoveSpeed = baseStats.MoveSpeed,
                 PickupRange = baseStats.PickupRange,
 

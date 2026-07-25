@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2934e59a4fc6a7f46b999a24c5fcf1a4, type: 3}
+  m_Name: CpAvoidanceSettings
+  m_EditorClassIdentifier: Assembly-CSharp::_System.Settings.CpAvoidanceSettings
+  _fineGridMaxRadius: 5
+  _cellSizeSafetyMult: 1.1
+  _coarseCellSize: 64
+  _forceGain: 5
+  _maxSteeringForce: 5
+  _obstacleMass: 1000000

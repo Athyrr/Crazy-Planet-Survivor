@@ -61,4 +61,7 @@ public enum ECharacterStat
 
     /// <summary>Stackable: reflected-projectile damage multiplier.</summary>
     DashReflectDamage = 39,
+
+    /// <summary>Fraction of incoming knockback ignored (0 = full, 1 = immune). Shared player/enemy stat.</summary>
+    KnockbackResistance = 40,
 }
