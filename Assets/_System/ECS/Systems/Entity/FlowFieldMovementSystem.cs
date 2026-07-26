@@ -102,6 +102,7 @@ public partial struct FlowFieldMovementSystem : ISystem
         {
             DeltaTime = SystemAPI.Time.DeltaTime,
             PlanetCenter = planetData.Center,
+            PlanetRadius = planetData.Radius,
             PhysicsCollisionWorld = collisionWorld,
             FlowField = flowFieldData,
             FlowFieldEntity = flowFieldEntity,
@@ -136,6 +137,7 @@ public partial struct FlowFieldMovementSystem : ISystem
     {
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public float3 PlanetCenter;
+        [ReadOnly] public float PlanetRadius;
         [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
         [ReadOnly] public FlowFieldData FlowField;
         [ReadOnly] public Entity FlowFieldEntity;
@@ -343,7 +345,27 @@ public partial struct FlowFieldMovementSystem : ISystem
 
             float3 desiredPosition = transform.Position + movement.Velocity * DeltaTime;
 
-            // --- Raycast terrain snap ---
+            // --- Visibility LOD: beyond the camera horizon, snap to the perfect sphere with no raycast. ---
+            // AvoidanceSystem's LOD disables Avoidance past the horizon (curvature hides the surface), so
+            // that same flag also means "too far to see terrain detail". There, a raycast per enemy per
+            // frame is pure waste: the analytic sphere snap is a few instructions and any float of terrain
+            // is off-screen anyway. Entities re-raycast the instant they cross back inside the horizon.
+            bool beyondHorizon = AvoidanceLookup.HasComponent(entity)
+                                 && !AvoidanceLookup.IsComponentEnabled(entity);
+            if (beyondHorizon)
+            {
+                PlanetUtils.SnapToSurfaceRadius(in desiredPosition, in PlanetCenter, PlanetRadius,
+                    out float3 snapped);
+                transform.Position = snapped;
+
+                PlanetUtils.GetSurfaceNormalRadius(in snapped, in PlanetCenter, out float3 sphereNormal);
+                PlanetUtils.GetRotationOnSurface(in faceDirection, sphereNormal, out quaternion sphereRotation);
+                transform.Rotation = RotateTowards(transform.Rotation, sphereRotation,
+                    math.radians(maxTurnRateDeg) * DeltaTime);
+                return;
+            }
+
+            // --- Raycast terrain snap (near the player) ---
             // Short probe first: a +-4 ray walks a small fraction of the physics BVH compared to the
             // +-500 one, and it hits on virtually every frame. The long ray is only paid on the rare
             // frames the probe misses, so a miss costs one cheap extra cast instead of being the norm.

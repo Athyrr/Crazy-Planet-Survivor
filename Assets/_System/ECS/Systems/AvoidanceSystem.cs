@@ -6,6 +6,8 @@ using Unity.Entities;
 using Unity.Burst;
 using Unity.Jobs;
 
+// Camera height per planet lives in CpBaseCameraSettings; used to derive the visibility-LOD horizon.
+
 /// <summary>
 /// Local avoidance via spatial hashing + distance LOD, keeping the cost near O(N) instead of O(N^2).
 ///
@@ -27,10 +29,30 @@ public partial struct AvoidanceSystem : ISystem
 
     private float _timeSinceLastLOD;
 
+    // Persistent spatial maps, allocated once and cleared+refilled each tick instead of allocated and
+    // disposed every frame. Sized to the hard enemy cap (SpawnerSettings.MaxEnemies), so the costly
+    // CalculateEntityCount on the enableable enemy query is no longer needed just to size them.
+    private NativeParallelMultiHashMap<int, AvoidanceData> _fineMap;
+    private NativeParallelMultiHashMap<int, AvoidanceData> _coarseMap;
+    private bool _mapsAllocated;
+    private int _fineCapacity;
+    private int _coarseCapacity;
+
+    // Last tick's populate+avoidance jobs, which read/write the persistent maps. They must be complete
+    // before this tick clears and refills the maps on the main thread — otherwise clearing races them.
+    private JobHandle _mapJobHandle;
+
+    /// <summary> Enemy cap used to size the maps when no SpawnerSettings singleton exists yet. </summary>
+    private const int FallbackMaxEnemies = 500;
+
     /// <summary> Frequency of the Level of Detail (LOD) distance check. </summary>
     private const float LodCheckInterval = 0.5f;
-    /// <summary> Squared distance threshold for activating avoidance logic. </summary>
-    private const float ActivationDistSq = 60f * 60f;
+
+    /// <summary> Horizon cosines used only when no CpAvoidanceSettings asset exists (~Earth R50, h35). </summary>
+    private const float FallbackLodCosDegrade = 0.55f;
+    private const float FallbackLodCosRestore = 0.58f;
+    /// <summary> Camera height fallback when neither the camera nor the avoidance settings asset exists. </summary>
+    private const float FallbackCameraHeight = 35f;
 
     public void OnCreate(ref SystemState state)
     {
@@ -62,6 +84,39 @@ public partial struct AvoidanceSystem : ISystem
         _transformLookup = state.GetComponentLookup<LocalTransform>(isReadOnly: true);
     }
 
+    public void OnDestroy(ref SystemState state)
+    {
+        if (_mapsAllocated)
+        {
+            _mapJobHandle.Complete();
+            _fineMap.Dispose();
+            _coarseMap.Dispose();
+            _mapsAllocated = false;
+        }
+    }
+
+    /// <summary>
+    /// Ensures the persistent maps exist and are large enough for the given upper bounds, reallocating
+    /// only when they need to grow (in practice once: MaxEnemies is baked and obstacle counts are stable).
+    /// </summary>
+    private void EnsureCapacity(int fineNeeded, int coarseNeeded)
+    {
+        if (_mapsAllocated && _fineCapacity >= fineNeeded && _coarseCapacity >= coarseNeeded)
+            return;
+
+        if (_mapsAllocated)
+        {
+            _fineMap.Dispose();
+            _coarseMap.Dispose();
+        }
+
+        _fineCapacity = math.max(fineNeeded, 1);
+        _coarseCapacity = math.max(coarseNeeded, 1);
+        _fineMap = new NativeParallelMultiHashMap<int, AvoidanceData>(_fineCapacity, Allocator.Persistent);
+        _coarseMap = new NativeParallelMultiHashMap<int, AvoidanceData>(_coarseCapacity, Allocator.Persistent);
+        _mapsAllocated = true;
+    }
+
     // Not Burst-compiled: reads the managed CpAvoidanceSettings so the global params are live-tunable
     // in play. The heavy per-entity work stays in the Burst jobs, which receive a blittable snapshot.
     public void OnUpdate(ref SystemState state)
@@ -78,46 +133,71 @@ public partial struct AvoidanceSystem : ISystem
             : AvoidanceConfig.Default;
 
         // --- PHASE 1: Level of Detail (LOD) Management ---
+        // Angular horizon LOD: an entity is kept at full quality while it is within the camera's horizon
+        // of the player (dot of the two surface normals > cos(horizon)); past that the planet's curvature
+        // hides it, so avoidance is dropped (and FlowFieldMovementSystem switches to a raycast-free snap,
+        // gated on the same enabled flag). Derived from the per-planet camera height, so it stays correct
+        // whatever framing a planet uses — no world-space distance constant.
         _timeSinceLastLOD += SystemAPI.Time.DeltaTime;
         if (_timeSinceLastLOD > LodCheckInterval)
         {
             _timeSinceLastLOD = 0;
             var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
 
+            // Camera height above the surface for this planet (falls back to the settings default).
+            float cameraHeight = CpAvoidanceSettings.I != null
+                ? CpAvoidanceSettings.I.LodFallbackCameraHeight
+                : FallbackCameraHeight;
+            if (CpBaseCameraSettings.I != null)
+                cameraHeight = CpBaseCameraSettings.PlanetCameraSettings[planetData.PlanetID].RadiusOffset;
+
+            float cosDegrade = FallbackLodCosDegrade;
+            float cosRestore = FallbackLodCosRestore;
+            if (CpAvoidanceSettings.I != null)
+                CpAvoidanceSettings.I.ComputeHorizonThresholds(planetData.Radius, cameraHeight,
+                    out cosDegrade, out cosRestore);
+
             var lodJob = new LodJob
             {
                 TransformLookup = _transformLookup,
                 PlayerEntity = playerEntity,
-                DistSqThreshold = ActivationDistSq,
+                PlanetCenter = planetData.Center,
+                CosDegrade = cosDegrade,
+                CosRestore = cosRestore,
                 Ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter()
             };
             state.Dependency = lodJob.ScheduleParallel(_allEnemyQuery, state.Dependency);
         }
 
         // --- PHASE 2: Spatial Hashing ---
-        int activeCount = _activeEnemyQuery.CalculateEntityCount();
-        int obstacleCount = _obstaclesQuery.CalculateEntityCount();
-
-        if (activeCount == 0)
+        // Structural early-out only (no enabled-bit scan, no sync): nothing to do if there is not a
+        // single avoidance entity in the world (lobby, before the first spawn).
+        if (_allEnemyQuery.IsEmptyIgnoreFilter)
             return;
 
-        // Fine grid: small-radius enemies (<= activeCount). Coarse grid: large-radius enemies + every
-        // obstacle (<= activeCount + obstacleCount). Both bounds are safe upper bounds so neither map
-        // reallocates.
-        var fineMap = new NativeParallelMultiHashMap<int, AvoidanceData>(
-            activeCount,
-            Allocator.TempJob
-        );
-        var coarseMap = new NativeParallelMultiHashMap<int, AvoidanceData>(
-            activeCount + obstacleCount,
-            Allocator.TempJob
-        );
+        // Size to the hard caps, not the live count: the fine map never exceeds MaxEnemies, the coarse
+        // map MaxEnemies + obstacles. The obstacle count is the CHEAP one (the obstacle query has no
+        // enableable component, so counting it is a chunk total with no job sync); the expensive count —
+        // the enableable enemy query — is gone. Maps are persistent and only grow, so this normally
+        // allocates once.
+        int maxEnemies = SystemAPI.TryGetSingleton<SpawnerSettings>(out var spawnerSettings)
+            ? spawnerSettings.MaxEnemies
+            : FallbackMaxEnemies;
+        int obstacleCount = _obstaclesQuery.CalculateEntityCount();
+
+        // Last tick's jobs must finish before we touch the maps on the main thread. A full frame has
+        // elapsed, so this is essentially already done and completes with no real stall.
+        _mapJobHandle.Complete();
+        EnsureCapacity(maxEnemies, maxEnemies + obstacleCount);
+
+        _fineMap.Clear();
+        _coarseMap.Clear();
 
         // Enemies route themselves to the fine or coarse map by radius.
         var populateEnemiesHandle = new PopulateEnemiesSpatialMapJob
         {
-            FineMap = fineMap.AsParallelWriter(),
-            CoarseMap = coarseMap.AsParallelWriter(),
+            FineMap = _fineMap.AsParallelWriter(),
+            CoarseMap = _coarseMap.AsParallelWriter(),
             Config = config
         }.ScheduleParallel(_activeEnemyQuery, state.Dependency);
 
@@ -125,7 +205,7 @@ public partial struct AvoidanceSystem : ISystem
         // the coarse map's ParallelWriter — concurrent writes to one writer would race).
         var populateObstaclesHandle = new PopulateObstacleSpatialMapJob
         {
-            CoarseMap = coarseMap.AsParallelWriter(),
+            CoarseMap = _coarseMap.AsParallelWriter(),
             CoarseCellSize = config.CoarseCellSize,
             ObstacleMass = config.ObstacleMass
         }.ScheduleParallel(_obstaclesQuery, populateEnemiesHandle);
@@ -135,16 +215,16 @@ public partial struct AvoidanceSystem : ISystem
         // --- PHASE 3: Avoidance Calculation ---
         var avoidanceJob = new AvoidanceJob
         {
-            FineMap = fineMap,
-            CoarseMap = coarseMap,
+            FineMap = _fineMap,
+            CoarseMap = _coarseMap,
             PlanetCenter = planetData.Center,
             Config = config
         };
         state.Dependency = avoidanceJob.ScheduleParallel(_activeEnemyQuery, state.Dependency);
 
-        // Dispose of the maps after the avoidance job completes
-        state.Dependency = fineMap.Dispose(state.Dependency);
-        state.Dependency = coarseMap.Dispose(state.Dependency);
+        // Remember the map-touching jobs so next tick can complete them before clearing the maps.
+        // Maps are persistent: no per-frame dispose. They are freed in OnDestroy.
+        _mapJobHandle = state.Dependency;
     }
 
     /// <summary>
@@ -166,11 +246,16 @@ public partial struct AvoidanceSystem : ISystem
     private partial struct LodJob : IJobEntity
     {
         /// <summary>
-        /// Toggles the Avoidance component's enabled state based on distance to the player.
+        /// Toggles the Avoidance component's enabled state by angular distance to the player: the entity
+        /// is kept active while its surface normal is within the camera horizon of the player's, and
+        /// dropped past it. Hysteresis (CosDegrade &lt; CosRestore) keeps entities at the edge from
+        /// chattering between the two states.
         /// </summary>
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
         public Entity PlayerEntity;
-        public float DistSqThreshold;
+        public float3 PlanetCenter;
+        public float CosDegrade;
+        public float CosRestore;
         public EntityCommandBuffer.ParallelWriter Ecb;
 
         public void Execute(Entity entity, [ChunkIndexInQuery] int chunkIndex, EnabledRefRO<Avoidance> avoidanceEnabled, in LocalTransform transform)
@@ -178,14 +263,17 @@ public partial struct AvoidanceSystem : ISystem
             if (!TransformLookup.HasComponent(PlayerEntity))
                 return;
 
-            float3 playerPos = TransformLookup[PlayerEntity].Position;
+            float3 nPlayer = math.normalize(TransformLookup[PlayerEntity].Position - PlanetCenter);
+            float3 nEnemy = math.normalize(transform.Position - PlanetCenter);
+            float d = math.dot(nEnemy, nPlayer);
 
-            bool shouldBeActive = math.distancesq(transform.Position, playerPos) < DistSqThreshold;
+            bool wasActive = avoidanceEnabled.ValueRO;
+            // Active entities stay active until they fall past the (farther) degrade boundary; inactive
+            // ones stay inactive until they come back inside the (nearer) restore boundary.
+            bool shouldBeActive = wasActive ? d > CosDegrade : d > CosRestore;
 
-            if (avoidanceEnabled.ValueRO != shouldBeActive)
-            {
+            if (wasActive != shouldBeActive)
                 Ecb.SetComponentEnabled<Avoidance>(chunkIndex, entity, shouldBeActive);
-            }
         }
     }
 
