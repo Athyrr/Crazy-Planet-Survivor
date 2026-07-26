@@ -86,7 +86,6 @@ public partial struct EntitiesMovementSystem : ISystem
         {
             DeltaTime = delta,
             PlanetCenter = planetData.Center,
-            PlanetRadius = planetData.Radius,
             StatsLookup = _finalStatsLookup
         };
         JobHandle linearBareHandle = linearBareJob.ScheduleParallel(linearSnappedHandle);
@@ -282,9 +281,10 @@ public partial struct EntitiesMovementSystem : ISystem
     }
 
     /// <summary>
-    /// Moves LinearMovement entities that do NOT follow terrain, snapping analytically to the sphere
-    /// radius — no raycast. Used for projectiles that skim in a straight line (see MoveLinearSnappedJob
-    /// for the raycast path that terrain-hugging entities take).
+    /// Moves LinearMovement entities that do NOT follow terrain — no raycast. The entity keeps its own
+    /// distance from the planet centre (its launch altitude) and follows the sphere's curvature at that
+    /// height, so it neither drops to the base radius nor needs to sample the ground. Used for
+    /// projectiles that skim in a straight line (terrain-hugging entities take MoveLinearSnappedJob).
     /// </summary>
     [BurstCompile]
     [WithAll(typeof(LinearMovement))]
@@ -293,7 +293,6 @@ public partial struct EntitiesMovementSystem : ISystem
     {
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public float3 PlanetCenter;
-        [ReadOnly] public float PlanetRadius;
 
         [NativeDisableParallelForRestriction] [ReadOnly]
         public ComponentLookup<FinalStats> StatsLookup;
@@ -304,11 +303,16 @@ public partial struct EntitiesMovementSystem : ISystem
             if (StatsLookup.HasComponent(entity))
                 speed = StatsLookup[entity].MoveSpeed;
 
-            PlanetUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out var currentNormal);
+            // Keep the entity's current altitude (radius) rather than forcing the base planet radius,
+            // which would drop it below terrain launched from a hill or the player's height.
+            float3 toEntity = transform.Position - PlanetCenter;
+            float currentRadius = math.length(toEntity);
+            float3 currentNormal = currentRadius > math.EPSILON ? toEntity / currentRadius : math.up();
+
             PlanetUtils.ProjectDirectionOnSurface(in movement.Direction, in currentNormal, out float3 tangentDirection);
 
             float3 newPosition = transform.Position + tangentDirection * (speed * DeltaTime);
-            PlanetUtils.SnapToSurfaceRadius(newPosition, PlanetCenter, PlanetRadius, out var snapped);
+            PlanetUtils.SnapToSurfaceRadius(newPosition, PlanetCenter, currentRadius, out var snapped);
 
             transform.Position = snapped;
             if (math.lengthsq(movement.Direction) > 0.001f)

@@ -28,7 +28,6 @@ public partial struct FlowFieldSystem : ISystem
 
     private EntityQuery _obstacleQuery;
     private ComponentLookup<LocalTransform> _transformLookup;
-    private BufferLookup<FlowFieldCell> _cellBufferLookup;
 
     private bool _isInitialized;
 
@@ -45,7 +44,6 @@ public partial struct FlowFieldSystem : ISystem
         builder.Dispose();
 
         _transformLookup = state.GetComponentLookup<LocalTransform>(isReadOnly: true);
-        _cellBufferLookup = state.GetBufferLookup<FlowFieldCell>(isReadOnly: false);
     }
 
     [BurstCompile]
@@ -86,7 +84,6 @@ public partial struct FlowFieldSystem : ISystem
 
         // --- Gather inputs ---
         _transformLookup.Update(ref state);
-        _cellBufferLookup.Update(ref state);
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
@@ -171,15 +168,15 @@ public partial struct FlowFieldSystem : ISystem
         };
         state.Dependency = buildDirJob.Schedule(totalCells, 64, state.Dependency);
 
-        // --- Phase 4: Copy to DynamicBuffer (sequential) ---
+        // --- Phase 4: Copy to DynamicBuffer (parallel) ---
+        // The buffer was pre-sized above, so AsNativeArray points at stable memory for the job to fill.
         var copyJob = new CopyToCellBufferJob
         {
             DirectionField = _directionField,
             CostField = _costField,
-            CellBufferLookup = _cellBufferLookup,
-            FlowFieldEntity = flowFieldEntity
+            Cells = cellBuffer.AsNativeArray()
         };
-        state.Dependency = copyJob.Schedule(state.Dependency);
+        state.Dependency = copyJob.Schedule(totalCells, 64, state.Dependency);
 
         // Dispose temp arrays after jobs are done
         state.Dependency = obstaclePositions.Dispose(state.Dependency);
@@ -399,28 +396,25 @@ public partial struct FlowFieldSystem : ISystem
     }
 
     /// <summary>
-    /// Copies the computed direction and cost arrays into the FlowFieldCell DynamicBuffer.
+    /// Copies the computed direction and cost arrays into the FlowFieldCell buffer, one cell per index.
+    /// The buffer is passed as a NativeArray (obtained from the pre-sized DynamicBuffer) because a
+    /// BufferLookup can't be written from parallel threads.
     /// </summary>
     [BurstCompile]
-    private struct CopyToCellBufferJob : IJob
+    private struct CopyToCellBufferJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<float3> DirectionField;
         [ReadOnly] public NativeArray<byte> CostField;
 
-        public BufferLookup<FlowFieldCell> CellBufferLookup;
-        public Entity FlowFieldEntity;
+        [WriteOnly] public NativeArray<FlowFieldCell> Cells;
 
-        public void Execute()
+        public void Execute(int i)
         {
-            var buffer = CellBufferLookup[FlowFieldEntity];
-            for (int i = 0; i < DirectionField.Length; i++)
+            Cells[i] = new FlowFieldCell
             {
-                buffer[i] = new FlowFieldCell
-                {
-                    Direction = DirectionField[i],
-                    Cost = CostField[i]
-                };
-            }
+                Direction = DirectionField[i],
+                Cost = CostField[i]
+            };
         }
     }
 }
