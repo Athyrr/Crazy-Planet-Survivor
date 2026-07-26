@@ -19,6 +19,7 @@ public partial struct EnemyTargetingSystem : ISystem
 {
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<PlanetData> _planetLookup;
+    private ComponentLookup<StopDistance> _stopDistanceLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -29,6 +30,7 @@ public partial struct EnemyTargetingSystem : ISystem
 
         _transformLookup = state.GetComponentLookup<LocalTransform>(isReadOnly: true);
         _planetLookup = state.GetComponentLookup<PlanetData>(isReadOnly: true);
+        _stopDistanceLookup = state.GetComponentLookup<StopDistance>(isReadOnly: true);
     }
 
     [BurstCompile]
@@ -36,6 +38,7 @@ public partial struct EnemyTargetingSystem : ISystem
     {
         _transformLookup.Update(ref state);
         _planetLookup.Update(ref state);
+        _stopDistanceLookup.Update(ref state);
 
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
             return;
@@ -55,6 +58,7 @@ public partial struct EnemyTargetingSystem : ISystem
             PlanetEntity = planetEntity,
             TransformLookup = _transformLookup,
             PlanetLookup = _planetLookup,
+            StopDistanceLookup = _stopDistanceLookup,
             ECB = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter()
         };
 
@@ -75,8 +79,12 @@ public partial struct EnemyTargetingSystem : ISystem
 
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
         [ReadOnly] public ComponentLookup<PlanetData> PlanetLookup;
+        [ReadOnly] public ComponentLookup<StopDistance> StopDistanceLookup;
 
         public EntityCommandBuffer.ParallelWriter ECB;
+
+        /// <summary> Cast is allowed for kiters only when the player is within this cone (cos 60°). </summary>
+        private const float FacingCosThreshold = 0.5f;
 
         void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, ref DynamicBuffer<EnemySpellReady> readySpells, ref DynamicBuffer<ActiveSpell> activeSpells, in LocalTransform transform)
         {
@@ -85,12 +93,24 @@ public partial struct EnemyTargetingSystem : ISystem
             if (!TransformLookup.HasComponent(PlayerEntity) || !PlanetLookup.HasComponent(PlanetEntity))
                 return;
 
+            var planetData = PlanetLookup[PlanetEntity];
             float3 playerPos = TransformLookup[PlayerEntity].Position;
-            float planetRadius = PlanetLookup[PlanetEntity].Radius;
+            float planetRadius = planetData.Radius;
 
             float maxSurfaceDist = math.PI * planetRadius;
 
             float distToPlayerSq = math.distancesq(transform.Position, playerPos);
+
+            // Kiters (retreaters) fire only when facing the player: their projectile leaves along their
+            // forward, so while backing away — looking away — they hold fire. Non-kiters cast as before.
+            bool canFire = true;
+            if (StopDistanceLookup.TryGetComponent(entity, out var stopData) && stopData.RetreatDistance > 0f)
+            {
+                float3 normal = math.normalize(transform.Position - planetData.Center);
+                float3 toPlayer = playerPos - transform.Position;
+                float3 toPlayerTangent = toPlayer - normal * math.dot(toPlayer, normal);
+                canFire = math.dot(math.normalizesafe(toPlayerTangent), transform.Forward()) >= FacingCosThreshold;
+            }
 
             for (int i = 0; i < readySpells.Length; i++)
             {
@@ -113,7 +133,7 @@ public partial struct EnemyTargetingSystem : ISystem
                     }
                 }
 
-                if (isInRange)
+                if (isInRange && canFire)
                 {
                     // todo create request on caster entity instead of creating a new entity for the request
                     // Create a request entity to be processed by the SpellSystem

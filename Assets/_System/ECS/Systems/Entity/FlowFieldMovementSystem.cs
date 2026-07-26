@@ -245,17 +245,23 @@ public partial struct FlowFieldMovementSystem : ISystem
 
             float3 desiredDirection = flowDirection + steeringForce * SteeringBlend;
 
-            // --- Stop distance: decelerate toward the ring, then hold position. ---
-            // Inside the ring the entity has "arrived": it stops advancing instead of creeping
-            // all the way onto the player. Just outside, speed ramps up so it eases in.
+            // --- Stop distance: approach, hold at range, or retreat if too close (ranged kiting). ---
+            // Beyond the ring the entity advances (easing in over a slow band). Within the ring it holds.
+            // Below RetreatDistance it backs away — direction flips to away-from-player, keeping avoidance
+            // so it doesn't reverse into its neighbours.
             float speedFactor = 1f;
             if (StopDistanceLookup.HasComponent(entity))
             {
-                float stopDist = StopDistanceLookup[entity].Distance;
+                var stopData = StopDistanceLookup[entity];
+                float stopDist = stopData.Distance;
                 if (stopDist > 0f)
                 {
                     float distToGoal = math.distance(transform.Position, FlowField.Origin);
-                    if (distToGoal <= stopDist)
+                    if (stopData.RetreatDistance > 0f && distToGoal < stopData.RetreatDistance)
+                    {
+                        desiredDirection = -goalDirection + steeringForce * SteeringBlend;
+                    }
+                    else if (distToGoal <= stopDist)
                     {
                         speedFactor = 0f;
                     }

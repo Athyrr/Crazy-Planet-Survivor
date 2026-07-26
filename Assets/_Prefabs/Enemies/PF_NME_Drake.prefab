@@ -196,11 +196,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   MainRenderer: {fileID: 2059771960780494281}
   UseSnappedMovement: 1
+  Acceleration: 0
+  MaxTurnRateDeg: 0
   BaseStats:
     MaxHealth: 50
     HealthRegen: 0
     BaseArmor: 0
     Armor: 0
+    KnockbackResistance: 0
     BaseMoveSpeed: 5
     MoveSpeed: 0
     BasePickupRange: 0
@@ -217,6 +220,9 @@ MonoBehaviour:
     CritChance: 0
     CritDamage: 0
     Luck: 0
+    LifeStealChance: 0
+    DashCount: 0
+    DashCooldown: 0
   InitialSpells:
   - {fileID: 11400000, guid: 9e39f75e475110447adf8ec004d90448, type: 2}
   ContactDamage: 50
@@ -248,8 +254,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 569916e10732eba4caf53ace7f5ac10d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
-  _avoidanceDetectionRadius: 3
-  _avoidanceWeight: 1
+  _avoidanceRadius: 2
+  _mass: 1
 --- !u!114 &6713757152409590747
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -263,6 +269,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StopDistanceAuthoring
   Distance: 16
+  RetreatDistance: 15
 --- !u!114 &-536755554677927202
 MonoBehaviour:
   m_ObjectHideFlags: 0
