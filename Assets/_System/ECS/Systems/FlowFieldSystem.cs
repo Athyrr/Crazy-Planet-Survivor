@@ -22,7 +22,8 @@ public partial struct FlowFieldSystem : ISystem
 {
     // Persistent arrays reused across frames to avoid per-rebuild allocation pressure
     private NativeArray<byte> _costField;
-    private NativeArray<ushort> _integrationField;
+    // uint: weighted step costs (10/14) can exceed a ushort on long detours.
+    private NativeArray<uint> _integrationField;
     private NativeArray<float3> _directionField;
 
     private EntityQuery _obstacleQuery;
@@ -71,7 +72,7 @@ public partial struct FlowFieldSystem : ISystem
         if (!_isInitialized)
         {
             _costField = new NativeArray<byte>(totalCells, Allocator.Persistent);
-            _integrationField = new NativeArray<ushort>(totalCells, Allocator.Persistent);
+            _integrationField = new NativeArray<uint>(totalCells, Allocator.Persistent);
             _directionField = new NativeArray<float3>(totalCells, Allocator.Persistent);
             _isInitialized = true;
         }
@@ -241,9 +242,10 @@ public partial struct FlowFieldSystem : ISystem
     }
 
     /// <summary>
-    /// BFS from the goal cell outward. Each cell receives the minimum number of steps to reach the goal.
-    /// Cells with cost=255 (obstacles) are skipped and block propagation.
-    /// Uses 4-directional expansion for uniform integration costs.
+    /// Fills each cell with its weighted distance to the goal (Dijkstra from the goal outward).
+    /// 8-directional, orthogonal step = 10, diagonal = 14 (≈10·√2), so distances are near-Euclidean and
+    /// the flow points straight at the goal. Obstacle cells (cost 255) block propagation; a diagonal is
+    /// taken only when both side cells are open, so paths don't cut through wall corners.
     /// </summary>
     [BurstCompile]
     private struct IntegrateFieldJob : IJob
@@ -253,14 +255,17 @@ public partial struct FlowFieldSystem : ISystem
         public int GoalIndex;
 
         [ReadOnly] public NativeArray<byte> CostField;
-        public NativeArray<ushort> IntegrationField;
+        public NativeArray<uint> IntegrationField;
+
+        private const uint CostOrtho = 10;
+        private const uint CostDiag = 14;
 
         public void Execute()
         {
             int total = GridWidth * GridHeight;
 
             for (int i = 0; i < total; i++)
-                IntegrationField[i] = ushort.MaxValue;
+                IntegrationField[i] = uint.MaxValue;
 
             IntegrationField[GoalIndex] = 0;
 
@@ -272,34 +277,46 @@ public partial struct FlowFieldSystem : ISystem
                 int current = queue.Dequeue();
                 int cx = current % GridWidth;
                 int cy = current / GridWidth;
-                ushort currentCost = IntegrationField[current];
+                uint currentCost = IntegrationField[current];
 
-                // 4-directional BFS — manually unrolled for Burst compatibility
-                TryEnqueue(cx - 1, cy, currentCost, ref queue);
-                TryEnqueue(cx + 1, cy, currentCost, ref queue);
-                TryEnqueue(cx, cy - 1, currentCost, ref queue);
-                TryEnqueue(cx, cy + 1, currentCost, ref queue);
+                // Orthogonal neighbours (cost 10); passability is reused for the corner check below.
+                bool left  = TryRelax(cx - 1, cy, currentCost, CostOrtho, ref queue);
+                bool right = TryRelax(cx + 1, cy, currentCost, CostOrtho, ref queue);
+                bool down  = TryRelax(cx, cy - 1, currentCost, CostOrtho, ref queue);
+                bool up    = TryRelax(cx, cy + 1, currentCost, CostOrtho, ref queue);
+
+                // Diagonal neighbours (cost 14), only when both flanking cells are open (no corner cut).
+                if (left && down)  TryRelax(cx - 1, cy - 1, currentCost, CostDiag, ref queue);
+                if (right && down) TryRelax(cx + 1, cy - 1, currentCost, CostDiag, ref queue);
+                if (left && up)    TryRelax(cx - 1, cy + 1, currentCost, CostDiag, ref queue);
+                if (right && up)   TryRelax(cx + 1, cy + 1, currentCost, CostDiag, ref queue);
             }
 
             queue.Dispose();
         }
 
-        private void TryEnqueue(int nx, int ny, ushort parentCost, ref NativeQueue<int> queue)
+        /// <summary>
+        /// Updates the neighbour's distance if this path is shorter, re-queuing it when improved.
+        /// Returns true if the neighbour is passable (in bounds and not an obstacle).
+        /// </summary>
+        private bool TryRelax(int nx, int ny, uint parentCost, uint stepCost, ref NativeQueue<int> queue)
         {
             if (nx < 0 || nx >= GridWidth || ny < 0 || ny >= GridHeight)
-                return;
+                return false;
 
             int nIndex = ny * GridWidth + nx;
 
             if (CostField[nIndex] == byte.MaxValue)
-                return;
+                return false;
 
-            ushort newCost = (ushort)(parentCost + 1);
+            uint newCost = parentCost + stepCost;
             if (newCost < IntegrationField[nIndex])
             {
                 IntegrationField[nIndex] = newCost;
                 queue.Enqueue(nIndex);
             }
+
+            return true;
         }
     }
 
@@ -316,7 +333,7 @@ public partial struct FlowFieldSystem : ISystem
         public float3 GridRight;
         public float3 GridForward;
 
-        [ReadOnly] public NativeArray<ushort> IntegrationField;
+        [ReadOnly] public NativeArray<uint> IntegrationField;
 
         [NativeDisableParallelForRestriction] public NativeArray<float3> DirectionField;
 
@@ -324,7 +341,7 @@ public partial struct FlowFieldSystem : ISystem
         {
             int cx = index % GridWidth;
             int cy = index / GridWidth;
-            ushort selfCost = IntegrationField[index];
+            uint selfCost = IntegrationField[index];
 
             if (selfCost == 0)
             {
@@ -332,7 +349,7 @@ public partial struct FlowFieldSystem : ISystem
                 return;
             }
 
-            ushort bestCost = selfCost;
+            uint bestCost = selfCost;
             int bestDx = 0;
             int bestDy = 0;
 
@@ -363,15 +380,15 @@ public partial struct FlowFieldSystem : ISystem
             }
         }
 
-        private void CheckNeighbor(int cx, int cy, int dx, int dy, ushort selfCost,
-            ref ushort bestCost, ref int bestDx, ref int bestDy)
+        private void CheckNeighbor(int cx, int cy, int dx, int dy, uint selfCost,
+            ref uint bestCost, ref int bestDx, ref int bestDy)
         {
             int nx = cx + dx;
             int ny = cy + dy;
             if (nx < 0 || nx >= GridWidth || ny < 0 || ny >= GridHeight)
                 return;
 
-            ushort nCost = IntegrationField[ny * GridWidth + nx];
+            uint nCost = IntegrationField[ny * GridWidth + nx];
             if (nCost < bestCost)
             {
                 bestCost = nCost;

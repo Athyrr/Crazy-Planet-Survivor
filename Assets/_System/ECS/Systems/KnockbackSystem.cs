@@ -62,9 +62,8 @@ public partial struct KnockbackSystem : ISystem
         // Same value used by MoveFollowSnappedJob so uneven terrain and cliff edges behave identically.
         private const float SnapDistance = 500f;
 
-        // Short probe tried first (see FlowFieldMovementSystem.GroundProbeDistance): the entity is on
-        // the surface and a knockback step is small, so the ground is within a few units. Knockback
-        // deliberately pushes entities off ledges though, hence the long-ray fallback below.
+        // Short ground probe tried first; the long SnapDistance ray is the fallback (knockback can push
+        // an entity off a ledge, out of the short ray's reach).
         private const float GroundProbeDistance = 4f;
 
         public void Execute(
@@ -82,9 +81,8 @@ public partial struct KnockbackSystem : ISystem
                 return;
             }
 
-            // Knockback resistance (Brotato-style flat stat on the defender): scales the whole push.
-            // Fully immune at >= 1 -> disable the effect outright so it costs nothing and reads as a
-            // hard immunity rather than a near-zero drift. Fixed per archetype, independent of size.
+            // Knockback resistance scales the whole push; at >= 1 the entity is fully immune, so the
+            // effect is disabled outright rather than left as a near-zero drift.
             float kbResist = CoreStatsLookup.HasComponent(entity)
                 ? CoreStatsLookup[entity].KnockbackResistance
                 : 0f;
@@ -109,10 +107,8 @@ public partial struct KnockbackSystem : ISystem
 
             float3 desiredPos = transform.Position + (flatDirection * currentForce * DeltaTime);
 
-            // Re-snap to the ground: without this the enemy flies tangent to the (curved) planet and
-            // sinks under the surface until the flow-field/follow systems re-snap it after the KB ends,
-            // which reads as a "clip → pop" at the end. Ray-down from the current up axis to catch the
-            // terrain, then take the hit position — same pattern as MoveFollowSnappedJob.
+            // Re-snap to the ground each step, otherwise the entity flies tangent to the curved planet
+            // and sinks under the surface until the movement systems re-snap it after the knockback ends.
             var snapInput = new RaycastInput
             {
                 Start = desiredPos + upDir * GroundProbeDistance,

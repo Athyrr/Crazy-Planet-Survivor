@@ -79,16 +79,17 @@ public partial struct EntitiesMovementSystem : ISystem
         };
         JobHandle linearSnappedHandle = linearSnappedJob.ScheduleParallel(state.Dependency);
 
-        //var linearBareJob = new MoveLinearBareJob
-        //{
-        //    DeltaTime = delta,
-        //    PlanetCenter = planetTransform.Position,
-        //    PlanetRadius = planetData.Radius,
-        //    StatsLookup = _statsLookup,
-        //    PlayerLookup = _playerLookup,
-        //    PhysicsCollisionWorld = collisionWorld
-        //};
-        //JobHandle linearBareHandle = linearBareJob.ScheduleParallel(linearSnappedHandle);
+        // Analytic (raycast-free) path for LinearMovement entities without HardSnappedMovement, i.e.
+        // projectiles that skim straight instead of hugging the terrain. Chained after the snapped job
+        // because both write LocalTransform (they act on disjoint entity sets, but share the type).
+        var linearBareJob = new MoveLinearBareJob
+        {
+            DeltaTime = delta,
+            PlanetCenter = planetData.Center,
+            PlanetRadius = planetData.Radius,
+            StatsLookup = _finalStatsLookup
+        };
+        JobHandle linearBareHandle = linearBareJob.ScheduleParallel(linearSnappedHandle);
 
         var followSnappedJob = new MoveFollowSnappedJob
         {
@@ -101,8 +102,7 @@ public partial struct EntitiesMovementSystem : ISystem
             StopDistanceLookup = _stopDistanceLookup,
             StunLookup = _stunLookup
         };
-        JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearSnappedHandle);
-        //JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearBareHandle);
+        JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearBareHandle);
 
         //var followBareJob = new MoveFollowBareJob
         //{
@@ -144,10 +144,11 @@ public partial struct EntitiesMovementSystem : ISystem
     #region Jobs
 
     /// <summary>
-    /// Moves entities in a straight line while using raycasts to snap them to uneven terrain.
+    /// Moves LinearMovement entities that opt into terrain following (HardSnappedMovement), raycasting
+    /// the surface each frame. Entities without it are handled analytically by MoveLinearBareJob.
     /// </summary>
     [BurstCompile]
-    [WithAll(typeof(LinearMovement) /*, typeof(HardSnappedMovement)*/)]
+    [WithAll(typeof(LinearMovement), typeof(HardSnappedMovement))]
     private partial struct MoveLinearSnappedJob : IJobEntity
     {
         [ReadOnly] public float DeltaTime;
@@ -281,7 +282,9 @@ public partial struct EntitiesMovementSystem : ISystem
     }
 
     /// <summary>
-    /// Moves entities in a straight line, snapping them to a perfect sphere based on a fixed radius.
+    /// Moves LinearMovement entities that do NOT follow terrain, snapping analytically to the sphere
+    /// radius — no raycast. Used for projectiles that skim in a straight line (see MoveLinearSnappedJob
+    /// for the raycast path that terrain-hugging entities take).
     /// </summary>
     [BurstCompile]
     [WithAll(typeof(LinearMovement))]
@@ -295,55 +298,15 @@ public partial struct EntitiesMovementSystem : ISystem
         [NativeDisableParallelForRestriction] [ReadOnly]
         public ComponentLookup<FinalStats> StatsLookup;
 
-        [NativeDisableParallelForRestriction] [ReadOnly]
-        public ComponentLookup<Player> PlayerLookup;
-
-        [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
-
-        private const float OBSTACLE_CHECK_DIST = 1.0f;
-
         public void Execute(ref LocalTransform transform, in LinearMovement movement, Entity entity)
         {
             float speed = movement.Speed;
             if (StatsLookup.HasComponent(entity))
-            {
-                var stats = StatsLookup[entity];
-                speed = stats.MoveSpeed;
-            }
+                speed = StatsLookup[entity].MoveSpeed;
 
             PlanetUtils.GetSurfaceNormalRadius(transform.Position, PlanetCenter, out var currentNormal);
             PlanetUtils.ProjectDirectionOnSurface(in movement.Direction, in currentNormal, out float3 tangentDirection);
 
-            // Obstacle collision check (only for players)
-            //if (PlayerLookup.HasComponent(entity))
-            //{
-            //    if (math.lengthsq(tangentDirection) > 0.001f)
-            //    {
-            //        var obstacleInput = new RaycastInput
-            //        {
-            //            Start = transform.Position + (currentNormal * 0.5f),
-            //            End = transform.Position + (currentNormal * 0.5f) + (tangentDirection * OBSTACLE_CHECK_DIST),
-            //            Filter = new CollisionFilter
-            //            {
-            //                BelongsTo = CollisionLayers.Raycast,
-            //                CollidesWith = CollisionLayers.Obstacle
-            //            }
-            //        };
-
-            //        if (PhysicsCollisionWorld.CastRay(obstacleInput, out var obstacleHit))
-            //        {
-            //            // Stop movement
-            //            // tangentDirection = float3.zero;
-
-            //            // Slide along the wall
-            //            float3 wallNormal = obstacleHit.SurfaceNormal;
-            //            // Project the tangent direction onto the wall plane
-            //            tangentDirection = tangentDirection - wallNormal * math.dot(tangentDirection, wallNormal);
-            //        }
-            //    }
-            //}
-
-            // Apply movement
             float3 newPosition = transform.Position + tangentDirection * (speed * DeltaTime);
             PlanetUtils.SnapToSurfaceRadius(newPosition, PlanetCenter, PlanetRadius, out var snapped);
 

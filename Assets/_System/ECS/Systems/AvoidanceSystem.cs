@@ -6,18 +6,12 @@ using Unity.Entities;
 using Unity.Burst;
 using Unity.Jobs;
 
-// Camera height per planet lives in CpBaseCameraSettings; used to derive the visibility-LOD horizon.
-
 /// <summary>
-/// Local avoidance via spatial hashing + distance LOD, keeping the cost near O(N) instead of O(N^2).
-///
-/// Two grids keyed by per-entity avoidance radius: a FINE grid for the numerous small-radius entities
-/// and a COARSE grid for the few large-radius ones plus static obstacles. The fine grid's cell size is
-/// fixed by the routing threshold, so the common small population is never forced onto an
-/// obstacle-sized cell.
-///
-/// Repulsion is split by MASS ratio: a heavy entity shoves the horde aside without being shoved back
-/// (a very heavy entity / obstacle is effectively immovable), which replaces the old per-role weight hack.
+/// Local avoidance via spatial hashing + a visibility LOD, keeping the cost near O(N) instead of O(N²).
+/// Two grids keyed by per-entity avoidance radius: a fine grid for the numerous small-radius entities,
+/// a coarse grid for the few large-radius ones plus static obstacles, so small entities never scan
+/// obstacle-sized cells. Repulsion is split by mass ratio: a heavy entity (or obstacle) shoves the
+/// horde aside without being shoved back. Writes a per-entity SteeringForce consumed by the movement system.
 /// </summary>
 [UpdateInGroup(typeof(CustomUpdateGroup))]
 public partial struct AvoidanceSystem : ISystem
@@ -29,9 +23,8 @@ public partial struct AvoidanceSystem : ISystem
 
     private float _timeSinceLastLOD;
 
-    // Persistent spatial maps, allocated once and cleared+refilled each tick instead of allocated and
-    // disposed every frame. Sized to the hard enemy cap (SpawnerSettings.MaxEnemies), so the costly
-    // CalculateEntityCount on the enableable enemy query is no longer needed just to size them.
+    // Persistent spatial maps, cleared and refilled each tick. Sized to the hard enemy cap so no
+    // per-frame entity count is needed to allocate them.
     private NativeParallelMultiHashMap<int, AvoidanceData> _fineMap;
     private NativeParallelMultiHashMap<int, AvoidanceData> _coarseMap;
     private bool _mapsAllocated;
@@ -132,12 +125,10 @@ public partial struct AvoidanceSystem : ISystem
             ? CpAvoidanceSettings.I.BuildConfig()
             : AvoidanceConfig.Default;
 
-        // --- PHASE 1: Level of Detail (LOD) Management ---
-        // Angular horizon LOD: an entity is kept at full quality while it is within the camera's horizon
-        // of the player (dot of the two surface normals > cos(horizon)); past that the planet's curvature
-        // hides it, so avoidance is dropped (and FlowFieldMovementSystem switches to a raycast-free snap,
-        // gated on the same enabled flag). Derived from the per-planet camera height, so it stays correct
-        // whatever framing a planet uses — no world-space distance constant.
+        // --- PHASE 1: Level of Detail (LOD) ---
+        // Toggle each entity's Avoidance on/off by whether it is within the camera horizon of the player
+        // (angular, derived from the per-planet camera height). Off = hidden by curvature; the movement
+        // system also switches to a raycast-free snap for those, gated on the same enabled flag.
         _timeSinceLastLOD += SystemAPI.Time.DeltaTime;
         if (_timeSinceLastLOD > LodCheckInterval)
         {
@@ -170,23 +161,18 @@ public partial struct AvoidanceSystem : ISystem
         }
 
         // --- PHASE 2: Spatial Hashing ---
-        // Structural early-out only (no enabled-bit scan, no sync): nothing to do if there is not a
-        // single avoidance entity in the world (lobby, before the first spawn).
+        // Cheap structural early-out (no enabled-bit scan): nothing to do without any avoidance entity.
         if (_allEnemyQuery.IsEmptyIgnoreFilter)
             return;
 
-        // Size to the hard caps, not the live count: the fine map never exceeds MaxEnemies, the coarse
-        // map MaxEnemies + obstacles. The obstacle count is the CHEAP one (the obstacle query has no
-        // enableable component, so counting it is a chunk total with no job sync); the expensive count —
-        // the enableable enemy query — is gone. Maps are persistent and only grow, so this normally
-        // allocates once.
+        // Maps are sized to the hard caps (fine = MaxEnemies, coarse = MaxEnemies + obstacles), so the
+        // live enemy count — which would sync on the enableable query — is never needed.
         int maxEnemies = SystemAPI.TryGetSingleton<SpawnerSettings>(out var spawnerSettings)
             ? spawnerSettings.MaxEnemies
             : FallbackMaxEnemies;
         int obstacleCount = _obstaclesQuery.CalculateEntityCount();
 
-        // Last tick's jobs must finish before we touch the maps on the main thread. A full frame has
-        // elapsed, so this is essentially already done and completes with no real stall.
+        // Persistent maps: last tick's jobs must finish before we clear/refill them on the main thread.
         _mapJobHandle.Complete();
         EnsureCapacity(maxEnemies, maxEnemies + obstacleCount);
 

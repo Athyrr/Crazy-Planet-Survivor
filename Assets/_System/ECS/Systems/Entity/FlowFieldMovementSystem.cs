@@ -7,14 +7,11 @@ using Unity.Physics;
 using Unity.Burst;
 
 /// <summary>
-/// Moves entities that have FlowFieldFollowerMovement by sampling the FlowFieldData singleton.
-/// Intended as an alternative to FollowTargetMovement — entities should have one or the other, not both.
-/// Runs after AvoidanceSystem so SteeringForce values are already populated.
+/// Moves entities that have FlowFieldFollowerMovement: samples the flow-field grid and the avoidance
+/// steering, accelerates a persistent velocity toward the result, and snaps the entity to the surface.
+/// Alternative to FollowTargetMovement (an entity has one or the other, not both). Runs every frame so
+/// motion is smooth, consuming the grid/steering that CustomUpdateGroup recomputes at a lower rate.
 /// </summary>
-// Runs every frame (like EntitiesMovementSystem) so flow-field followers move smoothly at the render
-// rate instead of stepping at the ~66 Hz CustomUpdateGroup tick. It reads the flow-field grid and the
-// avoidance SteeringForce, both still computed at 66 Hz in CustomUpdateGroup — sampling their latest
-// values each frame is fine and much smoother.
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(CustomUpdateGroup))]
 [UpdateAfter(typeof(ActiveEffectsSystem))]
@@ -56,9 +53,8 @@ public partial struct FlowFieldMovementSystem : ISystem
         _cellBufferLookup = state.GetBufferLookup<FlowFieldCell>(isReadOnly: true);
     }
 
-    // Not Burst-compiled: reads the managed CpBaseEnemySettings asset so the movement feel (acceleration,
-    // turn rate, mass influence) is tunable live in the inspector. The heavy per-entity work stays in the
-    // Burst job below, which receives plain floats.
+    // Not Burst-compiled: reads the managed CpBaseEnemySettings for live-tunable movement feel. The
+    // per-entity work stays in the Burst job below, which receives plain floats.
     public void OnUpdate(ref SystemState state)
     {
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
@@ -165,37 +161,29 @@ public partial struct FlowFieldMovementSystem : ISystem
         /// <summary> Floor on the mass factor, so a very heavy entity never becomes unable to move or turn. </summary>
         [ReadOnly] public float MinMassFactor;
 
-        // Half-length of the ground probe. The entity is already standing on the surface and advances
-        // at most (speed * dt) per frame, so the ground under its next position is a couple of units
-        // away at most -- a +-4 ray covers it. SnapDistance stays as the fallback for the rare frames
-        // where the ground really is out of reach (cliff edge, spawn, end of a knockback, teleport).
+        // Half-length of the short ground probe (the entity moves at most a couple of units per frame);
+        // SnapDistance is the fallback probe when the ground is out of the short ray's reach.
         private const float GroundProbeDistance = 4f;
         private const float SnapDistance = 500f;
         private const float VertSnapSpeed = 20.0f;
-        // Avoidance is already in world-space units; cap its contribution so it
-        // doesn't overpower the flow-field direction on its own.
+        // Cap on the avoidance steering's share of the movement direction.
         private const float SteeringBlend = 0.35f;
-        // Just outside the stop ring the entity decelerates over a band of
-        // (StopDistance * StopSlowBandFraction) units so it eases in ("adapts its speed")
-        // instead of slamming to a halt.
+        // Width of the deceleration band just outside the stop ring, as a fraction of StopDistance.
         private const float StopSlowBandFraction = 0.5f;
-        // Angular gate for trusting the flow field, as cos(45 deg) against the grid normal. Expressed
-        // as an angle rather than a distance so it is independent of the planet radius: the same
-        // 45 deg of arc is ~39 units on Earth (R=50) and ~118 on Volcanus (R=150).
+        // Flow field is trusted while the entity is within this cosine (cos 45°) of the grid normal;
+        // an angle, not a distance, so it is independent of planet radius.
         private const float FlowFieldMinCos = 0.7f;
 
         public void Execute(Entity entity, ref LocalTransform transform, ref FlowFieldFollowerMovement movement)
         {
-            // Stunned entities do not move. Velocity is cleared so they do not resume their previous
-            // heading the instant the stun ends — they accelerate back up from a standstill.
+            // Stunned entities do not move; velocity is cleared so they restart from a standstill.
             if (StunLookup.TryGetComponent(entity, out var _) && StunLookup.IsComponentEnabled(entity))
             {
                 movement.Velocity = float3.zero;
                 return;
             }
 
-            // Knocked-back entities yield to the KnockbackSystem (which drives their position); otherwise
-            // the flow field would overwrite the push every frame and knockback would have no visible effect.
+            // Knocked-back entities are driven by KnockbackSystem instead; leave their position alone.
             if (KnockbackLookup.HasComponent(entity) && KnockbackLookup.IsComponentEnabled(entity))
             {
                 movement.Velocity = float3.zero;
@@ -206,11 +194,8 @@ public partial struct FlowFieldMovementSystem : ISystem
             float acceleration = movement.Acceleration > 0f ? movement.Acceleration : GlobalAcceleration;
             float maxTurnRateDeg = movement.MaxTurnRateDeg > 0f ? movement.MaxTurnRateDeg : GlobalMaxTurnRateDeg;
 
-            // Heavier entities take longer to get going AND to turn (Reynolds divides steering force by
-            // mass; the exponents let that be dialled down, since raw inverse-mass is brutal once masses
-            // span 1..200). Acceleration and turn rate get separate exponents because they are physically
-            // distinct — mass vs moment of inertia.
-            // Mass is read regardless of Avoidance's enabled state: it is a property, not transient state.
+            // Heavier entities accelerate and turn more slowly. Separate exponents for the two (mass vs
+            // moment of inertia); MinMassFactor floors the slowdown so a very heavy entity never freezes.
             bool usesMass = MassAccelerationInfluence > 0f || MassTurnRateInfluence > 0f;
             if (usesMass && AvoidanceLookup.HasComponent(entity))
             {
@@ -228,27 +213,16 @@ public partial struct FlowFieldMovementSystem : ISystem
 
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
 
-            // --- Direction straight to the player (goal), projected onto the surface. ---
-            // Removing the radial component of the straight-line chord leaves exactly the tangent to
-            // the great circle joining both points, i.e. the geodesic heading — the shortest path on
-            // the sphere. Serves two purposes: the navigation fallback whenever the flow field cannot
-            // be trusted, and the facing target for a (near-)stationary entity, whose own velocity
-            // direction is meaningless.
+            // Geodesic heading toward the player (great-circle tangent, projected onto the surface).
+            // Used as the navigation fallback when the flow field can't be trusted, and as the facing
+            // target for a near-stationary entity whose velocity direction is meaningless.
             float3 toGoal = FlowField.Origin - transform.Position;
             PlanetUtils.ProjectDirectionOnSurface(in toGoal, in currentNormal, out float3 goalDirection);
             bool hasGoalDirection = math.lengthsq(goalDirection) > 0.0001f;
-            // Degenerate only at the exact antipode (chord colinear with the normal), where every
-            // direction is equivalent anyway.
             float3 fallbackDirection = hasGoalDirection ? goalDirection : transform.Forward();
 
-            // --- Navigation: flow field near the player, geodesic seek further out. ---
-            // The grid is an ORTHOGRAPHIC projection onto the tangent plane at the player, so a point
-            // at angle t lands at R*sin(t): past 90 deg the far hemisphere folds back onto the near
-            // one and the entity reads someone else's cell. A bounds test never catches this (every
-            // point of the sphere projects inside the grid), so the gate has to be angular.
-            // Losing the flow field out there only means losing obstacle routing — which is fine,
-            // entities re-enter the trusted zone long before reaching the player, and that is exactly
-            // where routing is visible and matters.
+            // Flow field near the player, geodesic seek beyond the trusted cone (see FlowFieldMinCos):
+            // the grid projects orthographically, so the far hemisphere folds onto the near one.
             float3 flowDirection;
             if (math.dot(currentNormal, FlowField.GridNormal) < FlowFieldMinCos)
             {
@@ -262,11 +236,8 @@ public partial struct FlowFieldMovementSystem : ISystem
                     : fallbackDirection; // blocked / unreachable cell: seek instead of drifting forward
             }
 
-            // --- Blend avoidance steering (capped so it never fully overrides flow) ---
-            // Gated on Avoidance being ENABLED: AvoidanceSystem's LOD disables it past its activation
-            // radius and then stops writing SteeringForce entirely. SteeringForce is not an enableable
-            // component, so without this gate its last computed value stays applied forever — a
-            // permanent sideways drift on every entity the player outruns.
+            // Avoidance steering, only while Avoidance is enabled: the LOD disables it far from the
+            // player and stops updating SteeringForce, whose last value would otherwise stay applied.
             float3 steeringForce = float3.zero;
             if (AvoidanceLookup.HasComponent(entity) && AvoidanceLookup.IsComponentEnabled(entity)
                                                      && SteeringLookup.HasComponent(entity))
@@ -296,33 +267,23 @@ public partial struct FlowFieldMovementSystem : ISystem
                 }
             }
 
-            // Movement follows the flow field + avoidance so entities path in and keep spacing, but
-            // re-projected onto the LOCAL tangent plane first. The flow direction lives in the tangent
-            // plane at the PLAYER and the steering force is a raw world vector, so neither is tangent
-            // here: applied as-is they push partly into (or out of) the ground and the actual surface
-            // speed silently drops by cos(angle) the further the entity is from the player.
+            // Re-project the combined flow + steering direction onto the local tangent plane (it was
+            // built from the player's tangent frame and a raw world-space steering vector).
             PlanetUtils.ProjectDirectionOnSurface(in desiredDirection, in currentNormal,
                 out float3 moveDirection);
             if (math.lengthsq(moveDirection) < 0.0001f)
                 moveDirection = fallbackDirection;
 
-            // --- Speed ---
-            // FinalStats is the single source of truth: ActiveEffectsSystem folds CoreStats and the
-            // active SlowEffect into it every frame. Recomputing it from CoreStats here (as this job
-            // used to) silently dropped every slow applied to enemies.
+            // Move speed comes from FinalStats (CoreStats + active slow, folded in by ActiveEffectsSystem).
             float speed = 3f;
             if (FinalStatsLookup.HasComponent(entity))
                 speed = FinalStatsLookup[entity].MoveSpeed;
 
-            // --- Velocity: accelerate toward the desired velocity instead of snapping to it. ---
-            // This is what makes the motion readable. The avoidance term reverses sign tick to tick in a
-            // packed crowd; feeding it straight into the position made the heading jitter, which is why
-            // the facing used to be driven from the player direction instead. Ramping a stored velocity
-            // low-passes that noise, so the path AND the facing derived from it are both stable.
+            // Accelerate a persistent velocity toward the desired one rather than snapping to it. This
+            // low-passes the tick-to-tick jitter of the avoidance term, keeping both path and facing stable.
             float3 desiredVelocity = moveDirection * (speed * speedFactor);
 
-            // Re-project the carried velocity: the surface normal rotates as the entity travels around
-            // the planet, so last frame's tangent vector is no longer tangent here.
+            // The surface normal rotates as the entity travels, so re-project the carried velocity tangent.
             float3 carried = movement.Velocity - currentNormal * math.dot(movement.Velocity, currentNormal);
 
             float3 deltaV = desiredVelocity - carried;
@@ -334,22 +295,16 @@ public partial struct FlowFieldMovementSystem : ISystem
 
             float currentSpeed = math.length(movement.Velocity);
 
-            // --- Orientation: face where we are actually going. ---
-            // Below the threshold the velocity direction is meaningless (a near-zero vector points
-            // nowhere in particular) and driving rotation from it is exactly what spins a blocked entity
-            // on the spot. So a stopped entity looks at the player instead — which is also what a melee
-            // enemy at attack range should do, so its wind-up stays readable.
+            // Face the direction of travel; below the speed threshold face the player instead (a
+            // near-zero velocity has no meaningful direction, and a stopped melee enemy should face its target).
             float3 faceDirection = currentSpeed > FacingSpeedThreshold
                 ? movement.Velocity / currentSpeed
                 : fallbackDirection;
 
             float3 desiredPosition = transform.Position + movement.Velocity * DeltaTime;
 
-            // --- Visibility LOD: beyond the camera horizon, snap to the perfect sphere with no raycast. ---
-            // AvoidanceSystem's LOD disables Avoidance past the horizon (curvature hides the surface), so
-            // that same flag also means "too far to see terrain detail". There, a raycast per enemy per
-            // frame is pure waste: the analytic sphere snap is a few instructions and any float of terrain
-            // is off-screen anyway. Entities re-raycast the instant they cross back inside the horizon.
+            // Beyond the camera horizon (Avoidance disabled by the LOD), snap to the perfect sphere with
+            // no raycast — terrain detail is off-screen there. Entities re-raycast on crossing back in.
             bool beyondHorizon = AvoidanceLookup.HasComponent(entity)
                                  && !AvoidanceLookup.IsComponentEnabled(entity);
             if (beyondHorizon)
@@ -365,10 +320,8 @@ public partial struct FlowFieldMovementSystem : ISystem
                 return;
             }
 
-            // --- Raycast terrain snap (near the player) ---
-            // Short probe first: a +-4 ray walks a small fraction of the physics BVH compared to the
-            // +-500 one, and it hits on virtually every frame. The long ray is only paid on the rare
-            // frames the probe misses, so a miss costs one cheap extra cast instead of being the norm.
+            // Terrain snap near the player: short probe first, falling back to the long ray only when it
+            // misses (cliff edge, spawn, teleport).
             var input = new RaycastInput
             {
                 Start = desiredPosition + currentNormal * GroundProbeDistance,
@@ -422,9 +375,7 @@ public partial struct FlowFieldMovementSystem : ISystem
 
         /// <summary>
         /// Rotates <paramref name="from"/> toward <paramref name="to"/> by at most
-        /// <paramref name="maxRadians"/>. A hard cap on angular speed, unlike the exponential
-        /// slerp-by-dt this replaces: that one had no bound, so a large heading change snapped round
-        /// almost instantly. Capping in degrees/second is what makes a heavy enemy read as heavy.
+        /// <paramref name="maxRadians"/> — a hard cap on angular speed (degrees/second).
         /// </summary>
         private static quaternion RotateTowards(quaternion from, quaternion to, float maxRadians)
         {
