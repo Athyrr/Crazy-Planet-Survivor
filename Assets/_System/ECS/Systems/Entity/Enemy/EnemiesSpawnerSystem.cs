@@ -84,6 +84,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
             : EnemyScalingConfig.Default;
         _healthMult = 1f;
         _damageMult = 1f;
+        float runTimer = 0f;
         if (SystemAPI.HasSingleton<RunProgression>())
         {
             // Read RunProgression via EntityManager (not a ComponentTypeHandle/SystemAPI query read) so the
@@ -92,6 +93,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
             var runProg = state.EntityManager.GetComponentData<RunProgression>(runProgEntity);
             _healthMult = scaleCfg.ComputeHealthMult(runProg.Timer, runProg.EnemiesKilledCount);
             _damageMult = scaleCfg.ComputeDamageMult(runProg.Timer, runProg.EnemiesKilledCount);
+            runTimer = runProg.Timer;
         }
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
@@ -103,7 +105,7 @@ public partial struct EnemiesSpawnerSystem : ISystem
         ManageWaveProgression(ref state, ref spawnerState, waves, groups, waveRuntimes, groupRuntimes);
         // Handle Spawning across every active wave
         ManageSpawning(ref ecb, ref state, ref spawnerState, waves, groups, waveRuntimes, groupRuntimes,
-            settings.MaxEnemies);
+            settings.MaxEnemies, runTimer);
     }
 
     private void ProcessKills(ref EntityCommandBuffer ecb, ref SystemState state, ref SpawnerState spawnerState,
@@ -283,11 +285,19 @@ public partial struct EnemiesSpawnerSystem : ISystem
     /// </summary>
     private void ManageSpawning(ref EntityCommandBuffer ecb, ref SystemState systemState, ref SpawnerState spawnerState,
         DynamicBuffer<Wave> waves, DynamicBuffer<SpawnGroup> groups, DynamicBuffer<WaveRuntime> waveRuntimes,
-        DynamicBuffer<SpawnGroupRuntime> groupRuntimes, int maxEnemies)
+        DynamicBuffer<SpawnGroupRuntime> groupRuntimes, int maxEnemies, float runTimer)
     {
         int lead = spawnerState.CurrentWaveIndex;
         if (lead < 0)
             return;
+
+        float dt = SystemAPI.Time.DeltaTime;
+
+        // Assault director: tick its timer and ARM a pulse when it fires. Done before the budget early-out so
+        // pulses stay on schedule even while at the enemy cap (an armed pulse just drains once room frees up).
+        // Seed for the pulse's random bearings is derived here (SystemState is in scope for SystemAPI.Time).
+        uint directorSeed = (uint)(SystemAPI.Time.ElapsedTime * 1000.0) + 13u;
+        TickAssaultDirector(waves, groups, runTimer, dt, directorSeed);
 
         // Global per-frame safety budget shared by every active wave (frame-rate spike guard + hard cap).
         int frameBudget = math.min(MAX_SPAWNS_PER_FRAME, maxEnemies - spawnerState.ActiveEnemyCount);
@@ -306,16 +316,18 @@ public partial struct EnemiesSpawnerSystem : ISystem
             ? SystemAPI.GetComponentRO<LocalTransform>(bossEntity).ValueRO.Position
             : float3.zero;
 
-        float dt = SystemAPI.Time.DeltaTime;
-
         // Gather every enemy to spawn this frame into ONE list, then run a SINGLE job over it. An
         // EntityCommandBuffer.ParallelWriter must be written by exactly one job, so we cannot schedule a
         // separate job per group/wave (that races the ECB's per-thread command buffers).
         // frameBudget is the exact upper bound on commands this frame, so the list never reallocates.
         var commands = new NativeList<SpawnCommand>(frameBudget, Allocator.TempJob);
 
+        // Assault-director pulse first (highest priority): the encirclement ring must land crisp and never be
+        // starved by the ambient waves. Drains the current pulse's remaining ring + horizon into this frame.
+        GatherPulseSpawns(ref spawnerState, ref frameBudget, ref commands);
+
         // Lead wave first so the current wave is never starved by background loops...
-        if (waveRuntimes[lead].Active)
+        if (frameBudget > 0 && waveRuntimes[lead].Active)
             GatherWaveSpawns(ref spawnerState, groups, groupRuntimes, waves[lead], lead, dt, hasBoss, ref frameBudget,
                 ref commands);
 
@@ -437,6 +449,183 @@ public partial struct EnemiesSpawnerSystem : ISystem
         }
     }
 
+    /// <summary>
+    /// Ticks the assault director and ARMS a pulse when its timer fires. A pulse seeds the ring + horizon
+    /// "remaining" counts (drained later this/next frames by <see cref="GatherPulseSpawns"/> through the shared
+    /// budget). Pulse SIZE and FREQUENCY interpolate with run time so peaks grow bigger and closer together.
+    /// No-op (and safe) if the director components aren't present (subscene baked before the director existed).
+    /// </summary>
+    private void TickAssaultDirector(DynamicBuffer<Wave> waves, DynamicBuffer<SpawnGroup> groups, float runTimer,
+        float dt, uint randSeed)
+    {
+        if (!SystemAPI.TryGetSingleton<SpawnIntensityConfig>(out var cfg) || !cfg.Enabled)
+            return;
+        if (!SystemAPI.HasSingleton<SpawnIntensityState>())
+            return;
+
+        ref var st = ref SystemAPI.GetSingletonRW<SpawnIntensityState>().ValueRW;
+
+        st.PulseTimer -= dt;
+        if (st.PulseTimer > 0f)
+            return;
+
+        // A pulse is still draining: hold (timer stays <= 0) so we never stack two pulses at once. It re-arms
+        // the moment the current burst has fully spawned.
+        if (st.RingRemaining > 0 || st.HorizonRemaining > 0 || st.DirRemaining > 0)
+            return;
+
+        // Resolve the pulse prefab: explicit config prefab, else the first authored group's prefab.
+        Entity prefab = cfg.AssaultPrefab != Entity.Null ? cfg.AssaultPrefab : ResolveFallbackPulsePrefab(waves, groups);
+
+        float t = cfg.RampT(runTimer);
+        float period = math.lerp(cfg.PulsePeriodStart, cfg.PulsePeriodMin, t);
+        st.PulseTimer = math.max(MIN_LOOP_PERIOD, period);
+
+        if (prefab == Entity.Null)
+            return; // nothing to spawn this cycle; timer already reloaded so we retry next period
+
+        int ring = (int)math.round(math.lerp(cfg.RingCountStart, cfg.RingCountMax, t));
+        int horizon = (int)math.round(math.lerp(cfg.HorizonCountStart, cfg.HorizonCountMax, t));
+        int dir = (int)math.round(math.lerp(cfg.DirCountStart, cfg.DirCountMax, t));
+
+        st.PulsePrefab = prefab;
+        st.RingTotal = math.max(0, ring);
+        st.RingRemaining = st.RingTotal;
+        st.HorizonTotal = math.max(0, horizon);
+        st.HorizonRemaining = st.HorizonTotal;
+
+        // Directional walls: pick 1..DirMaxClusters random bearings so each pulse's masses come from fresh
+        // angles. When two walls, keep them apart (~80°..280°) so they read as two distinct assaults.
+        st.DirTotal = math.max(0, dir);
+        st.DirRemaining = st.DirTotal;
+        var rng = Random.CreateFromIndex(randSeed);
+        const float twoPi = 6.28318530718f;
+        int maxClusters = math.clamp(cfg.DirMaxClusters, 1, 2); // only two bearings are stored
+        st.DirClusterCount = maxClusters <= 1 ? 1 : rng.NextInt(1, maxClusters + 1);
+        st.DirCenter0 = rng.NextFloat(0f, twoPi);
+        st.DirCenter1 = st.DirCenter0 + rng.NextFloat(1.4f, twoPi - 1.4f);
+    }
+
+    /// <summary> First valid prefab in wave 0's groups, used when no explicit assault prefab is configured. </summary>
+    private static Entity ResolveFallbackPulsePrefab(DynamicBuffer<Wave> waves, DynamicBuffer<SpawnGroup> groups)
+    {
+        if (waves.Length == 0)
+            return Entity.Null;
+
+        Wave w0 = waves[0];
+        int end = w0.GroupStartIndex + w0.GroupCount;
+        for (int gi = w0.GroupStartIndex; gi < end && gi < groups.Length; gi++)
+        {
+            if (groups[gi].Prefab != Entity.Null)
+                return groups[gi].Prefab;
+        }
+
+        return Entity.Null;
+    }
+
+    /// <summary>
+    /// Appends the current assault pulse's spawns (near encirclement ring, then far horizon mass) to this
+    /// frame's command list, consuming the shared budget. Both reuse existing spawn modes so the whole spawn
+    /// job (surface snap, difficulty scaling, ECB) applies unchanged. Pulse enemies carry WaveIndex = -1 so
+    /// their kills never credit a wave's kill-% (they don't belong to any authored wave).
+    /// </summary>
+    private void GatherPulseSpawns(ref SpawnerState spawnerState, ref int frameBudget,
+        ref NativeList<SpawnCommand> commands)
+    {
+        if (frameBudget <= 0)
+            return;
+        if (!SystemAPI.TryGetSingleton<SpawnIntensityConfig>(out var cfg) || !cfg.Enabled)
+            return;
+        if (!SystemAPI.HasSingleton<SpawnIntensityState>())
+            return;
+
+        ref var st = ref SystemAPI.GetSingletonRW<SpawnIntensityState>().ValueRW;
+        if (st.PulsePrefab == Entity.Null)
+            return;
+
+        // Near encirclement ring (the "cornered" moment): CircleAroundPlayer, tight radius, spawned ON the
+        // player so a max-speed player can't pre-empt it.
+        int ringToSpawn = math.min(frameBudget, st.RingRemaining);
+        for (int k = 0; k < ringToSpawn; k++)
+        {
+            commands.Add(new SpawnCommand
+            {
+                Prefab = st.PulsePrefab,
+                Mode = SpawnMode.CircleAroundPlayer,
+                AroundBoss = false,
+                GlobalIndex = (st.RingTotal - st.RingRemaining) + k,
+                TotalAmount = st.RingTotal,
+                SpawnOrigin = float3.zero,
+                MinRange = 0f,
+                MaxRange = cfg.RingRadius,
+                WaveIndex = -1,
+                Scale = 0f
+            });
+        }
+        if (ringToSpawn > 0)
+        {
+            st.RingRemaining -= ringToSpawn;
+            spawnerState.ActiveEnemyCount += ringToSpawn;
+            frameBudget -= ringToSpawn;
+        }
+
+        // Far mass over the horizon (the "invasion"): AroundPlayer band, appears at distance and streams in.
+        int horizonToSpawn = math.min(frameBudget, st.HorizonRemaining);
+        for (int k = 0; k < horizonToSpawn; k++)
+        {
+            commands.Add(new SpawnCommand
+            {
+                Prefab = st.PulsePrefab,
+                Mode = SpawnMode.AroundPlayer,
+                AroundBoss = false,
+                GlobalIndex = (st.HorizonTotal - st.HorizonRemaining) + k,
+                TotalAmount = st.HorizonTotal,
+                SpawnOrigin = float3.zero,
+                MinRange = cfg.HorizonMinRange,
+                MaxRange = cfg.HorizonMaxRange,
+                WaveIndex = -1,
+                Scale = 0f
+            });
+        }
+        if (horizonToSpawn > 0)
+        {
+            st.HorizonRemaining -= horizonToSpawn;
+            spawnerState.ActiveEnemyCount += horizonToSpawn;
+            frameBudget -= horizonToSpawn;
+        }
+
+        // Directional walls (the multi-angle assault): each enemy is assigned round-robin to one of the
+        // pulse's clusters and carries that cluster's bearing; the job scatters it inside the sector.
+        int dirToSpawn = math.min(frameBudget, st.DirRemaining);
+        int clusterCount = math.max(1, st.DirClusterCount);
+        for (int k = 0; k < dirToSpawn; k++)
+        {
+            int gi = (st.DirTotal - st.DirRemaining) + k;
+            float center = (gi % clusterCount) == 0 ? st.DirCenter0 : st.DirCenter1;
+            commands.Add(new SpawnCommand
+            {
+                Prefab = st.PulsePrefab,
+                Mode = SpawnMode.SectorAroundPlayer,
+                AroundBoss = false,
+                GlobalIndex = gi,
+                TotalAmount = st.DirTotal,
+                SpawnOrigin = float3.zero,
+                MinRange = cfg.DirMinRange,
+                MaxRange = cfg.DirMaxRange,
+                WaveIndex = -1,
+                Scale = 0f,
+                ArcCenter = center,
+                ArcWidth = cfg.DirArcWidth
+            });
+        }
+        if (dirToSpawn > 0)
+        {
+            st.DirRemaining -= dirToSpawn;
+            spawnerState.ActiveEnemyCount += dirToSpawn;
+            frameBudget -= dirToSpawn;
+        }
+    }
+
     /// <summary> One enemy to spawn this frame: its group's placement params plus its per-entity index. </summary>
     private struct SpawnCommand
     {
@@ -450,6 +639,10 @@ public partial struct EnemiesSpawnerSystem : ISystem
         public float MaxRange;
         public int WaveIndex;
         public float Scale;
+
+        // SectorAroundPlayer only: bearing (radians) the wall is centered on, and its angular width.
+        public float ArcCenter;
+        public float ArcWidth;
     }
 
     [BurstCompile]
@@ -688,6 +881,38 @@ public partial struct EnemiesSpawnerSystem : ISystem
                     {
                         spawnPosition = hitCircle.Position;
                         surfaceNormal = hitCircle.SurfaceNormal;
+                        positionFound = true;
+                    }
+
+                    break;
+
+                case SpawnMode.SectorAroundPlayer:
+                    // Directional wall: scatter the enemy inside an angular SECTOR centered on cmd.ArcCenter
+                    // (width cmd.ArcWidth), at a random distance in [MinRange, MaxRange], around the player's
+                    // live position. Organic fill (per-enemy random) so the wall reads as a converging mass,
+                    // not a rigid arc. Several walls at different ArcCenter => a multi-angle assault.
+                    float halfWidthSector = cmd.ArcWidth * 0.5f;
+                    float bearingSector = cmd.ArcCenter + rand.NextFloat(-halfWidthSector, halfWidthSector);
+                    float distSector = rand.NextFloat(cmd.MinRange, cmd.MaxRange);
+                    float2 offsetSector =
+                        new float2(math.cos(bearingSector), math.sin(bearingSector)) * distSector;
+
+                    float3 centerSector = PlayerTransform.Position;
+                    float3 upSector = math.normalize(centerSector - PlanetCenter);
+                    float3 tangentSector = math.cross(upSector, new float3(0, 1, 0));
+                    if (math.lengthsq(tangentSector) < 0.001f)
+                        tangentSector = math.cross(upSector, new float3(1, 0, 0));
+
+                    quaternion alignmentRotSector = quaternion.LookRotationSafe(tangentSector, upSector);
+                    float3 localOffsetSector = new float3(offsetSector.x, 0f, offsetSector.y);
+                    float3 worldOffsetSector = math.rotate(alignmentRotSector, localOffsetSector);
+                    float3 roughPosSector = centerSector + worldOffsetSector;
+
+                    if (PlanetUtils.SnapToSurfaceRaycast(ref CollisionWorld, roughPosSector, PlanetCenter,
+                            groundFilter, 120f, out var hitSector))
+                    {
+                        spawnPosition = hitSector.Position;
+                        surfaceNormal = hitSector.SurfaceNormal;
                         positionFound = true;
                     }
 

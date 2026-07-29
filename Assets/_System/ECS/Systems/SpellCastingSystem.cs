@@ -26,7 +26,6 @@ public partial struct SpellCastingSystem : ISystem
     private ComponentLookup<SelfRotate> _selfRotateLookup;
 
     private ComponentLookup<DamageOnContact> _damageOnContactLookup;
-    private ComponentLookup<DamageOnTick> _damageOnTickLookup;
     private ComponentLookup<AreaAttack> _areaAttackLookup;
 
     private ComponentLookup<LinearMovement> _linearMovementLookup;
@@ -62,7 +61,6 @@ public partial struct SpellCastingSystem : ISystem
         _copyPositionLookup = SystemAPI.GetComponentLookup<CopyEntityPosition>(true);
         _selfRotateLookup = SystemAPI.GetComponentLookup<SelfRotate>(true);
         _damageOnContactLookup = SystemAPI.GetComponentLookup<DamageOnContact>(true);
-        _damageOnTickLookup = SystemAPI.GetComponentLookup<DamageOnTick>(true);
         _areaAttackLookup = SystemAPI.GetComponentLookup<AreaAttack>(true);
         _linearMovementLookup = SystemAPI.GetComponentLookup<LinearMovement>(true);
         _orbitMovementLookup = SystemAPI.GetComponentLookup<OrbitMovement>(true);
@@ -93,7 +91,6 @@ public partial struct SpellCastingSystem : ISystem
         _copyPositionLookup.Update(ref state);
         _selfRotateLookup.Update(ref state);
         _damageOnContactLookup.Update(ref state);
-        _damageOnTickLookup.Update(ref state);
         _areaAttackLookup.Update(ref state);
         _linearMovementLookup.Update(ref state);
         _orbitMovementLookup.Update(ref state);
@@ -124,12 +121,20 @@ public partial struct SpellCastingSystem : ISystem
         if (SystemAPI.TryGetSingleton<RunProgression>(out var runProg))
             enemyDamageMult = scaleCfg.ComputeDamageMult(runProg.Timer, runProg.EnemiesKilledCount);
 
+        // Active planet's world-space center. The surface normal at the caster is derived from this,
+        // so an off-origin planet no longer tilts every Area spell. Fallback to zero for edge cases
+        // where the cast system runs without a planet (should not happen in gameplay).
+        float3 planetCenter = SystemAPI.TryGetSingleton<PlanetData>(out var planetData)
+            ? planetData.Center
+            : float3.zero;
+
         var castJob = new CastSpellJob
         {
             ECB = ecb.AsParallelWriter(),
             Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
             PlayerEntity = playerEntity,
             EnemyDamageMult = enemyDamageMult,
+            PlanetCenter = planetCenter,
             CollisionWorld = physicsWorldSingleton.CollisionWorld,
             SpellDatabaseRef = spellDatabase.Blobs,
             MainSpellPrefabs = mainSpellPrefabs,
@@ -147,7 +152,6 @@ public partial struct SpellCastingSystem : ISystem
             CopyPositionLookup = _copyPositionLookup,
             SelfRotateLookup = _selfRotateLookup,
             DamageOnContactLookup = _damageOnContactLookup,
-            DamageOnTickLookup = _damageOnTickLookup,
             AreaAttackLookup = _areaAttackLookup,
             LinearMovementLookup = _linearMovementLookup,
             OrbitMovementLookup = _orbitMovementLookup,
@@ -169,6 +173,7 @@ public partial struct SpellCastingSystem : ISystem
         public uint Seed;
         public Entity PlayerEntity;
         public float EnemyDamageMult;
+        public float3 PlanetCenter;
 
         [ReadOnly] public CollisionWorld CollisionWorld;
         [ReadOnly] public DynamicBuffer<SpellPrefab> MainSpellPrefabs;
@@ -187,7 +192,6 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<CopyEntityPosition> CopyPositionLookup;
         [ReadOnly] public ComponentLookup<SelfRotate> SelfRotateLookup;
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
-        [ReadOnly] public ComponentLookup<DamageOnTick> DamageOnTickLookup;
         [ReadOnly] public ComponentLookup<AreaAttack> AreaAttackLookup;
         [ReadOnly] public ComponentLookup<LinearMovement> LinearMovementLookup;
         [ReadOnly] public ComponentLookup<OrbitMovement> OrbitMovementLookup;
@@ -282,7 +286,7 @@ public partial struct SpellCastingSystem : ISystem
             quaternion baseRotation = casterTransform.Rotation;
             float3 fireDirection = casterTransform.Forward();
 
-            float3 planetCenter = float3.zero; // todo use reel planet center from singleton
+            float3 planetCenter = PlanetCenter;
 
             // todo mb store only CollidesWith
             var filter = new CollisionFilter
@@ -291,6 +295,17 @@ public partial struct SpellCastingSystem : ISystem
                 CollidesWith = (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) |
                                CollisionLayers.Obstacle,
             };
+
+            // A caster-anchored melee area (CopyEntityPosition) targets only within its real hitbox reach
+            // (offset + radius), so the cast is coherent with what the collision can hit. Ranged strikes
+            // and projectiles keep their chosen cast range (FinalRange).
+            float targetingRange = finalRange;
+            if (AreaAttackLookup.HasComponent(spellPrefab) && CopyPositionLookup.HasComponent(spellPrefab))
+            {
+                var meleeArea = AreaAttackLookup[spellPrefab];
+                float meleeMaxRadius = math.max(meleeArea.RadiusStart, meleeArea.RadiusEnd);
+                targetingRange = math.max(1f, finalSize * (math.length(meleeArea.Offset) + meleeMaxRadius));
+            }
 
             switch (baseSpellData.TargetingMode)
             {
@@ -329,7 +344,7 @@ public partial struct SpellCastingSystem : ISystem
                         PointDistanceInput input = new PointDistanceInput
                         {
                             Position = casterTransform.Position,
-                            MaxDistance = finalRange,
+                            MaxDistance = targetingRange,
                             Filter = new CollisionFilter
                             {
                                 BelongsTo = CollisionLayers.Raycast,
@@ -387,14 +402,27 @@ public partial struct SpellCastingSystem : ISystem
 
             if (!isAttached)
             {
-                if (targetFound && (isProjectile || AreaAttackLookup.HasComponent(spellPrefab))) // todo store variable
+                // Caster-anchored (melee/aura that follows the player, via CopyEntityPosition) vs
+                // world-anchored (a ranged strike that lands ON the target, e.g. lightning).
+                bool casterAnchored = CopyPositionLookup.HasComponent(spellPrefab);
+                bool isArea = AreaAttackLookup.HasComponent(spellPrefab);
+
+                if (targetFound && (isProjectile || isArea))
                 {
-                    float3 toTarget = targetPosition - baseSpawnPos;
+                    // Facing = caster→target (the aim), independent of the spawn offset, so a spell can sit
+                    // in front of the caster and still face the target (close/melee targets no longer
+                    // collapse the direction to ~0 and leave it stuck on the caster's raw rotation).
+                    float3 toTarget = targetPosition - casterTransform.Position;
                     if (math.lengthsq(toTarget) > math.EPSILON)
                     {
                         fireDirection = math.normalize(toTarget);
                         baseRotation = quaternion.LookRotationSafe(fireDirection, surfaceNormal);
                     }
+
+                    // A ranged area strike (no caster anchor) lands AT the target point; caster-anchored
+                    // melee areas and projectiles keep spawning near the caster.
+                    if (isArea && !casterAnchored)
+                        baseSpawnPos = targetPosition;
                 }
                 else if (!isProjectile)
                 {
@@ -505,59 +533,34 @@ public partial struct SpellCastingSystem : ISystem
                     });
                 }
 
-                if (DamageOnTickLookup.HasComponent(spellPrefab))
-                {
-                    ECB.AddBuffer<TickDamageTarget>(chunkIndex, spellEntity);
-                    float prefabRadius = DamageOnTickLookup[spellPrefab].AreaRadius;
-                    if (prefabRadius <= 0f) prefabRadius = 1f;
-
-                    ECB.SetComponent(chunkIndex, spellEntity, new DamageOnTick
-                    {
-                        Caster = request.Caster,
-                        TickRate = finalTickRate,
-                        DamagePerTick = finalDamage,
-                        AreaRadius = finalSize * prefabRadius,
-                        PrefabRadius = prefabRadius,
-
-                        Shape = DamageOnTickLookup[spellPrefab].Shape,
-                        HalfAngle = DamageOnTickLookup[spellPrefab].HalfAngle,
-                        SweepStart = DamageOnTickLookup[spellPrefab].SweepStart,
-                        SweepEnd = DamageOnTickLookup[spellPrefab].SweepEnd,
-                        RingThickness = DamageOnTickLookup[spellPrefab].RingThickness,
-
-                        Tags = totalTags,
-                        TotalCritChance = finalCritChance,
-                        TotalCritMultiplier = finalCritDamageMultiplier,
-                        TargetLayers = filter.CollidesWith
-                    });
-                }
-
-                // Area Attack
+                // Area Attack (unified Burst + OverTime — Cadence is baked on the prefab)
                 if (AreaAttackLookup.HasComponent(spellPrefab))
                 {
-                    ECB.SetComponent(chunkIndex, spellEntity, new AreaAttack
+                    var zone = AreaAttackLookup[spellPrefab]; // shape / cadence / timing from prefab
+                    zone.Damage = finalDamage;
+                    zone.CritChance = activeSpell.FinalCritChance;
+                    zone.CritMultiplier = activeSpell.FinalCritDamageMultiplier;
+                    zone.Caster = request.Caster;
+                    zone.TargetLayers = filter.CollidesWith;
+                    zone.Tags = totalTags;
+                    zone.ElapsedTime = 0f;
+
+                    if (zone.Cadence == EZoneCadence.OverTime)
                     {
-                        Shape = AreaAttackLookup[spellPrefab].Shape,
+                        float baseRadius = zone.PrefabRadius > 0f ? zone.PrefabRadius : 1f;
+                        zone.PrefabRadius = baseRadius;
+                        zone.RadiusStart = finalSize * baseRadius;
+                        zone.RadiusEnd = zone.RadiusStart;
+                        zone.TickRate = finalTickRate;
+                        ECB.AddBuffer<TickDamageTarget>(chunkIndex, spellEntity);
+                    }
+                    else // Burst
+                    {
+                        zone.RadiusStart = finalSize * zone.RadiusStart;
+                        zone.RadiusEnd = finalSize * zone.RadiusEnd;
+                    }
 
-                        RadiusStart = finalSize * AreaAttackLookup[spellPrefab].RadiusStart,
-                        RadiusEnd = finalSize * AreaAttackLookup[spellPrefab].RadiusEnd,
-
-                        HalfAngle = AreaAttackLookup[spellPrefab].HalfAngle,
-                        SweepStart = AreaAttackLookup[spellPrefab].SweepStart,
-                        SweepEnd = AreaAttackLookup[spellPrefab].SweepEnd,
-
-                        RingThickness = AreaAttackLookup[spellPrefab].RingThickness,
-
-                        ActivationDelay = AreaAttackLookup[spellPrefab].ActivationDelay,
-                        ActiveDuration = AreaAttackLookup[spellPrefab].ActiveDuration,
-
-                        Damage = finalDamage,
-                        CritChance = activeSpell.FinalCritChance,
-                        CritMultiplier = activeSpell.FinalCritDamageMultiplier,
-                        Caster = request.Caster,
-                        TargetLayers = filter.CollidesWith,
-                        Tags = totalTags,
-                    });
+                    ECB.SetComponent(chunkIndex, spellEntity, zone);
                 }
 
                 // Lifetime

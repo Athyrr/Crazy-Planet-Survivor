@@ -21,6 +21,7 @@ MonoBehaviour:
   SpellUpgradesPool: {fileID: 11400000, guid: b442b918fbdb32949aac3f42c7a1bfe8, type: 2}
   InitialSpells:
   - {fileID: 11400000, guid: 34b36d11bcab2b848935aead547e9769, type: 2}
+  - {fileID: 11400000, guid: e66bbe76905abe04396524663574df95, type: 2}
   PurchaseCost:
   - Type: 0
     Amount: 0
@@ -35,6 +36,7 @@ MonoBehaviour:
     HealthRegen: 2
     BaseArmor: 10
     Armor: 0.1
+    KnockbackResistance: 0
     BaseMoveSpeed: 12
     MoveSpeed: 0
     BasePickupRange: 10
@@ -52,3 +54,5 @@ MonoBehaviour:
     CritDamage: 0.5
     Luck: 0
     LifeStealChance: 0
+    DashCount: 0
+    DashCooldown: 0

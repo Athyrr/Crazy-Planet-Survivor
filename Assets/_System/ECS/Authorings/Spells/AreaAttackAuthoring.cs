@@ -20,6 +20,11 @@ public class AreaAttackAuthoring : MonoBehaviour
     [Tooltip("Ring mode: width of the ring band")]
     public float RingThickness = 0.5f;
 
+    [Header("Placement")]
+    [Tooltip("Local offset of the hitbox from the entity (entity-space, points toward the target). " +
+             "Set this to match a forward-offset visual so collision and VFX line up.")]
+    public Vector3 Offset;
+
     [Header("Timing")]
     [Tooltip("Delay before collision evaluation starts")]
     public float ActivationDelay;
@@ -34,6 +39,7 @@ public class AreaAttackAuthoring : MonoBehaviour
 
             AddComponent(entity, new AreaAttack
             {
+                Cadence = EZoneCadence.Burst,
                 Shape = authoring.Shape,
 
                 RadiusStart = authoring.RadiusStart,
@@ -44,6 +50,7 @@ public class AreaAttackAuthoring : MonoBehaviour
                 SweepEnd = math.radians(authoring.SweepEnd),
 
                 RingThickness = authoring.RingThickness,
+                Offset = authoring.Offset,
 
                 ActivationDelay = authoring.ActivationDelay,
                 ActiveDuration = authoring.ActiveDuration,
@@ -61,133 +68,205 @@ public class AreaAttackAuthoring : MonoBehaviour
         }
     }
 
-    // Gizmos
+    // ── Gizmos ──
+    // Faithful preview of what AreaAttackSystem actually queries at runtime:
+    //   • Hitbox center = transform.position + rotation × Offset   (rotation+scale aware; entity faces target in-game)
+    //   • Timeline      = successive t = 0/N…N/N over ActiveDuration
+    //                     · Circle/Cone/Ring: radius = lerp(RadiusStart, RadiusEnd, t) ; Cone sweep = lerp(Sweep…)
+    //                     · Capsule (progressive thrust): segment [caster → lerp(caster, offset endpoint, t)],
+    //                       half-width = RadiusStart. At t=0 it's a sphere on the caster; at t=1 the full estoc.
 
 #if UNITY_EDITOR
-    private static readonly Color GizmoColor = new Color(0f, 1f, 1f, 0.8f);
-    private static readonly Color GizmoColorDim = new Color(0f, 0.7f, 0.7f, 0.4f);
-    private static readonly Color SweepArcColor = new Color(1f, 0.8f, 0f, 0.7f);
+    private static readonly Color CasterMarkerColor = new Color(1f, 1f, 1f, 0.6f);
+    private static readonly Color OffsetLinkColor   = new Color(1f, 1f, 1f, 0.3f);
+    private static readonly Color SweepArcColor     = new Color(1f, 0.8f, 0f, 0.7f);
+    private static readonly Color FinalShapeColor   = new Color(0f, 1f, 1f, 1f);
 
-    private static readonly int TimelineSteps = 4; // t = 0/4, 1/4, 2/4, 3/4, 4/4
+    private const int TimelineSteps = 4; // t = 0/4, 1/4, 2/4, 3/4, 4/4
 
     private void OnDrawGizmosSelected()
     {
+        Vector3 casterPos     = transform.position;
+        Quaternion rot        = transform.rotation;
+        Vector3 up            = transform.up;
+        Vector3 hitboxCenter  = casterPos + rot * Offset;
+
+        // Caster origin marker (small circle at the entity origin — the anchor).
+        Gizmos.color = CasterMarkerColor;
+        Gizmos.DrawWireSphere(casterPos, 0.15f);
+
+        // Link caster → hitbox center when the Offset displaces the shape (Capsule already shows this via its segment).
+        if (Offset.sqrMagnitude > 0.0001f && Shape != EAttackAreaShape.Capsule)
+        {
+            Gizmos.color = OffsetLinkColor;
+            Gizmos.DrawLine(casterPos, hitboxCenter);
+        }
+
+        // Static shape (no active window): draw the final state only.
         if (ActiveDuration < 0.01f)
         {
-            // One-shot: just draw the final shape at ActivationDelay
-            DrawShapeAtTime(1f, GizmoColor, false);
-            DrawTimingLabel($"ActivationDelay={ActivationDelay:F2}s");
+            DrawShapeAtTime(1f, FinalShapeColor, true, casterPos, hitboxCenter, rot, up);
+            DrawInfoLabel(casterPos, $"{Shape} | ActivationDelay={ActivationDelay:F2}s (one-shot)");
             return;
         }
 
-        // Timeline: draw shape at multiple time steps over ActiveDuration
+        // Timeline of the active window — alpha ramps 0.2 → 1.0 to show progression.
         for (int i = 0; i <= TimelineSteps; i++)
         {
             float t = (float)i / TimelineSteps;
-            float alpha = 0.2f + 0.8f * t; // fades in over time
-            Color color = new Color(0f, 1f, 1f, alpha);
-            DrawShapeAtTime(t, color, i == TimelineSteps);
+            var color = new Color(0f, 1f, 1f, 0.2f + 0.8f * t);
+            DrawShapeAtTime(t, color, i == TimelineSteps, casterPos, hitboxCenter, rot, up);
         }
 
-        float totalDuration = ActivationDelay + ActiveDuration;
-        DrawTimingLabel($"Delay={ActivationDelay:F2}s + Active={ActiveDuration:F2}s = {totalDuration:F2}s total");
+        DrawInfoLabel(casterPos, BuildInfoLabel());
     }
 
-    private void DrawTimingLabel(string text)
+    private string BuildInfoLabel()
     {
-#if UNITY_EDITOR
+        string s = $"{Shape}  |  Delay={ActivationDelay:F2}s + Active={ActiveDuration:F2}s";
+        switch (Shape)
+        {
+            case EAttackAreaShape.Circle:
+            case EAttackAreaShape.Cone:
+            case EAttackAreaShape.Ring:
+                s += $"  |  R {RadiusStart:F1}→{RadiusEnd:F1}";
+                break;
+            case EAttackAreaShape.Capsule:
+                s += $"  |  length {Offset.magnitude:F1}  half-width {RadiusStart:F2}  (progressive)";
+                break;
+        }
+        if (Shape == EAttackAreaShape.Cone)
+            s += $"  |  Half {HalfAngle:F0}°  Sweep {SweepStart:F0}→{SweepEnd:F0}°";
+        if (Shape == EAttackAreaShape.Ring)
+            s += $"  |  Thickness {RingThickness:F2}";
+        return s;
+    }
+
+    private void DrawInfoLabel(Vector3 anchor, string text)
+    {
         var style = new GUIStyle { normal = new GUIStyleState { textColor = Color.cyan } };
-        UnityEditor.Handles.Label(transform.position + Vector3.up * 2f, text, style);
-#endif
+        UnityEditor.Handles.Label(anchor + Vector3.up * 2f, text, style);
     }
 
-    private void DrawShapeAtTime(float t, Color color, bool isFinal)
+    private void DrawShapeAtTime(float t, Color color, bool isFinal,
+        Vector3 casterPos, Vector3 hitboxCenter, Quaternion rot, Vector3 up)
     {
-        float radius = math.lerp(RadiusStart, RadiusEnd, t);
-        float sweep = math.lerp(SweepStart, SweepEnd, t);
+        float radius = Mathf.Lerp(RadiusStart, RadiusEnd, t);
+        float sweep = Mathf.Lerp(SweepStart, SweepEnd, t);
 
         switch (Shape)
         {
             case EAttackAreaShape.Circle:
-                DrawCirclePreview(radius, color);
+                Gizmos.color = color;
+                Gizmos.DrawWireSphere(hitboxCenter, radius);
                 break;
+
             case EAttackAreaShape.Cone:
-                DrawConeShapeAt(radius, sweep, color, isFinal);
+                // Cone apex sits at the hitbox center — matches IsInShape(position, …) in the system.
+                DrawConeShape(hitboxCenter, rot * Vector3.forward, up, radius, HalfAngle, sweep, color, isFinal);
+                if (isFinal)
+                    DrawSweepArc(hitboxCenter, rot * Vector3.forward, up, radius);
                 break;
+
             case EAttackAreaShape.Ring:
-                DrawRingPreview(radius, color);
+                DrawRingPreview(hitboxCenter, radius, color);
+                break;
+
+            case EAttackAreaShape.Capsule:
+                // Progressive thrust: extend from caster toward the offset endpoint over t.
+                Vector3 tipAtT = Vector3.Lerp(casterPos, hitboxCenter, t);
+                DrawCapsulePreview(casterPos, tipAtT, RadiusStart, color, up);
                 break;
         }
     }
 
-    private void DrawCirclePreview(float radius, Color color)
+    private void DrawConeShape(Vector3 pos, Vector3 fwd, Vector3 up,
+        float radius, float halfAngleDeg, float sweepDeg, Color color, bool isFinal)
     {
-        Gizmos.color = color;
-        Gizmos.DrawWireSphere(transform.position, radius);
-    }
+        // The runtime cone is 3D-symmetric around coneDir (dot >= cos(HalfAngle)); on a top-down game
+        // what matters visually is the horizontal fan on the ground plane. We rotate around `up`
+        // (surface normal) so the fan opens sideways — not vertically like the previous gizmo did.
+        Vector3 dir = Quaternion.AngleAxis(sweepDeg, up) * fwd;
+        Vector3 leftDir  = Quaternion.AngleAxis(-halfAngleDeg, up) * dir;
+        Vector3 rightDir = Quaternion.AngleAxis( halfAngleDeg, up) * dir;
 
-    private void DrawConeShapeAt(float radius, float sweepDeg, Color color, bool isFinal)
-    {
-        Vector3 pos = transform.position;
-        Vector3 fwd = transform.forward;
-        Vector3 up = transform.up;
+        // Fan boundary lines (crisp).
+        Gizmos.color = color;
+        Gizmos.DrawLine(pos, pos + leftDir  * radius);
+        Gizmos.DrawLine(pos, pos + rightDir * radius);
+
+        // Outer arc along the ground plane, from left edge to right edge.
+        UnityEditor.Handles.color = color;
+        UnityEditor.Handles.DrawWireArc(pos, up, leftDir, halfAngleDeg * 2f, radius);
 
         if (isFinal)
         {
-            // Forward reference
+            // Fill the final fan with a translucent disc slice so the surface reads as a *zone*, not lines.
+            var fill = new Color(color.r, color.g, color.b, 0.15f);
+            UnityEditor.Handles.color = fill;
+            UnityEditor.Handles.DrawSolidArc(pos, up, leftDir, halfAngleDeg * 2f, radius);
+
+            // Direction arrow along the cone axis (short shaft + two barbs) — makes "which way it points" obvious.
+            Vector3 tip = pos + dir * radius;
+            Vector3 shaftEnd = pos + dir * (radius * 0.9f);
+            Vector3 barbLeft  = Quaternion.AngleAxis( 150f, up) * dir;
+            Vector3 barbRight = Quaternion.AngleAxis(-150f, up) * dir;
+            float barbLen = radius * 0.12f;
+
             Gizmos.color = Color.white;
-            Gizmos.DrawLine(pos, pos + fwd * radius * 0.3f);
+            Gizmos.DrawLine(pos, tip);
+            Gizmos.DrawLine(tip, tip + barbLeft  * barbLen);
+            Gizmos.DrawLine(tip, tip + barbRight * barbLen);
 
-            // Sweep arc (path of the cone center over time)
-            float arcLen = math.abs(SweepEnd - SweepStart);
-            if (arcLen > 0.5f)
-            {
-                Vector3 startDir = Quaternion.AngleAxis(SweepStart, up) * fwd;
-                UnityEditor.Handles.color = SweepArcColor;
-                UnityEditor.Handles.DrawWireArc(pos, up, startDir, SweepEnd - SweepStart, radius * 0.4f);
-            }
+            // Apex marker (small solid dot at the origin of the cone).
+            Gizmos.DrawSphere(pos, radius * 0.03f);
         }
-
-        DrawConeShape(pos, fwd, up, radius, HalfAngle, sweepDeg, color);
     }
 
-    private static void DrawConeShape(Vector3 pos, Vector3 fwd, Vector3 up,
-        float radius, float halfAngleDeg, float sweepDeg, Color color)
+    private void DrawSweepArc(Vector3 pos, Vector3 fwd, Vector3 up, float radius)
     {
-        Vector3 dir = Quaternion.AngleAxis(sweepDeg, up) * fwd;
+        // Path the cone center traces over ActiveDuration (SweepStart → SweepEnd), around 'up'.
+        float arcLen = Mathf.Abs(SweepEnd - SweepStart);
+        if (arcLen < 0.5f) return;
 
-        Vector3 axis = Vector3.Cross(up, dir).normalized;
-        if (axis.sqrMagnitude < 0.001f)
-            axis = Vector3.Cross(Vector3.forward, dir).normalized;
-
-        float halfRad = halfAngleDeg * Mathf.Deg2Rad;
-        float cosA = Mathf.Cos(halfRad);
-        float sinA = Mathf.Sin(halfRad);
-
-        Vector3 arcCenter = pos + dir * radius * cosA;
-        float arcRadius = radius * sinA;
-
-        Vector3 leftDir = Quaternion.AngleAxis(-halfAngleDeg, axis) * dir;
-        Vector3 rightDir = Quaternion.AngleAxis(halfAngleDeg, axis) * dir;
-
-        Gizmos.color = color;
-        Gizmos.DrawLine(pos, pos + leftDir * radius);
-        Gizmos.DrawLine(pos, pos + rightDir * radius);
-
-        Vector3 fromDir = Quaternion.AngleAxis(-halfAngleDeg, axis) * dir;
-        UnityEditor.Handles.color = color;
-        UnityEditor.Handles.DrawWireArc(arcCenter, dir, fromDir, halfAngleDeg * 2f, arcRadius);
+        Vector3 startDir = Quaternion.AngleAxis(SweepStart, up) * fwd;
+        UnityEditor.Handles.color = SweepArcColor;
+        UnityEditor.Handles.DrawWireArc(pos, up, startDir, SweepEnd - SweepStart, radius * 0.4f);
     }
 
-    private void DrawRingPreview(float radius, Color color)
+    private void DrawRingPreview(Vector3 center, float radius, Color color)
     {
         float halfThick = RingThickness * 0.5f;
 
         Gizmos.color = color;
-        Gizmos.DrawWireSphere(transform.position, radius + halfThick);
+        Gizmos.DrawWireSphere(center, radius + halfThick);
 
         Gizmos.color = new Color(color.r, color.g, color.b, color.a * 0.5f);
-        Gizmos.DrawWireSphere(transform.position, math.max(0f, radius - halfThick));
+        Gizmos.DrawWireSphere(center, Mathf.Max(0f, radius - halfThick));
+    }
+
+    private static void DrawCapsulePreview(Vector3 a, Vector3 b, float halfWidth, Color color, Vector3 up)
+    {
+        Gizmos.color = color;
+
+        // Two hemispheres (start/tip) and the side lines connecting them.
+        Gizmos.DrawWireSphere(a, halfWidth);
+        Gizmos.DrawWireSphere(b, halfWidth);
+
+        Vector3 seg = b - a;
+        if (seg.sqrMagnitude < 0.0001f) return; // tip on caster → the two hemispheres already show it
+
+        Vector3 dir = seg.normalized;
+        Vector3 perp = Vector3.Cross(dir, up).normalized;
+        if (perp.sqrMagnitude < 0.001f)
+            perp = Vector3.Cross(dir, Vector3.right).normalized;
+
+        Gizmos.DrawLine(a + perp * halfWidth, b + perp * halfWidth);
+        Gizmos.DrawLine(a - perp * halfWidth, b - perp * halfWidth);
+
+        // Center segment (thin) so the capsule axis reads clearly.
+        Gizmos.color = new Color(color.r, color.g, color.b, color.a * 0.4f);
+        Gizmos.DrawLine(a, b);
     }
 #endif
 }

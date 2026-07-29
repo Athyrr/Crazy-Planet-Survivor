@@ -16,7 +16,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
     private ComponentLookup<CoreStats> _statsLookup;
     private ComponentLookup<DamageOnContact> _damageLookup;
-    private ComponentLookup<DamageOnTick> _damageOnTickLookup;
+    private ComponentLookup<AreaAttack> _areaAttackLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<OrbitMovement> _orbitLookup;
 
@@ -37,7 +37,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
             .Build();
 
         _activeTickDamageSpellQuery = SystemAPI.QueryBuilder()
-            .WithAllRW<DamageOnTick>()
+            .WithAllRW<AreaAttack>()
             .WithAllRW<LocalTransform>()
             .WithAll<SpellSource>()
             .Build();
@@ -49,7 +49,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
         _statsLookup = state.GetComponentLookup<CoreStats>(true);
         _damageLookup = state.GetComponentLookup<DamageOnContact>(true);
-        _damageOnTickLookup = state.GetComponentLookup<DamageOnTick>(true);
+        _areaAttackLookup = state.GetComponentLookup<AreaAttack>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _orbitLookup = state.GetComponentLookup<OrbitMovement>(true);
 
@@ -75,7 +75,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         _activeSpellLookup.Update(ref state);
         _statsLookup.Update(ref state);
         _damageLookup.Update(ref state);
-        _damageOnTickLookup.Update(ref state);
+        _areaAttackLookup.Update(ref state);
         _transformLookup.Update(ref state);
         _orbitLookup.Update(ref state);
         _childLookup.Update(ref state);
@@ -106,7 +106,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
             // SpellsDatabaseRef = spellBlobs,
 
             DamageOnContactLookup = _damageLookup,
-            DamageOnTickLookup = _damageOnTickLookup,
+            AreaAttackLookup = _areaAttackLookup,
             TransformLookup = _transformLookup,
             OrbitLookup = _orbitLookup,
             ChildLookup = _childLookup
@@ -278,8 +278,12 @@ public partial struct SpellStatsCalculationSystem : ISystem
     {
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
 
-        private void Execute(ref DamageOnTick damageOnTick, ref LocalTransform transform, in SpellSource spellSource)
+        private void Execute(ref AreaAttack area, ref LocalTransform transform, in SpellSource spellSource)
         {
+            // Only OverTime zones are continuously refreshed; Burst zones are set once at cast.
+            if (area.Cadence != EZoneCadence.OverTime)
+                return;
+
             if (!ActiveSpellLookup.TryGetBuffer(spellSource.CasterEntity, out var activeSpells))
                 return;
 
@@ -299,14 +303,14 @@ public partial struct SpellStatsCalculationSystem : ISystem
             if (!found)
                 return;
 
-            damageOnTick.DamagePerTick = activeSpell.FinalDamage;
-            var baseRadius = damageOnTick.PrefabRadius > 0f ? damageOnTick.PrefabRadius : 1f;
-            damageOnTick.AreaRadius = activeSpell.FinalSize * baseRadius;
-            damageOnTick.TickRate = activeSpell.FinalTickRate;
-            damageOnTick.Tags |= activeSpell.AddedTags;
-            damageOnTick.TickRate = activeSpell.FinalTickRate;
-            damageOnTick.TotalCritChance = activeSpell.FinalCritChance;
-            damageOnTick.TotalCritMultiplier = activeSpell.FinalCritDamageMultiplier;
+            area.Damage = activeSpell.FinalDamage;
+            var baseRadius = area.PrefabRadius > 0f ? area.PrefabRadius : 1f;
+            area.RadiusStart = activeSpell.FinalSize * baseRadius;
+            area.RadiusEnd = area.RadiusStart;
+            area.TickRate = activeSpell.FinalTickRate;
+            area.Tags |= activeSpell.AddedTags;
+            area.CritChance = activeSpell.FinalCritChance;
+            area.CritMultiplier = activeSpell.FinalCritDamageMultiplier;
 
             transform.Scale = activeSpell.FinalSize;
         }
@@ -318,7 +322,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         public EntityCommandBuffer.ParallelWriter ECB;
 
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
-        [ReadOnly] public ComponentLookup<DamageOnTick> DamageOnTickLookup;
+        [ReadOnly] public ComponentLookup<AreaAttack> AreaAttackLookup;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
         [ReadOnly] public ComponentLookup<OrbitMovement> OrbitLookup;
 
@@ -392,12 +396,13 @@ public partial struct SpellStatsCalculationSystem : ISystem
                         ECB.SetComponent(chunkIndex, child, childDmg);
                     }
 
-                    if (DamageOnTickLookup.HasComponent(child))
+                    if (AreaAttackLookup.HasComponent(child))
                     {
-                        var childDmg = DamageOnTickLookup[child];
-                        childDmg.DamagePerTick = activeSpell.FinalDamage;
+                        var childDmg = AreaAttackLookup[child];
+                        childDmg.Damage = activeSpell.FinalDamage;
                         float childBaseRadius = childDmg.PrefabRadius > 0f ? childDmg.PrefabRadius : 1f;
-                        childDmg.AreaRadius = activeSpell.FinalSize * childBaseRadius;
+                        childDmg.RadiusStart = activeSpell.FinalSize * childBaseRadius;
+                        childDmg.RadiusEnd = childDmg.RadiusStart;
                         childDmg.Tags |= activeSpell.AddedTags;
                         ECB.SetComponent(chunkIndex, child, childDmg);
                     }

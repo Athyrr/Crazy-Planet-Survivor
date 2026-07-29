@@ -82,6 +82,58 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
     [Tooltip("List of waves to be spawned sequentially.")]
     public WaveData[] Waves = new WaveData[0];
 
+    [Header("Assault Director (intensity pulses)")]
+    [Tooltip("Layer rhythmic 'cornering' pulses on top of the waves: a near encirclement ring + a far mass " +
+             "over the horizon, growing in size and frequency over the run. Keep your ambient waves LIGHT so " +
+             "the pulses read as peaks. When off, only the authored waves spawn (original behavior).")]
+    public bool EnableAssaultDirector = false;
+
+    [Tooltip("Enemy prefab thrown by the pulses. Leave empty to reuse the first wave's first group prefab.")]
+    public GameObject AssaultPrefab;
+
+    [Tooltip("Grace period (s) at run start before the first pulse.")]
+    public float FirstPulseDelay = 15f;
+
+    [Tooltip("Seconds between pulses at run start (slow, breathing rhythm).")]
+    public float PulsePeriodStart = 22f;
+
+    [Tooltip("Seconds between pulses at full ramp (fast, near-continuous late-run pressure).")]
+    public float PulsePeriodMin = 9f;
+
+    [Tooltip("Encirclement-ring enemy count per pulse: start -> max over the ramp.")]
+    public int RingCountStart = 18;
+    public int RingCountMax = 55;
+
+    [Tooltip("Radius (world units) of the near ring. Tight = more 'cornered'. Tune per planet radius.")]
+    public float RingRadius = 16f;
+
+    [Tooltip("Far-mass enemy count per pulse (walks in over the horizon): start -> max. 0 disables the mass.")]
+    public int HorizonCountStart = 12;
+    public int HorizonCountMax = 40;
+
+    [Tooltip("Distance band of the far mass. Set MinRange beyond the visible horizon so they stream IN.")]
+    public float HorizonMinRange = 45f;
+    public float HorizonMaxRange = 75f;
+
+    [Header("Directional walls (multi-angle assault)")]
+    [Tooltip("Enemies per pulse thrown as directional 'walls' from random bearings (not a full ring): " +
+             "start -> max over the ramp. 0 disables directional walls.")]
+    public int DirCountStart = 25;
+    public int DirCountMax = 70;
+
+    [Tooltip("Distance band of the directional walls. Set MinRange beyond the horizon so the wall streams in.")]
+    public float DirMinRange = 55f;
+    public float DirMaxRange = 85f;
+
+    [Tooltip("Angular width (radians) of each wall. ~0.7 = 40 deg. 6.28 = full circle.")]
+    public float DirArcWidth = 0.7f;
+
+    [Tooltip("Max simultaneous walls per pulse (1 or 2). 2 = two masses converge from two angles at once.")]
+    public int DirMaxClusters = 2;
+
+    [Tooltip("Run seconds over which pulse size and frequency ramp from start to max.")]
+    public float DirectorRampSeconds = 300f;
+
 
     #region Debug Visualization
 #if UNITY_EDITOR
@@ -179,6 +231,39 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
             AddComponent(entity, new SpawnerState
             {
                 CurrentWaveIndex = -1 // -1 indicates the system needs to initialize the first wave
+            });
+
+            // Assault director (intensity pulses). Config + fresh runtime, co-located on the spawner singleton.
+            AddComponent(entity, new SpawnIntensityConfig
+            {
+                Enabled = authoring.EnableAssaultDirector,
+                AssaultPrefab = authoring.AssaultPrefab != null
+                    ? GetEntity(authoring.AssaultPrefab, TransformUsageFlags.Dynamic)
+                    : Entity.Null,
+                FirstPulseDelay = authoring.FirstPulseDelay,
+                PulsePeriodStart = authoring.PulsePeriodStart,
+                PulsePeriodMin = authoring.PulsePeriodMin,
+                RingCountStart = authoring.RingCountStart,
+                RingCountMax = authoring.RingCountMax,
+                RingRadius = authoring.RingRadius,
+                HorizonCountStart = authoring.HorizonCountStart,
+                HorizonCountMax = authoring.HorizonCountMax,
+                HorizonMinRange = authoring.HorizonMinRange,
+                HorizonMaxRange = authoring.HorizonMaxRange,
+                DirCountStart = authoring.DirCountStart,
+                DirCountMax = authoring.DirCountMax,
+                DirMinRange = authoring.DirMinRange,
+                DirMaxRange = authoring.DirMaxRange,
+                DirArcWidth = authoring.DirArcWidth,
+                DirMaxClusters = authoring.DirMaxClusters,
+                RampSeconds = authoring.DirectorRampSeconds
+            });
+            AddComponent(entity, new SpawnIntensityState
+            {
+                PulseTimer = authoring.FirstPulseDelay,
+                RingRemaining = 0,
+                HorizonRemaining = 0,
+                PulsePrefab = Entity.Null
             });
 
             // 3. Buffers

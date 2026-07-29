@@ -30,15 +30,19 @@ public class DamageOnTickAuthoring : MonoBehaviour
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            AddComponent(entity, new DamageOnTick
+            AddComponent(entity, new AreaAttack
             {
-                AreaRadius = authoring.AreaRadius,
-                PrefabRadius = authoring.AreaRadius,
+                Cadence = EZoneCadence.OverTime,
                 Shape = authoring.Shape,
+                RadiusStart = authoring.AreaRadius,
+                RadiusEnd = authoring.AreaRadius,
+                PrefabRadius = authoring.AreaRadius,
                 HalfAngle = math.radians(authoring.HalfAngle),
                 SweepStart = math.radians(authoring.SweepStart),
                 SweepEnd = math.radians(authoring.SweepEnd),
                 RingThickness = authoring.RingThickness,
+                TickRate = authoring.TickRate,
+                ElapsedTime = 0f,
             });
         }
     }

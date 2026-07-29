@@ -7,18 +7,18 @@ using Unity.Physics;
 using Unity.Transforms;
 
 /// <summary>
-/// Handles one-shot area attack spells (VoidSlash, Shockwave, ShockStrike, etc.).
+/// Unified area-of-effect delivery system. Merges the former AreaAttackSystem (Burst one-shot) and
+/// TickDamageSystem (OverTime aura) into a single system branched on <see cref="AreaAttack.Cadence"/>.
 ///
-/// Each frame during the active window [ActivationDelay, ActivationDelay + ActiveDuration]:
-///   1. Interpolates shape parameters (radius, sweep angle) linearly
-///   2. Performs OverlapSphere at the entity's position
-///   3. Filters hits by shape (Cone: angle from swept forward, Ring: distance band)
-///   4. Deduplicates against HitEntityMemory buffer
-///   5. Applies damage via ECB
-///   6. Applies active effects (knockback, slow, stun, burn) based on ESpellTag flags
+///   Burst    — hit each target once over [ActivationDelay, +ActiveDuration]; shape can animate
+///              (Expand/Sweep). Dedup via <see cref="HitEntityMemory"/>. (VoidSlash, ShockStrike…)
+///   OverTime — re-hit tracked targets every TickRate; enter/exit via <see cref="TickDamageTarget"/>. (FrozenZone…)
 ///
-/// After the active window, evaluation stops but the entity stays alive
-/// for VFX (destroyed separately by LifetimeSystem).
+/// Shape filtering (<see cref="IsInShape"/>), status-effect application (<see cref="ApplyZoneEffects"/>),
+/// life steal and damage tracking are shared between the two cadences.
+///
+/// NOTE (behavior-preserving merge): crit is rolled but the multiplier is NOT applied on the Burst
+/// path, and not rolled at all on OverTime — this is the pre-merge behavior, fixed later via ResolveHit.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -26,15 +26,16 @@ public partial struct AreaAttackSystem : ISystem
 {
     private ComponentLookup<Destructible> _destructibleLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
-    private ComponentLookup<LocalToWorld> _ltwTransformLookup;
+    private ComponentLookup<LocalToWorld> _ltwLookup;
+    private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
+    private ComponentLookup<FinalStats> _finalStatsLookup;
     private ComponentLookup<ActiveKnockback> _knockbackLookup;
     private ComponentLookup<SlowEffect> _slowLookup;
     private ComponentLookup<StunEffect> _stunLookup;
     private ComponentLookup<BurnEffect> _burnLookup;
-
     private ComponentLookup<SpellSource> _spellSourceLookup;
-    private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
     private ComponentLookup<Boss> _bossLookup;
+    private BufferLookup<ActiveSpell> _activeSpellLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -49,19 +50,21 @@ public partial struct AreaAttackSystem : ISystem
 
         _destructibleLookup = state.GetComponentLookup<Destructible>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
-        _ltwTransformLookup = state.GetComponentLookup<LocalToWorld>(true);
+        _ltwLookup = state.GetComponentLookup<LocalToWorld>(true);
+        _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
+        _finalStatsLookup = state.GetComponentLookup<FinalStats>(true);
         _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(true);
         _slowLookup = state.GetComponentLookup<SlowEffect>(true);
         _stunLookup = state.GetComponentLookup<StunEffect>(true);
         _burnLookup = state.GetComponentLookup<BurnEffect>(true);
-
         _spellSourceLookup = state.GetComponentLookup<SpellSource>(true);
-        _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
         _bossLookup = state.GetComponentLookup<Boss>(true);
+        _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(false);
 
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
 
+    [BurstCompile]
     public void OnDestroy(ref SystemState state)
     {
         if (_damageEventsQueue.IsCreated)
@@ -71,44 +74,50 @@ public partial struct AreaAttackSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState))
-            return;
-
-        if (gameState.State != EGameState.Running)
+        if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
             return;
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        // One ECB per job: a system ECB only supports a single producer job, so Burst and OverTime
+        // each get their own (both play back at EndSimulation).
+        var ecbBurst = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        var ecbOverTime = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
+        var effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
         float3 playerPosition = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO.Position;
-        var effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
-        float lifeStealConversion = SystemAPI.TryGetSingleton<LifeStealConfig>(out var lifeStealCfg)
-            ? lifeStealCfg.Conversion
+        float lifeStealConversion = SystemAPI.TryGetSingleton<LifeStealConfig>(out var lsCfg)
+            ? lsCfg.Conversion
             : 0.075f;
 
         _destructibleLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
-        _ltwTransformLookup.Update(ref state);
+        _ltwLookup.Update(ref state);
+        _destroyFlagLookup.Update(ref state);
+        _finalStatsLookup.Update(ref state);
         _knockbackLookup.Update(ref state);
         _slowLookup.Update(ref state);
         _stunLookup.Update(ref state);
         _burnLookup.Update(ref state);
         _spellSourceLookup.Update(ref state);
-        _activeSpellBufferLookup.Update(ref state);
         _bossLookup.Update(ref state);
+        _activeSpellLookup.Update(ref state);
 
-        var job = new AreaAttackJob
+        float deltaTime = SystemAPI.Time.DeltaTime;
+        uint seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1;
+
+        // Burst zones — hit-once over an active window (matches entities carrying HitEntityMemory).
+        var burstJob = new BurstZoneJob
         {
-            ECB = ecb.AsParallelWriter(),
-            DeltaTime = SystemAPI.Time.DeltaTime,
+            ECB = ecbBurst.AsParallelWriter(),
+            DeltaTime = deltaTime,
             CollisionWorld = collisionWorld,
             PlayerPosition = playerPosition,
             EffectsConfig = effectsConfig,
             DestructibleLookup = _destructibleLookup,
             DamageBufferLookup = _damageBufferLookup,
-            LtwTransformLookup = _ltwTransformLookup,
+            LtwLookup = _ltwLookup,
             KnockbackLookup = _knockbackLookup,
             SlowLookup = _slowLookup,
             StunLookup = _stunLookup,
@@ -116,25 +125,171 @@ public partial struct AreaAttackSystem : ISystem
             SpellSourceLookup = _spellSourceLookup,
             BossLookup = _bossLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
-            ActiveSpellLookup = _activeSpellBufferLookup,
+            ActiveSpellLookup = _activeSpellLookup,
             LifeStealConversion = lifeStealConversion,
             PlayerEntity = playerEntity,
         };
+        JobHandle burstHandle = burstJob.ScheduleParallel(state.Dependency);
 
-        state.Dependency = job.ScheduleParallel(state.Dependency);
+        // OverTime zones — re-hit tracked targets on a tick cadence (matches entities carrying TickDamageTarget).
+        var overTimeJob = new OverTimeZoneJob
+        {
+            ECB = ecbOverTime.AsParallelWriter(),
+            DeltaTime = deltaTime,
+            CollisionWorld = collisionWorld,
+            EffectsConfig = effectsConfig,
+            FinalStatsLookup = _finalStatsLookup,
+            LtwLookup = _ltwLookup,
+            DestroyFlagLookup = _destroyFlagLookup,
+            DamageBufferLookup = _damageBufferLookup,
+            KnockbackLookup = _knockbackLookup,
+            SlowLookup = _slowLookup,
+            StunLookup = _stunLookup,
+            BurnLookup = _burnLookup,
+            DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
+            ActiveSpellLookup = _activeSpellLookup,
+            LifeStealConversion = lifeStealConversion,
+            PlayerEntity = playerEntity,
+            Seed = seed,
+        };
+        JobHandle overTimeHandle = overTimeJob.ScheduleParallel(burstHandle);
 
-        var trackDamageJob = new TrackDamageJob
+        var trackJob = new TrackDamageJob
         {
             DamageEventsQueue = _damageEventsQueue,
-            ActiveSpellLookup = _activeSpellBufferLookup,
+            ActiveSpellLookup = _activeSpellLookup,
             PlayerEntity = playerEntity,
         };
-
-        state.Dependency = trackDamageJob.Schedule(state.Dependency);
+        state.Dependency = trackJob.Schedule(overTimeHandle);
     }
 
+    // ── Shared helpers (nested jobs call these directly) ──
+
+    /// <summary>Shape-based filtering beyond the OverlapSphere radius. Circle is fully covered by the sphere.</summary>
+    private static bool IsInShape(EAttackAreaShape shape, float3 pos, quaternion rot,
+        float radius, float halfAngle, float sweep, float ringThickness, float3 hitPos)
+    {
+        switch (shape)
+        {
+            case EAttackAreaShape.Circle:
+                return true;
+
+            case EAttackAreaShape.Cone:
+            {
+                // Sweep around the entity's up axis (Y-local in world = surface normal at cast time,
+                // baked in by LookRotationSafe(dir, surfaceNormal) in SpellCastingSystem). Rotating around
+                // world Y instead — the previous behavior — tilted the swept arc on a curved planet.
+                float3 fwd = math.forward(rot);
+                float3 upAxis = math.mul(rot, math.up());
+                float3 coneDir = math.normalize(math.mul(quaternion.AxisAngle(upAxis, sweep), fwd));
+                float3 toHit = math.normalize(hitPos - pos);
+                return math.dot(coneDir, toHit) >= math.cos(halfAngle);
+            }
+
+            case EAttackAreaShape.Ring:
+            {
+                float dist = math.distance(pos, hitPos);
+                return math.abs(dist - radius) <= ringThickness * 0.5f;
+            }
+
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>Applies/refreshes the status effects encoded in the tags to a single target.
+    /// Reuses baked (disabled) effect components when present, otherwise adds them.
+    /// Knockback pushes the target away from <paramref name="pushOrigin"/>.</summary>
+    private static void ApplyZoneEffects(EntityCommandBuffer.ParallelWriter ecb, int chunkIndex, Entity target,
+        float3 pushOrigin, ESpellTag tags, float burnBaseDamage, in ActiveEffectsConfig cfg,
+        in ComponentLookup<SlowEffect> slowLk, in ComponentLookup<StunEffect> stunLk,
+        in ComponentLookup<BurnEffect> burnLk, in ComponentLookup<ActiveKnockback> kbLk,
+        in ComponentLookup<LocalToWorld> ltwLk)
+    {
+        if ((tags & ESpellTag.Slow) != 0)
+        {
+            var slow = new SlowEffect { SpeedReductionMultiplier = cfg.BaseSlowMultiplier, DurationLeft = cfg.SlowDuration };
+            if (slowLk.HasComponent(target))
+            {
+                ecb.SetComponent(chunkIndex, target, slow);
+                ecb.SetComponentEnabled<SlowEffect>(chunkIndex, target, true);
+            }
+            else ecb.AddComponent(chunkIndex, target, slow);
+        }
+
+        if ((tags & ESpellTag.Stun) != 0)
+        {
+            var stun = new StunEffect { DurationLeft = cfg.StunDuration };
+            if (stunLk.HasComponent(target))
+            {
+                ecb.SetComponent(chunkIndex, target, stun);
+                ecb.SetComponentEnabled<StunEffect>(chunkIndex, target, true);
+            }
+            else ecb.AddComponent(chunkIndex, target, stun);
+        }
+
+        if ((tags & ESpellTag.Burn) != 0)
+        {
+            var burn = new BurnEffect
+            {
+                DamageOnTick = cfg.BurnDamageRatio * burnBaseDamage,
+                TickRate = cfg.BurnTickRate,
+                TickTimer = 0f,
+                RemainingTime = cfg.BurnDuration
+            };
+            if (burnLk.HasComponent(target))
+            {
+                ecb.SetComponent(chunkIndex, target, burn);
+                ecb.SetComponentEnabled<BurnEffect>(chunkIndex, target, true);
+            }
+            else ecb.AddComponent(chunkIndex, target, burn);
+        }
+
+        if ((tags & ESpellTag.Knockback) != 0 && ltwLk.HasComponent(target))
+        {
+            float3 targetPos = ltwLk[target].Position;
+            float3 pushDir = targetPos - pushOrigin;
+            float d2 = math.lengthsq(pushDir);
+            pushDir = d2 > 0.001f ? math.normalize(pushDir) : new float3(0f, 0f, 1f);
+
+            var kb = new ActiveKnockback
+            {
+                Direction = pushDir,
+                InitialForce = cfg.KnockbackForce,
+                DurationLeft = cfg.KnockbackDuration,
+                MaxDuration = cfg.KnockbackDuration
+            };
+            if (kbLk.HasComponent(target))
+            {
+                ecb.SetComponent(chunkIndex, target, kb);
+                ecb.SetComponentEnabled<ActiveKnockback>(chunkIndex, target, true);
+            }
+            else ecb.AddComponent(chunkIndex, target, kb);
+        }
+    }
+
+    private static bool IsInHitMemory(in DynamicBuffer<HitEntityMemory> hitMemory, Entity hitEntity)
+    {
+        for (int i = 0; i < hitMemory.Length; i++)
+            if (hitMemory[i].HitEntity == hitEntity)
+                return true;
+        return false;
+    }
+
+    /// <summary>True if <paramref name="p"/> is within <paramref name="halfWidth"/> of the segment [a,b]
+    /// (Capsule shape: a thrust/line of width 2×halfWidth).</summary>
+    private static bool CapsuleContains(float3 a, float3 b, float halfWidth, float3 p)
+    {
+        float3 ab = b - a;
+        float abLenSq = math.lengthsq(ab);
+        float t = abLenSq > math.EPSILON ? math.saturate(math.dot(p - a, ab) / abLenSq) : 0f;
+        float3 closest = a + t * ab;
+        return math.distancesq(p, closest) <= halfWidth * halfWidth;
+    }
+
+    // ── Burst cadence (was AreaAttackJob) ──
     [BurstCompile]
-    private partial struct AreaAttackJob : IJobEntity
+    private partial struct BurstZoneJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
         [ReadOnly] public float DeltaTime;
@@ -144,68 +299,63 @@ public partial struct AreaAttackSystem : ISystem
 
         [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
-        [ReadOnly] public ComponentLookup<LocalToWorld> LtwTransformLookup;
+        [ReadOnly] public ComponentLookup<LocalToWorld> LtwLookup;
         [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
         [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
         [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
-
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
         [ReadOnly] public ComponentLookup<Boss> BossLookup;
         public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
-
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         public float LifeStealConversion;
         public Entity PlayerEntity;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity,
-            ref AreaAttack areaAttack, in LocalToWorld localToWorld,
-            ref DynamicBuffer<HitEntityMemory> hitMemory)
+            ref AreaAttack area, in LocalToWorld localToWorld, ref DynamicBuffer<HitEntityMemory> hitMemory)
         {
-            // ── Timer ──
-            areaAttack.ElapsedTime += DeltaTime;
-
-            // Not yet active
-            if (areaAttack.ElapsedTime < areaAttack.ActivationDelay)
+            if (area.Cadence != EZoneCadence.Burst)
                 return;
 
-            // Past active window → stop evaluating (entity stays alive for VFX)
-            float activeTime = areaAttack.ElapsedTime - areaAttack.ActivationDelay;
-            if (activeTime > areaAttack.ActiveDuration)
+            area.ElapsedTime += DeltaTime;
+            if (area.ElapsedTime < area.ActivationDelay)
                 return;
 
-            // ── Interpolate shape parameters ──
-            float t = areaAttack.ActiveDuration > 0f
-                ? math.saturate(activeTime / areaAttack.ActiveDuration)
-                : 1f;
+            float activeTime = area.ElapsedTime - area.ActivationDelay;
+            if (activeTime > area.ActiveDuration)
+                return;
 
-            float currentRadius = math.lerp(areaAttack.RadiusStart, areaAttack.RadiusEnd, t);
-            float currentSweep = math.lerp(areaAttack.SweepStart, areaAttack.SweepEnd, t);
+            float t = area.ActiveDuration > 0f ? math.saturate(activeTime / area.ActiveDuration) : 1f;
+            float currentRadius = math.lerp(area.RadiusStart, area.RadiusEnd, t);
+            float currentSweep = math.lerp(area.SweepStart, area.SweepEnd, t);
 
-            // ── OverlapSphere query ──
-            var filter = new CollisionFilter
-            {
-                BelongsTo = CollisionLayers.Raycast,
-                CollidesWith = areaAttack.TargetLayers
-            };
-
-            var hits = new NativeList<DistanceHit>(64, Allocator.Temp);
-            CollisionWorld.OverlapSphere(localToWorld.Position, currentRadius, ref hits, filter);
-
-            float3 position = localToWorld.Position;
             quaternion rotation = localToWorld.Rotation;
 
-            // Per-entity random seed for crit checks
+            // Hitbox anchoring (rotation + scale aware, matches the visual):
+            //  • Capsule spans the entity origin → its Offset endpoint (a thrust/line), half-width = RadiusStart.
+            //  • Other shapes are centered at the Offset point.
+            float3 offsetPoint = math.transform(localToWorld.Value, area.Offset);
+            bool isCapsule = area.Shape == EAttackAreaShape.Capsule;
+            float3 capsuleA = localToWorld.Position;
+            // Progressive thrust: the capsule extends from the entity to its Offset endpoint over the active
+            // window (t), so an estoc starts on the caster and reaches full length by the end of ActiveDuration.
+            float3 capsuleB = math.lerp(capsuleA, offsetPoint, t);
+
+            float3 position = isCapsule ? (capsuleA + capsuleB) * 0.5f : offsetPoint;
+            float queryRadius = isCapsule
+                ? math.distance(capsuleA, capsuleB) * 0.5f + area.RadiusStart
+                : currentRadius;
+
+            var filter = new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = area.TargetLayers };
+            var hits = new NativeList<DistanceHit>(64, Allocator.Temp);
+            CollisionWorld.OverlapSphere(position, queryRadius, ref hits, filter);
             var random = Random.CreateFromIndex((uint)(entity.Index + 1));
 
-            // Camera-shake category for this attack (constant per entity: depends on caster + tags)
             EDamageShakeSource shakeSource;
-            if ((areaAttack.Tags & ESpellTag.Explosive) != 0)
+            if ((area.Tags & ESpellTag.Explosive) != 0)
                 shakeSource = EDamageShakeSource.Explosion;
-            else if (BossLookup.TryGetComponent(areaAttack.Caster, out var casterBoss))
-                shakeSource = casterBoss.Kind == EBossKind.FinalBoss
-                    ? EDamageShakeSource.Boss
-                    : EDamageShakeSource.Elite;
+            else if (BossLookup.TryGetComponent(area.Caster, out var casterBoss))
+                shakeSource = casterBoss.Kind == EBossKind.FinalBoss ? EDamageShakeSource.Boss : EDamageShakeSource.Elite;
             else
                 shakeSource = EDamageShakeSource.Enemy;
 
@@ -214,37 +364,31 @@ public partial struct AreaAttackSystem : ISystem
                 Entity hitEntity = hits[i].Entity;
                 if (hitEntity == entity || hitEntity == Entity.Null)
                     continue;
-
-                // Must be able to receive damage
                 if (!DamageBufferLookup.HasBuffer(hitEntity))
                     continue;
-
-                // Must be alive
-                if (DestructibleLookup.HasComponent(hitEntity)
-                    && !DestructibleLookup.IsComponentEnabled(hitEntity))
+                if (DestructibleLookup.HasComponent(hitEntity) && !DestructibleLookup.IsComponentEnabled(hitEntity))
                     continue;
-
-                // Already hit by this attack instance
                 if (IsInHitMemory(hitMemory, hitEntity))
                     continue;
 
-                // Shape-specific filtering
-                if (!IsInShape(position, rotation, areaAttack, currentRadius, currentSweep, hits[i].Position))
+                bool inShape = isCapsule
+                    ? CapsuleContains(capsuleA, capsuleB, area.RadiusStart, hits[i].Position)
+                    : IsInShape(area.Shape, position, rotation, currentRadius, area.HalfAngle, currentSweep,
+                        area.RingThickness, hits[i].Position);
+                if (!inShape)
                     continue;
 
-                // Apply damage
-                bool isCrit = random.NextFloat(0f, 1f) < areaAttack.CritChance;
-                int damageDealt = (int)areaAttack.Damage;
+                bool isCrit = random.NextFloat(0f, 1f) < area.CritChance;
+                int damageDealt = (int)area.Damage;
 
                 ECB.AppendToBuffer(chunkIndex, hitEntity, new DamageBufferElement
                 {
                     Damage = damageDealt,
-                    Tag = areaAttack.Tags,
+                    Tag = area.Tags,
                     IsCritical = isCrit,
                     ShakeSource = shakeSource,
                 });
 
-                // Track damage dealt per spell (mirrors CollisionSystem)
                 if (SpellSourceLookup.TryGetComponent(entity, out var spellSource))
                 {
                     DamageEventsWriter.Enqueue(new SpellDamageEvent
@@ -253,7 +397,6 @@ public partial struct AreaAttackSystem : ISystem
                         DamageAmount = damageDealt,
                     });
 
-                    // Life steal: a player area-attack hit rolls its FinalLifeStealChance to heal the player.
                     if (spellSource.CasterEntity == PlayerEntity && LifeStealConversion > 0f
                         && ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var playerSpells))
                     {
@@ -271,158 +414,170 @@ public partial struct AreaAttackSystem : ISystem
                     }
                 }
 
-                // Active effects (based on spell tags)
+                ApplyZoneEffects(ECB, chunkIndex, hitEntity, PlayerPosition, area.Tags, area.Damage, EffectsConfig,
+                    SlowLookup, StunLookup, BurnLookup, KnockbackLookup, LtwLookup);
 
-                if ((areaAttack.Tags & ESpellTag.Knockback) != 0)
-                {
-                    float3 targetPos = LtwTransformLookup[hitEntity].Position;
-                    float3 pushDir = targetPos - PlayerPosition;
-                    float distSq = math.lengthsq(pushDir);
-
-                    if (distSq > 0.001f)
-                        pushDir = math.normalize(pushDir);
-                    else
-                        pushDir = math.forward(localToWorld.Rotation);
-
-                    var kbData = new ActiveKnockback
-                    {
-                        Direction = pushDir,
-                        InitialForce = EffectsConfig.KnockbackForce,
-                        DurationLeft = EffectsConfig.KnockbackDuration,
-                        MaxDuration = EffectsConfig.KnockbackDuration,
-                    };
-
-                    if (KnockbackLookup.HasComponent(hitEntity))
-                    {
-                        ECB.SetComponent(chunkIndex, hitEntity, kbData);
-                        ECB.SetComponentEnabled<ActiveKnockback>(chunkIndex, hitEntity, true);
-                    }
-                    else
-                        ECB.AddComponent(chunkIndex, hitEntity, kbData);
-                }
-
-                if ((areaAttack.Tags & ESpellTag.Slow) != 0)
-                {
-                    var slow = new SlowEffect
-                    {
-                        SpeedReductionMultiplier = EffectsConfig.BaseSlowMultiplier,
-                        DurationLeft = EffectsConfig.SlowDuration,
-                    };
-
-                    if (SlowLookup.HasComponent(hitEntity))
-                    {
-                        ECB.SetComponent(chunkIndex, hitEntity, slow);
-                        ECB.SetComponentEnabled<SlowEffect>(chunkIndex, hitEntity, true);
-                    }
-                    else
-                    {
-                        ECB.AddComponent(chunkIndex, hitEntity, slow);
-                    }
-                }
-
-                if ((areaAttack.Tags & ESpellTag.Stun) != 0)
-                {
-                    var stun = new StunEffect
-                    {
-                        DurationLeft = EffectsConfig.StunDuration,
-                    };
-
-                    if (StunLookup.HasComponent(hitEntity))
-                    {
-                        ECB.SetComponent(chunkIndex, hitEntity, stun);
-                        ECB.SetComponentEnabled<StunEffect>(chunkIndex, hitEntity, true);
-                    }
-                    else
-                    {
-                        ECB.AddComponent(chunkIndex, hitEntity, stun);
-                    }
-                }
-
-                if ((areaAttack.Tags & ESpellTag.Burn) != 0)
-                {
-                    var burn = new BurnEffect
-                    {
-                        DamageOnTick = EffectsConfig.BurnDamageRatio * areaAttack.Damage,
-                        TickRate = EffectsConfig.BurnTickRate,
-                        TickTimer = 0f,
-                        RemainingTime = EffectsConfig.BurnDuration,
-                    };
-
-                    if (BurnLookup.HasComponent(hitEntity))
-                    {
-                        ECB.SetComponent(chunkIndex, hitEntity, burn);
-                        ECB.SetComponentEnabled<BurnEffect>(chunkIndex, hitEntity, true);
-                    }
-                    else
-                    {
-                        ECB.AddComponent(chunkIndex, hitEntity, burn);
-                    }
-                }
-
-                // Record hit in memory (one-shot per enemy guarantee)
-                hitMemory.Add(new HitEntityMemory
-                {
-                    HitEntity = hitEntity,
-                    LastHitTime = 0f,
-                });
+                hitMemory.Add(new HitEntityMemory { HitEntity = hitEntity, LastHitTime = 0f });
             }
 
             hits.Dispose();
         }
+    }
 
-        /// <summary>Check if the entity was already hit by this attack.</summary>
-        private static bool IsInHitMemory(in DynamicBuffer<HitEntityMemory> hitMemory, Entity hitEntity)
+    // ── OverTime cadence (was ProcessTickDamageJob) ──
+    [BurstCompile]
+    private partial struct OverTimeZoneJob : IJobEntity
+    {
+        public EntityCommandBuffer.ParallelWriter ECB;
+        [ReadOnly] public float DeltaTime;
+        [ReadOnly] public CollisionWorld CollisionWorld;
+        [ReadOnly] public ActiveEffectsConfig EffectsConfig;
+
+        [ReadOnly] public ComponentLookup<FinalStats> FinalStatsLookup;
+        [ReadOnly] public ComponentLookup<LocalToWorld> LtwLookup;
+        [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
+        [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
+        [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
+        [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
+        [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
+        [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
+        public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
+        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        public float LifeStealConversion;
+        public Entity PlayerEntity;
+        public uint Seed;
+
+        private void Execute([ChunkIndexInQuery] int chunkIndex, Entity zoneEntity,
+            ref AreaAttack area, in LocalToWorld zoneTransform,
+            ref DynamicBuffer<TickDamageTarget> targets, in SpellSource spellSource)
         {
-            for (int i = 0; i < hitMemory.Length; i++)
+            if (area.Cadence != EZoneCadence.OverTime)
+                return;
+            if (!FinalStatsLookup.HasComponent(area.Caster))
+                return;
+
+            float3 zonePos = math.transform(zoneTransform.Value, area.Offset); // local Offset → world (matches visual)
+            quaternion zoneRot = zoneTransform.Rotation;
+            float areaRadius = area.RadiusStart; // OverTime is static (RadiusStart == RadiusEnd)
+
+            float queryRadius = areaRadius;
+            if (area.Shape == EAttackAreaShape.Ring)
+                queryRadius = areaRadius + area.RingThickness * 0.5f;
+
+            // Exit detection — drop targets outside the shape or destroyed.
+            for (int i = targets.Length - 1; i >= 0; i--)
             {
-                if (hitMemory[i].HitEntity == hitEntity)
-                    return true;
+                Entity target = targets[i].Value;
+
+                if (DestroyFlagLookup.HasComponent(target) && DestroyFlagLookup.IsComponentEnabled(target))
+                {
+                    targets.RemoveAt(i);
+                    continue;
+                }
+
+                bool outOfRange = true;
+                if (LtwLookup.HasComponent(target))
+                {
+                    float3 targetPos = LtwLookup[target].Position;
+                    if (area.Shape == EAttackAreaShape.Circle)
+                        outOfRange = math.distance(zonePos, targetPos) > areaRadius;
+                    else
+                        outOfRange = !IsInShape(area.Shape, zonePos, zoneRot, areaRadius, area.HalfAngle, 0f,
+                            area.RingThickness, targetPos);
+                }
+
+                if (outOfRange)
+                    targets.RemoveAt(i);
             }
-            return false;
-        }
 
-        /// <summary>Shape-based filtering beyond OverlapSphere.</summary>
-        private static bool IsInShape(float3 position, quaternion rotation,
-            in AreaAttack areaAttack, float currentRadius, float currentSweep, float3 hitPosition)
-        {
-            switch (areaAttack.Shape)
+            area.ElapsedTime += DeltaTime;
+            if (area.ElapsedTime < area.TickRate)
+                return;
+            area.ElapsedTime = 0f;
+
+            var filter = new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = area.TargetLayers };
+            var hits = new NativeList<DistanceHit>(16, Allocator.Temp);
+            CollisionWorld.OverlapSphere(zonePos, queryRadius, ref hits, filter);
+
+            for (int j = 0; j < hits.Length; j++)
             {
-                case EAttackAreaShape.Circle:
-                    // Already filtered by OverlapSphere radius
-                    return true;
+                Entity hitEntity = hits[j].Entity;
+                if (hitEntity == zoneEntity)
+                    continue;
+                if (!DamageBufferLookup.HasBuffer(hitEntity))
+                    continue;
+                if (DestroyFlagLookup.HasComponent(hitEntity) && DestroyFlagLookup.IsComponentEnabled(hitEntity))
+                    continue;
 
-                case EAttackAreaShape.Cone:
+                if (area.Shape != EAttackAreaShape.Circle)
                 {
-                    // Sweep the cone center around the forward direction (Y-up rotation)
-                    float3 forward = math.forward(rotation);
-                    quaternion sweepRot = quaternion.RotateY(currentSweep);
-                    float3 coneDir = math.normalize(math.mul(sweepRot, forward));
-
-                    float3 toHit = math.normalize(hitPosition - position);
-                    float cosAngle = math.dot(coneDir, toHit);
-                    float halfAngleCos = math.cos(areaAttack.HalfAngle);
-
-                    return cosAngle >= halfAngleCos;
+                    float3 hitPos = LtwLookup[hitEntity].Position;
+                    if (!IsInShape(area.Shape, zonePos, zoneRot, areaRadius, area.HalfAngle, 0f, area.RingThickness, hitPos))
+                        continue;
                 }
 
-                case EAttackAreaShape.Ring:
+                bool alreadyTracked = false;
+                for (int k = 0; k < targets.Length; k++)
                 {
-                    float dist = math.distance(position, hitPosition);
-                    float halfThickness = areaAttack.RingThickness * 0.5f;
-                    float distFromRing = math.abs(dist - currentRadius);
-                    return distFromRing <= halfThickness;
+                    if (targets[k].Value == hitEntity)
+                    {
+                        alreadyTracked = true;
+                        break;
+                    }
                 }
 
-                default:
-                    return false;
+                if (!alreadyTracked)
+                    targets.Add(new TickDamageTarget { Value = hitEntity });
+            }
+
+            hits.Dispose();
+
+            float damage = area.Damage;
+
+            for (int i = 0; i < targets.Length; i++)
+            {
+                Entity target = targets[i].Value;
+
+                ECB.AppendToBuffer(chunkIndex, target, new DamageBufferElement
+                {
+                    Damage = (int)damage,
+                    Tag = area.Tags,
+                    ShakeSource = EDamageShakeSource.DoT,
+                });
+
+                ApplyZoneEffects(ECB, chunkIndex, target, zonePos, area.Tags, damage, EffectsConfig,
+                    SlowLookup, StunLookup, BurnLookup, KnockbackLookup, LtwLookup);
+
+                DamageEventsWriter.Enqueue(new SpellDamageEvent
+                {
+                    DatabaseIndex = spellSource.DatabaseIndex,
+                    DamageAmount = (int)damage,
+                });
+
+                if (spellSource.CasterEntity == PlayerEntity && LifeStealConversion > 0f
+                    && ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var playerSpells))
+                {
+                    for (int li = 0; li < playerSpells.Length; li++)
+                    {
+                        if (playerSpells[li].DatabaseIndex != spellSource.DatabaseIndex)
+                            continue;
+
+                        float lsChance = playerSpells[li].FinalLifeStealChance;
+                        if (lsChance > 0f)
+                        {
+                            var lsRand = Random.CreateFromIndex(Seed ^ (uint)(target.Index + 1));
+                            if (lsRand.NextFloat() < lsChance)
+                                ECB.AppendToBuffer(chunkIndex, PlayerEntity,
+                                    new LifeStealProcBufferElement { Heal = LifeStealConversion * damage });
+                        }
+                        break;
+                    }
+                }
             }
         }
     }
 
-    /// <summary>
-    /// Sums queued <see cref="SpellDamageEvent"/>s per spell and accumulates them into the
-    /// player's <see cref="ActiveSpell.TotalDamageDealt"/>. Mirrors CollisionSystem's tracking.
-    /// </summary>
+    // ── Damage tracking (shared) ──
     [BurstCompile]
     private struct TrackDamageJob : IJob
     {
@@ -432,7 +587,6 @@ public partial struct AreaAttackSystem : ISystem
 
         public void Execute()
         {
-            // Sums damage per spell map
             var sums = new NativeHashMap<int, int>(16, Allocator.Temp);
 
             while (DamageEventsQueue.TryDequeue(out var evt))

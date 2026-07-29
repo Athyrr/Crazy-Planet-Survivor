@@ -51,7 +51,15 @@ public enum SpawnMode
     /// SpawnDelay to 0 for an instant full ring; a positive delay makes them appear one-by-one sweeping
     /// around the circle.
     /// </summary>
-    CircleAroundPlayer
+    CircleAroundPlayer,
+
+    /// <summary>
+    /// Directional cluster: enemies fill an angular SECTOR (a "wall") centered on a bearing around the
+    /// player, at a distance in [MinRange, MaxRange]. The bearing (SpawnCommand.ArcCenter) and the sector
+    /// width (SpawnCommand.ArcWidth) are set by the caller — used by the assault director to throw walls of
+    /// enemies from one or more chosen angles, rather than a full 360° ring.
+    /// </summary>
+    SectorAroundPlayer
 }
 
 /// <summary>
@@ -61,6 +69,153 @@ public struct SpawnerSettings : IComponentData
 {
     /// <summary> The absolute maximum number of enemies allowed in the game at once. </summary>
     public int MaxEnemies;
+}
+
+/// <summary>
+/// Tunables for the "assault director": rhythmic pressure pulses layered ON TOP of the authored waves,
+/// meant to create felt phases (calm baseline -> peak -> release) and the "cornered/swarm" feeling.
+///
+/// Each pulse fires two coordinated bursts, reusing the spawner's existing spawn job/modes:
+///   - a NEAR ring around the player (<see cref="SpawnMode.CircleAroundPlayer"/>, <see cref="RingRadius"/>):
+///     an inescapable encirclement — the "cornered" moment (a fast player can't outrun a ring spawned ON them).
+///   - a FAR mass around the player (<see cref="SpawnMode.AroundPlayer"/>, <see cref="HorizonMinRange"/>..
+///     <see cref="HorizonMaxRange"/>): a horde that walks in over the horizon — the "invasion" mass.
+///
+/// Both the pulse SIZE and FREQUENCY ramp up over run time (peaks get bigger and closer together, so the
+/// run climaxes toward continuous pressure), keyed to <see cref="RunProgression.Timer"/>. The authored waves
+/// remain the low ambient BETWEEN pulses — keep them light for the phases to read.
+/// </summary>
+public struct SpawnIntensityConfig : IComponentData
+{
+    /// <summary> Master switch. When false the director does nothing and only the authored waves spawn. </summary>
+    public bool Enabled;
+
+    /// <summary> Enemy prefab used for pulse bursts. Entity.Null = reuse the first authored group's prefab. </summary>
+    public Entity AssaultPrefab;
+
+    /// <summary> Grace period at run start before the first pulse (lets the player settle in). </summary>
+    public float FirstPulseDelay;
+
+    /// <summary> Seconds between pulses at run start (the slow, breathing early rhythm). </summary>
+    public float PulsePeriodStart;
+
+    /// <summary> Seconds between pulses at full ramp (fast late rhythm, near-continuous pressure). </summary>
+    public float PulsePeriodMin;
+
+    /// <summary> Ring enemy count per pulse at run start. </summary>
+    public int RingCountStart;
+
+    /// <summary> Ring enemy count per pulse at full ramp. </summary>
+    public int RingCountMax;
+
+    /// <summary> Radius (world units) of the near encirclement ring. Keep it tight for the "cornered" feel. </summary>
+    public float RingRadius;
+
+    /// <summary> Far-mass enemy count per pulse at run start (0 = no horizon mass). </summary>
+    public int HorizonCountStart;
+
+    /// <summary> Far-mass enemy count per pulse at full ramp. </summary>
+    public int HorizonCountMax;
+
+    /// <summary> Inner distance of the far mass — set beyond the visible horizon so they walk IN. </summary>
+    public float HorizonMinRange;
+
+    /// <summary> Outer distance of the far mass. </summary>
+    public float HorizonMaxRange;
+
+    /// <summary> Directional-wall enemy count per pulse at run start (0 = no directional walls). </summary>
+    public int DirCountStart;
+
+    /// <summary> Directional-wall enemy count per pulse at full ramp. </summary>
+    public int DirCountMax;
+
+    /// <summary> Inner distance of the directional walls — set beyond the horizon so they stream in. </summary>
+    public float DirMinRange;
+
+    /// <summary> Outer distance of the directional walls. </summary>
+    public float DirMaxRange;
+
+    /// <summary> Angular width (radians) of each directional wall. ~0.7 ≈ 40°. TAU (~6.28) = full circle. </summary>
+    public float DirArcWidth;
+
+    /// <summary> Max simultaneous walls per pulse (1..N): 2 = two masses converge from two angles at once. </summary>
+    public int DirMaxClusters;
+
+    /// <summary> Run seconds over which SIZE and FREQUENCY interpolate from "Start" to "Max/Min". </summary>
+    public float RampSeconds;
+
+    public static SpawnIntensityConfig Default => new SpawnIntensityConfig
+    {
+        Enabled = false,           // opt-in: unchanged behavior until an authoring turns it on
+        AssaultPrefab = Entity.Null,
+        FirstPulseDelay = 15f,
+        PulsePeriodStart = 22f,
+        PulsePeriodMin = 9f,
+        RingCountStart = 35,
+        RingCountMax = 100,
+        RingRadius = 62f,
+        HorizonCountStart = 12,
+        HorizonCountMax = 40,
+        HorizonMinRange = 45f,
+        HorizonMaxRange = 75f,
+        DirCountStart = 25,
+        DirCountMax = 70,
+        DirMinRange = 55f,
+        DirMaxRange = 85f,
+        DirArcWidth = 0.7f,
+        DirMaxClusters = 2,
+        RampSeconds = 300f
+    };
+
+    /// <summary> 0..1 ramp progress from the run timer (how far we are toward peak intensity). </summary>
+    public float RampT(float timer)
+    {
+        if (RampSeconds <= 0f)
+            return 1f;
+        float t = timer / RampSeconds;
+        return t < 0f ? 0f : (t > 1f ? 1f : t);
+    }
+}
+
+/// <summary>
+/// Runtime state for the <see cref="SpawnIntensityConfig"/> director. Lives on the spawner singleton entity.
+/// A pulse is "armed" by seeding <see cref="RingRemaining"/>/<see cref="HorizonRemaining"/>, which then drain
+/// through the spawner's shared per-frame budget (like a group's Remaining) until the burst is fully spawned.
+/// </summary>
+public struct SpawnIntensityState : IComponentData
+{
+    /// <summary> Countdown to the next pulse. Reloaded with the (ramped) pulse period when a pulse arms. </summary>
+    public float PulseTimer;
+
+    /// <summary> Ring enemies still to spawn for the current pulse (drained by the frame budget). </summary>
+    public int RingRemaining;
+
+    /// <summary> Ring total of the current pulse, for the CircleAroundPlayer angular layout. </summary>
+    public int RingTotal;
+
+    /// <summary> Far-mass enemies still to spawn for the current pulse. </summary>
+    public int HorizonRemaining;
+
+    /// <summary> Far-mass total of the current pulse, for the AroundPlayer layout. </summary>
+    public int HorizonTotal;
+
+    /// <summary> Directional-wall enemies still to spawn for the current pulse. </summary>
+    public int DirRemaining;
+
+    /// <summary> Directional-wall total of the current pulse. </summary>
+    public int DirTotal;
+
+    /// <summary> Number of simultaneous walls in the current pulse (1 or 2); enemies split across them. </summary>
+    public int DirClusterCount;
+
+    /// <summary> Bearing (radians, in the player's tangent frame) of directional cluster 0. </summary>
+    public float DirCenter0;
+
+    /// <summary> Bearing of directional cluster 1 (used when DirClusterCount == 2). </summary>
+    public float DirCenter1;
+
+    /// <summary> Prefab captured when the current pulse armed (resolved once, reused for its whole burst). </summary>
+    public Entity PulsePrefab;
 }
 
 /// <summary>
