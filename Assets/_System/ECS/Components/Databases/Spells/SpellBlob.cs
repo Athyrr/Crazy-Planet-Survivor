@@ -36,5 +36,10 @@ public struct SpellBlob
     public int ChildPrefabIndex;
     
     // Amount
-    public int BaseAmount; 
+    public int BaseAmount;
+
+    // Multi-cast (how Amount is consumed at cast time — see ESpellMultiCast)
+    public ESpellMultiCast MultiCast;
+    public float SpreadAngleDegrees;
+    public float MaxSpreadDegrees;
 }

@@ -90,4 +90,15 @@ public class SpellDataSO : ScriptableObject
 
     [Tooltip("Radius around the caster where child spells will spawn.")]
     public float ChildrenSpawnRadius = 1f;
+
+    [Tooltip("How Amount is consumed at cast time. Single = ignored (novas/auras). Spread = fan of N " +
+             "(volley projectiles). MultiTarget = one per distinct enemy (volley strikes, e.g. Lightning).")]
+    public ESpellMultiCast MultiCast = ESpellMultiCast.Single;
+
+    [Tooltip("Spread mode (or MultiTarget surplus): angle in degrees between two adjacent instances.")]
+    public float SpreadAngleDegrees = 30f;
+
+    [Tooltip("Spread mode: hard cap on the total spread (degrees). When N × SpreadAngle exceeds this, " +
+             "the per-instance angle is tightened so the whole fan fits inside the cap.")]
+    public float MaxSpreadDegrees = 120f;
 }

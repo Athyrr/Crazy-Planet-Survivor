@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Mathematics;
 using Unity.Collections;
 using Unity.Transforms;
@@ -264,16 +265,23 @@ public partial struct SpellCastingSystem : ISystem
             var random = Random.CreateFromIndex(Seed);
 
 
-            // Multishot Logic (Spawners cast exactly 1 entity)
-            int finalProjectileCount = math.max(1, finalAmount);
+            // Multi-cast — how Amount is consumed at cast time (Single/Spread/MultiTarget).
+            // Orbital spawners always cast exactly 1 root; Amount flows to the spawner's child count elsewhere.
+            // Enemy casts with MultiTarget degenerate to Spread (handled once isPlayerCaster is known, below).
+            var multiCast = baseSpellData.MultiCast;
+            int totalCount = multiCast == ESpellMultiCast.Single ? 1 : math.max(1, finalAmount);
             if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
-                finalProjectileCount = 1;
+                totalCount = 1;
 
             // Targeting
             float3 targetPosition = casterTransform.Position;
             bool targetFound = false;
             Entity targetEntity = Entity.Null;
             bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
+
+            // Enemy MultiTarget degenerates to Spread — only one player target exists.
+            if (multiCast == ESpellMultiCast.MultiTarget && !isPlayerCaster)
+                multiCast = ESpellMultiCast.Spread;
 
             // Enemy-cast spells scale their damage with run difficulty (player spells are untouched).
             if (!isPlayerCaster)
@@ -431,11 +439,53 @@ public partial struct SpellCastingSystem : ISystem
                 }
             }
 
-            // Spawn loop
-            float spreadAngle = 30f;
-            float startAngle = -((finalProjectileCount - 1) * spreadAngle) / 2f;
+            // Rotation axis for the fan — the entity's local Y in world = surface normal at cast time
+            // (baked in by LookRotationSafe(dir, surfaceNormal)). Fixes the previous world-Y bug that
+            // tilted the fan on a curved planet.
+            float3 upAxis = math.mul(baseRotation, math.up());
 
-            for (int i = 0; i < finalProjectileCount; i++)
+            // MultiTarget: acquire up to N distinct nearest enemies within FinalRange.
+            // Zero found → cancel this cast cleanly. Surplus (Amount > found) is fanned from the caster.
+            NativeList<float3> multiTargets = default;
+            int multiTargetsFound = 0;
+            if (multiCast == ESpellMultiCast.MultiTarget && isPlayerCaster)
+            {
+                multiTargets = new NativeList<float3>(totalCount, Allocator.Temp);
+                var mtFilter = new CollisionFilter
+                {
+                    BelongsTo = CollisionLayers.Raycast,
+                    CollidesWith = CollisionLayers.Enemy
+                };
+                var mtHits = new NativeList<DistanceHit>(32, Allocator.Temp);
+                CollisionWorld.OverlapSphere(casterTransform.Position, finalRange, ref mtHits, mtFilter);
+
+                // Sort by distance so we pick the N nearest, then dedupe by entity (a target may span multiple colliders).
+                mtHits.Sort(new DistanceHitDistanceComparer());
+                var seen = new NativeHashSet<Entity>(totalCount, Allocator.Temp);
+                for (int h = 0; h < mtHits.Length && multiTargets.Length < totalCount; h++)
+                {
+                    if (seen.Add(mtHits[h].Entity))
+                    {
+                        multiTargets.Add(LocalToWorldLookup.HasComponent(mtHits[h].Entity)
+                            ? LocalToWorldLookup[mtHits[h].Entity].Position
+                            : mtHits[h].Position);
+                    }
+                }
+                seen.Dispose();
+                mtHits.Dispose();
+
+                multiTargetsFound = multiTargets.Length;
+
+                if (multiTargetsFound == 0)
+                {
+                    multiTargets.Dispose();
+                    ECB.DestroyEntity(chunkIndex, requestEntity);
+                    return;
+                }
+            }
+
+            // Spawn loop
+            for (int i = 0; i < totalCount; i++)
             {
                 var spellEntity = ECB.Instantiate(chunkIndex, spellPrefab);
 
@@ -445,20 +495,54 @@ public partial struct SpellCastingSystem : ISystem
                     DatabaseIndex = request.DatabaseIndex
                 });
 
-                // Spread 
+                // Per-instance spawn (position, rotation, direction) based on MultiCast.
+                float3 spawnPos = baseSpawnPos;
                 quaternion finalRotation = baseRotation;
                 float3 finalDirection = fireDirection;
 
-                if (finalProjectileCount > 1 && isProjectile)
+                if (multiCast == ESpellMultiCast.MultiTarget && i < multiTargetsFound)
                 {
-                    float angle = startAngle + (i * spreadAngle);
-                    finalRotation = math.mul(baseRotation, quaternion.RotateY(math.radians(angle)));
-                    finalDirection = math.forward(finalRotation);
+                    // Aim at this specific target. For a world-anchored Area, spawn AT the target point
+                    // (like a strike); for other families, keep caster-based spawn and fire toward target.
+                    float3 targetPos = multiTargets[i];
+                    float3 toTarget = targetPos - casterTransform.Position;
+                    if (math.lengthsq(toTarget) > math.EPSILON)
+                    {
+                        finalDirection = math.normalize(toTarget);
+                        finalRotation = quaternion.LookRotationSafe(finalDirection, upAxis);
+                    }
+                    if (AreaAttackLookup.HasComponent(spellPrefab)
+                        && !CopyPositionLookup.HasComponent(spellPrefab) && !isAttached)
+                    {
+                        spawnPos = targetPos;
+                    }
                 }
+                else if (multiCast == ESpellMultiCast.Spread
+                         || (multiCast == ESpellMultiCast.MultiTarget && i >= multiTargetsFound))
+                {
+                    // Fan pattern — full Spread mode, or MultiTarget surplus fanned from the caster.
+                    int spreadTotal = multiCast == ESpellMultiCast.MultiTarget ? (totalCount - multiTargetsFound) : totalCount;
+                    int spreadIdx   = multiCast == ESpellMultiCast.MultiTarget ? (i - multiTargetsFound) : i;
+
+                    if (spreadTotal > 1)
+                    {
+                        // Total-spread cap: tighten per-instance angle when N × SpreadAngle > MaxSpread.
+                        float perAngle = baseSpellData.SpreadAngleDegrees;
+                        float totalSpread = (spreadTotal - 1) * perAngle;
+                        if (totalSpread > baseSpellData.MaxSpreadDegrees)
+                            perAngle = baseSpellData.MaxSpreadDegrees / (spreadTotal - 1);
+                        float startAngle = -(spreadTotal - 1) * perAngle * 0.5f;
+
+                        float angle = startAngle + spreadIdx * perAngle;
+                        finalRotation = math.mul(quaternion.AxisAngle(upAxis, math.radians(angle)), baseRotation);
+                        finalDirection = math.forward(finalRotation);
+                    }
+                }
+                // Single mode: no override, use base values.
 
                 ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
                 {
-                    Position = baseSpawnPos,
+                    Position = spawnPos,
                     Rotation = finalRotation,
                     Scale = spellPrefabTransform.Scale * finalSize // todo fix it
                 });
@@ -641,10 +725,18 @@ public partial struct SpellCastingSystem : ISystem
                     ECB.SetComponent(chunkIndex, spellEntity, explosion);
                 }
 
-                //todo Explose on death or directly on prefab   
+                //todo Explose on death or directly on prefab
             }
 
+            if (multiTargets.IsCreated)
+                multiTargets.Dispose();
             ECB.DestroyEntity(chunkIndex, requestEntity);
+        }
+
+        /// <summary>Sort <see cref="DistanceHit"/> results by ascending distance so we can pick the N nearest.</summary>
+        private struct DistanceHitDistanceComparer : IComparer<DistanceHit>
+        {
+            public int Compare(DistanceHit a, DistanceHit b) => a.Distance.CompareTo(b.Distance);
         }
     }
 }

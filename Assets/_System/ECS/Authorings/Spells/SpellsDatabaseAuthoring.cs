@@ -47,7 +47,12 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlob.BaseSize = spellSO.BaseSize;
 
                 spellBlob.BaseAmount = spellSO.BaseAmount;
-                
+
+                // Multi-cast (how Amount is consumed at cast time)
+                spellBlob.MultiCast = spellSO.MultiCast;
+                spellBlob.SpreadAngleDegrees = spellSO.SpreadAngleDegrees;
+                spellBlob.MaxSpreadDegrees = spellSO.MaxSpreadDegrees;
+
                 // Targeting
                 spellBlob.TargetingMode = spellSO.TargetingMode;
 
