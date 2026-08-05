@@ -7,11 +7,13 @@ using Unity.Transforms;
 /// Applies life steal: drains the player's queued procs and heals at most one per cooldown window
 /// (the rate limiter → Brotato-style diminishing returns when many hits land). The heal magnitude is the
 /// strongest queued proc this frame (<c>Conversion × that hit's damage</c>); fractional HP is banked in
-/// <see cref="LifeStealState.HealCarryover"/>. Runs after <see cref="HealthSystem"/> so the frame's damage
-/// is resolved first, and emits a <see cref="HealFeedbackRequest"/> (green number) when whole HP is gained.
+/// <see cref="LifeStealState.HealCarryover"/>. As a heal *producer* it appends whole HP to the shared
+/// <see cref="HealBufferElement"/> (drained by <see cref="HealthSystem"/>'s heal pass — the single
+/// clamp/order authority, after damage) instead of writing <see cref="Health"/> directly, and emits a
+/// <see cref="HealFeedbackRequest"/> (green number) when whole HP is banked.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(HealthSystem))]
+[UpdateBefore(typeof(HealthSystem))]
 [BurstCompile]
 public partial struct LifeStealSystem : ISystem
 {
@@ -53,10 +55,11 @@ public partial struct LifeStealSystem : ISystem
 
         private void Execute(
             [ChunkIndexInQuery] int chunkIndex,
-            ref Health health,
+            in Health health,
             in CoreStats stats,
             ref LifeStealState lifeSteal,
             ref DynamicBuffer<LifeStealProcBufferElement> procs,
+            ref DynamicBuffer<HealBufferElement> healBuffer,
             in LocalTransform transform)
         {
             if (lifeSteal.CooldownTimer > 0f)
@@ -86,7 +89,7 @@ public partial struct LifeStealSystem : ISystem
                 return;
             }
 
-            health.Value = math.min(health.Value + wholeHeal, maxHp);
+            healBuffer.Add(new HealBufferElement { Amount = wholeHeal });
 
             Entity req = ECB.CreateEntity(chunkIndex);
             ECB.AddComponent(chunkIndex, req, new HealFeedbackRequest

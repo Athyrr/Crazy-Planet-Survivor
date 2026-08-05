@@ -53,6 +53,9 @@ public class EnemyAuthoring : MonoBehaviour
 
             AddBuffer<EnemySpellReady>(entity);
             AddBuffer<DamageBufferElement>(entity);
+            // Heal channel (invariant: every damageable entity carries a heal buffer). Empty for now;
+            // future enemy healers / charmed allies / heal-capable summons built on this stack use it.
+            AddBuffer<HealBufferElement>(entity);
 
             AddComponent(entity, new DamageOnContact
             {

@@ -9,8 +9,9 @@ public class DamageBufferAuthoring : MonoBehaviour
         public override void Bake(DamageBufferAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
-            
+
             AddBuffer<DamageBufferElement>(entity);
+            AddBuffer<HealBufferElement>(entity);
         }
     }
 }

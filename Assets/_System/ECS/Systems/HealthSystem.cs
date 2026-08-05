@@ -68,7 +68,7 @@ public partial struct HealthSystem : ISystem
         _soundPlayaerTagLookup.Update(ref state);
         _coreStatsLookup.Update(ref state);
 
-        var _soundPlayerEntity = SystemAPI.TryGetSingletonEntity<SoundPlayerTag>(out var spe)
+        var soundPlayerEntity = SystemAPI.TryGetSingletonEntity<SoundPlayerTag>(out var spe)
             ? spe
             : Entity.Null;
 
@@ -92,13 +92,18 @@ public partial struct HealthSystem : ISystem
             BossLookup = _bossLookup,
             ExplodeOnDeathLookup = _explodeOnDeathLookup,
             SoundPlayerTagLookup = _soundPlayaerTagLookup,
-            SoundPlayerEntity = _soundPlayerEntity,
+            SoundPlayerEntity = soundPlayerEntity,
             CoreStatsLookup = _coreStatsLookup,
             PlayerArmorPen = playerArmorPen,
             MinDamagePerHit = scaleCfg.MinDamagePerHit,
         };
 
         state.Dependency = applyDamageJob.ScheduleParallel(state.Dependency);
+
+        // Heal pass (the sink). Chained AFTER damage via Dependency so a heal can never resurrect
+        // an entity zeroed this frame. Each producer already did its magnitude + carryover + feedback;
+        // here we only sum, clamp to MaxHealth, and write Health once.
+        state.Dependency = new ApplyHealJob().ScheduleParallel(state.Dependency);
     }
 
     /// <summary>
@@ -333,6 +338,43 @@ public partial struct HealthSystem : ISystem
                     IsBurn = isBurn,
                 }
             );
+        }
+    }
+
+    /// <summary>
+    /// Heal pass (the sink). Sums every producer's <see cref="HealBufferElement"/>, clamps to
+    /// MaxHealth and performs the single write to <see cref="Health"/>. Scheduled after
+    /// <see cref="ApplyDamageJob"/> so a heal cannot revive an entity killed this frame (its
+    /// <c>Value</c> is already 0). No feedback here — each producer emits its own green number
+    /// (the per-source "fountain").
+    /// </summary>
+    [BurstCompile]
+    private partial struct ApplyHealJob : IJobEntity
+    {
+        private void Execute(
+            ref Health health,
+            ref DynamicBuffer<HealBufferElement> healBuffer,
+            in CoreStats stats)
+        {
+            if (healBuffer.IsEmpty)
+                return;
+
+            // Killed this frame (damage pass zeroed Value) or already dead → drop queued heals.
+            if (health.Value <= 0)
+            {
+                healBuffer.Clear();
+                return;
+            }
+
+            int total = 0;
+            for (int i = 0; i < healBuffer.Length; i++)
+                total += healBuffer[i].Amount;
+            healBuffer.Clear();
+
+            if (total <= 0)
+                return;
+
+            health.Value = math.min(health.Value + total, (int)stats.MaxHealth);
         }
     }
 }

@@ -77,6 +77,9 @@ public class PlayerAuthoring : MonoBehaviour
                 AddComponent<HardSnappedMovement>(entity);
 
             AddBuffer<DamageBufferElement>(entity);
+            // Heal channel: producers (life steal, regen, pickups, heal zones) append whole HP here;
+            // HealthSystem's heal pass sums/clamps/writes once (see HealBufferElement).
+            AddBuffer<HealBufferElement>(entity);
 
             // Life steal: rate-limiter state + per-frame proc queue (filled by the damage systems).
             AddComponent(entity, new LifeStealState());

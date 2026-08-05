@@ -1,18 +1,18 @@
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Mathematics;
 using Unity.Transforms;
 
 /// <summary>
-/// Regenerates health over time for entities carrying <see cref="HealthRegen"/>.
-/// Each tick heals <c>CoreStats.HealthRecovery</c> per second of elapsed time, clamped to
-/// <c>CoreStats.MaxHealth</c>, with fractional HP carried across ticks. Runs after
-/// <see cref="HealthSystem"/> so damage is resolved before regeneration is applied.
+/// Health-regen *producer*. Each tick banks <c>CoreStats.HealthRegen</c> per elapsed second
+/// (fractional HP carried across ticks) and appends whole HP to the shared
+/// <see cref="HealBufferElement"/>; <see cref="HealthSystem"/>'s heal pass sums/clamps/writes.
+/// Runs BEFORE HealthSystem so this frame's regen is queued when the heal pass drains the buffer
+/// (that pass, after damage, is the single clamp/order authority — no resurrection).
 /// Emits <see cref="HealFeedbackRequest"/> on the player so the UI can show green numbers.
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
-[UpdateAfter(typeof(HealthSystem))]
+[UpdateBefore(typeof(HealthSystem))]
 [BurstCompile]
 public partial struct HealthRegenSystem : ISystem
 {
@@ -59,8 +59,9 @@ public partial struct HealthRegenSystem : ISystem
         private void Execute(
             [ChunkIndexInQuery] int index,
             Entity entity,
-            ref Health health,
+            in Health health,
             ref HealthRegen regen,
+            ref DynamicBuffer<HealBufferElement> healBuffer,
             in CoreStats stats,
             in LocalTransform transform)
         {
@@ -93,7 +94,7 @@ public partial struct HealthRegenSystem : ISystem
                 return;
 
             regen.Carryover -= wholeHeal;
-            health.Value = math.min(health.Value + wholeHeal, maxHealth);
+            healBuffer.Add(new HealBufferElement { Amount = wholeHeal });
 
             // Emit green heal number feedback for the player.
             if (PlayerLookup.HasComponent(entity))
