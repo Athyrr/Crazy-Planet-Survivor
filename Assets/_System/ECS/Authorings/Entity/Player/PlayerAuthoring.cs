@@ -124,7 +124,7 @@ public class PlayerAuthoring : MonoBehaviour
             AddComponent<FinalStats>(entity);
 
             // Spells buffer
-            AddBuffer<SpellModifier>(entity);
+            AddBuffer<SpellStatUpgrade>(entity);
 
             // Spells
             AddBuffer<ActiveSpell>(entity);

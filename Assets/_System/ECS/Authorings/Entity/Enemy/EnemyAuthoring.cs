@@ -111,7 +111,7 @@ public class EnemyAuthoring : MonoBehaviour
             AddComponent(entity, new FinalStats());
 
             // todo virer ça et utiliser lookup de spell modifier dans spell calculation system
-            AddBuffer<SpellModifier>(entity);
+            AddBuffer<SpellStatUpgrade>(entity);
 
             AddBuffer<ActiveSpell>(entity);
             DynamicBuffer<SpellActivationRequest> baseSpellBuffer = AddBuffer<SpellActivationRequest>(entity);

@@ -22,7 +22,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
     private BufferLookup<ActiveSpell> _activeSpellLookup;
     private BufferLookup<Child> _childLookup;
-    private BufferLookup<SpellModifier> _spellModifierLookup;
+    private BufferLookup<SpellStatUpgrade> _spellStatUpgradeLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -33,7 +33,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
         _calculationRequestQuery = SystemAPI
             .QueryBuilder()
-            .WithAll<SpellStatsCalculationRequest, CoreStats, ActiveSpell, SpellModifier>()
+            .WithAll<SpellStatsCalculationRequest, CoreStats, ActiveSpell, SpellStatUpgrade>()
             .Build();
 
         _activeTickDamageSpellQuery = SystemAPI.QueryBuilder()
@@ -55,7 +55,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
         _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(true);
         _childLookup = state.GetBufferLookup<Child>(true);
-        _spellModifierLookup = state.GetBufferLookup<SpellModifier>(true);
+        _spellStatUpgradeLookup = state.GetBufferLookup<SpellStatUpgrade>(true);
     }
 
     [BurstCompile]
@@ -79,7 +79,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         _transformLookup.Update(ref state);
         _orbitLookup.Update(ref state);
         _childLookup.Update(ref state);
-        _spellModifierLookup.Update(ref state);
+        _spellStatUpgradeLookup.Update(ref state);
 
         // Calculate spells stats
         var calculateSpellStatsJob = new CalculateSpellStatsJob()
@@ -135,7 +135,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
             Entity entity,
             in CoreStats coreStats,
             ref DynamicBuffer<ActiveSpell> activeSpells,
-            in DynamicBuffer<SpellModifier> spellModifiers)
+            in DynamicBuffer<SpellStatUpgrade> spellStatUpgrades)
         {
             ref var blobSpells = ref SpellsDatabaseRef.Value.Spells;
 
@@ -177,9 +177,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 float lifeStealChanceAdd = coreStats.LifeStealChance + spell.LocalLifeStealChanceBonus;
 
                 // Spell modifier buffer
-                for (int j = 0; j < spellModifiers.Length; j++)
+                for (int j = 0; j < spellStatUpgrades.Length; j++)
                 {
-                    var mod = spellModifiers[j];
+                    var mod = spellStatUpgrades[j];
 
                     if ((currentTags & mod.RequiredTags) != 0)
                     {

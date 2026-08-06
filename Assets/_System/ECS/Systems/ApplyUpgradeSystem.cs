@@ -14,7 +14,7 @@ public partial struct ApplyUpgradeSystem : ISystem
     private EntityQuery _activeAurasQuery;
 
     private BufferLookup<ActiveSpell> _activeSpellsBufferLookup;
-    private BufferLookup<SpellModifier> _spellModifiersLookup;
+    private BufferLookup<SpellStatUpgrade> _spellStatUpgradesLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -28,7 +28,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         // state.RequireForUpdate<ApplyUpgradeRequest>();
 
         _activeSpellsBufferLookup = SystemAPI.GetBufferLookup<ActiveSpell>(false);
-        _spellModifiersLookup = SystemAPI.GetBufferLookup<SpellModifier>(false);
+        _spellStatUpgradesLookup = SystemAPI.GetBufferLookup<SpellStatUpgrade>(false);
     }
 
     [BurstCompile]
@@ -55,7 +55,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         var amuletsDatabase = SystemAPI.GetComponent<AmuletsDatabase>(amuletsDatabaseEntity);
 
         _activeSpellsBufferLookup.Update(ref state);
-        _spellModifiersLookup.Update(ref state);
+        _spellStatUpgradesLookup.Update(ref state);
 
         var applyUpgradeJob = new ApplyUpgradeJob()
         {
@@ -67,7 +67,7 @@ public partial struct ApplyUpgradeSystem : ISystem
             SpellsDatabaseRef = spellsDatabase.Blobs,
 
             ActiveSpellLookup = _activeSpellsBufferLookup,
-            SpellModifierLookup = _spellModifiersLookup
+            SpellStatUpgradeLookup = _spellStatUpgradesLookup
         };
         var applyUpgradeJobHandle = applyUpgradeJob.ScheduleParallel(state.Dependency);
 
@@ -79,7 +79,7 @@ public partial struct ApplyUpgradeSystem : ISystem
             SpellsDatabaseRef = spellsDatabase.Blobs,
 
             ActiveSpellLookup = _activeSpellsBufferLookup,
-            SpellModifierLookup = _spellModifiersLookup
+            SpellStatUpgradeLookup = _spellStatUpgradesLookup
         };
         // Chained after the upgrade job: all three write CoreStats (RW) on the player, so they
         // must run sequentially, not from the same input dependency.
@@ -104,7 +104,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
 
         [NativeDisableParallelForRestriction] public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        [NativeDisableParallelForRestriction] public BufferLookup<SpellModifier> SpellModifierLookup;
+        [NativeDisableParallelForRestriction] public BufferLookup<SpellStatUpgrade> SpellStatUpgradeLookup;
 
         public void Execute(
             [ChunkIndexInQuery] int chunkIndex,
@@ -177,9 +177,9 @@ public partial struct ApplyUpgradeSystem : ISystem
             else if (upgrade.UpgradeType == EUpgradeType.UpgradeSpell && upgrade.SpellTags != ESpellTag.None &&
                      upgrade.SpellID == ESpellID.None)
             {
-                if (SpellModifierLookup.TryGetBuffer(playerEntity, out var spellModifiers))
+                if (SpellStatUpgradeLookup.TryGetBuffer(playerEntity, out var spellStatUpgrades))
                 {
-                    spellModifiers.Add(new SpellModifier
+                    spellStatUpgrades.Add(new SpellStatUpgrade
                     {
                         RequiredTags = upgrade.SpellTags,
                         SpellStat = upgrade.SpellStat, // ex: Damage
@@ -213,7 +213,7 @@ public partial struct ApplyUpgradeSystem : ISystem
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
 
         [NativeDisableParallelForRestriction] public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        [NativeDisableParallelForRestriction] public BufferLookup<SpellModifier> SpellModifierLookup;
+        [NativeDisableParallelForRestriction] public BufferLookup<SpellStatUpgrade> SpellStatUpgradeLookup;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity playerEntity, in ApplyAmuletRequest request,
             ref CoreStats playerCoreStats, ref Health health)
@@ -261,9 +261,9 @@ public partial struct ApplyUpgradeSystem : ISystem
                 else if (mod.UpgradeType == EUpgradeType.UpgradeSpell && mod.SpellTags != ESpellTag.None &&
                          mod.SpellID == ESpellID.None)
                 {
-                    if (SpellModifierLookup.TryGetBuffer(playerEntity, out var spellModifiers))
+                    if (SpellStatUpgradeLookup.TryGetBuffer(playerEntity, out var spellStatUpgrades))
                     {
-                        spellModifiers.Add(new SpellModifier
+                        spellStatUpgrades.Add(new SpellStatUpgrade
                         {
                             RequiredTags = mod.SpellTags,
                             SpellStat = mod.SpellStat,
