@@ -33,7 +33,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
         _calculationRequestQuery = SystemAPI
             .QueryBuilder()
-            .WithAll<SpellStatsCalculationRequest, CoreStats, ActiveSpell, SpellStatUpgrade>()
+            .WithAll<SpellStatsCalculationRequest, CoreStats, ActiveSpell, SpellStatUpgrade, CharacterStatBuff>()
             .Build();
 
         _activeTickDamageSpellQuery = SystemAPI.QueryBuilder()
@@ -135,9 +135,37 @@ public partial struct SpellStatsCalculationSystem : ISystem
             Entity entity,
             in CoreStats coreStats,
             ref DynamicBuffer<ActiveSpell> activeSpells,
-            in DynamicBuffer<SpellStatUpgrade> spellStatUpgrades)
+            in DynamicBuffer<SpellStatUpgrade> spellStatUpgrades,
+            in DynamicBuffer<CharacterStatBuff> characterBuffs)
         {
             ref var blobSpells = ref SpellsDatabaseRef.Value.Spells;
+
+            // Sum active temporary buffs per stat once (independent of spells). Additive with
+            // CoreStats deltas below — never multiplicative (anti-exploit, §9.2). Integer stats
+            // (Amount/Pierce/Bounce) truncate any fractional buff value.
+            float bDamage = 0f, bAttackSpeed = 0f, bSpellSize = 0f, bSpellSpeed = 0f,
+                  bSpellDuration = 0f, bCastRange = 0f,
+                  bAmount = 0f, bBounce = 0f, bPierce = 0f,
+                  bCritChance = 0f, bCritDamage = 0f, bLifeSteal = 0f;
+            for (int b = 0; b < characterBuffs.Length; b++)
+            {
+                var buff = characterBuffs[b];
+                switch (buff.Stat)
+                {
+                    case ECharacterStat.Damage:          bDamage        += buff.Value; break;
+                    case ECharacterStat.AttackSpeed:     bAttackSpeed   += buff.Value; break;
+                    case ECharacterStat.SizeMultiplier:  bSpellSize     += buff.Value; break;
+                    case ECharacterStat.SpellSpeed:      bSpellSpeed    += buff.Value; break;
+                    case ECharacterStat.SpellDuration:   bSpellDuration += buff.Value; break;
+                    case ECharacterStat.CastRange:       bCastRange     += buff.Value; break;
+                    case ECharacterStat.Amount:          bAmount        += buff.Value; break;
+                    case ECharacterStat.BounceCount:     bBounce        += buff.Value; break;
+                    case ECharacterStat.PierceCount:     bPierce        += buff.Value; break;
+                    case ECharacterStat.CritChance:      bCritChance    += buff.Value; break;
+                    case ECharacterStat.CritDamage:      bCritDamage    += buff.Value; break;
+                    case ECharacterStat.LifeStealChance: bLifeSteal     += buff.Value; break;
+                }
+            }
 
             for (int i = 0; i < activeSpells.Length; i++)
             {
@@ -147,13 +175,13 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 ESpellTag currentTags = baseSpellData.Tag | spell.AddedTags;
 
                 // Multipliers
-                // Total = 1 + Global(Player) + Local(Spell)  (all stored as deltas, neutral = 0)
-                float dmgMult = 1f + coreStats.Damage + spell.LocalDamageBonusMultiplier;
-                // todo add explosion dmg + explosion size stats 
-                float sizeMult = 1f + coreStats.SpellSize + spell.LocalSizeBonusMultiplier;
-                float speedMult = 1f + coreStats.SpellSpeed + spell.LocalSpeedBonusMultiplier;
-                float durationMult = 1f + coreStats.SpellDuration + spell.LocalSpellDurationBonusMultiplier;
-                float rangeMult = 1f + coreStats.CastRange + spell.LocalRangeBonusMultiplier;
+                // Total = 1 + Global(Player) + Buff(Player, temp) + Local(Spell)  (all stored as deltas, neutral = 0)
+                float dmgMult = 1f + coreStats.Damage + bDamage + spell.LocalDamageBonusMultiplier;
+                // todo add explosion dmg + explosion size stats
+                float sizeMult = 1f + coreStats.SpellSize + bSpellSize + spell.LocalSizeBonusMultiplier;
+                float speedMult = 1f + coreStats.SpellSpeed + bSpellSpeed + spell.LocalSpeedBonusMultiplier;
+                float durationMult = 1f + coreStats.SpellDuration + bSpellDuration + spell.LocalSpellDurationBonusMultiplier;
+                float rangeMult = 1f + coreStats.CastRange + bCastRange + spell.LocalRangeBonusMultiplier;
                 float tickRateMult = 1f + spell.LocalTickRateBonusMultiplier;
 
                 float bounceRangeMult =
@@ -161,20 +189,20 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 // todo add global bounce range multiplier if needed
 
                 // AttackSpeed is already a delta (0 = normal), no +1 needed here
-                float cdReductionMult = coreStats.AttackSpeed +
+                float cdReductionMult = coreStats.AttackSpeed + bAttackSpeed +
                                         spell.LocalCooldownReducBonusMultiplier;
 
-                // Additives
-                int amountAdd = coreStats.Amount + spell.LocalAmountBonus;
-                int bounceAdd = coreStats.Bounce + spell.LocalBounceBonus;
-                int pierceAdd = coreStats.Pierce + spell.LocalPierceBonus;
+                // Additives (integer buffs truncate any fractional value)
+                int amountAdd = coreStats.Amount + (int)bAmount + spell.LocalAmountBonus;
+                int bounceAdd = coreStats.Bounce + (int)bBounce + spell.LocalBounceBonus;
+                int pierceAdd = coreStats.Pierce + (int)bPierce + spell.LocalPierceBonus;
 
                 // Crit
-                float critChanceAdd = coreStats.CritChance + spell.LocalCritChanceBonusPercent;
-                float critDmgAdd = 1f + coreStats.CritDamage + spell.LocalCritDamageBonus;
+                float critChanceAdd = coreStats.CritChance + bCritChance + spell.LocalCritChanceBonusPercent;
+                float critDmgAdd = 1f + coreStats.CritDamage + bCritDamage + spell.LocalCritDamageBonus;
 
-                // Life steal proc chance (global + per-spell), clamped to 0..1 below
-                float lifeStealChanceAdd = coreStats.LifeStealChance + spell.LocalLifeStealChanceBonus;
+                // Life steal proc chance (global + temp buff + per-spell), clamped to 0..1 below
+                float lifeStealChanceAdd = coreStats.LifeStealChance + bLifeSteal + spell.LocalLifeStealChanceBonus;
 
                 // Spell modifier buffer
                 for (int j = 0; j < spellStatUpgrades.Length; j++)

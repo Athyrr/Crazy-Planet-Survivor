@@ -62,14 +62,17 @@ public partial struct HealthRegenSystem : ISystem
             in Health health,
             ref HealthRegen regen,
             ref DynamicBuffer<HealBufferElement> healBuffer,
-            in CoreStats stats,
+            in CoreStats coreStats,
+            in LiveStats liveStats,
             in LocalTransform transform)
         {
-            // Skip dead entities and those without a regen stat.
-            if (health.Value <= 0 || stats.HealthRegen <= 0f)
+            // Skip dead entities and those without a regen stat. Read regen from LiveStats so
+            // temporary +HealthRegen buffs (aura, potion) contribute; MaxHealth stays in CoreStats
+            // (not part of the tick-per-frame LiveStats set — v1).
+            if (health.Value <= 0 || liveStats.HealthRegen <= 0f)
                 return;
 
-            int maxHealth = (int)stats.MaxHealth;
+            int maxHealth = (int)coreStats.MaxHealth;
 
             // Already full: reset accumulators so a future tick starts clean.
             if (health.Value >= maxHealth)
@@ -86,7 +89,7 @@ public partial struct HealthRegenSystem : ISystem
                 return;
 
             // Heal proportionally to the elapsed time, banking the fractional remainder.
-            regen.Carryover += stats.HealthRegen * regen.Timer;
+            regen.Carryover += liveStats.HealthRegen * regen.Timer;
             regen.Timer = 0f;
 
             int wholeHeal = (int)regen.Carryover;

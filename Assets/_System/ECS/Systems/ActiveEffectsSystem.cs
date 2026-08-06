@@ -56,8 +56,10 @@ public partial struct ActiveEffectsSystem : ISystem
         // Combine effects handle
         var combinedEffectsHandle = JobHandle.CombineDependencies(burnHandle, slowHandle, stunHandle);
 
-        // Calculate final stats after all
-        var statsHandle = new CalculateFinalStatsJob
+        // Compose LiveStats from CoreStats + CharacterStatBuff sum + dedicated effects (Slow).
+        // This is the tick-per-frame composition; the 12 spell stats are recomposed on-demand by
+        // SpellStatsCalculationSystem (see §9.2 of SPELL_TAXONOMY).
+        var statsHandle = new ComposeLiveStatsJob
         {
             SlowEffectLookup = _slowEffectLookup,
         }.ScheduleParallel(combinedEffectsHandle);
@@ -129,33 +131,49 @@ public partial struct ActiveEffectsSystem : ISystem
         }
     }
 
+    /// <summary>
+    /// Composes <see cref="LiveStats"/> from <c>CoreStats</c> + sum of <see cref="CharacterStatBuff"/>
+    /// entries + dedicated effects (currently Slow). Additive composition (anti-exploit): buff+debuff
+    /// deltas add up, never multiply. Runs each frame; consumers read LiveStats, never CoreStats direct.
+    /// </summary>
     [BurstCompile]
-    private partial struct CalculateFinalStatsJob : IJobEntity
+    private partial struct ComposeLiveStatsJob : IJobEntity
     {
         [ReadOnly] public ComponentLookup<SlowEffect> SlowEffectLookup;
 
-        // todo use other lookups if they have stats effects
-
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in CoreStats coreStats,
-            ref FinalStats finalStats)
+            in DynamicBuffer<CharacterStatBuff> buffs, ref LiveStats liveStats)
         {
-            // todo implement
+            // Sum active buff/debuff deltas per stat (single pass over the buffer).
+            float moveSpeedBuff = 0f, pickupRangeBuff = 0f, armorBuff = 0f, regenBuff = 0f, kbResistBuff = 0f;
+            for (int i = 0; i < buffs.Length; i++)
+            {
+                var b = buffs[i];
+                switch (b.Stat)
+                {
+                    case ECharacterStat.Speed:               moveSpeedBuff   += b.Value; break;
+                    case ECharacterStat.CollectRange:        pickupRangeBuff += b.Value; break;
+                    case ECharacterStat.Armor:               armorBuff       += b.Value; break;
+                    case ECharacterStat.HealthRegen:         regenBuff       += b.Value; break;
+                    case ECharacterStat.KnockbackResistance: kbResistBuff    += b.Value; break;
+                }
+            }
 
-            float speedMultBonus = 0.0f;
-            float dmgMultBonus = 1.0f;
-
-            // Slow
+            // Dedicated effect: Slow contribution to move speed (kept out of the buff buffer because
+            // it stacks "strongest wins" from many sources — additive would explode in a mob crowd).
+            float slowReduction = 0f;
             if (SlowEffectLookup.TryGetComponent(entity, out var slow) &&
                 SlowEffectLookup.IsComponentEnabled(entity))
             {
-                speedMultBonus -= slow.SpeedReductionMultiplier;
+                slowReduction = slow.SpeedReductionMultiplier;
             }
 
-            // Set Final Stats
-            finalStats.MoveSpeed = coreStats.BaseMoveSpeed * (1f + coreStats.MoveSpeed + speedMultBonus);
-            finalStats.Damage = coreStats.Damage * dmgMultBonus;
-            finalStats.RangeMultiplier = coreStats.BasePickupRange * (1f + coreStats.PickupRange);
-            // todo armor multiplier mais azy faut faire un calcul bizarre je pense un peu à la soulstone
+            // Final composition — additive, never multiplicative (anti-stacking exploit).
+            liveStats.MoveSpeed   = coreStats.BaseMoveSpeed   * (1f + coreStats.MoveSpeed   + moveSpeedBuff   - slowReduction);
+            liveStats.PickupRange = coreStats.BasePickupRange * (1f + coreStats.PickupRange + pickupRangeBuff);
+            liveStats.Armor       = coreStats.BaseArmor + coreStats.Armor + armorBuff;
+            liveStats.HealthRegen = coreStats.HealthRegen + regenBuff;
+            liveStats.KBResist    = coreStats.KnockbackResistance + kbResistBuff;
         }
     }
 }

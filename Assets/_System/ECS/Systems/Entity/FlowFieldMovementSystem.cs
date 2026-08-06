@@ -21,7 +21,7 @@ public partial struct FlowFieldMovementSystem : ISystem
 {
     private ComponentLookup<SteeringForce> _steeringLookup;
     private ComponentLookup<Avoidance> _avoidanceLookup;
-    private ComponentLookup<FinalStats> _finalStatsLookup;
+    private ComponentLookup<LiveStats> _liveStatsLookup;
     private ComponentLookup<StunEffect> _stunLookup;
     private ComponentLookup<ActiveKnockback> _knockbackLookup;
     private ComponentLookup<StopDistance> _stopDistanceLookup;
@@ -46,7 +46,7 @@ public partial struct FlowFieldMovementSystem : ISystem
 
         _steeringLookup = state.GetComponentLookup<SteeringForce>(isReadOnly: true);
         _avoidanceLookup = state.GetComponentLookup<Avoidance>(isReadOnly: true);
-        _finalStatsLookup = state.GetComponentLookup<FinalStats>(isReadOnly: true);
+        _liveStatsLookup = state.GetComponentLookup<LiveStats>(isReadOnly: true);
         _stunLookup = state.GetComponentLookup<StunEffect>(isReadOnly: true);
         _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(isReadOnly: true);
         _stopDistanceLookup = state.GetComponentLookup<StopDistance>(isReadOnly: true);
@@ -88,7 +88,7 @@ public partial struct FlowFieldMovementSystem : ISystem
 
         _steeringLookup.Update(ref state);
         _avoidanceLookup.Update(ref state);
-        _finalStatsLookup.Update(ref state);
+        _liveStatsLookup.Update(ref state);
         _stunLookup.Update(ref state);
         _knockbackLookup.Update(ref state);
         _stopDistanceLookup.Update(ref state);
@@ -105,7 +105,7 @@ public partial struct FlowFieldMovementSystem : ISystem
             CellBufferLookup = _cellBufferLookup,
             SteeringLookup = _steeringLookup,
             AvoidanceLookup = _avoidanceLookup,
-            FinalStatsLookup = _finalStatsLookup,
+            LiveStatsLookup = _liveStatsLookup,
             StunLookup = _stunLookup,
             KnockbackLookup = _knockbackLookup,
             StopDistanceLookup = _stopDistanceLookup,
@@ -141,7 +141,7 @@ public partial struct FlowFieldMovementSystem : ISystem
         [ReadOnly] public BufferLookup<FlowFieldCell> CellBufferLookup;
         [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
         [ReadOnly] public ComponentLookup<Avoidance> AvoidanceLookup;
-        [ReadOnly] public ComponentLookup<FinalStats> FinalStatsLookup;
+        [ReadOnly] public ComponentLookup<LiveStats> LiveStatsLookup;
         [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
         [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
         [ReadOnly] public ComponentLookup<StopDistance> StopDistanceLookup;
@@ -280,10 +280,10 @@ public partial struct FlowFieldMovementSystem : ISystem
             if (math.lengthsq(moveDirection) < 0.0001f)
                 moveDirection = fallbackDirection;
 
-            // Move speed comes from FinalStats (CoreStats + active slow, folded in by ActiveEffectsSystem).
+            // Move speed comes from LiveStats (CoreStats + active slow, folded in by ActiveEffectsSystem).
             float speed = 3f;
-            if (FinalStatsLookup.HasComponent(entity))
-                speed = FinalStatsLookup[entity].MoveSpeed;
+            if (LiveStatsLookup.HasComponent(entity))
+                speed = LiveStatsLookup[entity].MoveSpeed;
 
             // Accelerate a persistent velocity toward the desired one rather than snapping to it. This
             // low-passes the tick-to-tick jitter of the avoidance term, keeping both path and facing stable.

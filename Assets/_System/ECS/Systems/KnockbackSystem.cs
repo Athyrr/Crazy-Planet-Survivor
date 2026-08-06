@@ -5,12 +5,15 @@ using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
 
+// Runs AFTER ActiveEffectsSystem (which composes LiveStats) so this system's MoveSpeed=0 override
+// is not overwritten again this frame, and BEFORE EntitiesMovementSystem which consumes MoveSpeed.
 [UpdateInGroup(typeof(SimulationSystemGroup))]
+[UpdateAfter(typeof(ActiveEffectsSystem))]
 [UpdateBefore(typeof(EntitiesMovementSystem))]
 [BurstCompile]
 public partial struct KnockbackSystem : ISystem
 {
-    private ComponentLookup<CoreStats> _coreStatsLookup;
+    private ComponentLookup<LiveStats> _liveStatsLookup;
 
     public void OnCreate(ref SystemState state)
     {
@@ -19,7 +22,7 @@ public partial struct KnockbackSystem : ISystem
         state.RequireForUpdate<ActiveEffectsConfig>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
 
-        _coreStatsLookup = state.GetComponentLookup<CoreStats>(isReadOnly: true);
+        _liveStatsLookup = state.GetComponentLookup<LiveStats>(isReadOnly: true);
     }
 
     [BurstCompile]
@@ -35,7 +38,7 @@ public partial struct KnockbackSystem : ISystem
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
         var forceCurve = SystemAPI.GetSingleton<ActiveEffectsConfig>().KnockbackForceCurve;
 
-        _coreStatsLookup.Update(ref state);
+        _liveStatsLookup.Update(ref state);
 
         new ProcessKnockbackJob
         {
@@ -43,7 +46,7 @@ public partial struct KnockbackSystem : ISystem
             PlanetPos = planetPos,
             CollisionWorld = collisionWorld,
             ForceCurve = forceCurve,
-            CoreStatsLookup = _coreStatsLookup,
+            LiveStatsLookup = _liveStatsLookup,
             ECB = ecb.AsParallelWriter()
         }.ScheduleParallel();
     }
@@ -55,7 +58,7 @@ public partial struct KnockbackSystem : ISystem
         public float3 PlanetPos;
         [ReadOnly] public CollisionWorld CollisionWorld;
         [ReadOnly] public BlobAssetReference<KnockbackCurveBlob> ForceCurve;
-        [ReadOnly] public ComponentLookup<CoreStats> CoreStatsLookup;
+        [ReadOnly] public ComponentLookup<LiveStats> LiveStatsLookup;
         public EntityCommandBuffer.ParallelWriter ECB;
 
         // Vertical band the ground raycast probes above/below the desired position when re-snapping.
@@ -71,7 +74,7 @@ public partial struct KnockbackSystem : ISystem
             Entity entity,
             ref LocalTransform transform,
             ref ActiveKnockback knockback,
-            ref FinalStats finalStats)
+            ref LiveStats liveStats)
         {
             knockback.DurationLeft -= DeltaTime;
 
@@ -83,8 +86,9 @@ public partial struct KnockbackSystem : ISystem
 
             // Knockback resistance scales the whole push; at >= 1 the entity is fully immune, so the
             // effect is disabled outright rather than left as a near-zero drift.
-            float kbResist = CoreStatsLookup.HasComponent(entity)
-                ? CoreStatsLookup[entity].KnockbackResistance
+            // Read from LiveStats so temporary KBResist buffs/debuffs are visible.
+            float kbResist = LiveStatsLookup.HasComponent(entity)
+                ? LiveStatsLookup[entity].KBResist
                 : 0f;
             if (kbResist >= 1f)
             {
@@ -133,8 +137,9 @@ public partial struct KnockbackSystem : ISystem
             else
                 transform.Position = desiredPos;
 
-            // Set speed to 0 to prevent movement
-            finalStats.MoveSpeed = 0;
+            // Set speed to 0 to prevent movement (safe because this system runs after
+            // ActiveEffectsSystem — LiveStats has been composed for this frame).
+            liveStats.MoveSpeed = 0;
         }
 
         private static float EvaluateCurve(BlobAssetReference<KnockbackCurveBlob> curve, float t)

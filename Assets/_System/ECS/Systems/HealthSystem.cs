@@ -25,6 +25,7 @@ public partial struct HealthSystem : ISystem
     private ComponentLookup<ExplodeOnDeath> _explodeOnDeathLookup;
     private ComponentLookup<SoundPlayerTag> _soundPlayaerTagLookup;
     private ComponentLookup<CoreStats> _coreStatsLookup;
+    private ComponentLookup<LiveStats> _liveStatsLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -40,6 +41,7 @@ public partial struct HealthSystem : ISystem
         _explodeOnDeathLookup = state.GetComponentLookup<ExplodeOnDeath>(true);
         _soundPlayaerTagLookup = state.GetComponentLookup<SoundPlayerTag>(false);
         _coreStatsLookup = state.GetComponentLookup<CoreStats>(true);
+        _liveStatsLookup = state.GetComponentLookup<LiveStats>(true);
     }
 
     [BurstCompile]
@@ -67,6 +69,7 @@ public partial struct HealthSystem : ISystem
 
         _soundPlayaerTagLookup.Update(ref state);
         _coreStatsLookup.Update(ref state);
+        _liveStatsLookup.Update(ref state);
 
         var soundPlayerEntity = SystemAPI.TryGetSingletonEntity<SoundPlayerTag>(out var spe)
             ? spe
@@ -94,6 +97,7 @@ public partial struct HealthSystem : ISystem
             SoundPlayerTagLookup = _soundPlayaerTagLookup,
             SoundPlayerEntity = soundPlayerEntity,
             CoreStatsLookup = _coreStatsLookup,
+            LiveStatsLookup = _liveStatsLookup,
             PlayerArmorPen = playerArmorPen,
             MinDamagePerHit = scaleCfg.MinDamagePerHit,
         };
@@ -133,6 +137,7 @@ public partial struct HealthSystem : ISystem
         public Entity SoundPlayerEntity;
 
         [ReadOnly] public ComponentLookup<CoreStats> CoreStatsLookup;
+        [ReadOnly] public ComponentLookup<LiveStats> LiveStatsLookup;
 
         // Flat armor neutralized this frame against the player (run-difficulty scaled).
         public float PlayerArmorPen;
@@ -165,14 +170,14 @@ public partial struct HealthSystem : ISystem
 
             var isPlayer = PlayerLookup.HasComponent(entity);
 
-            // Flat armor mitigation. Total armor = BaseArmor + Armor; for the player it is eroded
-            // by the run-difficulty armor penetration so a fixed armor value decays over the run.
+            // Flat armor mitigation from LiveStats (composed = base + permanent + temporary buffs);
+            // for the player it is eroded by the run-difficulty armor penetration so a fixed value
+            // decays over the run.
             float effectiveArmor = 0f;
-            if (CoreStatsLookup.TryGetComponent(entity, out var coreStats))
+            if (LiveStatsLookup.TryGetComponent(entity, out var liveStats))
             {
-                float totalArmor = coreStats.BaseArmor + coreStats.Armor;
                 float pen = isPlayer ? PlayerArmorPen : 0f;
-                effectiveArmor = math.max(0f, totalArmor - pen);
+                effectiveArmor = math.max(0f, liveStats.Armor - pen);
             }
 
             float totalDamage = 0;

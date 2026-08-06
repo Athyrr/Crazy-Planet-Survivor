@@ -121,7 +121,10 @@ public class PlayerAuthoring : MonoBehaviour
                 DashCooldown = baseStats.DashCooldown,
             });
 
-            AddComponent<FinalStats>(entity);
+            AddComponent<LiveStats>(entity);
+            // Temporary stat buffs (§9.2). Producers append entries; CharacterStatBuffSystem ticks
+            // Remaining and drops expired; the sum flows into LiveStats (tick) and SpellStatsCalc (on-demand).
+            AddBuffer<CharacterStatBuff>(entity);
 
             // Spells buffer
             AddBuffer<SpellStatUpgrade>(entity);

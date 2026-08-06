@@ -92,7 +92,7 @@ public partial struct DashSystem : ISystem
             Entity entity,
             ref LocalTransform transform,
             ref DashState dashState,
-            ref FinalStats finalStats,
+            ref LiveStats finalStats,
             in DashSettings settings,
             in CoreStats coreStats,
             EnabledRefRW<DashRequest> requestEnabled,

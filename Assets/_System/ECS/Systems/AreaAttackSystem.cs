@@ -28,7 +28,7 @@ public partial struct AreaAttackSystem : ISystem
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
     private ComponentLookup<LocalToWorld> _ltwLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
-    private ComponentLookup<FinalStats> _finalStatsLookup;
+    private ComponentLookup<LiveStats> _liveStatsLookup;
     private ComponentLookup<ActiveKnockback> _knockbackLookup;
     private ComponentLookup<SlowEffect> _slowLookup;
     private ComponentLookup<StunEffect> _stunLookup;
@@ -52,7 +52,7 @@ public partial struct AreaAttackSystem : ISystem
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
         _ltwLookup = state.GetComponentLookup<LocalToWorld>(true);
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
-        _finalStatsLookup = state.GetComponentLookup<FinalStats>(true);
+        _liveStatsLookup = state.GetComponentLookup<LiveStats>(true);
         _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(true);
         _slowLookup = state.GetComponentLookup<SlowEffect>(true);
         _stunLookup = state.GetComponentLookup<StunEffect>(true);
@@ -95,7 +95,7 @@ public partial struct AreaAttackSystem : ISystem
         _damageBufferLookup.Update(ref state);
         _ltwLookup.Update(ref state);
         _destroyFlagLookup.Update(ref state);
-        _finalStatsLookup.Update(ref state);
+        _liveStatsLookup.Update(ref state);
         _knockbackLookup.Update(ref state);
         _slowLookup.Update(ref state);
         _stunLookup.Update(ref state);
@@ -138,7 +138,7 @@ public partial struct AreaAttackSystem : ISystem
             DeltaTime = deltaTime,
             CollisionWorld = collisionWorld,
             EffectsConfig = effectsConfig,
-            FinalStatsLookup = _finalStatsLookup,
+            LiveStatsLookup = _liveStatsLookup,
             LtwLookup = _ltwLookup,
             DestroyFlagLookup = _destroyFlagLookup,
             DamageBufferLookup = _damageBufferLookup,
@@ -433,7 +433,7 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public CollisionWorld CollisionWorld;
         [ReadOnly] public ActiveEffectsConfig EffectsConfig;
 
-        [ReadOnly] public ComponentLookup<FinalStats> FinalStatsLookup;
+        [ReadOnly] public ComponentLookup<LiveStats> LiveStatsLookup;
         [ReadOnly] public ComponentLookup<LocalToWorld> LtwLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
@@ -453,7 +453,7 @@ public partial struct AreaAttackSystem : ISystem
         {
             if (area.Cadence != EZoneCadence.OverTime)
                 return;
-            if (!FinalStatsLookup.HasComponent(area.Caster))
+            if (!LiveStatsLookup.HasComponent(area.Caster))
                 return;
 
             float3 zonePos = math.transform(zoneTransform.Value, area.Offset); // local Offset → world (matches visual)

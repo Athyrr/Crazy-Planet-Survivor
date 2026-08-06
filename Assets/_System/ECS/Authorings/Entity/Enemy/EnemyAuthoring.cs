@@ -108,7 +108,9 @@ public class EnemyAuthoring : MonoBehaviour
                 DashCooldown = authoring.BaseStats.DashCooldown,
             });
 
-            AddComponent(entity, new FinalStats());
+            AddComponent(entity, new LiveStats());
+            // Temporary stat buffs on enemies (debuffs from player spells, or future ally buffs).
+            AddBuffer<CharacterStatBuff>(entity);
 
             // todo virer ça et utiliser lookup de spell modifier dans spell calculation system
             AddBuffer<SpellStatUpgrade>(entity);
