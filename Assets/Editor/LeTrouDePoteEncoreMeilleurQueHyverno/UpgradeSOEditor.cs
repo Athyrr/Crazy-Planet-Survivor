@@ -8,7 +8,7 @@ public class UpgradeSOEditor : UnityEditor.Editor
     {
         serializedObject.Update();
 
-        bool isStatUpgrade = target is StatUpgradeSO;
+        bool isStatUpgrade = target is CharacterStatUpgradeSO;
 
         // Draw properties one by one to inject the help box
         SerializedProperty prop = serializedObject.GetIterator();
@@ -86,7 +86,7 @@ public class UpgradeSOEditor : UnityEditor.Editor
 }
 
 /// <summary>
-/// One-time migration from the legacy single-stat <see cref="StatUpgradeSO"/> format
+/// One-time migration from the legacy single-stat <see cref="CharacterStatUpgradeSO"/> format
 /// (CharacterStat + base Value/ModifierStrategy) to the multi-modifier <c>Modifiers[]</c> list.
 /// </summary>
 public static class StatUpgradeMigration
@@ -94,13 +94,13 @@ public static class StatUpgradeMigration
     [MenuItem("Survivor/Upgrades/Migrate Stat Upgrades to Modifiers")]
     public static void MigrateAll()
     {
-        string[] guids = AssetDatabase.FindAssets("t:StatUpgradeSO");
+        string[] guids = AssetDatabase.FindAssets("t:CharacterStatUpgradeSO");
         int migrated = 0;
 
         foreach (string guid in guids)
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
-            var so = AssetDatabase.LoadAssetAtPath<StatUpgradeSO>(path);
+            var so = AssetDatabase.LoadAssetAtPath<CharacterStatUpgradeSO>(path);
             if (so == null)
                 continue;
 

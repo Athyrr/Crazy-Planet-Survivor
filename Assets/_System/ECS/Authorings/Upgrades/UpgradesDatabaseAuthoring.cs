@@ -38,7 +38,7 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
                 blob.UpgradeType = upgradeSO.UpgradeType;
 
                 // Stat Player (rarity + one or more bonus/malus modifiers)
-                if (upgradeSO is StatUpgradeSO statUpgrade)
+                if (upgradeSO is CharacterStatUpgradeSO statUpgrade)
                 {
                     blob.Rarity = statUpgrade.Rarity;
                     blob.RequiredSpellTag = statUpgrade.RequiredSpellTag;

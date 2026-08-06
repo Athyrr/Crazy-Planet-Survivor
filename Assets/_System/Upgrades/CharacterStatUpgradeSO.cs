@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 
 /// <summary>
-/// A single stat modification (bonus or malus) applied by a <see cref="StatUpgradeSO"/>.
+/// A single stat modification (bonus or malus) applied by a <see cref="CharacterStatUpgradeSO"/>.
 /// A stat upgrade can bundle several of these (e.g. +Damage but -MoveSpeed).
 /// </summary>
 [System.Serializable]
@@ -21,9 +21,12 @@ public struct StatModifier
 /// <summary>
 /// A run upgrade that modifies one or more player character stats (Damage, Speed, MaxHealth...).
 /// Carries a <see cref="ERarity"/> tier that drives drop chance and crystal visuals.
+/// <br/><br/>
+/// This is the <b>permanent</b> character-stat upgrade (level-up, amulet). For <i>temporary</i>
+/// stat changes (buff / debuff), use <c>CharacterStatBuff</c> (§9.2 of SPELL_TAXONOMY).
 /// </summary>
-[CreateAssetMenu(fileName = "NewStatUpgrade", menuName = "Survivor/Upgrades/Stat Upgrade")]
-public class StatUpgradeSO : UpgradeSO
+[CreateAssetMenu(fileName = "NewCharacterStatUpgrade", menuName = "Survivor/Upgrades/Character Stat Upgrade")]
+public class CharacterStatUpgradeSO : UpgradeSO
 {
     [Header("Rarity")]
     [Tooltip("Rarity tier. Rarer upgrades drop less often (weighted by the Luck stat).")]

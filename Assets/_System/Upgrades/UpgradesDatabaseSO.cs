@@ -8,7 +8,7 @@ public enum EUpgradeDatabasePopulateMode
     /// <summary>Curated pool (e.g. per-character spell pools). The Populate button does nothing.</summary>
     Manual,
 
-    /// <summary>Auto-fill with every <see cref="StatUpgradeSO"/> in the project.</summary>
+    /// <summary>Auto-fill with every <see cref="CharacterStatUpgradeSO"/> in the project.</summary>
     AllStatUpgrades,
 
     /// <summary>Auto-fill with every <see cref="SpellUpgradeSO"/> in the project.</summary>
@@ -33,7 +33,7 @@ public class UpgradesDatabaseSO : ScriptableObject
         {
             case EUpgradeDatabasePopulateMode.AllStatUpgrades:
                 Upgrades = System.Array.ConvertAll(
-                    DatabaseAutoPopulateUtils.FindAllAssets<StatUpgradeSO>(), u => (UpgradeSO)u);
+                    DatabaseAutoPopulateUtils.FindAllAssets<CharacterStatUpgradeSO>(), u => (UpgradeSO)u);
                 break;
 
             case EUpgradeDatabasePopulateMode.AllSpellUpgrades:

@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Base class for all run upgrades.
-/// Concrete upgrades are either <see cref="StatUpgradeSO"/> (player stat upgrades)
+/// Concrete upgrades are either <see cref="CharacterStatUpgradeSO"/> (player stat upgrades)
 /// or <see cref="SpellUpgradeSO"/> (spell unlocks / spell effect upgrades).
 /// </summary>
 public abstract class UpgradeSO : ScriptableObject

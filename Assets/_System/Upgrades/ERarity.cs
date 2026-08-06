@@ -1,6 +1,6 @@
 /// <summary>
 /// Rarity tier of a stat upgrade. Order matters: higher value = rarer.
-/// Only <see cref="StatUpgradeSO"/> upgrades carry a rarity; spell upgrades/unlocks do not.
+/// Only <see cref="CharacterStatUpgradeSO"/> upgrades carry a rarity; spell upgrades/unlocks do not.
 /// Drop weights, crystal materials, labels and colors are configured per tier in CpRaritySettings.
 /// </summary>
 public enum ERarity
