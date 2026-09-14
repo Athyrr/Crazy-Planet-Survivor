@@ -13,16 +13,12 @@ using Unity.Transforms;
 [BurstCompile]
 public partial struct KnockbackSystem : ISystem
 {
-    private ComponentLookup<LiveStats> _liveStatsLookup;
-
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<PlanetData>();
         state.RequireForUpdate<ActiveEffectsConfig>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
-
-        _liveStatsLookup = state.GetComponentLookup<LiveStats>(isReadOnly: true);
     }
 
     [BurstCompile]
@@ -38,15 +34,12 @@ public partial struct KnockbackSystem : ISystem
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
         var forceCurve = SystemAPI.GetSingleton<ActiveEffectsConfig>().KnockbackForceCurve;
 
-        _liveStatsLookup.Update(ref state);
-
         new ProcessKnockbackJob
         {
             DeltaTime = deltaTime,
             PlanetPos = planetPos,
             CollisionWorld = collisionWorld,
             ForceCurve = forceCurve,
-            LiveStatsLookup = _liveStatsLookup,
             ECB = ecb.AsParallelWriter()
         }.ScheduleParallel();
     }
@@ -58,7 +51,6 @@ public partial struct KnockbackSystem : ISystem
         public float3 PlanetPos;
         [ReadOnly] public CollisionWorld CollisionWorld;
         [ReadOnly] public BlobAssetReference<KnockbackCurveBlob> ForceCurve;
-        [ReadOnly] public ComponentLookup<LiveStats> LiveStatsLookup;
         public EntityCommandBuffer.ParallelWriter ECB;
 
         // Vertical band the ground raycast probes above/below the desired position when re-snapping.
@@ -86,10 +78,9 @@ public partial struct KnockbackSystem : ISystem
 
             // Knockback resistance scales the whole push; at >= 1 the entity is fully immune, so the
             // effect is disabled outright rather than left as a near-zero drift.
-            // Read from LiveStats so temporary KBResist buffs/debuffs are visible.
-            float kbResist = LiveStatsLookup.HasComponent(entity)
-                ? LiveStatsLookup[entity].KBResist
-                : 0f;
+            // Read KBResist straight off the iterated LiveStats (temporary buffs/debuffs are visible) —
+            // a ComponentLookup<LiveStats> here would alias the RW chunk handle for the same type.
+            float kbResist = liveStats.KBResist;
             if (kbResist >= 1f)
             {
                 ECB.SetComponentEnabled<ActiveKnockback>(chunkIndex, entity, false);
