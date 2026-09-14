@@ -14,11 +14,11 @@ using Unity.Transforms;
 ///              (Expand/Sweep). Dedup via <see cref="HitEntityMemory"/>. (VoidSlash, ShockStrike…)
 ///   OverTime — re-hit tracked targets every TickRate; enter/exit via <see cref="TickDamageTarget"/>. (FrozenZone…)
 ///
-/// Shape filtering (<see cref="IsInShape"/>), status-effect application (<see cref="ApplyZoneEffects"/>),
-/// life steal and damage tracking are shared between the two cadences.
-///
-/// NOTE (behavior-preserving merge): crit is rolled but the multiplier is NOT applied on the Burst
-/// path, and not rolled at all on OverTime — this is the pre-merge behavior, fixed later via ResolveHit.
+/// Shape filtering (<see cref="IsInShape"/>) is done here; the *consequences* of a hit (crit roll +
+/// multiplier, damage buffer, tag effects, life steal, damage tracking) are delegated to the shared
+/// <see cref="ResolveHit"/> helper — the same one the projectile-contact path uses. Both cadences build
+/// a <see cref="HitAction"/> and call it, so crit is applied uniformly (this fixes the former "crit
+/// gruyère": the Burst path applied a cosmetic crit and the OverTime tick never rolled at all).
 /// </summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [BurstCompile]
@@ -107,6 +107,22 @@ public partial struct AreaAttackSystem : ISystem
         float deltaTime = SystemAPI.Time.DeltaTime;
         uint seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1;
 
+        // Shared hit-resolution context — the effect config, effect lookups, life-steal data and the
+        // damage-tracking queue that ResolveHit needs. Built once, copied into both cadence jobs.
+        var resolveContext = new ResolveHitContext
+        {
+            EffectsConfig = effectsConfig,
+            LifeStealConversion = lifeStealConversion,
+            PlayerEntity = playerEntity,
+            SlowLookup = _slowLookup,
+            StunLookup = _stunLookup,
+            BurnLookup = _burnLookup,
+            KnockbackLookup = _knockbackLookup,
+            LtwLookup = _ltwLookup,
+            ActiveSpellLookup = _activeSpellLookup,
+            DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
+        };
+
         // Burst zones — hit-once over an active window (matches entities carrying HitEntityMemory).
         var burstJob = new BurstZoneJob
         {
@@ -114,20 +130,11 @@ public partial struct AreaAttackSystem : ISystem
             DeltaTime = deltaTime,
             CollisionWorld = collisionWorld,
             PlayerPosition = playerPosition,
-            EffectsConfig = effectsConfig,
             DestructibleLookup = _destructibleLookup,
             DamageBufferLookup = _damageBufferLookup,
-            LtwLookup = _ltwLookup,
-            KnockbackLookup = _knockbackLookup,
-            SlowLookup = _slowLookup,
-            StunLookup = _stunLookup,
-            BurnLookup = _burnLookup,
             SpellSourceLookup = _spellSourceLookup,
             BossLookup = _bossLookup,
-            DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
-            ActiveSpellLookup = _activeSpellLookup,
-            LifeStealConversion = lifeStealConversion,
-            PlayerEntity = playerEntity,
+            Resolve = resolveContext,
         };
         JobHandle burstHandle = burstJob.ScheduleParallel(state.Dependency);
 
@@ -137,19 +144,11 @@ public partial struct AreaAttackSystem : ISystem
             ECB = ecbOverTime.AsParallelWriter(),
             DeltaTime = deltaTime,
             CollisionWorld = collisionWorld,
-            EffectsConfig = effectsConfig,
             LiveStatsLookup = _liveStatsLookup,
             LtwLookup = _ltwLookup,
             DestroyFlagLookup = _destroyFlagLookup,
             DamageBufferLookup = _damageBufferLookup,
-            KnockbackLookup = _knockbackLookup,
-            SlowLookup = _slowLookup,
-            StunLookup = _stunLookup,
-            BurnLookup = _burnLookup,
-            DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
-            ActiveSpellLookup = _activeSpellLookup,
-            LifeStealConversion = lifeStealConversion,
-            PlayerEntity = playerEntity,
+            Resolve = resolveContext,
             Seed = seed,
         };
         JobHandle overTimeHandle = overTimeJob.ScheduleParallel(burstHandle);
@@ -197,77 +196,6 @@ public partial struct AreaAttackSystem : ISystem
         }
     }
 
-    /// <summary>Applies/refreshes the status effects encoded in the tags to a single target.
-    /// Reuses baked (disabled) effect components when present, otherwise adds them.
-    /// Knockback pushes the target away from <paramref name="pushOrigin"/>.</summary>
-    private static void ApplyZoneEffects(EntityCommandBuffer.ParallelWriter ecb, int chunkIndex, Entity target,
-        float3 pushOrigin, ESpellTag tags, float burnBaseDamage, in ActiveEffectsConfig cfg,
-        in ComponentLookup<SlowEffect> slowLk, in ComponentLookup<StunEffect> stunLk,
-        in ComponentLookup<BurnEffect> burnLk, in ComponentLookup<ActiveKnockback> kbLk,
-        in ComponentLookup<LocalToWorld> ltwLk)
-    {
-        if ((tags & ESpellTag.Slow) != 0)
-        {
-            var slow = new SlowEffect { SpeedReductionMultiplier = cfg.BaseSlowMultiplier, DurationLeft = cfg.SlowDuration };
-            if (slowLk.HasComponent(target))
-            {
-                ecb.SetComponent(chunkIndex, target, slow);
-                ecb.SetComponentEnabled<SlowEffect>(chunkIndex, target, true);
-            }
-            else ecb.AddComponent(chunkIndex, target, slow);
-        }
-
-        if ((tags & ESpellTag.Stun) != 0)
-        {
-            var stun = new StunEffect { DurationLeft = cfg.StunDuration };
-            if (stunLk.HasComponent(target))
-            {
-                ecb.SetComponent(chunkIndex, target, stun);
-                ecb.SetComponentEnabled<StunEffect>(chunkIndex, target, true);
-            }
-            else ecb.AddComponent(chunkIndex, target, stun);
-        }
-
-        if ((tags & ESpellTag.Burn) != 0)
-        {
-            var burn = new BurnEffect
-            {
-                DamageOnTick = cfg.BurnDamageRatio * burnBaseDamage,
-                TickRate = cfg.BurnTickRate,
-                TickTimer = 0f,
-                RemainingTime = cfg.BurnDuration
-            };
-            if (burnLk.HasComponent(target))
-            {
-                ecb.SetComponent(chunkIndex, target, burn);
-                ecb.SetComponentEnabled<BurnEffect>(chunkIndex, target, true);
-            }
-            else ecb.AddComponent(chunkIndex, target, burn);
-        }
-
-        if ((tags & ESpellTag.Knockback) != 0 && ltwLk.HasComponent(target))
-        {
-            float3 targetPos = ltwLk[target].Position;
-            float3 pushDir = targetPos - pushOrigin;
-            float d2 = math.lengthsq(pushDir);
-            pushDir = d2 > 0.001f ? math.normalize(pushDir) : new float3(0f, 0f, 1f);
-
-            var kb = new ActiveKnockback
-            {
-                Direction = pushDir,
-                InitialForce = cfg.KnockbackForce,
-                DurationLeft = cfg.KnockbackDuration,
-                MaxDuration = cfg.KnockbackDuration
-            };
-            if (kbLk.HasComponent(target))
-            {
-                ecb.SetComponent(chunkIndex, target, kb);
-                ecb.SetComponentEnabled<ActiveKnockback>(chunkIndex, target, true);
-            }
-            else ecb.AddComponent(chunkIndex, target, kb);
-        }
-    }
-
     private static bool IsInHitMemory(in DynamicBuffer<HitEntityMemory> hitMemory, Entity hitEntity)
     {
         for (int i = 0; i < hitMemory.Length; i++)
@@ -295,21 +223,13 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public CollisionWorld CollisionWorld;
         [ReadOnly] public float3 PlayerPosition;
-        [ReadOnly] public ActiveEffectsConfig EffectsConfig;
 
         [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
-        [ReadOnly] public ComponentLookup<LocalToWorld> LtwLookup;
-        [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
-        [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
-        [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
-        [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
         [ReadOnly] public ComponentLookup<Boss> BossLookup;
-        public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
-        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        public float LifeStealConversion;
-        public Entity PlayerEntity;
+
+        public ResolveHitContext Resolve;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity,
             ref AreaAttack area, in LocalToWorld localToWorld, ref DynamicBuffer<HitEntityMemory> hitMemory)
@@ -359,6 +279,14 @@ public partial struct AreaAttackSystem : ISystem
             else
                 shakeSource = EDamageShakeSource.Enemy;
 
+            int dbIndex = -1;
+            Entity caster = Entity.Null;
+            if (SpellSourceLookup.TryGetComponent(entity, out var spellSource))
+            {
+                dbIndex = spellSource.DatabaseIndex;
+                caster = spellSource.CasterEntity;
+            }
+
             for (int i = 0; i < hits.Length; i++)
             {
                 Entity hitEntity = hits[i].Entity;
@@ -378,44 +306,17 @@ public partial struct AreaAttackSystem : ISystem
                 if (!inShape)
                     continue;
 
-                bool isCrit = random.NextFloat(0f, 1f) < area.CritChance;
-                int damageDealt = (int)area.Damage;
-
-                ECB.AppendToBuffer(chunkIndex, hitEntity, new DamageBufferElement
+                // Crit is rolled AND its multiplier applied inside ResolveHit — the Burst path used to
+                // write a cosmetic IsCritical while dealing base damage (half of the "crit gruyère").
+                var action = HitAction.MakeDamage(area.Damage, area.CritChance, area.CritMultiplier, area.Tags);
+                var source = new HitSource
                 {
-                    Damage = damageDealt,
-                    Tag = area.Tags,
-                    IsCritical = isCrit,
-                    ShakeSource = shakeSource,
-                });
-
-                if (SpellSourceLookup.TryGetComponent(entity, out var spellSource))
-                {
-                    DamageEventsWriter.Enqueue(new SpellDamageEvent
-                    {
-                        DatabaseIndex = spellSource.DatabaseIndex,
-                        DamageAmount = damageDealt,
-                    });
-
-                    if (spellSource.CasterEntity == PlayerEntity && LifeStealConversion > 0f
-                        && ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var playerSpells))
-                    {
-                        for (int li = 0; li < playerSpells.Length; li++)
-                        {
-                            if (playerSpells[li].DatabaseIndex != spellSource.DatabaseIndex)
-                                continue;
-
-                            float lsChance = playerSpells[li].FinalLifeStealChance;
-                            if (lsChance > 0f && random.NextFloat() < lsChance)
-                                ECB.AppendToBuffer(chunkIndex, PlayerEntity,
-                                    new LifeStealProcBufferElement { Heal = LifeStealConversion * damageDealt });
-                            break;
-                        }
-                    }
-                }
-
-                ApplyZoneEffects(ECB, chunkIndex, hitEntity, PlayerPosition, area.Tags, area.Damage, EffectsConfig,
-                    SlowLookup, StunLookup, BurnLookup, KnockbackLookup, LtwLookup);
+                    Caster = caster,
+                    DatabaseIndex = dbIndex,
+                    PushOrigin = PlayerPosition,
+                    Shake = shakeSource,
+                };
+                ResolveHit.Apply(in Resolve, ECB, chunkIndex, hitEntity, in action, in source, ref random);
 
                 hitMemory.Add(new HitEntityMemory { HitEntity = hitEntity, LastHitTime = 0f });
             }
@@ -431,20 +332,13 @@ public partial struct AreaAttackSystem : ISystem
         public EntityCommandBuffer.ParallelWriter ECB;
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public CollisionWorld CollisionWorld;
-        [ReadOnly] public ActiveEffectsConfig EffectsConfig;
 
         [ReadOnly] public ComponentLookup<LiveStats> LiveStatsLookup;
         [ReadOnly] public ComponentLookup<LocalToWorld> LtwLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
-        [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
-        [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
-        [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
-        [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
-        public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
-        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        public float LifeStealConversion;
-        public Entity PlayerEntity;
+
+        public ResolveHitContext Resolve;
         public uint Seed;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity zoneEntity,
@@ -532,47 +426,22 @@ public partial struct AreaAttackSystem : ISystem
 
             hits.Dispose();
 
-            float damage = area.Damage;
-
             for (int i = 0; i < targets.Length; i++)
             {
                 Entity target = targets[i].Value;
 
-                ECB.AppendToBuffer(chunkIndex, target, new DamageBufferElement
+                // OverTime ticks now crit too — the tick used to deal flat damage with no roll at all
+                // (the other half of the "crit gruyère").
+                var action = HitAction.MakeDamage(area.Damage, area.CritChance, area.CritMultiplier, area.Tags);
+                var source = new HitSource
                 {
-                    Damage = (int)damage,
-                    Tag = area.Tags,
-                    ShakeSource = EDamageShakeSource.DoT,
-                });
-
-                ApplyZoneEffects(ECB, chunkIndex, target, zonePos, area.Tags, damage, EffectsConfig,
-                    SlowLookup, StunLookup, BurnLookup, KnockbackLookup, LtwLookup);
-
-                DamageEventsWriter.Enqueue(new SpellDamageEvent
-                {
+                    Caster = spellSource.CasterEntity,
                     DatabaseIndex = spellSource.DatabaseIndex,
-                    DamageAmount = (int)damage,
-                });
-
-                if (spellSource.CasterEntity == PlayerEntity && LifeStealConversion > 0f
-                    && ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var playerSpells))
-                {
-                    for (int li = 0; li < playerSpells.Length; li++)
-                    {
-                        if (playerSpells[li].DatabaseIndex != spellSource.DatabaseIndex)
-                            continue;
-
-                        float lsChance = playerSpells[li].FinalLifeStealChance;
-                        if (lsChance > 0f)
-                        {
-                            var lsRand = Random.CreateFromIndex(Seed ^ (uint)(target.Index + 1));
-                            if (lsRand.NextFloat() < lsChance)
-                                ECB.AppendToBuffer(chunkIndex, PlayerEntity,
-                                    new LifeStealProcBufferElement { Heal = LifeStealConversion * damage });
-                        }
-                        break;
-                    }
-                }
+                    PushOrigin = zonePos,
+                    Shake = EDamageShakeSource.DoT,
+                };
+                var rng = Random.CreateFromIndex(Seed ^ (uint)(target.Index + 1));
+                ResolveHit.Apply(in Resolve, ECB, chunkIndex, target, in action, in source, ref rng);
             }
         }
     }

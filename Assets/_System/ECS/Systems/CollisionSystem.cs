@@ -15,6 +15,7 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Destructible> _cpEntityLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
+    private ComponentLookup<LocalToWorld> _ltwLookup;
 
     private ComponentLookup<DamageOnContact> _damageOnContactLookup;
     private ComponentLookup<DestroyOnContact> _destroyOnContactLookup;
@@ -63,6 +64,7 @@ public partial struct CollisionSystem : ISystem
         _playerLookup = state.GetComponentLookup<Player>(true);
         _cpEntityLookup = state.GetComponentLookup<Destructible>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
+        _ltwLookup = state.GetComponentLookup<LocalToWorld>(true);
 
         _damageOnContactLookup = state.GetComponentLookup<DamageOnContact>(true);
         _destroyOnContactLookup = state.GetComponentLookup<DestroyOnContact>(true);
@@ -115,6 +117,7 @@ public partial struct CollisionSystem : ISystem
         _playerLookup.Update(ref state);
         _cpEntityLookup.Update(ref state);
         _transformLookup.Update(ref state);
+        _ltwLookup.Update(ref state);
         _damageOnContactLookup.Update(ref state);
         _destroyOnContactLookup.Update(ref state);
         _invincibleLookup.Update(ref state);
@@ -134,18 +137,35 @@ public partial struct CollisionSystem : ISystem
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
+        // Second command buffer, dedicated to ResolveHit (a parallel writer): keeps its records off the
+        // plain `ecb` used for bounce/pierce/destroy/explosion so the two writer flavors don't mix on one
+        // buffer. Both play back at EndSimulation.
+        var ecbResolve = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        var resolveContext = new ResolveHitContext
+        {
+            EffectsConfig = effectsConfig,
+            LifeStealConversion = lifeStealConversion,
+            PlayerEntity = playerEntity,
+            SlowLookup = _slowLookup,
+            StunLookup = _stunLookup,
+            BurnLookup = _burnLookup,
+            KnockbackLookup = _knockbackLookup,
+            LtwLookup = _ltwLookup,
+            ActiveSpellLookup = _activeSpellBufferLookup,
+            DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
+        };
+
         var triggerCollisionJob = new TriggerCollisionJob
         {
             Seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1,
 
             ECB = ecb,
+            ResolveECB = ecbResolve.AsParallelWriter(),
+            Resolve = resolveContext,
             CurrentTime = SystemAPI.Time.ElapsedTime,
             CollisionWorld = physicsWorld.CollisionWorld,
 
-           PlayerEntity = playerEntity,
-
-            // EffectsConfig = _effectsConfig,
-            EffectsConfig = effectsConfig,
+            PlayerEntity = playerEntity,
 
             PlayerLookup = _playerLookup,
             DestructibleLookup = _cpEntityLookup,
@@ -163,19 +183,11 @@ public partial struct CollisionSystem : ISystem
             DashIFramesLookup = _dashIFramesLookup,
             ExplodeOnContactLookup = _explodeLookup,
 
-            SlowLookup = _slowLookup,
-            StunLookup = _stunLookup,
-            BurnLookup = _burnLookup,
-            KnockbackLookup = _knockbackLookup,
-
             SpellSourceLookup = _subSpellRootLookup,
-            DamageEventsWriter = _damageEventsQueue,
 
             ColliderLookup = _colliderLookup,
             BossLookup = _bossLookup,
             LifetimeLookup = _lifetimeLookup,
-            ActiveSpellLookup = _activeSpellBufferLookup,
-            LifeStealConversion = lifeStealConversion
         };
 
         JobHandle triggerHandle =
@@ -197,13 +209,13 @@ public partial struct CollisionSystem : ISystem
         public uint Seed;
 
         public EntityCommandBuffer ECB;
+        // Dedicated parallel writer for ResolveHit (damage/effects/heal/statmod); see OnUpdate.
+        public EntityCommandBuffer.ParallelWriter ResolveECB;
+        public ResolveHitContext Resolve;
         public double CurrentTime;
         [ReadOnly] public CollisionWorld CollisionWorld;
 
         public Entity PlayerEntity;
-
-
-        [ReadOnly] public ActiveEffectsConfig EffectsConfig;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
@@ -213,10 +225,6 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
         [ReadOnly] public ComponentLookup<DashIFrames> DashIFramesLookup;
 
-        [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
-        [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
-        [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
-
         public BufferLookup<HitEntityMemory> HitMemoryLookup;
 
         [ReadOnly] public ComponentLookup<LocalTransform> LocalTransformLookup;
@@ -224,17 +232,12 @@ public partial struct CollisionSystem : ISystem
         public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
         public ComponentLookup<Bounce> BounceLookup;
         public ComponentLookup<Pierce> PierceLookup;
-        [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
         [ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeOnContactLookup;
 
-        public NativeQueue<SpellDamageEvent> DamageEventsWriter;
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
         [ReadOnly] public ComponentLookup<Boss> BossLookup;
         public ComponentLookup<Lifetime> LifetimeLookup;
-
-        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        public float LifeStealConversion;
 
         private const double MultiHitDelay = 1f; // Delay before allowing another hit if collision stays.
 
@@ -308,143 +311,26 @@ public partial struct CollisionSystem : ISystem
                     {
                         var random = Random.CreateFromIndex((Seed ^ ((uint)entityA.Index * 0x9E3779B1u) ^ ((uint)entityB.Index * 0x85EBCA77u)) | 1u);
 
-                        bool isCrit = random.NextFloat(0f, 1f) <= damageData.TotalCritChance;
-                        float criticalDamagesMultiplier = 1f;
-                        if (isCrit)
-                            criticalDamagesMultiplier = math.max(1.0f, damageData.TotalCritMultiplier);
-
-                        int damageDealt = (int)(damageData.Damage * criticalDamagesMultiplier);
-
-                        ECB.AppendToBuffer(
-                            target,
-                            new DamageBufferElement
-                            {
-                                Damage = damageDealt,
-                                Tag = damageData.Tags,
-                                IsCritical = isCrit,
-                                ShakeSource = ResolveShakeSource(damagerEntity, damageData.Tags),
-                            }
-                        );
-
-                        // Active effects using tags
-
-                        if ((damageData.Tags & ESpellTag.Slow) != 0)
-                        {
-                            var slow = new SlowEffect
-                            {
-                                SpeedReductionMultiplier = EffectsConfig.BaseSlowMultiplier,
-                                DurationLeft = EffectsConfig.SlowDuration
-                            };
-
-                            if (SlowLookup.HasComponent(target))
-                            {
-                                ECB.SetComponent(target, slow);
-                                ECB.SetComponentEnabled<SlowEffect>(target, true);
-                            }
-                            else
-                            {
-                                ECB.AddComponent(target, slow);
-                            }
-                        }
-
-                        if ((damageData.Tags & ESpellTag.Stun) != 0)
-                        {
-                            var stun = new StunEffect
-                            {
-                                DurationLeft = EffectsConfig.StunDuration
-                            };
-
-                            if (StunLookup.HasComponent(target))
-                            {
-                                ECB.SetComponent(target, stun);
-                                ECB.SetComponentEnabled<StunEffect>(target, true);
-                            }
-                            else
-                            {
-                                ECB.AddComponent(target, stun);
-                            }
-                        }
-
-                        if ((damageData.Tags & ESpellTag.Knockback) != 0)
-                        {
-                            // float3 damagerPos = LocalTransformLookup[damagerEntity].Position;
-                            float3 targetPos = LocalTransformLookup[target].Position;
-
-                            // Normalize direction (push the target away from the player)
-                            float3 pushDir = targetPos - LocalTransformLookup[PlayerEntity].Position;
-                            float distSq = math.lengthsq(pushDir);
-
-                            if (distSq > 0.001f)
-                                pushDir = math.normalize(pushDir);
-                            else
-                                pushDir = LocalTransformLookup[damagerEntity].Forward();
-
-
-                            var kbData = new ActiveKnockback
-                            {
-                                Direction = pushDir,
-                                InitialForce = EffectsConfig.KnockbackForce, // ex: 15f
-                                DurationLeft = EffectsConfig.KnockbackDuration, // ex: 0.3f
-                                MaxDuration = EffectsConfig.KnockbackDuration
-                            };
-
-                           if (KnockbackLookup.HasComponent(target))
-                            {
-                                ECB.SetComponent(target, kbData);
-                                ECB.SetComponentEnabled<ActiveKnockback>(target, true);
-                            }
-                            else
-                            {
-                                ECB.AddComponent(target, kbData);
-                            }
-                        }
-
-                        if ((damageData.Tags & ESpellTag.Burn) != 0)
-                        {
-                            var burn = new BurnEffect
-                            {
-                                DamageOnTick = EffectsConfig.BurnDamageRatio * damageData.Damage,
-                                TickRate = EffectsConfig.BurnTickRate,
-                                TickTimer = 0f,
-                                RemainingTime = EffectsConfig.BurnDuration
-                            };
-
-                            if (BurnLookup.HasComponent(target))
-                            {
-                                ECB.SetComponent(target, burn);
-                                ECB.SetComponentEnabled<BurnEffect>(target, true);
-                            }
-                            else
-                            {
-                                ECB.AddComponent(target, burn);
-                            }
-                        }
-
+                        int dbIndex = -1;
+                        Entity caster = Entity.Null;
                         if (SpellSourceLookup.TryGetComponent(damagerEntity, out var spellSource))
                         {
-                            DamageEventsWriter.Enqueue(new SpellDamageEvent
-                            {
-                                DatabaseIndex = spellSource.DatabaseIndex,
-                                DamageAmount = (int)damageDealt
-                            });
-
-                            // Life steal: a player spell hit rolls its FinalLifeStealChance to heal the player.
-                            if (spellSource.CasterEntity == PlayerEntity && LifeStealConversion > 0f
-                                && ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var playerSpells))
-                            {
-                                for (int li = 0; li < playerSpells.Length; li++)
-                                {
-                                    if (playerSpells[li].DatabaseIndex != spellSource.DatabaseIndex)
-                                        continue;
-
-                                    float lsChance = playerSpells[li].FinalLifeStealChance;
-                                    if (lsChance > 0f && random.NextFloat() < lsChance)
-                                        ECB.AppendToBuffer(PlayerEntity,
-                                            new LifeStealProcBufferElement { Heal = LifeStealConversion * damageDealt });
-                                    break;
-                                }
-                            }
+                            dbIndex = spellSource.DatabaseIndex;
+                            caster = spellSource.CasterEntity;
                         }
+
+                        // The whole crit → damage buffer → tag effects → life steal → tracking bundle now
+                        // lives in ResolveHit, shared with the area paths (kills the "crit gruyère").
+                        var action = HitAction.MakeDamage(damageData.Damage, damageData.TotalCritChance,
+                            damageData.TotalCritMultiplier, damageData.Tags);
+                        var hitSource = new HitSource
+                        {
+                            Caster = caster,
+                            DatabaseIndex = dbIndex,
+                            PushOrigin = LocalTransformLookup[PlayerEntity].Position,
+                            Shake = ResolveShakeSource(damagerEntity, damageData.Tags),
+                        };
+                        ResolveHit.Apply(in Resolve, ResolveECB, target.Index, target, in action, in hitSource, ref random);
 
                         // Feedbacks
                         ApplyFeedbacks(target);
