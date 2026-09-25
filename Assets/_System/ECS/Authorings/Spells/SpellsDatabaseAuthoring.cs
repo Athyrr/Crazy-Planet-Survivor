@@ -63,7 +63,11 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
 
                 // Tick effects
                 spellBlob.TickRate = spellSO.TickRate;
-                
+
+                var effectsArray = builder.Allocate(ref spellBlob.Effects, spellSO.Effects?.Length ?? 0);
+                for (int e = 0; e < effectsArray.Length; e++)
+                    effectsArray[e] = spellSO.Effects[e];
+
                 // Children based spells
                 spellBlob.ChildrenSpawnRadius = spellSO.ChildrenSpawnRadius;
                 
