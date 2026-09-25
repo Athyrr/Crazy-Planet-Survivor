@@ -172,7 +172,48 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 var spell = activeSpells[i];
                 ref var baseSpellData = ref blobSpells[spell.DatabaseIndex];
 
-                ESpellTag currentTags = baseSpellData.Tag | spell.AddedTags;
+                // 1) Compose effectiveEffects = base SpellBlob.Effects[] + this spell's upgrade-granted AddedEffects,
+                // deduped by EffectType. Must happen before step 3 below (see this task's "Ordering constraint").
+                var effectiveEffects = new FixedList32Bytes<EffectSpec>();
+                ref var baseEffects = ref baseSpellData.Effects;
+                for (int e = 0; e < baseEffects.Length; e++)
+                    effectiveEffects.Add(baseEffects[e]);
+                for (int e = 0; e < spell.AddedEffects.Length; e++)
+                {
+                    EffectType addedType = spell.AddedEffects[e].Type;
+                    bool alreadyPresent = false;
+                    for (int k = 0; k < effectiveEffects.Length; k++)
+                    {
+                        if (effectiveEffects[k].Type == addedType) { alreadyPresent = true; break; }
+                    }
+                    if (!alreadyPresent)
+                        effectiveEffects.Add(spell.AddedEffects[e]);
+                }
+
+                // 2) Derive Tags' 4 status bits from effectiveEffects — never the other way around. AddedTags is NOT dead
+                // weight after this chantier — verified live, not assumed: Upgrade_Spell_Fireball_Explosive.asset:21 and
+                // Upgrade_Spell_ShockChain_Explosive.asset:21 (both RequiredTags=8192=ESpellTag.Explosive, SpellID set)
+                // still grant a real behavior tag through AddedTags, consumed by SpellCastingSystem.cs's
+                // `forceExplode = (totalTags & ESpellTag.Explosive) != 0` (~line 716) — out of this chantier's scope,
+                // chantier #4. AddedTags' own copy of the 4 STATUS bits (from a status-granting Upgrade_Spell_* asset's
+                // RequiredTags, e.g. Upgrade_Spell_Fireball_Burn.asset:21, still RequiredTags=262144 after Task 20b —
+                // intentionally left in place, not stripped) is masked out here so effectiveEffects stays the single
+                // source of truth for those 4 bits specifically.
+                const ESpellTag StatusBitsMask = ESpellTag.Burn | ESpellTag.Slow | ESpellTag.Stun | ESpellTag.Knockback;
+                ESpellTag derivedStatusBits = ESpellTag.None;
+                for (int e = 0; e < effectiveEffects.Length; e++)
+                {
+                    switch (effectiveEffects[e].Type)
+                    {
+                        case EffectType.Burn:      derivedStatusBits |= ESpellTag.Burn;      break;
+                        case EffectType.Slow:      derivedStatusBits |= ESpellTag.Slow;      break;
+                        case EffectType.Stun:      derivedStatusBits |= ESpellTag.Stun;      break;
+                        case EffectType.Knockback: derivedStatusBits |= ESpellTag.Knockback; break;
+                    }
+                }
+
+                // 3) currentTags is stable now — safe for the RequiredTags-gated SpellStatUpgrade loop below.
+                ESpellTag currentTags = (baseSpellData.Tag & ~StatusBitsMask) | (spell.AddedTags & ~StatusBitsMask) | derivedStatusBits;
 
                 // Multipliers
                 // Total = 1 + Global(Player) + Buff(Player, temp) + Local(Spell)  (all stored as deltas, neutral = 0)
@@ -307,6 +348,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 spell.FinalBurnMagnitudeBonus = burnMagnitudeBonus;
                 spell.FinalSlowMagnitudeBonus = slowMagnitudeBonus;
 
+                spell.FinalEffects = effectiveEffects;
+                spell.FinalTags = currentTags;
+
                 // Save
                 activeSpells[i] = spell;
             }
@@ -372,6 +416,20 @@ public partial struct SpellStatsCalculationSystem : ISystem
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [ReadOnly] public BufferLookup<Child> ChildLookup;
 
+        private static void AppendUniqueEffects(ref FixedList32Bytes<EffectSpec> list, in FixedList32Bytes<EffectSpec> toAdd)
+        {
+            for (int i = 0; i < toAdd.Length; i++)
+            {
+                bool alreadyPresent = false;
+                for (int j = 0; j < list.Length; j++)
+                {
+                    if (list[j].Type == toAdd[i].Type) { alreadyPresent = true; break; }
+                }
+                if (!alreadyPresent)
+                    list.Add(toAdd[i]);
+            }
+        }
+
         private void Execute(
             [ChunkIndexInQuery] int chunkIndex,
             Entity parentEntity,
@@ -436,6 +494,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
                         var childDmg = DamageOnContactLookup[child];
                         childDmg.Damage = activeSpell.FinalDamage;
                         childDmg.Tags |= activeSpell.AddedTags;
+                        AppendUniqueEffects(ref childDmg.EffectsToApply, activeSpell.AddedEffects);
                         ECB.SetComponent(chunkIndex, child, childDmg);
                     }
 
@@ -447,6 +506,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
                         childDmg.RadiusStart = activeSpell.FinalSize * childBaseRadius;
                         childDmg.RadiusEnd = childDmg.RadiusStart;
                         childDmg.Tags |= activeSpell.AddedTags;
+                        AppendUniqueEffects(ref childDmg.EffectsToApply, activeSpell.AddedEffects);
                         ECB.SetComponent(chunkIndex, child, childDmg);
                     }
                 }
