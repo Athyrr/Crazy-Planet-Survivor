@@ -3,55 +3,65 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
-/// <summary>
-/// The shared read-only context every hit resolution needs: the effect config, the effect-component
-/// lookups (read to decide add-vs-refresh), the player's active-spell buffer (life-steal chance by DB
-/// index) and the per-system damage-tracking queue. Built once per <c>OnUpdate</c> and copied into each
-/// job that resolves hits. All lookups are read-only; the only writes go through the caller's ECB.
-/// </summary>
+/// <summary>The shared read-only context every hit resolution needs. All lookups are read-only; the only
+/// writes go through the caller's ECB.</summary>
 public struct ResolveHitContext
 {
-    public ActiveEffectsConfig EffectsConfig;
+    public BlobAssetReference<EffectTypeConfigBlob> EffectConfig;
     public float LifeStealConversion;
     public Entity PlayerEntity;
 
-    [ReadOnly] public ComponentLookup<SlowEffect> SlowLookup;
-    [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
-    [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
-    [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
     [ReadOnly] public ComponentLookup<LocalToWorld> LtwLookup;
+    [ReadOnly] public ComponentLookup<CoreStats> CoreStatsLookup;
     [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
 
     public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
 }
 
-/// <summary>
-/// The single choke point for applying a hit result to a target. Every delivery family (projectile
-/// contact, area Burst, area OverTime) routes here instead of re-implementing crit → damage buffer →
-/// tag effects → life steal → tracking. That duplication is what produced the "crit gruyère" (§11):
-/// the Area path rolled a <i>cosmetic</i> crit (multiplier never applied) and the OverTime tick never
-/// rolled at all. Here crit is <b>always rolled and the multiplier applied in one place</b>.
-///
-/// <para>Not a system — a static helper called from inside Burst jobs. Writes go through the caller's
-/// <see cref="EntityCommandBuffer.ParallelWriter"/> and <paramref name="sortKey"/>; the caller owns the
-/// RNG stream (crit and life-steal draw from it) so seeding stays a call-site concern.</para>
-///
-/// See §10 of <c>SPELL_TAXONOMY.md</c>.
-/// </summary>
+/// <summary>The single choke point for applying a hit result to a target. See §10 of SPELL_TAXONOMY.md for
+/// the original "crit gruyère" history this fixed. As of this chantier, tag-based status-effect application
+/// (ApplyTagEffects) is gone — effects are explicit ApplyEffect actions in the same list as the triggering
+/// Damage action, resolved via ApplyMany.</summary>
 public static class ResolveHit
 {
-    /// <summary>Applies one atomic <see cref="HitAction"/> to <paramref name="target"/>.</summary>
+    /// <summary>Applies one atomic action (no other actions from the same hit in play — used where a hit is
+    /// pure Damage/Heal/ApplyBuff with no accompanying effects).</summary>
     public static void Apply(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
         Entity target, in HitAction action, in HitSource source, ref Random rng)
+    {
+        ApplyOne(in ctx, ecb, sortKey, target, in action, in source, 0f, ref rng);
+    }
+
+    /// <summary>Applies every action from one hit event, in list order. The pre-crit damage of the list's
+    /// Damage action (if any) is threaded into every ApplyEffect action so Burn's magnitude formula
+    /// (Ratio × hitDamage) sees the same pre-crit value the crit roll used.</summary>
+    public static void ApplyMany(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
+        Entity target, in FixedList128Bytes<HitAction> actions, in HitSource source, ref Random rng)
+    {
+        float triggerDamage = 0f;
+        for (int i = 0; i < actions.Length; i++)
+        {
+            if (actions[i].Kind == EHitKind.Damage)
+            {
+                triggerDamage = actions[i].Damage;
+                break;
+            }
+        }
+
+        for (int i = 0; i < actions.Length; i++)
+            ApplyOne(in ctx, ecb, sortKey, target, in actions[i], in source, triggerDamage, ref rng);
+    }
+
+    private static void ApplyOne(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
+        Entity target, in HitAction action, in HitSource source, float triggerDamage, ref Random rng)
     {
         switch (action.Kind)
         {
             case EHitKind.Damage:
-                ApplyDamage(in ctx, ecb, sortKey, target, in action, in source, ref rng);
+                ApplyDamage(in ctx, ecb, sortKey, target, in action, in source, ref rng, allowLifeSteal: true);
                 break;
 
             case EHitKind.Heal:
-                // Producers apply their own carryover before building the action (Health is int, §9.1).
                 ecb.AppendToBuffer(sortKey, target, new HealBufferElement { Amount = (int)action.HealAmount });
                 break;
 
@@ -62,23 +72,26 @@ public static class ResolveHit
                     Value = action.StatValue,
                     Remaining = action.Duration,
                 });
-                // Producer contract (§9.2): trigger the on-demand spell recalc so cached FinalX picks up the delta.
                 ecb.AddComponent<SpellStatsCalculationRequest>(sortKey, target);
+                break;
+
+            case EHitKind.ApplyEffect:
+                ApplyEffect(in ctx, ecb, sortKey, target, action.EffectType, triggerDamage, in source);
                 break;
         }
     }
 
+    /// <summary>Rolls crit, appends the damage, tracks + life-steals. <paramref name="allowLifeSteal"/> is
+    /// false for a Burn tick whose EffectTypeConfig.AllowLifeSteal (+ CoreStats.BurnCanLifeSteal) is off —
+    /// tracking stays unconditional either way (spec: tick tracking is inconditionnel).</summary>
     private static void ApplyDamage(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
-        Entity target, in HitAction action, in HitSource source, ref Random rng)
+        Entity target, in HitAction action, in HitSource source, ref Random rng, bool allowLifeSteal)
     {
-        // ── Crit: rolled AND applied, the one place. (Fixes the gruyère.) ──
         bool isCrit = action.CritChance > 0f && rng.NextFloat(0f, 1f) <= action.CritChance;
         float dmg = action.Damage;
         if (isCrit)
             dmg *= math.max(1f, action.CritMultiplier);
 
-        // int truncation kept here, in the single place — the future "float until display" migration (§11)
-        // lands on this one line instead of four.
         int damageDealt = (int)dmg;
 
         ecb.AppendToBuffer(sortKey, target, new DamageBufferElement
@@ -89,104 +102,115 @@ public static class ResolveHit
             ShakeSource = source.Shake,
         });
 
-        // Burn scales off base (pre-crit) damage, matching the pre-refactor behavior of both paths.
-        ApplyTagEffects(in ctx, ecb, sortKey, target, action.Tags, action.Damage, source.PushOrigin);
+        if (source.DatabaseIndex < 0)
+            return;
 
-        // Damage tracking + player life steal, keyed by the source spell's DB index.
-        if (source.DatabaseIndex >= 0)
+        ctx.DamageEventsWriter.Enqueue(new SpellDamageEvent
         {
-            ctx.DamageEventsWriter.Enqueue(new SpellDamageEvent
-            {
-                DatabaseIndex = source.DatabaseIndex,
-                DamageAmount = damageDealt,
-            });
+            DatabaseIndex = source.DatabaseIndex,
+            DamageAmount = damageDealt,
+        });
 
-            if (source.Caster == ctx.PlayerEntity && ctx.LifeStealConversion > 0f
-                && ctx.ActiveSpellLookup.TryGetBuffer(ctx.PlayerEntity, out var playerSpells))
+        if (allowLifeSteal && source.Caster == ctx.PlayerEntity && ctx.LifeStealConversion > 0f
+            && ctx.ActiveSpellLookup.TryGetBuffer(ctx.PlayerEntity, out var playerSpells))
+        {
+            for (int li = 0; li < playerSpells.Length; li++)
             {
-                for (int li = 0; li < playerSpells.Length; li++)
-                {
-                    if (playerSpells[li].DatabaseIndex != source.DatabaseIndex)
-                        continue;
+                if (playerSpells[li].DatabaseIndex != source.DatabaseIndex)
+                    continue;
 
-                    float lsChance = playerSpells[li].FinalLifeStealChance;
-                    if (lsChance > 0f && rng.NextFloat() < lsChance)
-                        ecb.AppendToBuffer(sortKey, ctx.PlayerEntity,
-                            new LifeStealProcBufferElement { Heal = ctx.LifeStealConversion * damageDealt });
-                    break;
-                }
+                float lsChance = playerSpells[li].FinalLifeStealChance;
+                if (lsChance > 0f && rng.NextFloat() < lsChance)
+                    ecb.AppendToBuffer(sortKey, ctx.PlayerEntity,
+                        new LifeStealProcBufferElement { Heal = ctx.LifeStealConversion * damageDealt });
+                break;
             }
         }
     }
 
-    /// <summary>Applies / refreshes the status effects encoded in <paramref name="tags"/> on one target.
-    /// Reuses a baked (disabled) effect component when present, otherwise adds it. Knockback pushes the
-    /// target away from <paramref name="pushOrigin"/>. (Absorbs the former per-path <c>ApplyZoneEffects</c>
-    /// and the inline copy in <c>CollisionSystem</c>.)</summary>
-    private static void ApplyTagEffects(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
-        Entity target, ESpellTag tags, float burnBaseDamage, float3 pushOrigin)
+    /// <summary>Public overload used by the Burn-tick job (ActiveEffectsSystem), which needs to gate crit
+    /// and life-steal on EffectTypeConfig.AllowCrit/AllowLifeSteal (+ their CoreStats upgrade toggles).</summary>
+    public static void ApplyDamage(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
+        Entity target, in HitAction action, in HitSource source, ref Random rng, bool allowCrit, bool allowLifeSteal)
     {
-        var cfg = ctx.EffectsConfig;
+        var damageAction = action;
+        if (!allowCrit)
+            damageAction.CritChance = 0f;
+        ApplyDamage(in ctx, ecb, sortKey, target, in damageAction, in source, ref rng, allowLifeSteal);
+    }
 
-        if ((tags & ESpellTag.Slow) != 0)
+    /// <summary>Computes magnitude/duration for one effect type (global CoreStats multiplier + per-spell
+    /// ActiveSpell bonus compose additively on top of the EffectTypeConfig base, matching the project's
+    /// existing Damage/Size/Speed composition) and enqueues a StatusEffectApplyRequest — the actual
+    /// refresh-vs-add happens later, off the parallel hot path (see ActiveEffectsSystem.DrainApplyRequestsJob).</summary>
+    private static void ApplyEffect(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
+        Entity target, EffectType type, float triggerDamage, in HitSource source)
+    {
+        ref var entries = ref ctx.EffectConfig.Value.Entries;
+        ref readonly var cfg = ref EffectTypeConfigLookup.Get(ref entries, type);
+
+        float magnitudeMult = 1f;
+        float durationMult = 1f;
+        float magnitudeBonus = 0f;
+
+        if (source.Caster != Entity.Null && ctx.CoreStatsLookup.HasComponent(source.Caster))
         {
-            var slow = new SlowEffect { SpeedReductionMultiplier = cfg.BaseSlowMultiplier, DurationLeft = cfg.SlowDuration };
-            if (ctx.SlowLookup.HasComponent(target))
+            var coreStats = ctx.CoreStatsLookup[source.Caster];
+            switch (type)
             {
-                ecb.SetComponent(sortKey, target, slow);
-                ecb.SetComponentEnabled<SlowEffect>(sortKey, target, true);
+                case EffectType.Burn:
+                    magnitudeMult += coreStats.GlobalBurnDamageMultiplier;
+                    durationMult += coreStats.GlobalBurnDurationMultiplier;
+                    break;
+                case EffectType.Slow:
+                    magnitudeMult += coreStats.GlobalSlowStrengthMultiplier;
+                    durationMult += coreStats.GlobalSlowDurationMultiplier;
+                    break;
+                case EffectType.Stun:
+                    durationMult += coreStats.GlobalStunDurationMultiplier;
+                    break;
             }
-            else ecb.AddComponent(sortKey, target, slow);
         }
 
-        if ((tags & ESpellTag.Stun) != 0)
+        if (source.DatabaseIndex >= 0 && source.Caster != Entity.Null
+            && ctx.ActiveSpellLookup.TryGetBuffer(source.Caster, out var casterSpells))
         {
-            var stun = new StunEffect { DurationLeft = cfg.StunDuration };
-            if (ctx.StunLookup.HasComponent(target))
+            for (int i = 0; i < casterSpells.Length; i++)
             {
-                ecb.SetComponent(sortKey, target, stun);
-                ecb.SetComponentEnabled<StunEffect>(sortKey, target, true);
+                if (casterSpells[i].DatabaseIndex != source.DatabaseIndex)
+                    continue;
+                if (type == EffectType.Burn)
+                    magnitudeBonus = casterSpells[i].FinalBurnMagnitudeBonus;
+                else if (type == EffectType.Slow)
+                    magnitudeBonus = casterSpells[i].FinalSlowMagnitudeBonus;
+                break;
             }
-            else ecb.AddComponent(sortKey, target, stun);
         }
 
-        if ((tags & ESpellTag.Burn) != 0)
-        {
-            var burn = new BurnEffect
-            {
-                DamageOnTick = cfg.BurnDamageRatio * burnBaseDamage,
-                TickRate = cfg.BurnTickRate,
-                TickTimer = 0f,
-                RemainingTime = cfg.BurnDuration,
-            };
-            if (ctx.BurnLookup.HasComponent(target))
-            {
-                ecb.SetComponent(sortKey, target, burn);
-                ecb.SetComponentEnabled<BurnEffect>(sortKey, target, true);
-            }
-            else ecb.AddComponent(sortKey, target, burn);
-        }
+        float baseMagnitude = type == EffectType.Burn
+            ? StatusEffectFormulas.ComputeBurnMagnitude(cfg.Ratio, triggerDamage)
+            : StatusEffectFormulas.ComputeFlatMagnitude(cfg.BaseMagnitude);
+        float magnitude = baseMagnitude * (magnitudeMult + magnitudeBonus);
+        float duration = cfg.BaseDuration * durationMult;
 
-        if ((tags & ESpellTag.Knockback) != 0 && ctx.LtwLookup.HasComponent(target))
+        float3 direction = float3.zero;
+        if (type == EffectType.Knockback && ctx.LtwLookup.HasComponent(target))
         {
             float3 targetPos = ctx.LtwLookup[target].Position;
-            float3 pushDir = targetPos - pushOrigin;
+            float3 pushDir = targetPos - source.PushOrigin;
             float d2 = math.lengthsq(pushDir);
-            pushDir = d2 > 0.001f ? math.normalize(pushDir) : new float3(0f, 0f, 1f);
-
-            var kb = new ActiveKnockback
-            {
-                Direction = pushDir,
-                InitialForce = cfg.KnockbackForce,
-                DurationLeft = cfg.KnockbackDuration,
-                MaxDuration = cfg.KnockbackDuration,
-            };
-            if (ctx.KnockbackLookup.HasComponent(target))
-            {
-                ecb.SetComponent(sortKey, target, kb);
-                ecb.SetComponentEnabled<ActiveKnockback>(sortKey, target, true);
-            }
-            else ecb.AddComponent(sortKey, target, kb);
+            direction = d2 > 0.001f ? math.normalize(pushDir) : new float3(0f, 0f, 1f);
         }
+
+        ecb.AppendToBuffer(sortKey, target, new StatusEffectApplyRequest
+        {
+            Type = type,
+            Source = source.Emitter,
+            Magnitude = magnitude,
+            Duration = duration,
+            Direction = direction,
+            StackMode = cfg.StackMode,
+            MaxStacks = cfg.MaxStacks,
+        });
     }
 }

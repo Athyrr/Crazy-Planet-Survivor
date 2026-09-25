@@ -34,6 +34,8 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<BurnEffect> _burnLookup;
     private ComponentLookup<ActiveKnockback> _knockbackLookup;
 
+    private ComponentLookup<CoreStats> _coreStatsLookup;
+
     private ComponentLookup<ExplodeOnContact> _explodeLookup;
     private ComponentLookup<SpellSource> _subSpellRootLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
@@ -51,6 +53,7 @@ public partial struct CollisionSystem : ISystem
     {
         state.RequireForUpdate<Player>();
         state.RequireForUpdate<ActiveEffectsConfig>();
+        state.RequireForUpdate<EffectTypeConfig>();
         state.RequireForUpdate<PhysicsStep>();
         state.RequireForUpdate<SimulationSingleton>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
@@ -60,6 +63,8 @@ public partial struct CollisionSystem : ISystem
         _stunLookup = state.GetComponentLookup<StunEffect>(true);
         _burnLookup = state.GetComponentLookup<BurnEffect>(true);
         _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(true);
+
+        _coreStatsLookup = state.GetComponentLookup<CoreStats>(true);
 
         _playerLookup = state.GetComponentLookup<Player>(true);
         _cpEntityLookup = state.GetComponentLookup<Destructible>(true);
@@ -126,6 +131,7 @@ public partial struct CollisionSystem : ISystem
         _ricochetLookup.Update(ref state);
         _pierceLookup.Update(ref state);
         _knockbackLookup.Update(ref state);
+        _coreStatsLookup.Update(ref state);
         _linearMovementLookup.Update(ref state);
         _followMovementLookup.Update(ref state);
         _explodeLookup.Update(ref state);
@@ -143,14 +149,11 @@ public partial struct CollisionSystem : ISystem
         var ecbResolve = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var resolveContext = new ResolveHitContext
         {
-            EffectsConfig = effectsConfig,
+            EffectConfig = SystemAPI.GetSingleton<EffectTypeConfig>().Blob,
             LifeStealConversion = lifeStealConversion,
             PlayerEntity = playerEntity,
-            SlowLookup = _slowLookup,
-            StunLookup = _stunLookup,
-            BurnLookup = _burnLookup,
-            KnockbackLookup = _knockbackLookup,
             LtwLookup = _ltwLookup,
+            CoreStatsLookup = _coreStatsLookup,
             ActiveSpellLookup = _activeSpellBufferLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
         };

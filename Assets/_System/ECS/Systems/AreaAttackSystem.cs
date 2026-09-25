@@ -36,6 +36,7 @@ public partial struct AreaAttackSystem : ISystem
     private ComponentLookup<SpellSource> _spellSourceLookup;
     private ComponentLookup<Boss> _bossLookup;
     private BufferLookup<ActiveSpell> _activeSpellLookup;
+    private ComponentLookup<CoreStats> _coreStatsLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -46,6 +47,7 @@ public partial struct AreaAttackSystem : ISystem
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<AreaAttack>();
         state.RequireForUpdate<ActiveEffectsConfig>();
+        state.RequireForUpdate<EffectTypeConfig>();
         state.RequireForUpdate<Player>();
 
         _destructibleLookup = state.GetComponentLookup<Destructible>(true);
@@ -60,6 +62,7 @@ public partial struct AreaAttackSystem : ISystem
         _spellSourceLookup = state.GetComponentLookup<SpellSource>(true);
         _bossLookup = state.GetComponentLookup<Boss>(true);
         _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(false);
+        _coreStatsLookup = state.GetComponentLookup<CoreStats>(true);
 
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
@@ -103,6 +106,7 @@ public partial struct AreaAttackSystem : ISystem
         _spellSourceLookup.Update(ref state);
         _bossLookup.Update(ref state);
         _activeSpellLookup.Update(ref state);
+        _coreStatsLookup.Update(ref state);
 
         float deltaTime = SystemAPI.Time.DeltaTime;
         uint seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1;
@@ -111,14 +115,11 @@ public partial struct AreaAttackSystem : ISystem
         // damage-tracking queue that ResolveHit needs. Built once, copied into both cadence jobs.
         var resolveContext = new ResolveHitContext
         {
-            EffectsConfig = effectsConfig,
+            EffectConfig = SystemAPI.GetSingleton<EffectTypeConfig>().Blob,
             LifeStealConversion = lifeStealConversion,
             PlayerEntity = playerEntity,
-            SlowLookup = _slowLookup,
-            StunLookup = _stunLookup,
-            BurnLookup = _burnLookup,
-            KnockbackLookup = _knockbackLookup,
             LtwLookup = _ltwLookup,
+            CoreStatsLookup = _coreStatsLookup,
             ActiveSpellLookup = _activeSpellLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
         };
