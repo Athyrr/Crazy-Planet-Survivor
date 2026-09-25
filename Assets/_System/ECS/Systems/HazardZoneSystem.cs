@@ -15,7 +15,7 @@ public partial struct HazardZoneSystem : ISystem
 {
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
-    private ComponentLookup<BurnEffect> _burnLookup;
+    private BufferLookup<StatusEffectApplyRequest> _requestLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
 
     [BurstCompile]
@@ -24,10 +24,11 @@ public partial struct HazardZoneSystem : ISystem
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<HazardZone>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
+        state.RequireForUpdate<EffectTypeConfig>();
 
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
-        _burnLookup = state.GetComponentLookup<BurnEffect>(true);
+        _requestLookup = state.GetBufferLookup<StatusEffectApplyRequest>();
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(true);
     }
 
@@ -40,12 +41,13 @@ public partial struct HazardZoneSystem : ISystem
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
+        var effectConfig = SystemAPI.GetSingleton<EffectTypeConfig>().Blob;
 
         _transformLookup.Update(ref state);
         _destroyFlagLookup.Update(ref state);
-        _burnLookup.Update(ref state);
+        _requestLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
-        
+
         // NOTE: do NOT read the player's LocalTransform here. Reading it on the main thread would
         // force-complete every job that writes LocalTransform (the movement systems) → a sync stall.
         // The player's position is read inside the job via TransformLookup, where the dependency is
@@ -60,13 +62,14 @@ public partial struct HazardZoneSystem : ISystem
             CollisionWorld = collisionWorld,
             TransformLookup = _transformLookup,
             DestroyFlagLookup = _destroyFlagLookup,
-            BurnLookup = _burnLookup,
+            RequestLookup = _requestLookup,
             DamageBufferLookup = _damageBufferLookup,
+            EffectConfig = effectConfig,
             PlayerEntity = playerEntity,
             DeltaTime = SystemAPI.Time.DeltaTime,
         };
 
-        state.Dependency = job.ScheduleParallel(state.Dependency);
+        state.Dependency = job.Schedule(state.Dependency);
     }
 
     [BurstCompile]
@@ -76,8 +79,9 @@ public partial struct HazardZoneSystem : ISystem
         [ReadOnly] public CollisionWorld CollisionWorld;
         [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
-        [ReadOnly] public ComponentLookup<BurnEffect> BurnLookup;
+        public BufferLookup<StatusEffectApplyRequest> RequestLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
+        [ReadOnly] public BlobAssetReference<EffectTypeConfigBlob> EffectConfig;
         public Entity PlayerEntity;
         public float DeltaTime;
 
@@ -138,7 +142,7 @@ public partial struct HazardZoneSystem : ISystem
                     continue;
 
                 for (int e = 0; e < effects.Length; e++)
-                    ApplyEffect(chunkIndex, target, effects[e]);
+                    ApplyEffect(chunkIndex, zoneEntity, target, effects[e]);
             }
 
             hits.Dispose();
@@ -151,7 +155,7 @@ public partial struct HazardZoneSystem : ISystem
                 && IsInside(zone, zonePos, TransformLookup[PlayerEntity].Position))
             {
                 for (int e = 0; e < effects.Length; e++)
-                    ApplyEffect(chunkIndex, PlayerEntity, effects[e]);
+                    ApplyEffect(chunkIndex, zoneEntity, PlayerEntity, effects[e]);
             }
         }
 
@@ -166,12 +170,12 @@ public partial struct HazardZoneSystem : ISystem
                    && d.z <= zone.BoxHalfExtents.z;
         }
 
-        private void ApplyEffect(int chunkIndex, Entity target, in HazardZoneEffectElement effect)
+        private void ApplyEffect(int chunkIndex, Entity zoneEntity, Entity target, in HazardZoneEffectElement effect)
         {
             switch (effect.Type)
             {
                 case EHazardEffectType.Burn:
-                    ApplyBurn(chunkIndex, target, effect);
+                    ApplyBurn(zoneEntity, target, effect);
                     break;
 
                 // todo Slow
@@ -181,40 +185,30 @@ public partial struct HazardZoneSystem : ISystem
         }
 
         /// <summary>
-        /// Applies or refreshes the reusable <see cref="BurnEffect"/>.
+        /// Enqueues a <see cref="StatusEffectApplyRequest"/> for the target's Burn, sourced from this zone
+        /// entity — a spell's Burn and this zone's Burn are distinct <see cref="StatusEffectInstance"/>
+        /// entries on the same target (Source differs), drained/refreshed by
+        /// <c>ActiveEffectsSystem.DrainApplyRequestsJob</c>.
         /// </summary>
-        private void ApplyBurn(int chunkIndex, Entity target, in HazardZoneEffectElement effect)
+        private void ApplyBurn(Entity zoneEntity, Entity target, in HazardZoneEffectElement effect)
         {
-            if (BurnLookup.HasComponent(target))
-            {
-                if (BurnLookup.IsComponentEnabled(target))
-                {
-                    var burn = BurnLookup[target];
-                    burn.RemainingTime = math.max(burn.RemainingTime, effect.Linger);
-                    burn.DamageOnTick = math.max(burn.DamageOnTick, effect.Magnitude);
-                    if (burn.TickRate <= 0f)
-                        burn.TickRate = math.max(0.01f, effect.TickRate);
-                    ECB.SetComponent(chunkIndex, target, burn);
-                }
-                else
-                {
-                    ECB.SetComponent(chunkIndex, target, NewBurn(effect));
-                    ECB.SetComponentEnabled<BurnEffect>(chunkIndex, target, true);
-                }
-            }
-            else
-            {
-                // Entities without ActiveEffectsAuthoring: add it (enabled by default).
-                ECB.AddComponent(chunkIndex, target, NewBurn(effect));
-            }
-        }
+            if (!RequestLookup.HasBuffer(target))
+                return;
 
-        private static BurnEffect NewBurn(in HazardZoneEffectElement effect) => new BurnEffect
-        {
-            DamageOnTick = effect.Magnitude,
-            TickRate = math.max(0.01f, effect.TickRate),
-            TickTimer = 0f,
-            RemainingTime = effect.Linger,
-        };
+            ref var entries = ref EffectConfig.Value.Entries;
+            ref readonly var cfg = ref EffectTypeConfigLookup.Get(ref entries, EffectType.Burn);
+
+            var requests = RequestLookup[target];
+            requests.Add(new StatusEffectApplyRequest
+            {
+                Type = EffectType.Burn,
+                Source = zoneEntity,
+                Magnitude = effect.Magnitude,
+                Duration = effect.Linger,
+                Direction = default,
+                StackMode = cfg.StackMode,
+                MaxStacks = cfg.MaxStacks,
+            });
+        }
     }
 }
