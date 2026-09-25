@@ -27,7 +27,7 @@ public partial struct EntitiesMovementSystem : ISystem
     private ComponentLookup<StopDistance> _stopDistanceLookup;
 
     private ComponentLookup<Player> _playerLookup;
-    private ComponentLookup<StunEffect> _stunLookup;
+    private ComponentLookup<StunState> _stunLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -41,7 +41,7 @@ public partial struct EntitiesMovementSystem : ISystem
         _playerLookup = state.GetComponentLookup<Player>(true);
         _stopDistanceLookup = state.GetComponentLookup<StopDistance>(true);
 
-        _stunLookup = state.GetComponentLookup<StunEffect>(true);
+        _stunLookup = state.GetComponentLookup<StunState>(true);
     }
 
     [BurstCompile(OptimizeFor = OptimizeFor.Performance)]
@@ -344,7 +344,7 @@ public partial struct EntitiesMovementSystem : ISystem
         [NativeDisableContainerSafetyRestriction] [ReadOnly]
         public ComponentLookup<LocalTransform> TransformLookup;
 
-        [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
+        [ReadOnly] public ComponentLookup<StunState> StunLookup;
 
         private const float SNAP_DISTANCE = 500f;
         private const float VERT_SNAP_SPEED = 20.0f;
