@@ -25,8 +25,13 @@ public class SpellDataSO : ScriptableObject
     public int Rarity = 0;
 
 
-    [Header("Core Combat Stats")] [Tooltip("Tags of the spell (Fire, Ice, etc.) used for resistance calculations.")]
+    [Header("Core Combat Stats")]
+    [HideInInspector]
     public ESpellTag Tags;
+
+    [Tooltip("Which status effects this spell applies on hit. Tags (Burn/Slow/Stun/Knockback bits) are derived " +
+             "from this automatically — do not hand-edit Tags.")]
+    public EffectSpec[] Effects = new EffectSpec[0];
 
     [Tooltip("Base damage applied on contact.")]
     public float BaseDamage = 10f;
