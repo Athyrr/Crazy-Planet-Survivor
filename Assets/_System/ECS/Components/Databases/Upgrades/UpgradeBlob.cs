@@ -28,6 +28,7 @@ public struct UpgradeBlob
     public ESpellStat SpellStat;
     public EModiferStrategy ModifierStrategy;
     public float Value;
+    public BlobArray<EffectSpec> GrantedEffects;
 }
 
 /// <summary>

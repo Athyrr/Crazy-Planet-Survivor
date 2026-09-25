@@ -20,6 +20,15 @@ public class SpellUpgradeSO : UpgradeSO
     [Tooltip("Property of the spell to modify (Damage, Cooldown, Amount...).")]
     public ESpellStat SpellStat;
 
+    [Header("Granted Effects")]
+    [Tooltip("Status effects this upgrade grants to the target spell (e.g. \"Fireball now burns\"). Only " +
+             "meaningful when SpellID is set. Independent of RequiredTags above: RequiredTags still gates " +
+             "which spells this upgrade targets (and, when SpellID is set, still adds any BEHAVIOR/form tags " +
+             "bundled in the same value — Explosive/Piercing/Bouncing, untouched by this chantier); " +
+             "GrantedEffects grants actual effect DATA that SpellStatsCalculationSystem composes into the " +
+             "spell's effective effect list — see spec §4.3 correction.")]
+    public EffectSpec[] GrantedEffects = new EffectSpec[0];
+
     private void OnValidate()
     {
         // A spell upgrade is never a PlayerStat upgrade: it either unlocks or upgrades a spell.

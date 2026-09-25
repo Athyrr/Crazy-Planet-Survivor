@@ -57,6 +57,8 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
                             Value = modifiers[m].Value,
                         };
                     }
+
+                    builder.Allocate(ref blob.GrantedEffects, 0);
                 }
                 // Spell Upgrade Logic (unlock or effect upgrade) — not subject to rarity
                 else if (upgradeSO is SpellUpgradeSO spellUpgrade)
@@ -70,10 +72,17 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
                     // Spell upgrades keep a single value/strategy.
                     blob.ModifierStrategy = upgradeSO.ModifierStrategy;
                     blob.Value = upgradeSO.Value;
+
+                    var grantedEffects = spellUpgrade.GrantedEffects;
+                    int grantedCount = grantedEffects != null ? grantedEffects.Length : 0;
+                    BlobBuilderArray<EffectSpec> grantedArray = builder.Allocate(ref blob.GrantedEffects, grantedCount);
+                    for (int g = 0; g < grantedCount; g++)
+                        grantedArray[g] = grantedEffects[g];
                 }
                 else
                 {
                     builder.Allocate(ref blob.StatModifiers, 0);
+                    builder.Allocate(ref blob.GrantedEffects, 0);
                 }
             }
 
