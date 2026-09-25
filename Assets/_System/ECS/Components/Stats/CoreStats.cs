@@ -102,6 +102,20 @@ public struct CoreStats : IComponentData
     [UIStat("Life Steal", ECharacterStat.LifeStealChance)]
     public float LifeStealChance;
 
+    [Header("Status Effects (global — upgrades)")]
+    [UIStat("Burn Dmg", ECharacterStat.BurnDamage)]
+    public float GlobalBurnDamageMultiplier;
+    [UIStat("Burn Dur.", ECharacterStat.BurnDuration)]
+    public float GlobalBurnDurationMultiplier;
+    [UIStat("Slow Str.", ECharacterStat.SlowStrength)]
+    public float GlobalSlowStrengthMultiplier;
+    [UIStat("Slow Dur.", ECharacterStat.SlowDuration)]
+    public float GlobalSlowDurationMultiplier;
+    [UIStat("Stun Dur.", ECharacterStat.StunDuration)]
+    public float GlobalStunDurationMultiplier;
+    public float BurnCanCrit;
+    public float BurnCanLifeSteal;
+
     [Header("Dash")]
     [Tooltip("Number of dash charges the entity can store (0 = cannot dash).")]
     [UIStat("Dash Charges", ECharacterStat.DashCount, absolute: true)]

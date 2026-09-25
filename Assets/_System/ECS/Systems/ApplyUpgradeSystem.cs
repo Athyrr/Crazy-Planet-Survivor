@@ -411,27 +411,34 @@ public partial struct ApplyUpgradeSystem : ISystem
                 playerCoreStats.DashCooldown = math.max(0.1f, playerCoreStats.DashCooldown + value);
                 break;
 
-            // case ECharacterStat.BurnDamage:
-            //     playerCoreStats.GlobalBurnDamageMultiplier += value;
-            //     needSpellUpdate = true;
-            //     break;
-            // case ECharacterStat.BurnDuration:
-            //     playerCoreStats.GlobalBurnDurationMultiplier += value;
-            //     needSpellUpdate = true;
-            //     break;
-            // case ECharacterStat.SlowStrength:
-            //     playerCoreStats.GlobalSlowStrengthMultiplier += value;
-            //     needSpellUpdate = true;
-            // case ECharacterStat.SlowDuration:
-            //     playerCoreStats.GlobalSlowDurationMultiplier += value;
-            //     needSpellUpdate = true;
-            // case ECharacterStat.StunDuration:
-            //     playerCoreStats.GlobalStunDurationMultiplier += value;
-            //     needSpellUpdate = true;
-            //     break;
+            case ECharacterStat.BurnDamage:
+                playerCoreStats.GlobalBurnDamageMultiplier += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.BurnDuration:
+                playerCoreStats.GlobalBurnDurationMultiplier += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.SlowStrength:
+                playerCoreStats.GlobalSlowStrengthMultiplier += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.SlowDuration:
+                playerCoreStats.GlobalSlowDurationMultiplier += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.StunDuration:
+                playerCoreStats.GlobalStunDurationMultiplier += value;
+                needSpellUpdate = true;
+                break;
+            case ECharacterStat.BurnCanCrit:
+                playerCoreStats.BurnCanCrit += value;
+                break;
+            case ECharacterStat.BurnCanLifeSteal:
+                playerCoreStats.BurnCanLifeSteal += value;
+                break;
 
             // todo other character stats (ex SpellSize, SpellSpeed, Duration...)
-            // todo Handle status (burn duration, slow strength, effects duration...)  + use to calculate current stats in active effects system
         }
     }
 

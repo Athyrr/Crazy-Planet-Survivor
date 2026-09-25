@@ -64,4 +64,10 @@ public enum ECharacterStat
 
     /// <summary>Fraction of incoming knockback ignored (0 = full, 1 = immune). Shared player/enemy stat.</summary>
     KnockbackResistance = 40,
+
+    /// <summary>One-shot: lets a Burn tick roll a crit (EffectTypeConfig.AllowCrit stays the static default).</summary>
+    BurnCanCrit = 41,
+
+    /// <summary>One-shot: lets a Burn tick trigger life steal (EffectTypeConfig.AllowLifeSteal stays the static default).</summary>
+    BurnCanLifeSteal = 42,
 }
