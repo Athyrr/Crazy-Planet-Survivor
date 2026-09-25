@@ -1,3 +1,4 @@
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 
@@ -61,4 +62,8 @@ public struct AreaAttack : IComponentData
     public Entity Caster;
     public uint TargetLayers;
     public ESpellTag Tags;
+
+    /// <summary>Same composed-at-cast list as <see cref="DamageOnContact.EffectsToApply"/> — see that doc
+    /// comment.</summary>
+    public FixedList32Bytes<EffectSpec> EffectsToApply;
 }
