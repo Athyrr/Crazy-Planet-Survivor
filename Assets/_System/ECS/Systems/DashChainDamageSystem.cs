@@ -16,7 +16,7 @@ using Unity.Transforms;
 [BurstCompile]
 public partial struct DashChainDamageSystem : ISystem
 {
-    private ComponentLookup<ActiveKnockback> _knockbackLookup;
+    private ComponentLookup<KnockbackState> _knockbackLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
 
     [BurstCompile]
@@ -24,7 +24,7 @@ public partial struct DashChainDamageSystem : ISystem
     {
         state.RequireForUpdate<PhysicsWorldSingleton>();
 
-        _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(true);
+        _knockbackLookup = state.GetComponentLookup<KnockbackState>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(false);
     }
 
@@ -51,7 +51,7 @@ public partial struct DashChainDamageSystem : ISystem
     {
         [ReadOnly] public float DeltaTime;
         [ReadOnly] public CollisionWorld CollisionWorld;
-        [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
+        [ReadOnly] public ComponentLookup<KnockbackState> KnockbackLookup;
 
         // Direct RW buffer writes replace the previous ECB.AppendToBuffer: writes happen inside the job
         // instead of being deferred to EndSimulation, so an enemy that dies same-frame from a spell/dash
