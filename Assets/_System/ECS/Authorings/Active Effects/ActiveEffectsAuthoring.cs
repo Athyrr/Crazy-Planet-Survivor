@@ -14,17 +14,20 @@ public class ActiveEffectsAuthoring : MonoBehaviour
         {
             Entity entity = GetEntity(TransformUsageFlags.None);
 
-            AddComponent<BurnEffect>(entity);
-            SetComponentEnabled<BurnEffect>(entity, false);
-            
-            AddComponent<StunEffect>(entity);
-            SetComponentEnabled<StunEffect>(entity, false);
-            
-            AddComponent<SlowEffect>(entity);
-            SetComponentEnabled<SlowEffect>(entity, false);
+            AddBuffer<StatusEffectInstance>(entity);
+            AddBuffer<StatusEffectApplyRequest>(entity);
 
-            AddComponent<ActiveKnockback>(entity);
-            SetComponentEnabled<ActiveKnockback>(entity, false);
+            AddComponent<SlowState>(entity);
+            SetComponentEnabled<SlowState>(entity, false);
+
+            AddComponent<StunState>(entity);
+            SetComponentEnabled<StunState>(entity, false);
+
+            AddComponent<BurnState>(entity);
+            SetComponentEnabled<BurnState>(entity, false);
+
+            AddComponent<KnockbackState>(entity);
+            SetComponentEnabled<KnockbackState>(entity, false);
         }
     }
 }
