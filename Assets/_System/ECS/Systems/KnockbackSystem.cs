@@ -17,7 +17,7 @@ public partial struct KnockbackSystem : ISystem
     {
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<PlanetData>();
-        state.RequireForUpdate<ActiveEffectsConfig>();
+        state.RequireForUpdate<EffectTypeConfig>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
     }
 
@@ -32,14 +32,14 @@ public partial struct KnockbackSystem : ISystem
          var planetPos = SystemAPI.GetSingleton<PlanetData>().Center;
 
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
-        var forceCurve = SystemAPI.GetSingleton<ActiveEffectsConfig>().KnockbackForceCurve;
+        var effectConfig = SystemAPI.GetSingleton<EffectTypeConfig>().Blob;
 
         new ProcessKnockbackJob
         {
             DeltaTime = deltaTime,
             PlanetPos = planetPos,
             CollisionWorld = collisionWorld,
-            ForceCurve = forceCurve,
+            EffectConfig = effectConfig,
             ECB = ecb.AsParallelWriter()
         }.ScheduleParallel();
     }
@@ -50,7 +50,7 @@ public partial struct KnockbackSystem : ISystem
         public float DeltaTime;
         public float3 PlanetPos;
         [ReadOnly] public CollisionWorld CollisionWorld;
-        [ReadOnly] public BlobAssetReference<KnockbackCurveBlob> ForceCurve;
+        [ReadOnly] public BlobAssetReference<EffectTypeConfigBlob> EffectConfig;
         public EntityCommandBuffer.ParallelWriter ECB;
 
         // Vertical band the ground raycast probes above/below the desired position when re-snapping.
@@ -65,14 +65,14 @@ public partial struct KnockbackSystem : ISystem
             [ChunkIndexInQuery] int chunkIndex,
             Entity entity,
             ref LocalTransform transform,
-            ref ActiveKnockback knockback,
+            ref KnockbackState knockback,
             ref LiveStats liveStats)
         {
-            knockback.DurationLeft -= DeltaTime;
+            knockback.RemainingTime -= DeltaTime;
 
-            if (knockback.DurationLeft <= 0)
+            if (knockback.RemainingTime <= 0)
             {
-              ECB.SetComponentEnabled<ActiveKnockback>(chunkIndex, entity, false);
+              ECB.SetComponentEnabled<KnockbackState>(chunkIndex, entity, false);
                 return;
             }
 
@@ -83,13 +83,13 @@ public partial struct KnockbackSystem : ISystem
             float kbResist = liveStats.KBResist;
             if (kbResist >= 1f)
             {
-                ECB.SetComponentEnabled<ActiveKnockback>(chunkIndex, entity, false);
+                ECB.SetComponentEnabled<KnockbackState>(chunkIndex, entity, false);
                 return;
             }
 
             // Force follows the designer curve: X = elapsed/duration (0 at impact, 1 at end).
-            float elapsedNorm = math.saturate(1f - knockback.DurationLeft / knockback.MaxDuration);
-            float currentForce = knockback.InitialForce * (1f - kbResist) * EvaluateCurve(ForceCurve, elapsedNorm);
+            float elapsedNorm = math.saturate(1f - knockback.RemainingTime / knockback.MaxDuration);
+            float currentForce = knockback.InitialForce * (1f - kbResist) * EvaluateCurve(EffectConfig.Value.KnockbackForceCurveSamples, elapsedNorm);
 
             // Project on ground
             float3 upDir = math.normalize(transform.Position - PlanetPos);
@@ -133,11 +133,9 @@ public partial struct KnockbackSystem : ISystem
             liveStats.MoveSpeed = 0;
         }
 
-        private static float EvaluateCurve(BlobAssetReference<KnockbackCurveBlob> curve, float t)
+        private static float EvaluateCurve(in BlobArray<float> samples, float t)
         {
-            ref BlobArray<float> samples = ref curve.Value.Samples;
             int len = samples.Length;
-
             float x = math.saturate(t) * (len - 1);
             int i0 = (int)x;
             int i1 = math.min(i0 + 1, len - 1);
