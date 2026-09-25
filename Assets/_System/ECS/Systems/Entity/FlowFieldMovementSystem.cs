@@ -22,8 +22,8 @@ public partial struct FlowFieldMovementSystem : ISystem
     private ComponentLookup<SteeringForce> _steeringLookup;
     private ComponentLookup<Avoidance> _avoidanceLookup;
     private ComponentLookup<LiveStats> _liveStatsLookup;
-    private ComponentLookup<StunEffect> _stunLookup;
-    private ComponentLookup<ActiveKnockback> _knockbackLookup;
+    private ComponentLookup<StunState> _stunLookup;
+    private ComponentLookup<KnockbackState> _knockbackLookup;
     private ComponentLookup<StopDistance> _stopDistanceLookup;
     private BufferLookup<FlowFieldCell> _cellBufferLookup;
 
@@ -47,8 +47,8 @@ public partial struct FlowFieldMovementSystem : ISystem
         _steeringLookup = state.GetComponentLookup<SteeringForce>(isReadOnly: true);
         _avoidanceLookup = state.GetComponentLookup<Avoidance>(isReadOnly: true);
         _liveStatsLookup = state.GetComponentLookup<LiveStats>(isReadOnly: true);
-        _stunLookup = state.GetComponentLookup<StunEffect>(isReadOnly: true);
-        _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(isReadOnly: true);
+        _stunLookup = state.GetComponentLookup<StunState>(isReadOnly: true);
+        _knockbackLookup = state.GetComponentLookup<KnockbackState>(isReadOnly: true);
         _stopDistanceLookup = state.GetComponentLookup<StopDistance>(isReadOnly: true);
         _cellBufferLookup = state.GetBufferLookup<FlowFieldCell>(isReadOnly: true);
     }
@@ -142,8 +142,8 @@ public partial struct FlowFieldMovementSystem : ISystem
         [ReadOnly] public ComponentLookup<SteeringForce> SteeringLookup;
         [ReadOnly] public ComponentLookup<Avoidance> AvoidanceLookup;
         [ReadOnly] public ComponentLookup<LiveStats> LiveStatsLookup;
-        [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
-        [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
+        [ReadOnly] public ComponentLookup<StunState> StunLookup;
+        [ReadOnly] public ComponentLookup<KnockbackState> KnockbackLookup;
         [ReadOnly] public ComponentLookup<StopDistance> StopDistanceLookup;
 
         /// <summary> Global movement feel; the per-entity fields on FlowFieldFollowerMovement override it. </summary>
