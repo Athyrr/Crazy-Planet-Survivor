@@ -21,7 +21,7 @@ using Unity.Transforms;
 public partial struct DashSystem : ISystem
 {
     private ComponentLookup<LinearMovement> _linearLookup;
-    private ComponentLookup<StunEffect> _stunLookup;
+    private ComponentLookup<StunState> _stunLookup;
     private ComponentLookup<ActiveDash> _activeDashLookup;
     private BufferLookup<DashHitEntity> _dashHitLookup;
 
@@ -32,7 +32,7 @@ public partial struct DashSystem : ISystem
         state.RequireForUpdate<PhysicsWorldSingleton>();
 
         _linearLookup = state.GetComponentLookup<LinearMovement>(true);
-        _stunLookup = state.GetComponentLookup<StunEffect>(true);
+        _stunLookup = state.GetComponentLookup<StunState>(true);
         _activeDashLookup = state.GetComponentLookup<ActiveDash>(false);
         _dashHitLookup = state.GetBufferLookup<DashHitEntity>(false);
     }
@@ -74,7 +74,7 @@ public partial struct DashSystem : ISystem
         [ReadOnly] public CollisionWorld CollisionWorld;
 
         [ReadOnly] public ComponentLookup<LinearMovement> LinearLookup;
-        [ReadOnly] public ComponentLookup<StunEffect> StunLookup;
+        [ReadOnly] public ComponentLookup<StunState> StunLookup;
 
         // ActiveDash (data AND enabled state) is accessed only through this lookup — never as a query
         // ref/in or EnabledRefRW param. A query param would force filtering on ActiveDash being *enabled*
