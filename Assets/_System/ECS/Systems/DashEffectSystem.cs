@@ -15,7 +15,7 @@ using Unity.Transforms;
 [BurstCompile]
 public partial struct DashEffectSystem : ISystem
 {
-    private ComponentLookup<ActiveKnockback> _knockbackLookup;
+    private ComponentLookup<KnockbackState> _knockbackLookup;
     private ComponentLookup<DashChainDamage> _chainLookup;
     private ComponentLookup<DamageOnContact> _damageLookup;
     private ComponentLookup<LinearMovement> _linearLookup;
@@ -29,7 +29,7 @@ public partial struct DashEffectSystem : ISystem
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
 
-        _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(true);
+        _knockbackLookup = state.GetComponentLookup<KnockbackState>(true);
         _chainLookup = state.GetComponentLookup<DashChainDamage>(true);
         _damageLookup = state.GetComponentLookup<DamageOnContact>(false);
         _linearLookup = state.GetComponentLookup<LinearMovement>(false);
@@ -50,9 +50,9 @@ public partial struct DashEffectSystem : ISystem
         _colliderLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
 
-        float knockbackDuration = SystemAPI.TryGetSingleton<ActiveEffectsConfig>(out var fx)
-            ? fx.KnockbackDuration
-            : 0.4f;
+        var effectConfig = SystemAPI.GetSingleton<EffectTypeConfig>().Blob;
+        ref var effectEntries = ref effectConfig.Value.Entries;
+        float knockbackDuration = EffectTypeConfigLookup.Get(ref effectEntries, EffectType.Knockback).BaseDuration;
 
         float3 planetCenter = SystemAPI.GetSingleton<PlanetData>().Center;
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
@@ -87,7 +87,7 @@ public partial struct DashEffectSystem : ISystem
     {
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public CollisionWorld CollisionWorld;
-        [ReadOnly] public ComponentLookup<ActiveKnockback> KnockbackLookup;
+        [ReadOnly] public ComponentLookup<KnockbackState> KnockbackLookup;
         [ReadOnly] public ComponentLookup<DashChainDamage> ChainLookup;
         [NativeDisableParallelForRestriction] public BufferLookup<DamageBufferElement> DamageBufferLookup;
         [ReadOnly] public float KnockbackDuration;
@@ -143,16 +143,16 @@ public partial struct DashEffectSystem : ISystem
                         PlanetUtils.ProjectDirectionOnSurface(radial, up, out float3 pushDir);
                         pushDir = math.lengthsq(pushDir) > 1e-5f ? math.normalize(pushDir) : fallbackDir;
 
-                        // ActiveKnockback + DashChainDamage are pre-added disabled: Set + Enable only,
+                        // KnockbackState + DashChainDamage are pre-added disabled: Set + Enable only,
                         // no structural change so a same-frame kill can't break ECB playback.
-                        ECB.SetComponent(enemy, new ActiveKnockback
+                        ECB.SetComponent(enemy, new KnockbackState
                         {
                             Direction = pushDir,
                             InitialForce = effect.KnockbackForce,
-                            DurationLeft = KnockbackDuration,
+                            RemainingTime = KnockbackDuration,
                             MaxDuration = KnockbackDuration,
                         });
-                        ECB.SetComponentEnabled<ActiveKnockback>(enemy, true);
+                        ECB.SetComponentEnabled<KnockbackState>(enemy, true);
 
                         // Chain: flung enemy damages others it collides with while airborne.
                         if (doChain && ChainLookup.HasComponent(enemy))
