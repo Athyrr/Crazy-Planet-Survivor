@@ -258,7 +258,10 @@ public partial struct SpellCastingSystem : ISystem
             int finalPierce = activeSpell.FinalPierces;
             float finalBounceRange = activeSpell.FinalBounceRange;
 
-            ESpellTag totalTags = baseSpellData.Tag | activeSpell.AddedTags;
+            // FinalTags/FinalEffects are already composed by SpellStatsCalculationSystem (Task 19c), which runs
+            // before this system ([UpdateAfter(typeof(SpellStatsCalculationSystem))], line 11) — read the cache
+            // instead of recomputing tags here (recomputing would silently drop the derived status bits).
+            ESpellTag totalTags = activeSpell.FinalTags;
 
             var casterTransform = TransformLookup[request.Caster];
             var spellPrefabTransform = TransformLookup[spellPrefab];
@@ -610,6 +613,7 @@ public partial struct SpellCastingSystem : ISystem
                     {
                         Damage = finalDamage,
                         Tags = totalTags,
+                        EffectsToApply = activeSpell.FinalEffects,
                         AreaRadius = finalSize,
                         TotalCritChance = activeSpell.FinalCritChance,
                         TotalCritMultiplier = activeSpell.FinalCritDamageMultiplier,
@@ -627,6 +631,7 @@ public partial struct SpellCastingSystem : ISystem
                     zone.Caster = request.Caster;
                     zone.TargetLayers = filter.CollidesWith;
                     zone.Tags = totalTags;
+                    zone.EffectsToApply = activeSpell.FinalEffects;
                     zone.ElapsedTime = 0f;
 
                     if (zone.Cadence == EZoneCadence.OverTime)
