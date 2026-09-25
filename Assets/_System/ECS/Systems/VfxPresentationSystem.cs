@@ -30,9 +30,9 @@ public partial class VfxPresentationSystem : SystemBase
     {
         RequireForUpdate<ActiveEffectsVfxConfig>();
 
-        _burnQuery = BuildQuery<BurnEffect>();
-        _slowQuery = BuildQuery<SlowEffect>();
-        _stunQuery = BuildQuery<StunEffect>();
+        _burnQuery = BuildQuery<BurnState>();
+        _slowQuery = BuildQuery<SlowState>();
+        _stunQuery = BuildQuery<StunState>();
     }
 
     protected override void OnDestroy()
