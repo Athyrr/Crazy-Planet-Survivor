@@ -17,6 +17,11 @@ public enum EHitKind : byte
     /// <summary>Apply a temporary buff/debuff (numeric stat modifier) → <see cref="CharacterStatBuff"/>
     /// (+ <c>SpellStatsCalculationRequest</c>) (§9.2). <c>Value &lt; 0</c> = debuff, under the "buff" umbrella.</summary>
     ApplyBuff,
+
+    /// <summary>Applies/refreshes one status-effect instance (Burn/Slow/Stun/Knockback) on the target via
+    /// ResolveHit -> StatusEffectApplyRequest. Only <see cref="HitAction.EffectType"/> is meaningful here —
+    /// magnitude/duration are computed by ResolveHit from EffectTypeConfig, not carried on this action.</summary>
+    ApplyEffect,
 }
 
 /// <summary>
@@ -65,6 +70,9 @@ public struct HitAction
     /// <summary>Buff/debuff lifetime in seconds.</summary>
     public float Duration;
 
+    // ── Kind == ApplyEffect ──
+    public EffectType EffectType;
+
     /// <summary>A damage result. <paramref name="critMultiplier"/> is applied only on a crit roll.</summary>
     public static HitAction MakeDamage(float damage, float critChance, float critMultiplier,
         ESpellTag tags, EAllegiance target = EAllegiance.Enemies) => new HitAction
@@ -96,6 +104,14 @@ public struct HitAction
         StatValue = value,
         Duration = duration,
     };
+
+    /// <summary>Applies/refreshes one status-effect instance on the target.</summary>
+    public static HitAction MakeApplyEffect(EffectType type, EAllegiance target = EAllegiance.Enemies) => new HitAction
+    {
+        Kind = EHitKind.ApplyEffect,
+        Target = target,
+        EffectType = type,
+    };
 }
 
 /// <summary>
@@ -115,4 +131,9 @@ public struct HitSource
 
     /// <summary>Camera-shake category, resolved by the caller (contact vs area vs DoT differ).</summary>
     public EDamageShakeSource Shake;
+
+    /// <summary>The entity that owns this hit — the projectile/zone/hazard itself, not its caster. Becomes
+    /// StatusEffectInstance.Source so multiple sources of the same effect type coexist on one target (a spell's
+    /// Burn and a lava zone's Burn are different Source entities). Entity.Null is a valid, distinct source.</summary>
+    public Entity Emitter;
 }
