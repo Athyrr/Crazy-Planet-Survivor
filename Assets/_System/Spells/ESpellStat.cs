@@ -25,5 +25,9 @@ public enum ESpellStat
     CritDamage,
 
     // Sustain
-    LifeStealChance
+    LifeStealChance,
+
+    // Status effects (per-spell bonus, opt-in via a concrete upgrade)
+    BurnMagnitude,
+    SlowMagnitude
 }

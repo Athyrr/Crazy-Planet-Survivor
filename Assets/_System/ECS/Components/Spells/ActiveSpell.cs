@@ -57,6 +57,10 @@ public struct ActiveSpell : IBufferElementData
     // Total life-steal proc chance (global CoreStats.LifeStealChance + LocalLifeStealChanceBonus), clamped 0..1.
     public float FinalLifeStealChance;
 
+    // Per-spell status-effect magnitude bonus (additive, composes with CoreStats.Global*Multiplier in ResolveHit.ApplyEffect).
+    public float FinalBurnMagnitudeBonus;
+    public float FinalSlowMagnitudeBonus;
+
     // Tracking
     public float TotalDamageDealt;
 }

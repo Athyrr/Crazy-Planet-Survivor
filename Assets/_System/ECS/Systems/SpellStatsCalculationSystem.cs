@@ -204,6 +204,10 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 // Life steal proc chance (global + temp buff + per-spell), clamped to 0..1 below
                 float lifeStealChanceAdd = coreStats.LifeStealChance + bLifeSteal + spell.LocalLifeStealChanceBonus;
 
+                // Per-spell status-effect magnitude bonus (opt-in, only exists if a concrete upgrade creates it)
+                float burnMagnitudeBonus = 0f;
+                float slowMagnitudeBonus = 0f;
+
                 // Spell modifier buffer
                 for (int j = 0; j < spellStatUpgrades.Length; j++)
                 {
@@ -257,6 +261,14 @@ public partial struct SpellStatsCalculationSystem : ISystem
                             case ESpellStat.LifeStealChance:
                                 lifeStealChanceAdd += mod.Value;
                                 break;
+
+                            case ESpellStat.BurnMagnitude:
+                                burnMagnitudeBonus += mod.Value;
+                                break;
+
+                            case ESpellStat.SlowMagnitude:
+                                slowMagnitudeBonus += mod.Value;
+                                break;
                         }
                     }
                 }
@@ -291,6 +303,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 spell.FinalCritDamageMultiplier = math.max(1f, critDmgAdd);
 
                 spell.FinalLifeStealChance = math.clamp(lifeStealChanceAdd, 0f, 1f);
+
+                spell.FinalBurnMagnitudeBonus = burnMagnitudeBonus;
+                spell.FinalSlowMagnitudeBonus = slowMagnitudeBonus;
 
                 // Save
                 activeSpells[i] = spell;
