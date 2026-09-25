@@ -1,3 +1,4 @@
+using Unity.Collections;
 using Unity.Entities;
 
 [InternalBufferCapacity(8)]
@@ -32,6 +33,11 @@ public struct ActiveSpell : IBufferElementData
 
     public ESpellTag AddedTags;
 
+    // Upgrade-granted effect deltas — the effect-DATA parallel to AddedTags above (spec §4.3 correction).
+    // Populated by ApplyUpgradeSystem.ApplySpellUpgrade, deduped by EffectType (a repeated upgrade pick never
+    // grows this past one entry per type — max 4 possible today).
+    public FixedList32Bytes<EffectSpec> AddedEffects;
+
     // Final values (cache)
     public float FinalDamage;
     public float FinalSize;
@@ -60,6 +66,18 @@ public struct ActiveSpell : IBufferElementData
     // Per-spell status-effect magnitude bonus (additive, composes with CoreStats.Global*Multiplier in ResolveHit.ApplyEffect).
     public float FinalBurnMagnitudeBonus;
     public float FinalSlowMagnitudeBonus;
+
+    // Composed once per SpellStatsCalculationRequest by SpellStatsCalculationSystem (Task 19c): base
+    // SpellBlob.Effects[] + this spell's AddedEffects, deduped by EffectType. SpellCastingSystem (Task 19d)
+    // copies this onto the spawned entity's DamageOnContact/AreaAttack.EffectsToApply — CollisionSystem/
+    // AreaAttackSystem never re-derive it from Tags at hit time.
+    public FixedList32Bytes<EffectSpec> FinalEffects;
+
+    // currentTags from SpellStatsCalculationSystem's per-spell loop, cached: (base Tag | AddedTags) with the
+    // 4 status bits (Burn/Slow/Stun/Knockback) MASKED OUT and replaced by bits derived from FinalEffects —
+    // never read Tags to decide whether to apply a status effect, only for cheap presence checks (RequiredTags
+    // gating, UI, resistance calc). SpellCastingSystem (Task 19d) uses this instead of recomputing tags itself.
+    public ESpellTag FinalTags;
 
     // Tracking
     public float TotalDamageDealt;
