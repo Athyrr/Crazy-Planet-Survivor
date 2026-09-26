@@ -45,26 +45,46 @@ public class AreaAttackShapeTests
     }
 
     [Test]
-    public void Cone_RandomSampling_MatchesHandComputedDotProduct()
+    public void Cone_RandomSampling_MatchesIndependentlyDerivedExpectation()
     {
-        // N random points, compared against the same dot-product formula IsInShape uses internally —
-        // this is the actual desync guard: if a future edit changes the cone's rotation axis or comparison
-        // operator, this test catches it even without a screenshot review.
-        quaternion rot = quaternion.AxisAngle(new float3(0f, 1f, 0f), math.radians(30f));
-        float halfAngle = math.radians(35f);
+        // I3 fix (final whole-branch review): the old version of this test used sweep: 0f and recomputed
+        // IsInShape's own expression verbatim for `expected` — AxisAngle(anyAxis, 0) is the identity
+        // rotation, and with a rotation that is itself purely a spin around world Y, the entity's local up
+        // (rot * world-up) is world Y too, so a regression that swept the cone around world Y instead of
+        // the entity's local up (spec §4.7's historical bug) would multiply out of both sides and pass all
+        // 200 samples regardless. Two changes close that: (1) `rot` now tilts on X too, so local up and
+        // world Y genuinely diverge — a world-Y-sweep bug and a local-up-sweep are no longer the same
+        // rotation; (2) `sweep` is non-zero, so the sweep axis is actually exercised; (3) `expected` is
+        // derived independently — UnityEngine.Quaternion/Vector3 (a different math library than
+        // IsInShape's Unity.Mathematics quaternion/math.mul) and Vector3.Angle (a different comparison than
+        // IsInShape's dot/cos), built the same way AreaAttackAuthoring.cs's gizmo (DrawConeShape:
+        // `Quaternion.AngleAxis(sweepDeg, up) * fwd`) actually draws the cone — not a copy of IsInShape's
+        // own formula.
+        quaternion rot = math.mul(
+            quaternion.AxisAngle(new float3(1f, 0f, 0f), math.radians(40f)),
+            quaternion.AxisAngle(new float3(0f, 1f, 0f), math.radians(30f)));
+        float halfAngleDeg = 35f;
+        float halfAngle = math.radians(halfAngleDeg);
+        float sweepDeg = 20f;
+        float sweep = math.radians(sweepDeg);
         var rng = Rng;
+
+        // Independently-derived expected cone axis: UnityEngine types/APIs throughout, not
+        // Unity.Mathematics — a genuinely different implementation of the same rotate-forward-around-
+        // local-up-by-sweep operation, so it can't share a bug with IsInShape's own formula.
+        var urot = new UnityEngine.Quaternion(rot.value.x, rot.value.y, rot.value.z, rot.value.w);
+        UnityEngine.Vector3 localUp = urot * UnityEngine.Vector3.up;
+        UnityEngine.Vector3 localFwd = urot * UnityEngine.Vector3.forward;
+        UnityEngine.Vector3 expectedConeDir = UnityEngine.Quaternion.AngleAxis(sweepDeg, localUp) * localFwd;
 
         for (int i = 0; i < 200; i++)
         {
             float3 hitPos = rng.NextFloat3Direction() * rng.NextFloat(0.1f, 10f);
 
-            float3 fwd = math.forward(rot);
-            float3 upAxis = math.mul(rot, math.up());
-            float3 coneDir = math.normalize(math.mul(quaternion.AxisAngle(upAxis, 0f), fwd));
-            float3 toHit = math.normalize(hitPos - float3.zero);
-            bool expected = math.dot(coneDir, toHit) >= math.cos(halfAngle);
+            var toHit = new UnityEngine.Vector3(hitPos.x, hitPos.y, hitPos.z);
+            bool expected = UnityEngine.Vector3.Angle(expectedConeDir, toHit) <= halfAngleDeg;
 
-            bool actual = AreaAttackSystem.IsInShape(EAttackAreaShape.Cone, float3.zero, rot, 100f, halfAngle, 0f, 0f, hitPos);
+            bool actual = AreaAttackSystem.IsInShape(EAttackAreaShape.Cone, float3.zero, rot, 100f, halfAngle, sweep, 0f, hitPos);
 
             Assert.AreEqual(expected, actual, $"Mismatch at sample {i}, hitPos={hitPos}");
         }
