@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 7867096471209253954}
   - component: {fileID: 5277592717147027146}
   - component: {fileID: 310579523702815971}
+  - component: {fileID: 914482935630912558}
   m_Layer: 0
   m_Name: PF_Player_Base
   m_TagString: Untagged
@@ -249,6 +250,28 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   CurveResolution: 32
+  Knockback: 0
+  KnockbackForce: 30
+  KnockbackRadius: 2
+  Reflect: 0
+  ReflectRadius: 2.5
+  ReflectDamageMultiplier: 1
+  ReflectSpeedMultiplier: 1
+  DashDamage: 0
+  KnockbackChainDamage: 0
+  KnockbackChainRadius: 1.5
+--- !u!114 &914482935630912558
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5009445124166355485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4633fdcad9d177f42a21642207c2da67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActiveEffectsAuthoring
 --- !u!1001 &4486681620804546828
 PrefabInstance:
   m_ObjectHideFlags: 0
