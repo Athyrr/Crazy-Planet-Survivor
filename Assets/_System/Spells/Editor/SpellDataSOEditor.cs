@@ -11,10 +11,12 @@ public class SpellDataSOEditor : UnityEditor.Editor
         serializedObject.Update();
         DrawDefaultInspector();
 
-        // Derive Tags' status-effect bits from Effects[] — behavior/form bits (Ranged/Melee/Projectile/
-        // Area/Summon/Buff/Debuff/Explosive/Piercing/Bouncing) are kept as whatever the field already
-        // carries (this task does not touch how those are authored), only the 4 status bits are recomputed.
-        ESpellTag behaviorBits = so.Tags & ~(ESpellTag.Burn | ESpellTag.Slow | ESpellTag.Stun | ESpellTag.Knockback);
+        // Derive Tags' status-effect bits from Effects[] and the Bouncing/Piercing bits from their
+        // corresponding count fields — remaining behavior/form bits (Ranged/Melee/Projectile/Area/
+        // Summon/Buff/Debuff/Explosive) are kept as whatever the field already carries (this task
+        // does not touch how those are authored), only the bits listed above are recomputed.
+        ESpellTag behaviorBits = so.Tags & ~(ESpellTag.Burn | ESpellTag.Slow | ESpellTag.Stun | ESpellTag.Knockback
+            | ESpellTag.Piercing | ESpellTag.Bouncing);
         ESpellTag derivedStatusBits = ESpellTag.None;
         foreach (var effect in so.Effects)
         {
@@ -27,6 +29,9 @@ public class SpellDataSOEditor : UnityEditor.Editor
                 _ => ESpellTag.None,
             };
         }
+
+        if (so.Pierces > 0) derivedStatusBits |= ESpellTag.Piercing;
+        if (so.Bounces > 0) derivedStatusBits |= ESpellTag.Bouncing;
 
         ESpellTag newTags = behaviorBits | derivedStatusBits;
         if (newTags != so.Tags)
