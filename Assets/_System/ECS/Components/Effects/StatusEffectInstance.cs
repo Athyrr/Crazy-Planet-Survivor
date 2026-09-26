@@ -26,6 +26,12 @@ public struct StatusEffectInstance : IBufferElementData
     public float RemainingTime;
     /// <summary>Knockback only — world-space push direction captured at application time.</summary>
     public float3 Direction;
+    /// <summary>Burn only — fractional damage carried across frames. A tick's per-frame damage
+    /// (Magnitude × DeltaTime/TickRate) is sub-1 for every real spell's numbers; without this, the whole
+    /// amount is discarded every single frame (C1, final whole-branch review). Accumulated every frame by
+    /// <c>ActiveEffectsSystem.TickStatusEffectsJob</c>, flushed to a real integer hit once it crosses 1,
+    /// remainder kept for next time. Zero-valued and unused for every other <see cref="EffectType"/>.</summary>
+    public float DamageAccumulator;
 }
 
 /// <summary>Append-only, parallel-safe request queued by hit-resolution jobs (ResolveHit.ApplyEffect) via

@@ -46,6 +46,11 @@ public partial struct ActiveEffectsSystem : ISystem
             CoreStatsLookup = SystemAPI.GetComponentLookup<CoreStats>(true),
             ActiveSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(true),
             DamageEventsWriter = damageEvents.AsParallelWriter(),
+            // Not exercised today (TickBurnDamage only ever calls ResolveHit.ApplyDamage directly, never
+            // ApplyEffect) — populated anyway since this is the same shared ResolveHitContext struct
+            // CollisionSystem/AreaAttackSystem populate it in; leaving it default would be a latent trap
+            // for whatever calls ApplyEffect through this context next.
+            RequestLookup = SystemAPI.GetBufferLookup<StatusEffectApplyRequest>(true),
         };
 
         // Phase 1: drain this frame's StatusEffectApplyRequest into the real StatusEffectInstance buffer.
@@ -124,6 +129,11 @@ public partial struct ActiveEffectsSystem : ISystem
             float3 kbDirection = float3.zero;
             float kbForce = 0f, kbRemaining = 0f;
 
+            // C1 fix: fetched once so every Burn instance can accumulate its own fractional-damage carry
+            // every frame (not just the strongest), regardless of which source ends up "strongest" below.
+            ref var burnEntries = ref EffectConfig.Value.Entries;
+            ref readonly var burnCfg = ref EffectTypeConfigLookup.Get(ref burnEntries, EffectType.Burn);
+
             for (int i = instances.Length - 1; i >= 0; i--)
             {
                 var inst = instances[i];
@@ -159,6 +169,13 @@ public partial struct ActiveEffectsSystem : ISystem
 
                     case EffectType.Burn:
                         anyBurn = true;
+                        // C1 fix: carry this frame's fractional damage into the instance's own
+                        // accumulator — every active Burn instance accumulates every frame (not only
+                        // the one currently strongest), so a source's residual is already correct by the
+                        // time it becomes strongest.
+                        if (burnCfg.TickRate > 0f)
+                            inst.DamageAccumulator += inst.Magnitude * (DeltaTime / burnCfg.TickRate);
+
                         if (inst.Magnitude > strongestBurnMag)
                         {
                             strongestBurnMag = inst.Magnitude;
@@ -193,7 +210,30 @@ public partial struct ActiveEffectsSystem : ISystem
             }
             knockbackEnabled.ValueRW = anyKnockback;
 
-            TickBurnDamage(chunkIndex, entity, anyBurn, strongestBurnMag, strongestBurnSource);
+            // C1 fix: flush the strongest Burn instance's accumulator — matched by Source (not index:
+            // instances.RemoveAt above can shift indices, so re-scanning the post-removal buffer is the
+            // only safe way to find it again). Only the strongest instance emits a hit this frame, same
+            // "strongest wins" single-hit-per-frame cadence as before this fix — untouched by it.
+            float damageThisTick = 0f;
+            if (anyBurn)
+            {
+                for (int i = 0; i < instances.Length; i++)
+                {
+                    if (instances[i].Type != EffectType.Burn || instances[i].Source != strongestBurnSource)
+                        continue;
+
+                    var strongestInst = instances[i];
+                    damageThisTick = math.floor(strongestInst.DamageAccumulator);
+                    if (damageThisTick >= 1f)
+                    {
+                        strongestInst.DamageAccumulator -= damageThisTick;
+                        instances[i] = strongestInst;
+                    }
+                    break;
+                }
+            }
+
+            TickBurnDamage(chunkIndex, entity, anyBurn, damageThisTick, strongestBurnSource);
         }
 
         /// <summary>Routes Burn tick damage through the same core as direct hits: tracking always,
@@ -202,20 +242,18 @@ public partial struct ActiveEffectsSystem : ISystem
         /// alongside RemainingTime would double the buffer's footprint for a fixed cadence; instead this
         /// job ticks every frame it finds an active Burn and applies EffectConfig.TickRate-scaled damage
         /// (DamageOnTick × DeltaTime / TickRate), matching a rate-equivalent continuous tick — avoids a
-        /// second per-instance timer field while preserving the same damage-per-second.</summary>
-        private void TickBurnDamage(int chunkIndex, Entity entity, bool anyBurn, float damagePerTick, Entity burnSource)
+        /// second per-instance timer field while preserving the same damage-per-second. <paramref
+        /// name="damage"/> arrives already flushed to a whole number by the caller's per-instance
+        /// DamageAccumulator (C1 fix) — the fractional remainder that used to be discarded every frame now
+        /// carries over until it crosses 1, so Burn still deals its configured damage-per-second instead of
+        /// zero.</summary>
+        private void TickBurnDamage(int chunkIndex, Entity entity, bool anyBurn, float damage, Entity burnSource)
         {
-            if (!anyBurn || damagePerTick <= 0f)
+            if (!anyBurn || damage < 1f)
                 return;
 
             ref var entries = ref EffectConfig.Value.Entries;
             ref readonly var cfg = ref EffectTypeConfigLookup.Get(ref entries, EffectType.Burn);
-            if (cfg.TickRate <= 0f)
-                return;
-
-            float damageThisFrame = damagePerTick * (DeltaTime / cfg.TickRate);
-            if (damageThisFrame < 1f)
-                return; // sub-1 damage this frame — DamageBufferElement truncates to int; skip rather than deal 0.
 
             // Resolve the emitting entity's SpellSource (caster + DB index) for tracking/crit. A hazard
             // zone's Burn has no SpellSource -- TryGetComponent returns false, caster/dbIndex stay at their
@@ -251,45 +289,17 @@ public partial struct ActiveEffectsSystem : ISystem
             }
 
             var rng = HitRandom.CreateForHit(Seed, entity, burnSource);
-            var action = HitAction.MakeDamage(damageThisFrame, critChance, critMult, ESpellTag.Burn);
+            var action = HitAction.MakeDamage(damage, critChance, critMult, ESpellTag.Burn);
             var source = new HitSource { Caster = caster, DatabaseIndex = dbIndex, PushOrigin = default, Shake = EDamageShakeSource.DoT, Emitter = burnSource };
             ResolveHit.ApplyDamage(in Resolve, ECB, chunkIndex, entity, in action, in source, ref rng, allowCrit, allowLifeSteal);
         }
     }
 
-    [BurstCompile]
-    private struct TrackDamageJob : IJob
-    {
-        public NativeQueue<SpellDamageEvent> DamageEventsQueue;
-        public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        public Entity PlayerEntity;
-
-        public void Execute()
-        {
-            var sums = new NativeHashMap<int, int>(16, Allocator.Temp);
-            while (DamageEventsQueue.TryDequeue(out var evt))
-            {
-                if (sums.ContainsKey(evt.DatabaseIndex))
-                    sums[evt.DatabaseIndex] += evt.DamageAmount;
-                else
-                    sums.Add(evt.DatabaseIndex, evt.DamageAmount);
-            }
-
-            if (PlayerEntity != Entity.Null && ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var buffer))
-            {
-                for (int i = 0; i < buffer.Length; i++)
-                {
-                    var spell = buffer[i];
-                    if (sums.TryGetValue(spell.DatabaseIndex, out int totalAdded))
-                    {
-                        spell.TotalDamageDealt += totalAdded;
-                        buffer[i] = spell;
-                    }
-                }
-            }
-            sums.Dispose();
-        }
-    }
+    // I4 fix: the nested TrackDamageJob that used to live here is gone — this system now uses the shared
+    // top-level TrackDamageJob (Assets/_System/ECS/Systems/TrackDamageJob.cs, extracted by Task 21 from
+    // CollisionSystem and already reused by AreaAttackSystem). This file predates that extraction (Task 9,
+    // before Task 21 existed) and was never repointed at it. Same namespace, same shape — the construction
+    // site in OnUpdate resolves to the shared type unchanged.
 
     [BurstCompile]
     private partial struct ComposeLiveStatsJob : IJobEntity
