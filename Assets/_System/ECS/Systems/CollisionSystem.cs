@@ -312,7 +312,7 @@ public partial struct CollisionSystem : ISystem
                     // todo let target receive damge even if invincible. Consume damage on Health system and avoid health loss instead
                     if (!targetImmune)
                     {
-                        var random = Random.CreateFromIndex((Seed ^ ((uint)entityA.Index * 0x9E3779B1u) ^ ((uint)entityB.Index * 0x85EBCA77u)) | 1u);
+                        var random = HitRandom.CreateForHit(Seed, entityA, entityB);
 
                         int dbIndex = -1;
                         Entity caster = Entity.Null;
@@ -343,7 +343,7 @@ public partial struct CollisionSystem : ISystem
                         ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
                         ExplodeOnContactLookup.IsComponentEnabled(damagerEntity))
                     {
-                        var random = Random.CreateFromIndex((Seed ^ ((uint)entityA.Index * 0x9E3779B1u) ^ ((uint)entityB.Index * 0x85EBCA77u)) | 1u);
+                        var random = HitRandom.CreateForHit(Seed, entityA, entityB);
 
                         bool isCrit = random.NextFloat(0f, 1f) <= damageData.TotalCritChance;
                         float criticalDamagesMultiplier = 1f;
@@ -667,43 +667,6 @@ public partial struct CollisionSystem : ISystem
             newTarget = Entity.Null;
             direction = float3.zero;
             return false;
-        }
-    }
-
-    [BurstCompile]
-    private struct TrackDamageJob : IJob
-    {
-        public NativeQueue<SpellDamageEvent> DamageEventsQueue;
-        public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        public Entity PlayerEntity;
-
-        public void Execute()
-        {
-            // Sums damage per spell map
-            var sums = new NativeHashMap<int, int>(16, Allocator.Temp);
-
-            while (DamageEventsQueue.TryDequeue(out var evt))
-            {
-                if (sums.ContainsKey(evt.DatabaseIndex))
-                    sums[evt.DatabaseIndex] += evt.DamageAmount;
-                else
-                    sums.Add(evt.DatabaseIndex, evt.DamageAmount);
-            }
-
-            if (ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var buffer))
-            {
-                for (int i = 0; i < buffer.Length; i++)
-                {
-                    var spell = buffer[i];
-                    if (sums.TryGetValue(spell.DatabaseIndex, out int totalAdded))
-                    {
-                        spell.TotalDamageDealt += totalAdded;
-                        buffer[i] = spell;
-                    }
-                }
-            }
-
-            sums.Dispose();
         }
     }
 }
