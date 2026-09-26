@@ -243,6 +243,7 @@ public partial struct CollisionSystem : ISystem
         public ComponentLookup<Lifetime> LifetimeLookup;
 
         private const double MultiHitDelay = 1f; // Delay before allowing another hit if collision stays.
+        private const int MaxHitMemoryEntries = 16; // bounded window — piercing/bouncing rarely exceeds this per projectile lifetime.
 
         public void Execute(TriggerEvent triggerEvent)
         {
@@ -295,7 +296,11 @@ public partial struct CollisionSystem : ISystem
                     }
 
                     if (!asAlreadyHit)
+                    {
+                        if (history.Length >= MaxHitMemoryEntries)
+                            history.RemoveAt(0); // evict oldest — a target hit long enough ago to be evicted is safe to re-hit.
                         history.Add(new HitEntityMemory { HitEntity = target, LastHitTime = CurrentTime });
+                    }
                 }
 
                 if (canDealDamage)
