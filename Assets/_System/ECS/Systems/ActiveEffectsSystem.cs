@@ -184,11 +184,14 @@ public partial struct ActiveEffectsSystem : ISystem
                         if (burnCfg.TickRate > 0f && inst.Magnitude > 0f)
                         {
                             inst.DamageAccumulator += inst.Magnitude * (DeltaTime / burnCfg.TickRate);
-                            while (inst.DamageAccumulator >= inst.Magnitude)
-                            {
+                            // Arithmetic lives in StatusEffectFormulas.ComputeBurnTicks — plain C#, no
+                            // ECS/Burst dependency, directly unit-tested (BurnTickFlushTests.cs). This
+                            // exact flush has broken twice already; isolating it is cheap insurance.
+                            int ticks = StatusEffectFormulas.ComputeBurnTicks(inst.DamageAccumulator,
+                                inst.Magnitude, out float remainder);
+                            inst.DamageAccumulator = remainder;
+                            for (int t = 0; t < ticks; t++)
                                 TickBurnDamage(chunkIndex, entity, inst.Magnitude, inst.Source);
-                                inst.DamageAccumulator -= inst.Magnitude;
-                            }
                         }
 
                         // strongestBurnMag feeds BurnState.CurrentDamagePerTick (a UI/display mirror only)
@@ -240,12 +243,15 @@ public partial struct ActiveEffectsSystem : ISystem
         /// real Magnitude-sized tick fires per TickRate window, same as the pre-branch behavior — a target
         /// whose Burn never accumulates a full Magnitude within its RemainingTime (only possible for a
         /// misconfigured sub-frame-rate TickRate, not any real spell today) would still see reduced
-        /// DPS.</summary>
+        /// DPS. <paramref name="damage"/> is always exactly the calling instance's Magnitude now (the
+        /// caller only invokes this once per whole tick <c>ComputeBurnTicks</c> counted) — there is
+        /// deliberately no minimum-damage guard here: a stale `if (damage &lt; 1f) return` used to sit at
+        /// the top of this method, left over from the old single-lump-floor flush, and it silently
+        /// re-discarded every tick for any Magnitude &lt; 1 (the exact zero-damage bug this whole mechanic
+        /// exists to avoid) — removed, since the accumulator is already decremented by the time this runs,
+        /// so returning early here would throw that tick's damage away for good.</summary>
         private void TickBurnDamage(int chunkIndex, Entity entity, float damage, Entity burnSource)
         {
-            if (damage < 1f)
-                return;
-
             ref var entries = ref EffectConfig.Value.Entries;
             ref readonly var cfg = ref EffectTypeConfigLookup.Get(ref entries, EffectType.Burn);
 

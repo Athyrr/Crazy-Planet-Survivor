@@ -29,8 +29,13 @@ public struct StatusEffectInstance : IBufferElementData
     /// <summary>Burn only — fractional damage carried across frames. A tick's per-frame damage
     /// (Magnitude × DeltaTime/TickRate) is sub-1 for every real spell's numbers; without this, the whole
     /// amount is discarded every single frame (C1, final whole-branch review). Accumulated every frame by
-    /// <c>ActiveEffectsSystem.TickStatusEffectsJob</c>, flushed to a real integer hit once it crosses 1,
-    /// remainder kept for next time. Zero-valued and unused for every other <see cref="EffectType"/>.</summary>
+    /// <c>ActiveEffectsSystem.TickStatusEffectsJob</c>, flushed once it reaches at least one full
+    /// <see cref="Magnitude"/> — not a smaller/more-frequent 1-damage dribble (that was a second bug found
+    /// in a re-review of the first fix: it changed Burn's cadence from ~1 real tick every TickRate seconds
+    /// at full Magnitude to many sub-ticks/second at 1 damage each, which silently let Burn dodge
+    /// HealthSystem's flat per-hit armor mitigation almost entirely). The flush arithmetic itself lives in
+    /// <c>StatusEffectFormulas.ComputeBurnTicks</c> (plain C#, unit-tested) — see BurnTickFlushTests.cs.
+    /// Zero-valued and unused for every other <see cref="EffectType"/>.</summary>
     public float DamageAccumulator;
 }
 
