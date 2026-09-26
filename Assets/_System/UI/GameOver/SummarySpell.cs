@@ -10,7 +10,7 @@ public class SummarySpell : UIViewItemBase
     public TMP_Text LevelValue;
     public TMP_Text DamageValue;
 
-    public void Refresh(SpellBlob spellData, ActiveSpell activeSpell, Sprite icon)
+    public void Refresh(ref SpellBlob spellData, ActiveSpell activeSpell, Sprite icon)
     {
         Label.text = StatsFormatUtils.Humanize(spellData.ID.ToString());
         LevelValue.text = activeSpell.Level.ToString();

@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 
 [CustomEditor(typeof(SpellDataSO))]
-public class SpellDataSOEditor : Editor
+public class SpellDataSOEditor : UnityEditor.Editor
 {
     public override void OnInspectorGUI()
     {

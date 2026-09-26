@@ -89,7 +89,7 @@ public partial struct KnockbackSystem : ISystem
 
             // Force follows the designer curve: X = elapsed/duration (0 at impact, 1 at end).
             float elapsedNorm = math.saturate(1f - knockback.RemainingTime / knockback.MaxDuration);
-            float currentForce = knockback.InitialForce * (1f - kbResist) * EvaluateCurve(EffectConfig.Value.KnockbackForceCurveSamples, elapsedNorm);
+            float currentForce = knockback.InitialForce * (1f - kbResist) * EvaluateCurve(ref EffectConfig.Value.KnockbackForceCurveSamples, elapsedNorm);
 
             // Project on ground
             float3 upDir = math.normalize(transform.Position - PlanetPos);
@@ -133,7 +133,7 @@ public partial struct KnockbackSystem : ISystem
             liveStats.MoveSpeed = 0;
         }
 
-        private static float EvaluateCurve(in BlobArray<float> samples, float t)
+        private static float EvaluateCurve(ref BlobArray<float> samples, float t)
         {
             int len = samples.Length;
             float x = math.saturate(t) * (len - 1);

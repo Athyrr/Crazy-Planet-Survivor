@@ -1,6 +1,7 @@
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 
 /// <summary>Sums this frame's SpellDamageEvent queue per spell DB index and adds it to the player's
 /// ActiveSpell.TotalDamageDealt. Was duplicated verbatim in CollisionSystem and AreaAttackSystem — this is

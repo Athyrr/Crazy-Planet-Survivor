@@ -140,7 +140,7 @@ public class SummaryListView : UIViewBase
     {
         var icon = SpellsDatabase.Spells[activeSpell.DatabaseIndex].Icon;
         var uiInstance = Instantiate(SummarySpellPrefab, SpellsContainer);
-        uiInstance.Refresh(spellData, activeSpell, icon);
+        uiInstance.Refresh(ref spellData, activeSpell, icon);
     }
 
     private void CreateStatUI(string label, string value)

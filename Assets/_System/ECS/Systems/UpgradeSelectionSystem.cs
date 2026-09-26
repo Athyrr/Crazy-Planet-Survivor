@@ -380,7 +380,7 @@ public partial struct UpgradeSelectionSystem : ISystem
 
             for (int i = 0; i < activeSpells.Length; i++)
             {
-                SpellBlob spellBlob = spellBlobs[activeSpells[i].DatabaseIndex];
+                ref SpellBlob spellBlob = ref spellBlobs[activeSpells[i].DatabaseIndex];
                 if (spellBlob.ID == id)
                     return true;
             }
@@ -396,7 +396,7 @@ public partial struct UpgradeSelectionSystem : ISystem
         {
             for (int i = 0; i < activeSpells.Length; i++)
             {
-                SpellBlob spellBlob = spellBlobs[activeSpells[i].DatabaseIndex];
+                ref SpellBlob spellBlob = ref spellBlobs[activeSpells[i].DatabaseIndex];
                 if (spellBlob.ID == id)
                 {
                     ESpellTag combinedTags = spellBlob.Tag | activeSpells[i].AddedTags;
@@ -444,7 +444,7 @@ public partial struct UpgradeSelectionSystem : ISystem
         {
             for (int i = 0; i < activeSpells.Length; i++)
             {
-                SpellBlob spellBlob = spellBlobs[activeSpells[i].DatabaseIndex];
+                ref SpellBlob spellBlob = ref spellBlobs[activeSpells[i].DatabaseIndex];
                 ESpellTag combinedTags = spellBlob.Tag | activeSpells[i].AddedTags;
 
                 if ((combinedTags & tag) != 0)

@@ -211,7 +211,7 @@ public partial struct SpellCastingSystem : ISystem
                 return;
             }
 
-            ref readonly var baseSpellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
+            ref var baseSpellData = ref SpellDatabaseRef.Value.Spells[request.DatabaseIndex];
             var spellPrefab = MainSpellPrefabs[request.DatabaseIndex].Prefab;
 
             if (spellPrefab == Entity.Null && baseSpellData.ChildPrefabIndex == -1)

@@ -148,7 +148,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                         if (allSpells[spell.DatabaseIndex].ID == upgrade.SpellID)
                         {
                             // Modify spell
-                            ApplySpellUpgrade(ref spell, upgrade.SpellStat, upgrade.Value, newTags, upgrade.GrantedEffects);
+                            ApplySpellUpgrade(ref spell, upgrade.SpellStat, upgrade.Value, newTags, ref upgrade.GrantedEffects);
 
                             // Level up
                             spell.Level++;
@@ -248,7 +248,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                             var spell = spells[j];
                             if (allSpells[spell.DatabaseIndex].ID == mod.SpellID)
                             {
-                                ApplySpellUpgrade(ref spell, mod.SpellStat, mod.Value, newTags, default);
+                                ApplySpellUpgrade(ref spell, mod.SpellStat, mod.Value, newTags);
                                 spells[j] = spell;
                                 needSpellUpdate = true;
                                 break;
@@ -442,8 +442,33 @@ public partial struct ApplyUpgradeSystem : ISystem
         }
     }
 
+    /// <summary>Overload for call sites with no GrantedEffects source (amulet modifiers today) — stat/tag
+    /// application only, no effect-dedup pass.</summary>
+    private static void ApplySpellUpgrade(ref ActiveSpell spell, ESpellStat stat, float value, ESpellTag newTags)
+    {
+        ApplySpellStatAndTags(ref spell, stat, value, newTags);
+    }
+
     private static void ApplySpellUpgrade(ref ActiveSpell spell, ESpellStat stat, float value, ESpellTag newTags,
-        in BlobArray<EffectSpec> grantedEffects)
+        ref BlobArray<EffectSpec> grantedEffects)
+    {
+        ApplySpellStatAndTags(ref spell, stat, value, newTags);
+
+        // Dedup by EffectType.
+        for (int g = 0; g < grantedEffects.Length; g++)
+        {
+            var type = grantedEffects[g].Type;
+            bool alreadyPresent = false;
+            for (int j = 0; j < spell.AddedEffects.Length; j++)
+            {
+                if (spell.AddedEffects[j].Type == type) { alreadyPresent = true; break; }
+            }
+            if (!alreadyPresent)
+                spell.AddedEffects.Add(grantedEffects[g]);
+        }
+    }
+
+    private static void ApplySpellStatAndTags(ref ActiveSpell spell, ESpellStat stat, float value, ESpellTag newTags)
     {
         // upgrade.Value is a DELTA (e.g., 0.1 for +10%)
         // ALL percent-based modifiers should be ADDITIVE (+=).
@@ -506,21 +531,6 @@ public partial struct ApplyUpgradeSystem : ISystem
         if (newTags != ESpellTag.None)
         {
             spell.AddedTags |= newTags;
-        }
-
-        // Dedup by EffectType — Length is a plain zeroed int on a default(BlobArray<T>), so an empty
-        // grantedEffects (the ApplyAmuletJob call site below, which has no GrantedEffects source yet) is safe to
-        // pass and this loop simply never runs.
-        for (int g = 0; g < grantedEffects.Length; g++)
-        {
-            var type = grantedEffects[g].Type;
-            bool alreadyPresent = false;
-            for (int j = 0; j < spell.AddedEffects.Length; j++)
-            {
-                if (spell.AddedEffects[j].Type == type) { alreadyPresent = true; break; }
-            }
-            if (!alreadyPresent)
-                spell.AddedEffects.Add(grantedEffects[g]);
         }
     }
 }

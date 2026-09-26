@@ -54,7 +54,10 @@ public static class ResolveHit
         }
 
         for (int i = 0; i < actions.Length; i++)
-            ApplyOne(in ctx, ecb, sortKey, target, in actions[i], in source, triggerDamage, ref rng);
+        {
+            var action = actions[i];
+            ApplyOne(in ctx, ecb, sortKey, target, in action, in source, triggerDamage, ref rng);
+        }
     }
 
     private static void ApplyOne(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
