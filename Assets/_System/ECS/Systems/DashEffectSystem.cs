@@ -15,7 +15,12 @@ using Unity.Transforms;
 [BurstCompile]
 public partial struct DashEffectSystem : ISystem
 {
-    private ComponentLookup<KnockbackState> _knockbackLookup;
+    // C3 fix: was a direct-write ComponentLookup<KnockbackState> — replaced by the buffered-request
+    // producer lookup (same pattern ResolveHit.ApplyEffect/HazardZoneSystem already use) so
+    // ActiveEffectsSystem's TickStatusEffectsJob (which now unconditionally re-derives KnockbackState's
+    // enabled bit from the StatusEffectInstance buffer every frame) doesn't stomp a direct write one frame
+    // after it lands.
+    private BufferLookup<StatusEffectApplyRequest> _statusEffectRequestLookup;
     private ComponentLookup<DashChainDamage> _chainLookup;
     private ComponentLookup<DamageOnContact> _damageLookup;
     private ComponentLookup<LinearMovement> _linearLookup;
@@ -29,7 +34,7 @@ public partial struct DashEffectSystem : ISystem
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
 
-        _knockbackLookup = state.GetComponentLookup<KnockbackState>(true);
+        _statusEffectRequestLookup = state.GetBufferLookup<StatusEffectApplyRequest>(true);
         _chainLookup = state.GetComponentLookup<DashChainDamage>(true);
         _damageLookup = state.GetComponentLookup<DamageOnContact>(false);
         _linearLookup = state.GetComponentLookup<LinearMovement>(false);
@@ -43,7 +48,7 @@ public partial struct DashEffectSystem : ISystem
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
             return;
 
-        _knockbackLookup.Update(ref state);
+        _statusEffectRequestLookup.Update(ref state);
         _chainLookup.Update(ref state);
         _damageLookup.Update(ref state);
         _linearLookup.Update(ref state);
@@ -52,7 +57,8 @@ public partial struct DashEffectSystem : ISystem
 
         var effectConfig = SystemAPI.GetSingleton<EffectTypeConfig>().Blob;
         ref var effectEntries = ref effectConfig.Value.Entries;
-        float knockbackDuration = EffectTypeConfigLookup.Get(ref effectEntries, EffectType.Knockback).BaseDuration;
+        ref readonly var knockbackCfg = ref EffectTypeConfigLookup.Get(ref effectEntries, EffectType.Knockback);
+        float knockbackDuration = knockbackCfg.BaseDuration;
 
         float3 planetCenter = SystemAPI.GetSingleton<PlanetData>().Center;
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
@@ -64,10 +70,12 @@ public partial struct DashEffectSystem : ISystem
         {
             PlanetCenter = planetCenter,
             CollisionWorld = collisionWorld,
-            KnockbackLookup = _knockbackLookup,
+            RequestLookup = _statusEffectRequestLookup,
             ChainLookup = _chainLookup,
             DamageBufferLookup = _damageBufferLookup,
             KnockbackDuration = knockbackDuration,
+            KnockbackStackMode = knockbackCfg.StackMode,
+            KnockbackMaxStacks = knockbackCfg.MaxStacks,
             ECB = ecb,
         }.Schedule(state.Dependency);
 
@@ -87,10 +95,12 @@ public partial struct DashEffectSystem : ISystem
     {
         [ReadOnly] public float3 PlanetCenter;
         [ReadOnly] public CollisionWorld CollisionWorld;
-        [ReadOnly] public ComponentLookup<KnockbackState> KnockbackLookup;
+        [ReadOnly] public BufferLookup<StatusEffectApplyRequest> RequestLookup;
         [ReadOnly] public ComponentLookup<DashChainDamage> ChainLookup;
         [NativeDisableParallelForRestriction] public BufferLookup<DamageBufferElement> DamageBufferLookup;
         [ReadOnly] public float KnockbackDuration;
+        [ReadOnly] public EStackMode KnockbackStackMode;
+        [ReadOnly] public int KnockbackMaxStacks;
         public EntityCommandBuffer ECB;
 
         private void Execute(Entity dasher, in LocalTransform transform, in ActiveDash activeDash,
@@ -136,23 +146,33 @@ public partial struct DashEffectSystem : ISystem
                         continue;
                     dashHits.Add(new DashHitEntity { Value = enemy });
 
-                    if (doKnockback && KnockbackLookup.HasComponent(enemy))
+                    if (doKnockback && RequestLookup.HasBuffer(enemy))
                     {
                         // Radial push: each enemy is repelled away from the dasher, projected on surface.
                         float3 radial = hits[i].Position - origin;
                         PlanetUtils.ProjectDirectionOnSurface(radial, up, out float3 pushDir);
                         pushDir = math.lengthsq(pushDir) > 1e-5f ? math.normalize(pushDir) : fallbackDir;
 
-                        // KnockbackState + DashChainDamage are pre-added disabled: Set + Enable only,
-                        // no structural change so a same-frame kill can't break ECB playback.
-                        ECB.SetComponent(enemy, new KnockbackState
+                        // C3 fix: enqueue a StatusEffectApplyRequest instead of writing KnockbackState
+                        // directly. The old direct ECB Set+Enable got silently cancelled one frame after
+                        // landing — ActiveEffectsSystem.TickStatusEffectsJob now unconditionally re-derives
+                        // KnockbackState's enabled bit from the StatusEffectInstance buffer every frame, and
+                        // found no instance for this write, so it disabled the bit right back off before
+                        // ProcessKnockbackJob (which requires it enabled) ever ran. Same buffered-request
+                        // producer pattern every other effect source uses (ResolveHit.ApplyEffect,
+                        // HazardZoneSystem.ApplyBurn) — also restores per-source distinction (this dash's
+                        // knockback is now a distinct instance from, say, an explosion's, instead of one
+                        // overwriting the other), the whole point of this chantier.
+                        ECB.AppendToBuffer(enemy, new StatusEffectApplyRequest
                         {
+                            Type = EffectType.Knockback,
+                            Source = dasher,
+                            Magnitude = effect.KnockbackForce,
+                            Duration = KnockbackDuration,
                             Direction = pushDir,
-                            InitialForce = effect.KnockbackForce,
-                            RemainingTime = KnockbackDuration,
-                            MaxDuration = KnockbackDuration,
+                            StackMode = KnockbackStackMode,
+                            MaxStacks = KnockbackMaxStacks,
                         });
-                        ECB.SetComponentEnabled<KnockbackState>(enemy, true);
 
                         // Chain: flung enemy damages others it collides with while airborne.
                         if (doChain && ChainLookup.HasComponent(enemy))
