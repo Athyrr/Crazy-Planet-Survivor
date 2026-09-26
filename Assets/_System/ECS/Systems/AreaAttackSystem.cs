@@ -33,6 +33,7 @@ public partial struct AreaAttackSystem : ISystem
     private ComponentLookup<Boss> _bossLookup;
     private BufferLookup<ActiveSpell> _activeSpellLookup;
     private ComponentLookup<CoreStats> _coreStatsLookup;
+    private BufferLookup<StatusEffectApplyRequest> _statusEffectRequestLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -54,6 +55,7 @@ public partial struct AreaAttackSystem : ISystem
         _bossLookup = state.GetComponentLookup<Boss>(true);
         _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(false);
         _coreStatsLookup = state.GetComponentLookup<CoreStats>(true);
+        _statusEffectRequestLookup = state.GetBufferLookup<StatusEffectApplyRequest>(true);
 
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
@@ -93,6 +95,7 @@ public partial struct AreaAttackSystem : ISystem
         _bossLookup.Update(ref state);
         _activeSpellLookup.Update(ref state);
         _coreStatsLookup.Update(ref state);
+        _statusEffectRequestLookup.Update(ref state);
 
         float deltaTime = SystemAPI.Time.DeltaTime;
         uint seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1;
@@ -108,6 +111,7 @@ public partial struct AreaAttackSystem : ISystem
             CoreStatsLookup = _coreStatsLookup,
             ActiveSpellLookup = _activeSpellLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
+            RequestLookup = _statusEffectRequestLookup,
         };
 
         // Burst zones — hit-once over an active window (matches entities carrying HitEntityMemory).

@@ -14,6 +14,11 @@ public struct ResolveHitContext
     [ReadOnly] public ComponentLookup<LocalToWorld> LtwLookup;
     [ReadOnly] public ComponentLookup<CoreStats> CoreStatsLookup;
     [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+    /// <summary>Existence check only (HasBuffer) — the actual append still goes through the caller's ECB.
+    /// Guards ApplyEffect against a target with no StatusEffectApplyRequest buffer (e.g. the player prefab
+    /// today, pending an Editor-side ActiveEffectsAuthoring addition — C2, final whole-branch review):
+    /// without this, ecb.AppendToBuffer on a buffer-less entity errors at EndSimulation playback.</summary>
+    [ReadOnly] public BufferLookup<StatusEffectApplyRequest> RequestLookup;
 
     public NativeQueue<SpellDamageEvent>.ParallelWriter DamageEventsWriter;
 }
@@ -146,6 +151,12 @@ public static class ResolveHit
     private static void ApplyEffect(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
         Entity target, EffectType type, float triggerDamage, in HitSource source)
     {
+        // C2 guard: a target with no StatusEffectApplyRequest buffer (player prefab today — Editor step
+        // pending) silently no-ops instead of erroring at ECB playback — same graceful behavior
+        // HazardZoneSystem.cs's ApplyBurn already has for this exact case.
+        if (!ctx.RequestLookup.HasBuffer(target))
+            return;
+
         ref var entries = ref ctx.EffectConfig.Value.Entries;
         ref readonly var cfg = ref EffectTypeConfigLookup.Get(ref entries, type);
 

@@ -35,6 +35,7 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<SpellSource> _subSpellRootLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
     private ComponentLookup<Boss> _bossLookup;
+    private BufferLookup<StatusEffectApplyRequest> _statusEffectRequestLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -62,7 +63,13 @@ public partial struct CollisionSystem : ISystem
         _destroyOnContactLookup = state.GetComponentLookup<DestroyOnContact>(true);
         _invincibleLookup = state.GetComponentLookup<Invincible>(true);
         _dashIFramesLookup = state.GetComponentLookup<DashIFrames>(true);
-        _globalIFramesLookup = state.GetComponentLookup<GlobalIFrames>(true);
+        // I1 fix: write-enabled (not ReadOnly) so the job can enable GlobalIFrames live, the same frame,
+        // the moment the first hit resolves on the player — closes the same-frame multi-enemy gap (the
+        // deferred ECB-only enable below plays back at EndSimulation, too late for N simultaneous contacts
+        // in this same sequential pass to see it). Safe: this job is .Schedule()-only, never
+        // .ScheduleParallel() (see Global Constraints — a live enabled-bit write via ComponentLookup needs
+        // single-threaded scheduling).
+        _globalIFramesLookup = state.GetComponentLookup<GlobalIFrames>(false);
         _hitMemoryLookup = state.GetBufferLookup<HitEntityMemory>(false);
 
         _ricochetLookup = state.GetComponentLookup<Bounce>(false);
@@ -74,6 +81,7 @@ public partial struct CollisionSystem : ISystem
         _subSpellRootLookup = state.GetComponentLookup<SpellSource>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
         _bossLookup = state.GetComponentLookup<Boss>(true);
+        _statusEffectRequestLookup = state.GetBufferLookup<StatusEffectApplyRequest>(true);
 
         _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
         _lifetimeLookup = state.GetComponentLookup<Lifetime>(false);
@@ -122,6 +130,7 @@ public partial struct CollisionSystem : ISystem
         _colliderLookup.Update(ref state);
         _bossLookup.Update(ref state);
         _lifetimeLookup.Update(ref state);
+        _statusEffectRequestLookup.Update(ref state);
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
@@ -138,6 +147,7 @@ public partial struct CollisionSystem : ISystem
             CoreStatsLookup = _coreStatsLookup,
             ActiveSpellLookup = _activeSpellBufferLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
+            RequestLookup = _statusEffectRequestLookup,
         };
 
         var triggerCollisionJob = new TriggerCollisionJob
@@ -210,7 +220,8 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<DestroyOnContact> DestroyOnContactLookup;
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
         [ReadOnly] public ComponentLookup<DashIFrames> DashIFramesLookup;
-        [ReadOnly] public ComponentLookup<GlobalIFrames> GlobalIFramesLookup;
+        // Write-enabled (I1 fix) — see OnCreate's comment on _globalIFramesLookup.
+        public ComponentLookup<GlobalIFrames> GlobalIFramesLookup;
 
         public BufferLookup<HitEntityMemory> HitMemoryLookup;
 
@@ -340,6 +351,17 @@ public partial struct CollisionSystem : ISystem
                         // Global player i-frames: enabled after any resolved hit on the player (not enemies).
                         if (target == PlayerEntity)
                         {
+                            // Live write (I1 fix): closes the same-frame gap where N simultaneous contacts
+                            // in this one sequential job pass would otherwise all read "not immune yet" —
+                            // the ECB-only enable below plays back at EndSimulation, one frame too late for
+                            // this. Kept alongside the ECB write for consistency (and because GlobalIFrames
+                            // isn't guaranteed present pre-bake on every target — HasComponent guards it).
+                            if (GlobalIFramesLookup.HasComponent(target))
+                            {
+                                GlobalIFramesLookup[target] = new GlobalIFrames { RemainingTime = 0.3f };
+                                GlobalIFramesLookup.SetComponentEnabled(target, true);
+                            }
+
                             ResolveECB.SetComponent(target.Index, target, new GlobalIFrames { RemainingTime = 0.3f });
                             ResolveECB.SetComponentEnabled<GlobalIFrames>(target.Index, target, true);
                         }
