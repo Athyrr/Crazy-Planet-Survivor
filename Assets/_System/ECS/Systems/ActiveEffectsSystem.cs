@@ -125,7 +125,6 @@ public partial struct ActiveEffectsSystem : ISystem
         {
             float strongestSlow = 0f, strongestStunRemaining = 0f, strongestBurnMag = 0f, strongestBurnRemaining = 0f;
             bool anySlow = false, anyStun = false, anyBurn = false, anyKnockback = false;
-            Entity strongestBurnSource = Entity.Null;
             float3 kbDirection = float3.zero;
             float kbForce = 0f, kbRemaining = 0f;
 
@@ -169,18 +168,33 @@ public partial struct ActiveEffectsSystem : ISystem
 
                     case EffectType.Burn:
                         anyBurn = true;
-                        // C1 fix: carry this frame's fractional damage into the instance's own
-                        // accumulator — every active Burn instance accumulates every frame (not only
-                        // the one currently strongest), so a source's residual is already correct by the
-                        // time it becomes strongest.
-                        if (burnCfg.TickRate > 0f)
-                            inst.DamageAccumulator += inst.Magnitude * (DeltaTime / burnCfg.TickRate);
-
-                        if (inst.Magnitude > strongestBurnMag)
+                        // C1 fix, chunked-flush + per-source correction (plan.md "Scoped re-review of the
+                        // fix wave"): every active Burn instance accumulates AND flushes its own
+                        // fractional damage independently, in whole Magnitude-sized ticks — not "only the
+                        // strongest accumulates, dumps a lump when it becomes strongest, at 1-damage
+                        // granularity" (the original C1 pass). Flushing in 1-damage sub-ticks changed
+                        // Burn's emission cadence from ~1 real tick/TickRate-seconds at full Magnitude to
+                        // many sub-ticks/second at 1 damage each — HealthSystem's flat per-hit armor
+                        // mitigation (MinDamagePerHit floor) is paid once per *hit*, so dribbling the same
+                        // total damage across many more, smaller hits silently let Burn dodge armor almost
+                        // entirely. Flushing per-instance (not just the strongest) also matches "distinct
+                        // per-source instances tick independently," the whole point of this chantier — an
+                        // overshadowed weaker source no longer banks its whole DoT silently and dumps it
+                        // as one lump the moment it becomes strongest.
+                        if (burnCfg.TickRate > 0f && inst.Magnitude > 0f)
                         {
-                            strongestBurnMag = inst.Magnitude;
-                            strongestBurnSource = inst.Source;
+                            inst.DamageAccumulator += inst.Magnitude * (DeltaTime / burnCfg.TickRate);
+                            while (inst.DamageAccumulator >= inst.Magnitude)
+                            {
+                                TickBurnDamage(chunkIndex, entity, inst.Magnitude, inst.Source);
+                                inst.DamageAccumulator -= inst.Magnitude;
+                            }
                         }
+
+                        // strongestBurnMag feeds BurnState.CurrentDamagePerTick (a UI/display mirror only)
+                        // — no longer needs a matching Source, since flush is per-instance now (above),
+                        // not "look up the strongest instance's Source after the fact."
+                        strongestBurnMag = math.max(strongestBurnMag, inst.Magnitude);
                         strongestBurnRemaining = math.max(strongestBurnRemaining, inst.RemainingTime);
                         break;
                 }
@@ -209,47 +223,27 @@ public partial struct ActiveEffectsSystem : ISystem
                 knockbackState.RemainingTime = kbRemaining;
             }
             knockbackEnabled.ValueRW = anyKnockback;
-
-            // C1 fix: flush the strongest Burn instance's accumulator — matched by Source (not index:
-            // instances.RemoveAt above can shift indices, so re-scanning the post-removal buffer is the
-            // only safe way to find it again). Only the strongest instance emits a hit this frame, same
-            // "strongest wins" single-hit-per-frame cadence as before this fix — untouched by it.
-            float damageThisTick = 0f;
-            if (anyBurn)
-            {
-                for (int i = 0; i < instances.Length; i++)
-                {
-                    if (instances[i].Type != EffectType.Burn || instances[i].Source != strongestBurnSource)
-                        continue;
-
-                    var strongestInst = instances[i];
-                    damageThisTick = math.floor(strongestInst.DamageAccumulator);
-                    if (damageThisTick >= 1f)
-                    {
-                        strongestInst.DamageAccumulator -= damageThisTick;
-                        instances[i] = strongestInst;
-                    }
-                    break;
-                }
-            }
-
-            TickBurnDamage(chunkIndex, entity, anyBurn, damageThisTick, strongestBurnSource);
+            // Burn ticks are now emitted inline, per-instance, inside the loop above (see the
+            // EffectType.Burn case) — no post-loop flush needed here.
         }
 
-        /// <summary>Routes Burn tick damage through the same core as direct hits: tracking always,
-        /// crit/life-steal gated by EffectTypeConfig + the matching CoreStats upgrade toggle. Ticks are not
-        /// paced independently here — TickRate gating is intentionally left to a per-instance timer living
-        /// alongside RemainingTime would double the buffer's footprint for a fixed cadence; instead this
-        /// job ticks every frame it finds an active Burn and applies EffectConfig.TickRate-scaled damage
-        /// (DamageOnTick × DeltaTime / TickRate), matching a rate-equivalent continuous tick — avoids a
-        /// second per-instance timer field while preserving the same damage-per-second. <paramref
-        /// name="damage"/> arrives already flushed to a whole number by the caller's per-instance
-        /// DamageAccumulator (C1 fix) — the fractional remainder that used to be discarded every frame now
-        /// carries over until it crosses 1, so Burn still deals its configured damage-per-second instead of
-        /// zero.</summary>
-        private void TickBurnDamage(int chunkIndex, Entity entity, bool anyBurn, float damage, Entity burnSource)
+        /// <summary>Routes one real Burn tick's damage through the same core as direct hits: tracking
+        /// always, crit/life-steal gated by EffectTypeConfig + the matching CoreStats upgrade toggle.
+        /// TickRate gating is intentionally not a per-instance timer living alongside RemainingTime (would
+        /// double the buffer's footprint for a fixed cadence) — instead each instance accumulates fractional
+        /// damage every frame (EffectConfig.TickRate-scaled: Magnitude × DeltaTime / TickRate) and this is
+        /// called once per whole <paramref name="damage"/> (== that instance's Magnitude) the accumulator
+        /// crosses, restoring the original ~1 real tick every TickRate seconds at the full configured
+        /// Magnitude (C1 fix, chunked-flush correction — plan.md "Scoped re-review of the fix wave"). This
+        /// is NOT a "preserves the same damage-per-second" claim in general: HealthSystem applies flat armor
+        /// mitigation per *hit* (its MinDamagePerHit floor), so DPS only comes out correct when at least one
+        /// real Magnitude-sized tick fires per TickRate window, same as the pre-branch behavior — a target
+        /// whose Burn never accumulates a full Magnitude within its RemainingTime (only possible for a
+        /// misconfigured sub-frame-rate TickRate, not any real spell today) would still see reduced
+        /// DPS.</summary>
+        private void TickBurnDamage(int chunkIndex, Entity entity, float damage, Entity burnSource)
         {
-            if (!anyBurn || damage < 1f)
+            if (damage < 1f)
                 return;
 
             ref var entries = ref EffectConfig.Value.Entries;
