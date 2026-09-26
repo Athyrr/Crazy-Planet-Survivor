@@ -36,7 +36,7 @@ public static class ResolveHit
     /// Damage action (if any) is threaded into every ApplyEffect action so Burn's magnitude formula
     /// (Ratio × hitDamage) sees the same pre-crit value the crit roll used.</summary>
     public static void ApplyMany(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
-        Entity target, in FixedList128Bytes<HitAction> actions, in HitSource source, ref Random rng)
+        Entity target, in FixedList512Bytes<HitAction> actions, in HitSource source, ref Random rng)
     {
         float triggerDamage = 0f;
         for (int i = 0; i < actions.Length; i++)

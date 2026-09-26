@@ -202,12 +202,17 @@ public class PlayerAuthoring : MonoBehaviour
             // Player resources earned during a run.
             AddBuffer<ResourceBufferElement>(entity);
 
-            // Invincibility 
+            // Invincibility
             if (authoring.IsInvincible)
             {
                 AddComponent(entity, new Invincible());
                 // SetComponentEnabled<Destructible>(entity, false);
             }
+
+            // Global post-hit i-frames (always baked, disabled by default — enabled by CollisionSystem after any
+            // resolved hit; separate from the debug-only Invincible tag above).
+            AddComponent<GlobalIFrames>(entity);
+            SetComponentEnabled<GlobalIFrames>(entity, false);
         }
     }
 }

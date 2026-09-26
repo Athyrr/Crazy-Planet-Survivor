@@ -21,6 +21,7 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<DestroyOnContact> _destroyOnContactLookup;
     private ComponentLookup<Invincible> _invincibleLookup;
     private ComponentLookup<DashIFrames> _dashIFramesLookup;
+    private ComponentLookup<GlobalIFrames> _globalIFramesLookup;
     private BufferLookup<HitEntityMemory> _hitMemoryLookup;
 
     private ComponentLookup<Bounce> _ricochetLookup;
@@ -75,6 +76,7 @@ public partial struct CollisionSystem : ISystem
         _destroyOnContactLookup = state.GetComponentLookup<DestroyOnContact>(true);
         _invincibleLookup = state.GetComponentLookup<Invincible>(true);
         _dashIFramesLookup = state.GetComponentLookup<DashIFrames>(true);
+        _globalIFramesLookup = state.GetComponentLookup<GlobalIFrames>(true);
         _hitMemoryLookup = state.GetBufferLookup<HitEntityMemory>(false);
 
         _ricochetLookup = state.GetComponentLookup<Bounce>(false);
@@ -127,6 +129,7 @@ public partial struct CollisionSystem : ISystem
         _destroyOnContactLookup.Update(ref state);
         _invincibleLookup.Update(ref state);
         _dashIFramesLookup.Update(ref state);
+        _globalIFramesLookup.Update(ref state);
         _hitMemoryLookup.Update(ref state);
         _ricochetLookup.Update(ref state);
         _pierceLookup.Update(ref state);
@@ -184,6 +187,7 @@ public partial struct CollisionSystem : ISystem
             HitMemoryLookup = _hitMemoryLookup,
             InvincibleLookup = _invincibleLookup,
             DashIFramesLookup = _dashIFramesLookup,
+            GlobalIFramesLookup = _globalIFramesLookup,
             ExplodeOnContactLookup = _explodeLookup,
 
             SpellSourceLookup = _subSpellRootLookup,
@@ -227,6 +231,7 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<DestroyOnContact> DestroyOnContactLookup;
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
         [ReadOnly] public ComponentLookup<DashIFrames> DashIFramesLookup;
+        [ReadOnly] public ComponentLookup<GlobalIFrames> GlobalIFramesLookup;
 
         public BufferLookup<HitEntityMemory> HitMemoryLookup;
 
@@ -309,10 +314,15 @@ public partial struct CollisionSystem : ISystem
                     bool dashInvincible = DashIFramesLookup.HasComponent(target)
                                           && DashIFramesLookup.IsComponentEnabled(target);
 
+                    // Global player i-frames: enabled by this same job after any resolved hit on the
+                    // player (below), ticked down and disabled at 0 by GlobalIFramesSystem.
+                    bool globalIFramesActive = target == PlayerEntity
+                        && GlobalIFramesLookup.HasComponent(target) && GlobalIFramesLookup.IsComponentEnabled(target);
+
                     // An immune target lets the damager pass through untouched: no damage, and (below)
                     // no destroy/explode either — so a dash's reflect can catch enemy projectiles instead
                     // of them being consumed on contact with the invincible player.
-                    bool targetImmune = InvincibleLookup.HasComponent(target) || dashInvincible;
+                    bool targetImmune = InvincibleLookup.HasComponent(target) || dashInvincible || globalIFramesActive;
 
                     // todo let target receive damge even if invincible. Consume damage on Health system and avoid health loss instead
                     if (!targetImmune)
@@ -329,16 +339,31 @@ public partial struct CollisionSystem : ISystem
 
                         // The whole crit → damage buffer → tag effects → life steal → tracking bundle now
                         // lives in ResolveHit, shared with the area paths (kills the "crit gruyère").
-                        var action = HitAction.MakeDamage(damageData.Damage, damageData.TotalCritChance,
-                            damageData.TotalCritMultiplier, damageData.Tags);
+                        // EffectsToApply is the list composed once at cast time (Task 19c/19d) — never
+                        // re-derived from damageData.Tags (spec §4.3 correction: Tags is a read-only
+                        // derived OUTPUT of that list, never an input to hit-time dispatch).
+                        var actions = new FixedList512Bytes<HitAction>();
+                        actions.Add(HitAction.MakeDamage(damageData.Damage, damageData.TotalCritChance,
+                            damageData.TotalCritMultiplier, damageData.Tags));
+                        for (int e = 0; e < damageData.EffectsToApply.Length; e++)
+                            actions.Add(HitAction.MakeApplyEffect(damageData.EffectsToApply[e].Type));
+
                         var hitSource = new HitSource
                         {
                             Caster = caster,
                             DatabaseIndex = dbIndex,
                             PushOrigin = LocalTransformLookup[PlayerEntity].Position,
                             Shake = ResolveShakeSource(damagerEntity, damageData.Tags),
+                            Emitter = damagerEntity,
                         };
-                        ResolveHit.Apply(in Resolve, ResolveECB, target.Index, target, in action, in hitSource, ref random);
+                        ResolveHit.ApplyMany(in Resolve, ResolveECB, target.Index, target, in actions, in hitSource, ref random);
+
+                        // Global player i-frames: enabled after any resolved hit on the player (not enemies).
+                        if (target == PlayerEntity)
+                        {
+                            ResolveECB.SetComponent(target.Index, target, new GlobalIFrames { RemainingTime = 0.3f });
+                            ResolveECB.SetComponentEnabled<GlobalIFrames>(target.Index, target, true);
+                        }
 
                         // Feedbacks
                         ApplyFeedbacks(target);
