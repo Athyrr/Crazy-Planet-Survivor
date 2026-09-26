@@ -29,10 +29,6 @@ public partial struct AreaAttackSystem : ISystem
     private ComponentLookup<LocalToWorld> _ltwLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyFlagLookup;
     private ComponentLookup<LiveStats> _liveStatsLookup;
-    private ComponentLookup<ActiveKnockback> _knockbackLookup;
-    private ComponentLookup<SlowEffect> _slowLookup;
-    private ComponentLookup<StunEffect> _stunLookup;
-    private ComponentLookup<BurnEffect> _burnLookup;
     private ComponentLookup<SpellSource> _spellSourceLookup;
     private ComponentLookup<Boss> _bossLookup;
     private BufferLookup<ActiveSpell> _activeSpellLookup;
@@ -46,7 +42,6 @@ public partial struct AreaAttackSystem : ISystem
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<AreaAttack>();
-        state.RequireForUpdate<ActiveEffectsConfig>();
         state.RequireForUpdate<EffectTypeConfig>();
         state.RequireForUpdate<Player>();
 
@@ -55,10 +50,6 @@ public partial struct AreaAttackSystem : ISystem
         _ltwLookup = state.GetComponentLookup<LocalToWorld>(true);
         _destroyFlagLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
         _liveStatsLookup = state.GetComponentLookup<LiveStats>(true);
-        _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(true);
-        _slowLookup = state.GetComponentLookup<SlowEffect>(true);
-        _stunLookup = state.GetComponentLookup<StunEffect>(true);
-        _burnLookup = state.GetComponentLookup<BurnEffect>(true);
         _spellSourceLookup = state.GetComponentLookup<SpellSource>(true);
         _bossLookup = state.GetComponentLookup<Boss>(true);
         _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(false);
@@ -86,7 +77,6 @@ public partial struct AreaAttackSystem : ISystem
         var ecbBurst = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var ecbOverTime = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var collisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld;
-        var effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
         float3 playerPosition = SystemAPI.GetComponentRO<LocalTransform>(playerEntity).ValueRO.Position;
@@ -99,10 +89,6 @@ public partial struct AreaAttackSystem : ISystem
         _ltwLookup.Update(ref state);
         _destroyFlagLookup.Update(ref state);
         _liveStatsLookup.Update(ref state);
-        _knockbackLookup.Update(ref state);
-        _slowLookup.Update(ref state);
-        _stunLookup.Update(ref state);
-        _burnLookup.Update(ref state);
         _spellSourceLookup.Update(ref state);
         _bossLookup.Update(ref state);
         _activeSpellLookup.Update(ref state);

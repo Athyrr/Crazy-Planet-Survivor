@@ -68,9 +68,10 @@ public class EnemyAuthoring : MonoBehaviour
             SetComponentEnabled<DamageOnContact>(entity, true);
             AddBuffer<HitEntityMemory>(entity);
 
-            // NOTE: ActiveKnockback is already pre-added (disabled) by ActiveEffectsAuthoring, together
-            // with the other effect markers (Burn/Stun/Slow). We rely on that so the dash / collision
-            // systems only Set + Enable — no structural change means no ECB crash on same-frame death.
+            // NOTE: KnockbackState is already pre-added (disabled) by ActiveEffectsAuthoring, together
+            // with the other status-effect mirrors (BurnState/StunState/SlowState). We rely on that so the
+            // dash / collision systems only Set + Enable — no structural change means no ECB crash on
+            // same-frame death.
 
             // Dash chain-damage marker: off until a chain-damage dash knocks this enemy (see DashChainDamageSystem).
             AddComponent<DashChainDamage>(entity);

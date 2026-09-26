@@ -1,27 +1,4 @@
 using Unity.Entities;
-using Unity.Mathematics;
-
-public struct BurnEffect : IComponentData, IEnableableComponent
-{
-    public float DamageOnTick;
-    public float RemainingTime;
-    public float TickTimer;
-    public float TickRate;
-}
-
-public struct SlowEffect : IComponentData, IEnableableComponent
-{
-    public float SpeedReductionMultiplier;
-    public float DurationLeft;
-}
-
-public struct StunEffect : IComponentData, IEnableableComponent
-{
-    public float DurationLeft;
-}
-
-// todo add more effects like armor reduction, damage boost, heal over time, etc Add to ActiveEffectsAuthoring and ActiveEffectsSystem
-
 
 /// <summary>
 /// Runtime stats consumed <b>tick-per-frame</b> by non-spell systems (movement, HealthSystem armor,
@@ -41,12 +18,4 @@ public struct LiveStats : IComponentData
     public float Armor;
     public float HealthRegen;
     public float KBResist;
-}
-
-public struct ActiveKnockback : IComponentData, IEnableableComponent
-{
-    public float3 Direction;
-    public float InitialForce;
-    public float DurationLeft;
-    public float MaxDuration;
 }

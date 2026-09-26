@@ -12,7 +12,7 @@ using Unity.Entities;
 /// which writes directly to <c>CoreStats</c>.
 /// <br/><br/>
 /// Kept out of this channel: behavioural effects (Burn/Stun/Knockback) and multi-source CC with
-/// "strongest wins" stacking (Slow) — those stay dedicated components (<see cref="SlowEffect"/>, etc.).
+/// "strongest wins" stacking (Slow) — those stay dedicated components (<see cref="SlowState"/>, etc.).
 /// <br/><br/>
 /// <b>Producer contract:</b> when appending an entry, also add a
 /// <c>SpellStatsCalculationRequest</c> tag on the same entity, so the (on-demand) spell calc picks up

@@ -29,12 +29,6 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<LinearMovement> _linearMovementLookup;
     private ComponentLookup<FollowTargetMovement> _followMovementLookup;
 
-    // todo clean this, tmp fix
-    private ComponentLookup<SlowEffect> _slowLookup;
-    private ComponentLookup<StunEffect> _stunLookup;
-    private ComponentLookup<BurnEffect> _burnLookup;
-    private ComponentLookup<ActiveKnockback> _knockbackLookup;
-
     private ComponentLookup<CoreStats> _coreStatsLookup;
 
     private ComponentLookup<ExplodeOnContact> _explodeLookup;
@@ -47,23 +41,15 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<PhysicsCollider> _colliderLookup;
     private ComponentLookup<Lifetime> _lifetimeLookup;
 
-    // private ActiveEffectsConfig _effectsConfig;
-
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<Player>();
-        state.RequireForUpdate<ActiveEffectsConfig>();
         state.RequireForUpdate<EffectTypeConfig>();
         state.RequireForUpdate<PhysicsStep>();
         state.RequireForUpdate<SimulationSingleton>();
         state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
-
-        _slowLookup = state.GetComponentLookup<SlowEffect>(true);
-        _stunLookup = state.GetComponentLookup<StunEffect>(true);
-        _burnLookup = state.GetComponentLookup<BurnEffect>(true);
-        _knockbackLookup = state.GetComponentLookup<ActiveKnockback>(true);
 
         _coreStatsLookup = state.GetComponentLookup<CoreStats>(true);
 
@@ -92,8 +78,6 @@ public partial struct CollisionSystem : ISystem
         _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
         _lifetimeLookup = state.GetComponentLookup<Lifetime>(false);
 
-        // _effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
-
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
 
@@ -113,14 +97,10 @@ public partial struct CollisionSystem : ISystem
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
 
-        var effectsConfig = SystemAPI.GetSingleton<ActiveEffectsConfig>();
         float lifeStealConversion = SystemAPI.TryGetSingleton<LifeStealConfig>(out var lifeStealCfg)
             ? lifeStealCfg.Conversion
             : 0.075f;
 
-        _slowLookup.Update(ref state);
-        _stunLookup.Update(ref state);
-        _burnLookup.Update(ref state);
         _playerLookup.Update(ref state);
         _cpEntityLookup.Update(ref state);
         _transformLookup.Update(ref state);
@@ -133,7 +113,6 @@ public partial struct CollisionSystem : ISystem
         _hitMemoryLookup.Update(ref state);
         _ricochetLookup.Update(ref state);
         _pierceLookup.Update(ref state);
-        _knockbackLookup.Update(ref state);
         _coreStatsLookup.Update(ref state);
         _linearMovementLookup.Update(ref state);
         _followMovementLookup.Update(ref state);
