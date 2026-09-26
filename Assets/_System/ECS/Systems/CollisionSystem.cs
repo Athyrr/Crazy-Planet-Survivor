@@ -364,43 +364,41 @@ public partial struct CollisionSystem : ISystem
                     // contact as before — it only cancels damage, not the impact.
                     bool shouldDestroy = !dashInvincible && DestroyOnContactLookup.HasComponent(damagerEntity);
 
+                    // Cascade by priority: Bounce first (unchanged — matches Brotato/PoE, intentional, do not
+                    // "clean up" this order in a future refactor), then Pierce as the fallback when Bounce is
+                    // exhausted or has no target. Explode is independent and re-evaluated on every hit
+                    // regardless of Bounce/Pierce state (unchanged, already correct — see the
+                    // ExplodeOnContactLookup check earlier in this method).
+                    bool bounceConsumedHit = false;
+
                     if (!dashInvincible && BounceLookup.HasComponent(damagerEntity))
                     {
                         var bounce = BounceLookup[damagerEntity];
-                        if (bounce.RemainingBounces > 0)
+                        if (bounce.RemainingBounces > 0
+                            && TryFindNextUnvisitedTarget(damagerEntity, target, bounce.BounceRange, out Entity newTarget,
+                                out float3 newDirection))
+                        // if (TryFindNextTarget(damagerEntity, target, bounce.BounceRange, out Entity newTarget,
+                        //         out float3 newDirection))
                         {
-                            if (TryFindNextUnvisitedTarget(damagerEntity, target, bounce.BounceRange, out Entity newTarget,
-                                    out float3 newDirection))
-                            // if (TryFindNextTarget(damagerEntity, target, bounce.BounceRange, out Entity newTarget,
-                            //         out float3 newDirection))
+                            if (LinearMovementLookup.IsComponentEnabled(damagerEntity))
+                                ECB.SetComponentEnabled<LinearMovement>(damagerEntity, false);
+
+                            ECB.SetComponentEnabled<FollowTargetMovement>(damagerEntity, true);
+
+                            ECB.SetComponent(damagerEntity, new FollowTargetMovement
                             {
-                                if (LinearMovementLookup.IsComponentEnabled(damagerEntity))
-                                    ECB.SetComponentEnabled<LinearMovement>(damagerEntity, false);
+                                Target = newTarget,
+                                Speed = math.max(1, bounce.BounceSpeed)
+                            });
 
-                                ECB.SetComponentEnabled<FollowTargetMovement>(damagerEntity, true);
-
-                                ECB.SetComponent(damagerEntity, new FollowTargetMovement
-                                {
-                                    Target = newTarget,
-                                    Speed = math.max(1, bounce.BounceSpeed)
-                                });
-
-                                bounce.RemainingBounces--;
-                                BounceLookup[damagerEntity] = bounce;
-                                shouldDestroy = false;
-                            }
-                            else
-                            {
-                                shouldDestroy = true;
-                            }
-                        }
-                        else
-                        {
-                            shouldDestroy = true;
+                            bounce.RemainingBounces--;
+                            ECB.SetComponent(damagerEntity, bounce); // uniform ECB write — was a direct BounceLookup[damagerEntity] = bounce write.
+                            shouldDestroy = false;
+                            bounceConsumedHit = true;
                         }
                     }
 
-                    else if (!dashInvincible && PierceLookup.HasComponent(damagerEntity))
+                    if (!bounceConsumedHit && !dashInvincible && PierceLookup.HasComponent(damagerEntity))
                     {
                         var pierce = PierceLookup[damagerEntity];
                         if (pierce.RemainingPierces > 0)
@@ -414,6 +412,17 @@ public partial struct CollisionSystem : ISystem
                             shouldDestroy = true;
                         }
                     }
+                    // dashInvincible guard added here (not in the plan's literal snippet) to preserve the
+                    // pre-existing pass-through invariant documented above ("Only a dash's i-frames let the
+                    // projectile pass through unharmed") — without it, a Bounce-only projectile hitting a
+                    // dash-invincible target would get destroyed instead of passing through.
+                    else if (!bounceConsumedHit && !dashInvincible && BounceLookup.HasComponent(damagerEntity) && !PierceLookup.HasComponent(damagerEntity))
+                    {
+                        // Bounce exists but this hit didn't consume it (exhausted or no target) and there's no
+                        // Pierce to fall back to — destroy, matching the pre-fix behavior for a Bounce-only
+                        // projectile.
+                        shouldDestroy = true;
+                    }
 
                     // A bounce/pierce spell that survives a hit gets its lifetime refreshed, so
                     // chained hits keep it alive instead of letting it expire mid-flight.
@@ -423,7 +432,7 @@ public partial struct CollisionSystem : ISystem
                     {
                         var lifetime = LifetimeLookup[damagerEntity];
                         lifetime.TimeLeft = lifetime.Duration;
-                        LifetimeLookup[damagerEntity] = lifetime;
+                        ECB.SetComponent(damagerEntity, lifetime);
                     }
 
                     if (shouldDestroy && DestructibleLookup.HasComponent(damagerEntity))
