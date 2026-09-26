@@ -313,15 +313,16 @@ public partial struct AreaAttackSystem : ISystem
 
                 // Crit is rolled AND its multiplier applied inside ResolveHit — the Burst path used to
                 // write a cosmetic IsCritical while dealing base damage (half of the "crit gruyère").
-                var action = HitAction.MakeDamage(area.Damage, area.CritChance, area.CritMultiplier, area.Tags);
+                var actions = new FixedList512Bytes<HitAction>(); // widened from FixedList128Bytes, see Task 24's 2026-09-26 Ruling — 128 only holds 2 HitActions
+                actions.Add(HitAction.MakeDamage(area.Damage, area.CritChance, area.CritMultiplier, area.Tags));
+                for (int e = 0; e < area.EffectsToApply.Length; e++)
+                    actions.Add(HitAction.MakeApplyEffect(area.EffectsToApply[e].Type));
+
                 var source = new HitSource
                 {
-                    Caster = caster,
-                    DatabaseIndex = dbIndex,
-                    PushOrigin = PlayerPosition,
-                    Shake = shakeSource,
+                    Caster = caster, DatabaseIndex = dbIndex, PushOrigin = PlayerPosition, Shake = shakeSource, Emitter = entity,
                 };
-                ResolveHit.Apply(in Resolve, ECB, chunkIndex, hitEntity, in action, in source, ref random);
+                ResolveHit.ApplyMany(in Resolve, ECB, chunkIndex, hitEntity, in actions, in source, ref random);
 
                 hitMemory.Add(new HitEntityMemory { HitEntity = hitEntity, LastHitTime = 0f });
             }
@@ -437,16 +438,18 @@ public partial struct AreaAttackSystem : ISystem
 
                 // OverTime ticks now crit too — the tick used to deal flat damage with no roll at all
                 // (the other half of the "crit gruyère").
-                var action = HitAction.MakeDamage(area.Damage, area.CritChance, area.CritMultiplier, area.Tags);
+                var actions = new FixedList512Bytes<HitAction>(); // widened from FixedList128Bytes, see Task 24's 2026-09-26 Ruling — 128 only holds 2 HitActions
+                actions.Add(HitAction.MakeDamage(area.Damage, area.CritChance, area.CritMultiplier, area.Tags));
+                for (int e = 0; e < area.EffectsToApply.Length; e++)
+                    actions.Add(HitAction.MakeApplyEffect(area.EffectsToApply[e].Type));
+
                 var source = new HitSource
                 {
-                    Caster = spellSource.CasterEntity,
-                    DatabaseIndex = spellSource.DatabaseIndex,
-                    PushOrigin = zonePos,
-                    Shake = EDamageShakeSource.DoT,
+                    Caster = spellSource.CasterEntity, DatabaseIndex = spellSource.DatabaseIndex,
+                    PushOrigin = zonePos, Shake = EDamageShakeSource.DoT, Emitter = zoneEntity,
                 };
-                var rng = Random.CreateFromIndex(Seed ^ (uint)(target.Index + 1));
-                ResolveHit.Apply(in Resolve, ECB, chunkIndex, target, in action, in source, ref rng);
+                var rng = HitRandom.CreateForHit(Seed, target, zoneEntity);
+                ResolveHit.ApplyMany(in Resolve, ECB, chunkIndex, target, in actions, in source, ref rng);
             }
         }
     }
