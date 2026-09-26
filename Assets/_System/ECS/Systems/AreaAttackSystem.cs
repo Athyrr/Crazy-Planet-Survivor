@@ -136,6 +136,7 @@ public partial struct AreaAttackSystem : ISystem
             SpellSourceLookup = _spellSourceLookup,
             BossLookup = _bossLookup,
             Resolve = resolveContext,
+            Seed = seed,
         };
         JobHandle burstHandle = burstJob.ScheduleParallel(state.Dependency);
 
@@ -165,8 +166,10 @@ public partial struct AreaAttackSystem : ISystem
 
     // ── Shared helpers (nested jobs call these directly) ──
 
-    /// <summary>Shape-based filtering beyond the OverlapSphere radius. Circle is fully covered by the sphere.</summary>
-    private static bool IsInShape(EAttackAreaShape shape, float3 pos, quaternion rot,
+    /// <summary>Shape-based filtering beyond the OverlapSphere radius. Circle is fully covered by the sphere.
+    /// Widened from private to internal so an Edit-Mode test can sample it directly against the gizmo's own
+    /// preview math (AreaAttackAuthoring.OnDrawGizmosSelected) — see Task 28.</summary>
+    internal static bool IsInShape(EAttackAreaShape shape, float3 pos, quaternion rot,
         float radius, float halfAngle, float sweep, float ringThickness, float3 hitPos)
     {
         switch (shape)
@@ -231,6 +234,7 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public ComponentLookup<Boss> BossLookup;
 
         public ResolveHitContext Resolve;
+        public uint Seed;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity,
             ref AreaAttack area, in LocalToWorld localToWorld, ref DynamicBuffer<HitEntityMemory> hitMemory)
@@ -270,7 +274,7 @@ public partial struct AreaAttackSystem : ISystem
             var filter = new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = area.TargetLayers };
             var hits = new NativeList<DistanceHit>(64, Allocator.Temp);
             CollisionWorld.OverlapSphere(position, queryRadius, ref hits, filter);
-            var random = Random.CreateFromIndex((uint)(entity.Index + 1));
+            var random = HitRandom.CreateForHit(Seed, entity);
 
             EDamageShakeSource shakeSource;
             if ((area.Tags & ESpellTag.Explosive) != 0)
@@ -444,43 +448,6 @@ public partial struct AreaAttackSystem : ISystem
                 var rng = Random.CreateFromIndex(Seed ^ (uint)(target.Index + 1));
                 ResolveHit.Apply(in Resolve, ECB, chunkIndex, target, in action, in source, ref rng);
             }
-        }
-    }
-
-    // ── Damage tracking (shared) ──
-    [BurstCompile]
-    private struct TrackDamageJob : IJob
-    {
-        public NativeQueue<SpellDamageEvent> DamageEventsQueue;
-        public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        public Entity PlayerEntity;
-
-        public void Execute()
-        {
-            var sums = new NativeHashMap<int, int>(16, Allocator.Temp);
-
-            while (DamageEventsQueue.TryDequeue(out var evt))
-            {
-                if (sums.ContainsKey(evt.DatabaseIndex))
-                    sums[evt.DatabaseIndex] += evt.DamageAmount;
-                else
-                    sums.Add(evt.DatabaseIndex, evt.DamageAmount);
-            }
-
-            if (ActiveSpellLookup.TryGetBuffer(PlayerEntity, out var buffer))
-            {
-                for (int i = 0; i < buffer.Length; i++)
-                {
-                    var spell = buffer[i];
-                    if (sums.TryGetValue(spell.DatabaseIndex, out int totalAdded))
-                    {
-                        spell.TotalDamageDealt += totalAdded;
-                        buffer[i] = spell;
-                    }
-                }
-            }
-
-            sums.Dispose();
         }
     }
 }
