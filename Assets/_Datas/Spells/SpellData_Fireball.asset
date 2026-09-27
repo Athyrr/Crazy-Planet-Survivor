@@ -18,7 +18,9 @@ MonoBehaviour:
   Description: Throws a fireball at the nearest enemy, dealing damage on impact.
   SpellPrefab: {fileID: 486797506737824905, guid: 41fa62722a0249648b1dbdd9ff513461, type: 3}
   Rarity: 0
-  Tags: 4194560
+  Tags: 4587776
+  Effects:
+  - Type: 0
   BaseDamage: 65
   BaseCooldown: 0.7
   BaseSpeed: 18
@@ -28,10 +30,13 @@ MonoBehaviour:
   BaseSize: 1
   TargetingMode: 0
   Lifetime: 2
-  Bounces: 0
-  BounceRange: 0
+  Bounces: 1
+  BounceRange: 5
   Pierces: 0
   TickRate: -1
   ChildPrefab: {fileID: 0}
   BaseAmount: 1
   ChildrenSpawnRadius: 1
+  MultiCast: 2
+  SpreadAngleDegrees: 30
+  MaxSpreadDegrees: 120
