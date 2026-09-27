@@ -158,9 +158,11 @@ Material:
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 2
     - _DstBlend: 10
+    - _DstBlendAlpha: 10
     - _DstBlendOutline: 10
     - _EnableBlendModePreserveSpecularLighting: 0
     - _EnableFogOnTransparent: 0
+    - _EnableVertexColorNoiseOpacity: 0
     - _ExcludeFromTUAndAA: 0
     - _FRESNEL: 0
     - _FadeoutDistance: 0.3
@@ -212,7 +214,8 @@ Material:
     - _SoftFadeFactor: 0
     - _SourceBlendRGB: 10
     - _SpecularHighlights: 1
-    - _SrcBlend: 1
+    - _SrcBlend: 5
+    - _SrcBlendAlpha: 1
     - _SrcBlendOutline: 1
     - _StencilRef: 0
     - _StencilRefDepth: 1
@@ -249,6 +252,8 @@ Material:
     - _UseShadowThreshold: 0
     - _UseSoftAlpha: 0
     - _UseUVOffset: 0
+    - _UseVertexColor: 1
+    - _VertexColorNoiseOpacity: 0
     - _VertexMask: 0
     - _VertexMaskAlphaMul: 1
     - _ZTest: 4
