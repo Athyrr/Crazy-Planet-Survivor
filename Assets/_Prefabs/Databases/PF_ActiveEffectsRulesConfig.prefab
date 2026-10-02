@@ -9,8 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 504564905038885134}
-  - component: {fileID: 7473641823754550623}
-  - component: {fileID: 4492131406172930918}
   - component: {fileID: 1973960342864063797}
   m_Layer: 0
   m_Name: PF_ActiveEffectsRulesConfig
@@ -34,32 +32,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &7473641823754550623
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4366280865654686526}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2bae444c1ad385d4a886d0ca15544249, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ActiveEffectsConfigAuthoring
-  Settings: {fileID: 11400000, guid: 53a10a713f540524aba090f11a38f2b4, type: 2}
---- !u!114 &4492131406172930918
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4366280865654686526}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6c9bad19bf082784fb361f7bed099f59, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LifeStealConfigAuthoring
-  Settings: {fileID: 11400000, guid: 53a10a713f540524aba090f11a38f2b4, type: 2}
 --- !u!114 &1973960342864063797
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -70,6 +42,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 032471df02470914a9e799a1d16cb222, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::EffectTypeConfigAuthoring
-  Settings: {fileID: 11400000, guid: b8573e1317401a940ac2df786e5f202c, type: 2}
+  EffectSettings: {fileID: 11400000, guid: b8573e1317401a940ac2df786e5f202c, type: 2}
+  VfxSettings: {fileID: 11400000, guid: 53a10a713f540524aba090f11a38f2b4, type: 2}
