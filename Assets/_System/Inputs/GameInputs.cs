@@ -627,7 +627,7 @@ public partial class @GameInputs: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""c4d5e6f7-0005-4abc-8def-000000000005"",
-                    ""path"": ""<Keyboard>/leftShift"",
+                    ""path"": ""<Keyboard>/space"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
