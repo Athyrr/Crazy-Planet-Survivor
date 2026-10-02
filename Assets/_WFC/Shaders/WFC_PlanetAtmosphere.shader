@@ -33,7 +33,9 @@ Shader "WFC/Planet Atmosphere"
             // additif borne par l'alpha (couleur LDR x alpha <= 1): jamais de surexposition, avec ou sans tonemapping
             Blend SrcAlpha One
             ZWrite Off
-            Cull Back
+            // faces arriere seulement: la planete (opaque, devant) les cache, le halo n'existe qu'autour de sa silhouette,
+            // jamais en voile sur le disque
+            Cull Front
 
             HLSLPROGRAM
             #pragma target 3.5
@@ -78,18 +80,19 @@ Shader "WFC/Planet Atmosphere"
                 float3 n = normalize(input.normalWS);
                 float3 v = GetWorldSpaceNormalizeViewDir(input.positionWS);
                 Light mainLight = GetMainLight();
-                half ndl = dot(n, mainLight.direction);
+                half ndl = dot(n, mainLight.direction); // cote eclaire de la coque (normale exterieure)
                 // halo: monte depuis le bord de la coque jusqu'au limbe de la planete, puis s'efface vers le centre du disque
-                half x = saturate(dot(n, v));
+                // face arriere: la normale s'eloigne de la camera. 0 au bord de la coque, limb au bord de la planete (au-dela: cache)
+                half x = saturate(-dot(n, v));
                 half limb = clamp(_Limb, 0.05, 0.95);
-                half rim = x < limb ? pow(smoothstep(0.0, limb, x), 1.5) : pow(saturate(1.0 - (x - limb) / (1.0 - limb)), max(_RimPower, 0.5));
+                half rim = pow(smoothstep(0.0, limb, x), max(_RimPower * 0.3, 1.0));
                 // vue de jeu (camera pres du sol): la coque serait vue en rasant, elle disparait
                 float3 centerWS = TransformObjectToWorld(float3(0, 0, 0));
                 float shellRadius = length(TransformObjectToWorld(float3(1, 0, 0)) - centerWS);
                 half fade = saturate((distance(_WorldSpaceCameraPos, centerWS) / shellRadius - _FadeStart) / max(_FadeEnd - _FadeStart, 0.001));
                 half day = saturate(ndl * 0.8 + 0.35);
                 // bande chaude au terminateur, surtout quand on regarde vers le soleil
-                half terminator = (1.0 - abs(ndl)) * saturate(dot(-v, mainLight.direction) * 0.5 + 0.6);
+                half terminator = (1.0 - abs(ndl)) * saturate(dot(-v, mainLight.direction) * 0.5 + 0.5);
                 half3 color = _AtmoColor.rgb * (day + _NightSide) + _SunsetColor.rgb * terminator * terminator * 0.8;
                 // teinte de la lumiere seulement (pas son intensite): la Scene view sans eclairage ou un soleil tres fort ne brulent pas le halo
                 half3 lightTint = mainLight.color / max(1.0, max(mainLight.color.r, max(mainLight.color.g, mainLight.color.b)));
