@@ -122,8 +122,7 @@ Shader "WFC/Planet Lava"
                 half3 molten = lerp(_CoolColor.rgb, _LavaColor.rgb, saturate(flow * 1.6 - 0.2));
                 molten = lerp(molten, _HotColor.rgb, saturate(veins * 1.2 + pow(saturate(1.0 - flow * 1.4), 3.0) * 0.6)) * pulse;
 
-                float4 shadowCoord = TransformWorldToShadowCoord(input.positionWS);
-                Light mainLight = GetMainLight(shadowCoord);
+                Light mainLight = WFCMainLight(input.positionWS, n);
                 half lit = saturate(dot(n, mainLight.direction) * 0.5 + 0.5) * lerp(0.4, 1.0, mainLight.shadowAttenuation);
                 half3 crust = _CrustColor.rgb * (mainLight.color * lit + SampleSH(n));
                 // la croute garde des fissures incandescentes

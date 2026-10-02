@@ -128,8 +128,7 @@ Shader "WFC/Planet Land"
                 albedo *= lerp(_LowTint.rgb, _HighTint.rgb, h01);
                 half ao = lerp(1.0 - _AOStrength, 1.0, h01);
 
-                float4 shadowCoord = TransformWorldToShadowCoord(input.positionWS);
-                Light mainLight = GetMainLight(shadowCoord);
+                Light mainLight = WFCMainLight(input.positionWS, n);
                 half ndl = dot(n, mainLight.direction);
                 half wrap = saturate((ndl + _Wrap) / (1.0 + _Wrap));
                 half shadow = mainLight.shadowAttenuation * mainLight.distanceAttenuation;

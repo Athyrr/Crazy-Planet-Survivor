@@ -54,4 +54,17 @@ half3 WFCHaze(half3 color, float3 positionWS, half4 hazeColor, float hazeStart, 
     return lerp(color, hazeColor.rgb, h * h);
 }
 
+// ombre recue sans acne: lecture decalee le long de la normale, et l'ombre portee s'efface la ou la face se detourne
+// du soleil (la lumiere enveloppante y eclaire encore, l'ombre de la face elle-meme y donnait un tramage noir)
+#if defined(UNIVERSAL_LIGHTING_INCLUDED)
+Light WFCMainLight(float3 positionWS, float3 normalWS)
+{
+    float4 shadowCoord = TransformWorldToShadowCoord(positionWS + normalWS * 0.12);
+    Light light = GetMainLight(shadowCoord);
+    half ndl = dot(normalWS, light.direction);
+    light.shadowAttenuation = lerp(1.0, light.shadowAttenuation, saturate(ndl * 6.0));
+    return light;
+}
+#endif
+
 #endif

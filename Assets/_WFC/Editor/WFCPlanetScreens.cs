@@ -90,6 +90,19 @@ namespace Editor
                 cam.fieldOfView = 55f;
                 Save(cam, $"{tag}_{name}_horizon");
 
+                // terminateur de pres (soleil rasant, dans la distance d'ombre): la ou l'acne d'ombre se voyait
+                {
+                    Vector3 toSun = -sun.normalized;
+                    Vector3 side = Vector3.Cross(toSun, Vector3.up).normalized;
+                    if (side.sqrMagnitude < 0.01f) side = Vector3.right;
+                    Vector3 upT = (toSun * 0.2f + side * 0.98f).normalized;
+                    Vector3 p = center + upT * radius;
+                    Vector3 fwdT = Vector3.ProjectOnPlane(toSun, upT).normalized;
+                    cam.fieldOfView = 50f;
+                    Place(cam, p + upT * 30f - fwdT * 25f, p + fwdT * 10f, upT);
+                    Save(cam, $"{tag}_{name}_terminator");
+                }
+
                 // vue "Scene view": camera de type SceneView, loin (zoom arriere), sans post
 
                 urp.renderPostProcessing = false;

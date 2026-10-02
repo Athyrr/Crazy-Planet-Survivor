@@ -123,8 +123,7 @@ Shader "WFC/Planet Water"
                 half shallow = 1.0 - saturate(dist / max(_ShallowDistance, 0.001));
                 half3 water = lerp(_DeepColor.rgb, _ShallowColor.rgb, shallow * shallow);
 
-                float4 shadowCoord = TransformWorldToShadowCoord(input.positionWS);
-                Light mainLight = GetMainLight(shadowCoord);
+                Light mainLight = WFCMainLight(input.positionWS, n0);
                 half shadow = mainLight.shadowAttenuation * mainLight.distanceAttenuation;
                 half ndl = saturate(dot(n, mainLight.direction) * 0.5 + 0.5);
                 half3 color = water * (mainLight.color * ndl * lerp(0.55, 1.0, shadow) + SampleSH(n0));
