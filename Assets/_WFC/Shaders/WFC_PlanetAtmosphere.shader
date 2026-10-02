@@ -30,7 +30,8 @@ Shader "WFC/Planet Atmosphere"
         {
             Name "ForwardLit"
             Tags { "LightMode" = "UniversalForward" }
-            Blend One One
+            // additif borne par l'alpha (couleur LDR x alpha <= 1): jamais de surexposition, avec ou sans tonemapping
+            Blend SrcAlpha One
             ZWrite Off
             Cull Back
 
@@ -80,7 +81,8 @@ Shader "WFC/Planet Atmosphere"
                 half ndl = dot(n, mainLight.direction);
                 // halo: monte depuis le bord de la coque jusqu'au limbe de la planete, puis s'efface vers le centre du disque
                 half x = saturate(dot(n, v));
-                half rim = x < _Limb ? pow(smoothstep(0.0, _Limb, x), 1.5) : pow(1.0 - (x - _Limb) / (1.0 - _Limb), _RimPower);
+                half limb = clamp(_Limb, 0.05, 0.95);
+                half rim = x < limb ? pow(smoothstep(0.0, limb, x), 1.5) : pow(saturate(1.0 - (x - limb) / (1.0 - limb)), max(_RimPower, 0.5));
                 // vue de jeu (camera pres du sol): la coque serait vue en rasant, elle disparait
                 float3 centerWS = TransformObjectToWorld(float3(0, 0, 0));
                 float shellRadius = length(TransformObjectToWorld(float3(1, 0, 0)) - centerWS);
@@ -89,7 +91,12 @@ Shader "WFC/Planet Atmosphere"
                 // bande chaude au terminateur, surtout quand on regarde vers le soleil
                 half terminator = (1.0 - abs(ndl)) * saturate(dot(-v, mainLight.direction) * 0.5 + 0.6);
                 half3 color = _AtmoColor.rgb * (day + _NightSide) + _SunsetColor.rgb * terminator * terminator * 0.8;
-                return half4(color * rim * fade * _Intensity * mainLight.color, 1);
+                // teinte de la lumiere seulement (pas son intensite): la Scene view sans eclairage ou un soleil tres fort ne brulent pas le halo
+                half3 lightTint = mainLight.color / max(1.0, max(mainLight.color.r, max(mainLight.color.g, mainLight.color.b)));
+                color = saturate(color / max(1.0, max(color.r, max(color.g, color.b))) * lightTint);
+                half alpha = saturate(rim * fade * _Intensity);
+                if (any(isnan(color)) || isnan(alpha)) return half4(0, 0, 0, 0);
+                return half4(color, alpha);
             }
             ENDHLSL
         }

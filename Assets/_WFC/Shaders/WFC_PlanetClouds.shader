@@ -97,7 +97,10 @@ Shader "WFC/Planet Clouds"
                 // cœur des nuages plus sombre que leurs bords (epaisseur)
                 half3 color = lerp(_ShadeColor.rgb, _CloudColor.rgb, saturate(ndl * (1.2 - (density - _Coverage) * 1.5))) * mainLight.color;
                 color += SampleSH(n) * 0.3;
-                return half4(color, cloud * _Opacity * fade * saturate(ndl * 1.5 + 0.15));
+                half alpha = saturate(cloud * _Opacity * fade * saturate(ndl * 1.5 + 0.15));
+                color = saturate(color);
+                if (any(isnan(color)) || isnan(alpha)) return half4(0, 0, 0, 0);
+                return half4(color, alpha);
             }
             ENDHLSL
         }

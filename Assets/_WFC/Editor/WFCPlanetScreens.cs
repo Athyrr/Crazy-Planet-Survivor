@@ -90,6 +90,17 @@ namespace Editor
                 cam.fieldOfView = 55f;
                 Save(cam, $"{tag}_{name}_horizon");
 
+                // vue "Scene view": camera de type SceneView, loin (zoom arriere), sans post
+
+                urp.renderPostProcessing = false;
+                cam.fieldOfView = 60f;
+                Place(cam, center + (litDir.normalized + Vector3.up * 0.25f).normalized * radius * 9f, center);
+                Save(cam, $"{tag}_{name}_sceneview_far");
+                Place(cam, center + (litDir.normalized + Vector3.up * 0.25f).normalized * radius * 2.2f, center);
+                Save(cam, $"{tag}_{name}_sceneview_near");
+                cam.orthographic = true;
+                cam.orthographicSize = radius * 2.5f;
+                Save(cam, $"{tag}_{name}_sceneview_ortho");
                 Object.DestroyImmediate(camGo);
             }
         }
