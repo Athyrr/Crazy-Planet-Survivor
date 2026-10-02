@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 16292dd320aa3874d908098e8ff1ea7f, type: 3}
   m_Name: EffectTypeConfig
-  m_EditorClassIdentifier: Assembly-CSharp::EffectTypeConfigSO
+  m_EditorClassIdentifier: Assembly-CSharp::CpEffectTypeSettings
   Entries:
   - Type: 0
     Ratio: 0.125
@@ -92,3 +92,5 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   KnockbackCurveResolution: 32
+  LifeStealConversion: 0.075
+  LifeStealProcCooldown: 0.1

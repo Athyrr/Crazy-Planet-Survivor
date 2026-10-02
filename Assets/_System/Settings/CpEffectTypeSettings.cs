@@ -1,8 +1,9 @@
 using System;
 using UnityEngine;
+using _System.Settings;
 
-[CreateAssetMenu(fileName = "NewEffectTypeConfig", menuName = "Survivor/Effects/Effect Type Config")]
-public class EffectTypeConfigSO : ScriptableObject
+[CreateAssetMenu(fileName = "NewCpEffectTypeSettings", menuName = "CPSettings/EffectTypeSettings")]
+public class CpEffectTypeSettings : CpSettings<CpEffectTypeSettings>
 {
     [Serializable]
     public struct Entry
@@ -49,4 +50,11 @@ public class EffectTypeConfigSO : ScriptableObject
         new Keyframe(1.00f, 0.00f, 0f, 0f));
 
     [Range(8, 128)] public int KnockbackCurveResolution = 32;
+
+    [Header("Life Steal")]
+    [Tooltip("Fraction of a hit's damage healed on a successful life-steal proc. 0.075 = 7.5%.")]
+    public float LifeStealConversion = 0.075f;
+
+    [Tooltip("Minimum seconds between two life-steal procs (rate limiter). 0.1 = max 10 procs/s.")]
+    public float LifeStealProcCooldown = 0.1f;
 }
