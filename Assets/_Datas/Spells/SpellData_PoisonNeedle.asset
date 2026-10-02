@@ -19,7 +19,8 @@ MonoBehaviour:
     damage.
   SpellPrefab: {fileID: 6887593587544738312, guid: 51933d6499942224a9bceba1adce5407, type: 3}
   Rarity: 0
-  Tags: 4260096
+  Tags: 4194560
+  Effects: []
   BaseDamage: 20
   BaseCooldown: 0.5
   BaseSpeed: 35
@@ -36,3 +37,6 @@ MonoBehaviour:
   ChildPrefab: {fileID: 0}
   BaseAmount: 1
   ChildrenSpawnRadius: 1
+  MultiCast: 0
+  SpreadAngleDegrees: 30
+  MaxSpreadDegrees: 120

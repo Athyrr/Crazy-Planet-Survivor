@@ -13,12 +13,13 @@ MonoBehaviour:
   m_Name: SpellData_Boss_Fireball
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
   ID: 17
-  Icon: {fileID: 1555579377, guid: 4e1d115e8afe1c74cb4527dc970b8362, type: 3}
+  Icon: {fileID: 21300000, guid: a92d099bc8409fc47a76c92fc21bbe36, type: 3}
   DisplayName: Fireball
   Description: 
   SpellPrefab: {fileID: 486797506737824905, guid: ca05d02ecf4a7cb45af89a41c2820a8c, type: 3}
   Rarity: 0
   Tags: 4202752
+  Effects: []
   BaseDamage: 80
   BaseCooldown: 2
   BaseSpeed: 10
@@ -35,3 +36,6 @@ MonoBehaviour:
   ChildPrefab: {fileID: 0}
   BaseAmount: 1
   ChildrenSpawnRadius: 1
+  MultiCast: 2
+  SpreadAngleDegrees: 30
+  MaxSpreadDegrees: 120
