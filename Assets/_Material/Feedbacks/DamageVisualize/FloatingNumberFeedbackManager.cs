@@ -299,6 +299,9 @@ public class FloatingNumberFeedbackManager : MonoBehaviour, IDisposable
 
     private void DisposeQueries()
     {
+        if (World.DefaultGameObjectInjectionWorld == null || !World.DefaultGameObjectInjectionWorld.IsCreated)
+            return;
+
         if (_damageFeedbackQuery != default)
             _damageFeedbackQuery.Dispose();
 

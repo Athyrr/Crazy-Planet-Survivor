@@ -107,6 +107,9 @@ public class ResourceWidgetItem : UIViewItemBase
         if (!_hasQuery)
             return;
 
+        if (World.DefaultGameObjectInjectionWorld == null || !World.DefaultGameObjectInjectionWorld.IsCreated)
+            return;
+
         var world = _entityManager.World;
         if (world != null && world.IsCreated)
             _sourceQuery.Dispose();
