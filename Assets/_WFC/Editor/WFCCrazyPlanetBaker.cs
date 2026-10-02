@@ -152,6 +152,7 @@ namespace Editor
             var shore = ComputeShore(baked.Sea, baked.LandGround, out var covered);
             // les meshes non sauvegardes sont decharges a l'ouverture d'une scene: on garde les sommets de la mer
             var seaVerts = baked.Sea.vertices;
+            SeaRadius = seaVerts.Length > 0 ? seaVerts.Average(v => v.magnitude) : 0f;
 
             if (!AssetDatabase.IsValidFolder(folder))
                 AssetDatabase.CreateFolder(OutputRoot, "WFC_" + job.Name);
@@ -636,11 +637,30 @@ namespace Editor
         private static Material[] LandMaterials(Mesh mesh, PlanetMaterials mats) =>
             Enumerable.Repeat(mats.Land, Mathf.Max(1, mesh.subMeshCount)).ToArray();
 
-        private static void AddShells(PlanetJob job, Transform parent, Mesh sphere, PlanetMaterials mats, float radius)
+        // coques au-dessus du plus haut point du sol (montagnes, arbres): sinon elles le coupent (mouchetures au bord du disque)
+        private static void AddShells(PlanetJob job, Transform parent, Mesh sphere, PlanetMaterials mats, float radius, float surfaceTop, float seaRadius)
         {
-            AddShell("Atmosphere", parent, sphere, mats.Atmo, radius * job.AtmoScale);
+            float atmo = Mathf.Max(radius * job.AtmoScale, surfaceTop * 1.05f);
+            AddShell("Atmosphere", parent, sphere, mats.Atmo, atmo);
+            // limbe = bord de la mer vu sur la coque: le halo est le plus fort contre la silhouette et s'eteint vers l'espace
+            float limbRadius = seaRadius > 0f ? seaRadius : radius;
+            mats.Atmo.SetFloat("_Limb", Mathf.Sqrt(Mathf.Max(0.0025f, 1f - (limbRadius / atmo) * (limbRadius / atmo))));
+            mats.Atmo.SetFloat("_Intensity", job.Sea == SeaStyle.Lava ? 0.5f : 0.6f);
+            mats.Atmo.SetFloat("_RimPower", 11f);
+            EditorUtility.SetDirty(mats.Atmo);
             if (mats.Clouds != null)
-                AddShell("Clouds", parent, sphere, mats.Clouds, radius * job.CloudScale);
+                AddShell("Clouds", parent, sphere, mats.Clouds, Mathf.Max(radius * job.CloudScale, surfaceTop * 1.01f));
+        }
+
+        // haut du relief: 99e centile du rayon des sommets (le max serait un pic isole ou le sommet d'une tour)
+        private static float SeaRadius; // rayon du niveau 0 de la planete en cours de cuisson
+
+        private static float MaxRadius(Mesh mesh)
+        {
+            var r = mesh.vertices.Select(v => v.magnitude).OrderBy(x => x).ToArray();
+            float top = r.Length > 0 ? r[Mathf.Clamp((int)(r.Length * 0.99f), 0, r.Length - 1)] : 0f;
+            Report.Add($"  surface top (p99) {top:0.0}, max {(r.Length > 0 ? r[^1] : 0f):0.0}");
+            return top;
         }
 
         private static void AddShell(string name, Transform parent, Mesh sphere, Material mat, float radius)
@@ -662,7 +682,7 @@ namespace Editor
             var mr = go.AddComponent<MeshRenderer>();
             mr.sharedMaterials = new[] { mats.Land, mats.Sea };
             mr.shadowCastingMode = ShadowCastingMode.Off;
-            AddShells(job, go.transform, sphere, mats, lobby.bounds.extents.magnitude / Mathf.Sqrt(3f));
+            AddShells(job, go.transform, sphere, mats, lobby.bounds.extents.magnitude / Mathf.Sqrt(3f), MaxRadius(lobby), SeaRadius);
             var prefab = PrefabUtility.SaveAsPrefabAsset(go, path);
             Object.DestroyImmediate(go);
             return prefab;
@@ -691,7 +711,7 @@ namespace Editor
                 AddChunk($"Land_{i:00}", land[i], LandMaterials(land[i], mats), true);
             for (int i = 0; i < sea.Count; i++)
                 AddChunk($"Sea_{i:00}", sea[i], new[] { mats.Sea }, false);
-            AddShells(job, go.transform, sphere, mats, radius);
+            AddShells(job, go.transform, sphere, mats, radius, land.Max(MaxRadius), SeaRadius);
 
             var data = go.AddComponent<PlanetDataAuthoring>();
             var so = new SerializedObject(data);
