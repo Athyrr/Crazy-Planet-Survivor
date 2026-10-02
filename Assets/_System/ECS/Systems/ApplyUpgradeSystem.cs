@@ -15,6 +15,7 @@ public partial struct ApplyUpgradeSystem : ISystem
 
     private BufferLookup<ActiveSpell> _activeSpellsBufferLookup;
     private BufferLookup<SpellStatUpgrade> _spellStatUpgradesLookup;
+    private ComponentLookup<DashEffect> _dashEffectLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -29,6 +30,7 @@ public partial struct ApplyUpgradeSystem : ISystem
 
         _activeSpellsBufferLookup = SystemAPI.GetBufferLookup<ActiveSpell>(false);
         _spellStatUpgradesLookup = SystemAPI.GetBufferLookup<SpellStatUpgrade>(false);
+        _dashEffectLookup = SystemAPI.GetComponentLookup<DashEffect>(false);
     }
 
     [BurstCompile]
@@ -56,6 +58,7 @@ public partial struct ApplyUpgradeSystem : ISystem
 
         _activeSpellsBufferLookup.Update(ref state);
         _spellStatUpgradesLookup.Update(ref state);
+        _dashEffectLookup.Update(ref state);
 
         var applyUpgradeJob = new ApplyUpgradeJob()
         {
@@ -67,7 +70,8 @@ public partial struct ApplyUpgradeSystem : ISystem
             SpellsDatabaseRef = spellsDatabase.Blobs,
 
             ActiveSpellLookup = _activeSpellsBufferLookup,
-            SpellStatUpgradeLookup = _spellStatUpgradesLookup
+            SpellStatUpgradeLookup = _spellStatUpgradesLookup,
+            DashEffectLookup = _dashEffectLookup
         };
         var applyUpgradeJobHandle = applyUpgradeJob.ScheduleParallel(state.Dependency);
 
@@ -79,7 +83,8 @@ public partial struct ApplyUpgradeSystem : ISystem
             SpellsDatabaseRef = spellsDatabase.Blobs,
 
             ActiveSpellLookup = _activeSpellsBufferLookup,
-            SpellStatUpgradeLookup = _spellStatUpgradesLookup
+            SpellStatUpgradeLookup = _spellStatUpgradesLookup,
+            DashEffectLookup = _dashEffectLookup
         };
         // Chained after the upgrade job: all three write CoreStats (RW) on the player, so they
         // must run sequentially, not from the same input dependency.
@@ -105,6 +110,7 @@ public partial struct ApplyUpgradeSystem : ISystem
 
         [NativeDisableParallelForRestriction] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [NativeDisableParallelForRestriction] public BufferLookup<SpellStatUpgrade> SpellStatUpgradeLookup;
+        [NativeDisableParallelForRestriction] public ComponentLookup<DashEffect> DashEffectLookup;
 
         public void Execute(
             [ChunkIndexInQuery] int chunkIndex,
@@ -128,7 +134,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                         continue;
 
                     ApplyPlayerStatUpgrade(ref playerCoreStats, ref health, mod.CharacterStat, mod.Value,
-                        ref needSpellUpdate);
+                        ref needSpellUpdate, playerEntity, DashEffectLookup);
                 }
             }
 
@@ -214,6 +220,7 @@ public partial struct ApplyUpgradeSystem : ISystem
 
         [NativeDisableParallelForRestriction] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [NativeDisableParallelForRestriction] public BufferLookup<SpellStatUpgrade> SpellStatUpgradeLookup;
+        [NativeDisableParallelForRestriction] public ComponentLookup<DashEffect> DashEffectLookup;
 
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity playerEntity, in ApplyAmuletRequest request,
             ref CoreStats playerCoreStats, ref Health health)
@@ -232,7 +239,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                 if (mod.UpgradeType == EUpgradeType.PlayerStat)
                 {
                     ApplyPlayerStatUpgrade(ref playerCoreStats, ref health, mod.CharacterStat, mod.Value,
-                        ref needSpellUpdate);
+                        ref needSpellUpdate, playerEntity, DashEffectLookup);
                 }
 
                 // Specific Spell Upgrade
@@ -328,7 +335,7 @@ public partial struct ApplyUpgradeSystem : ISystem
     }
 
     private static void ApplyPlayerStatUpgrade(ref CoreStats playerCoreStats, ref Health health, ECharacterStat stat,
-        float value, ref bool needSpellUpdate)
+        float value, ref bool needSpellUpdate, Entity playerEntity, ComponentLookup<DashEffect> dashEffectLookup)
     {
         switch (stat)
         {
@@ -409,6 +416,49 @@ public partial struct ApplyUpgradeSystem : ISystem
                 break;
             case ECharacterStat.DashCooldown:
                 playerCoreStats.DashCooldown = math.max(0.1f, playerCoreStats.DashCooldown + value);
+                break;
+
+            // One-shot flags/stackable amounts applied onto the dasher's DashEffect. DashEffect is
+            // only present on entities that can dash (see DashAuthoring), so guard with TryGetComponent
+            // the same way UpgradeSelectionSystem.IsDashUpgradeEligible does when gating these.
+            case ECharacterStat.DashKnockback:
+                if (dashEffectLookup.TryGetComponent(playerEntity, out var dashEffectKnockback))
+                {
+                    dashEffectKnockback.Knockback = true;
+                    dashEffectLookup[playerEntity] = dashEffectKnockback;
+                }
+                break;
+            case ECharacterStat.DashReflect:
+                if (dashEffectLookup.TryGetComponent(playerEntity, out var dashEffectReflect))
+                {
+                    dashEffectReflect.Reflect = true;
+                    dashEffectLookup[playerEntity] = dashEffectReflect;
+                }
+                break;
+            case ECharacterStat.DashKnockbackForce:
+                if (dashEffectLookup.TryGetComponent(playerEntity, out var dashEffectKnockbackForce))
+                {
+                    dashEffectKnockbackForce.KnockbackForce += value;
+                    dashEffectLookup[playerEntity] = dashEffectKnockbackForce;
+                }
+                break;
+            // DashKnockbackChain maps to DashEffect.KnockbackChainDamage (there is no field literally
+            // named "KnockbackChain" on DashEffect).
+            case ECharacterStat.DashKnockbackChain:
+                if (dashEffectLookup.TryGetComponent(playerEntity, out var dashEffectKnockbackChain))
+                {
+                    dashEffectKnockbackChain.KnockbackChainDamage += value;
+                    dashEffectLookup[playerEntity] = dashEffectKnockbackChain;
+                }
+                break;
+            // DashReflectDamage maps to DashEffect.ReflectDamageMultiplier (there is no field literally
+            // named "ReflectDamage" on DashEffect).
+            case ECharacterStat.DashReflectDamage:
+                if (dashEffectLookup.TryGetComponent(playerEntity, out var dashEffectReflectDamage))
+                {
+                    dashEffectReflectDamage.ReflectDamageMultiplier += value;
+                    dashEffectLookup[playerEntity] = dashEffectReflectDamage;
+                }
                 break;
 
             case ECharacterStat.BurnDamage:
