@@ -6,7 +6,7 @@ namespace _System.Settings
     /// documentation. Renamed from the old raw-field EnemyScalingConfigAuthoring to match this project's
     /// singleton-settings convention; the runtime EnemyScalingConfig component and its consumers
     /// (EnemiesSpawnerSystem, HealthSystem, SpellCastingSystem) are unchanged.</summary>
-    [CreateAssetMenu(fileName = "DifficultyScalingSettings", menuName = "CPSettings/DifficultyScalingSettings")]
+    [CreateAssetMenu(fileName = "CpDifficultyScalingSettings", menuName = "CPSettings/DifficultyScalingSettings")]
     public class CpDifficultyScalingSettings : CpSettings<CpDifficultyScalingSettings>
     {
         [Tooltip("Run seconds per difficulty unit. Lower = faster ramp from elapsed time.")]
