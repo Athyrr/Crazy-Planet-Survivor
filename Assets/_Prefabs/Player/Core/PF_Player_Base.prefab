@@ -220,47 +220,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 761fde624644c044e8a63e1bb5748b8a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DashAuthoring
-  Distance: 6
-  Duration: 0.15
-  Radius: 0.5
-  PathSampleCount: 8
-  GlobalCooldown: 0.2
-  IFrames: 1
-  MotionCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  CurveResolution: 32
-  Knockback: 0
-  KnockbackForce: 30
-  KnockbackRadius: 2
-  Reflect: 0
-  ReflectRadius: 2.5
-  ReflectDamageMultiplier: 1
-  ReflectSpeedMultiplier: 1
-  DashDamage: 0
-  KnockbackChainDamage: 0
-  KnockbackChainRadius: 1.5
+  Settings: {fileID: 11400000, guid: f3bf4d5f6627bf2418cd639189d047e0, type: 2}
 --- !u!114 &914482935630912558
 MonoBehaviour:
   m_ObjectHideFlags: 0

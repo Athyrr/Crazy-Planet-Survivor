@@ -36,4 +36,8 @@ public class CharacterSO : ScriptableObject
 
     [Header("Statistics")] [Tooltip("Character base stats")]
     public CoreStats coreStats;
+
+    [Header("Settings Domains")]
+    [Tooltip("This character's Dash tuning. Discovered automatically by the Settings Browser window.")]
+    public DashSO Dash;
 }

@@ -36,6 +36,7 @@ MonoBehaviour:
     HealthRegen: 0
     BaseArmor: 0
     Armor: 0
+    KnockbackResistance: 0
     BaseMoveSpeed: 12
     MoveSpeed: 0.05
     BasePickupRange: 10
@@ -53,3 +54,13 @@ MonoBehaviour:
     CritDamage: 0.75
     Luck: 25
     LifeStealChance: 0
+    GlobalBurnDamageMultiplier: 0
+    GlobalBurnDurationMultiplier: 0
+    GlobalSlowStrengthMultiplier: 0
+    GlobalSlowDurationMultiplier: 0
+    GlobalStunDurationMultiplier: 0
+    BurnCanCrit: 0
+    BurnCanLifeSteal: 0
+    DashCount: 0
+    DashCooldown: 0
+  Dash: {fileID: 11400000, guid: 41f3f1fad1ca31d42ae9146e435abc55, type: 2}
