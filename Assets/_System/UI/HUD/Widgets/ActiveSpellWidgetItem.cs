@@ -19,7 +19,7 @@ public class ActiveSpellWidgetItem : UIViewItemBase
     [Tooltip("Hide the cooldown text while the spell is ready (no active cooldown).")]
     public bool HideTextWhenReady = true;
 
-    public void Refresh(SpellDataSO data, int databaseIndex, int level)
+    public void Refresh(SpellSO data, int databaseIndex, int level)
     {
         if (data == null)
             return;

@@ -166,7 +166,7 @@ public class ActiveSpellsHUDWidget : MonoBehaviour
         }
     }
 
-    private ActiveSpellWidgetItem GetOrCreateSpellWidgetItem(int dbIndex, SpellDataSO spellData,
+    private ActiveSpellWidgetItem GetOrCreateSpellWidgetItem(int dbIndex, SpellSO spellData,
         ActiveSpell activeSpell)
     {
         if (_indexToActiveSpellsMap.TryGetValue(dbIndex, out var spellWidgetItem))

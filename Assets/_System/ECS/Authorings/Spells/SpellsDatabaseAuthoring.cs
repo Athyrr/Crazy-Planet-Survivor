@@ -24,7 +24,7 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
 
             for (int i = 0; i < count; i++)
             {
-                SpellDataSO spellSO = authoring.GameSpellDatabase.Spells[i];
+                SpellSO spellSO = authoring.GameSpellDatabase.Spells[i];
 
                 if (spellSO == null)
                     continue;

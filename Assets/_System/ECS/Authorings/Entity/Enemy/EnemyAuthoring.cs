@@ -22,7 +22,7 @@ public class EnemyAuthoring : MonoBehaviour
 
     [Header("Stats")] public CoreStats BaseStats;
 
-    [Header("Spells")] public SpellDataSO[] InitialSpells;
+    [Header("Spells")] public SpellSO[] InitialSpells;
 
     [Header("Contact damage")]
     [Tooltip("Damage dealt to whatever Destructible this enemy's body touches (the player). ")]
@@ -66,6 +66,7 @@ public class EnemyAuthoring : MonoBehaviour
                 TotalCritMultiplier = 1,
             });
             SetComponentEnabled<DamageOnContact>(entity, true);
+            
             AddBuffer<HitEntityMemory>(entity);
 
             // NOTE: KnockbackState is already pre-added (disabled) by ActiveEffectsAuthoring, together

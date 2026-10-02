@@ -1,12 +1,12 @@
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(SpellDataSO))]
-public class SpellDataSOEditor : UnityEditor.Editor
+[CustomEditor(typeof(SpellSO))]
+public class SpellSOEditor : UnityEditor.Editor
 {
     public override void OnInspectorGUI()
     {
-        var so = (SpellDataSO)target;
+        var so = (SpellSO)target;
 
         serializedObject.Update();
         DrawDefaultInspector();
@@ -36,7 +36,7 @@ public class SpellDataSOEditor : UnityEditor.Editor
         ESpellTag newTags = behaviorBits | derivedStatusBits;
         if (newTags != so.Tags)
         {
-            Undo.RecordObject(so, "Derive SpellDataSO.Tags from Effects[]");
+            Undo.RecordObject(so, "Derive SpellSO.Tags from Effects[]");
             so.Tags = newTags;
             EditorUtility.SetDirty(so);
         }

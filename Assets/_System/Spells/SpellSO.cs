@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 [CreateAssetMenu(fileName = "NewSpellData", menuName = "Survivor/Spells/Spell Data")]
-public class SpellDataSO : ScriptableObject
+public class SpellSO : ScriptableObject
 {
     [Header("General")] [Tooltip("Unique identifier used by the code to recognize this spell logic.")]
     public ESpellID ID;

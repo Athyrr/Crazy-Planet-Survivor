@@ -23,7 +23,7 @@ public class BossSO : ScriptableObject
     public CoreStats BaseStats;
 
     [Tooltip("Spells the boss casts, copied into the EnemyAuthoring when pressing 'Apply Config'.")]
-    public SpellDataSO[] InitialSpells;
+    public SpellSO[] InitialSpells;
 
     // --- Reserved for later iterations (kept here so the data model does not need a rewrite) ---
     // [Header("Phases")] public float[] PhaseHealthThresholds;       // e.g. 0.66, 0.33

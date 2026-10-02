@@ -1,5 +1,5 @@
 /// <summary>
-/// How <see cref="SpellDataSO.BaseAmount"/> (+ upgrades) is consumed at cast time.
+/// How <see cref="SpellSO.BaseAmount"/> (+ upgrades) is consumed at cast time.
 /// Each spell picks the mode that matches its intent — this replaces the previous "always spread on
 /// projectiles, stack on the same point for zones" behavior (E3 exploit: N auras superposées).
 /// </summary>

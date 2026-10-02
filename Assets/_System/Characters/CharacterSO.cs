@@ -29,7 +29,7 @@ public class CharacterSO : ScriptableObject
 
 
     [Header("Spells")] [Tooltip("Character initial spells")]
-    public SpellDataSO[] InitialSpells;
+    public SpellSO[] InitialSpells;
 
     [Header("Cost")] [Tooltip("Resources required to purchase this character.")]
     public ResourceCost[] PurchaseCost;

@@ -57,9 +57,9 @@ public struct StatusEffectApplyRequest : IBufferElementData
 }
 
 /// <summary>Authoring-time declaration: "this spell applies effect X". No magnitude/duration/tickrate here —
-/// those are global per-type config (EffectTypeConfigSO), not per-spell. See spec §4.2 / Q2.
+/// those are global per-type config (CpEffectTypeSettings), not per-spell. See spec §4.2 / Q2.
 /// <c>[System.Serializable]</c> so it can live in an inspector-editable array on a ScriptableObject
-/// (<c>SpellDataSO.Effects</c>, Task 18; <c>SpellUpgradeSO.GrantedEffects</c>, Task 6b) — added during the
+/// (<c>SpellSO.Effects</c>, Task 18; <c>SpellUpgradeSO.GrantedEffects</c>, Task 6b) — added during the
 /// 2026-09-25 correction pass: both consumers assumed an Inspector-editable array, and without this
 /// attribute Unity silently drops the field from the Inspector instead of erroring.</summary>
 [System.Serializable]

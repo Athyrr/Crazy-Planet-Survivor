@@ -45,7 +45,7 @@ public struct SpellBlob
     public float MaxSpreadDegrees;
 
     // Status effects this spell declares at authoring time (base Tags bits are derived from this — see
-    // SpellDataSOEditor). Read at cast-stats time by SpellStatsCalculationSystem (Task 19c) as the base of
+    // SpellSOEditor). Read at cast-stats time by SpellStatsCalculationSystem (Task 19c) as the base of
     // effectiveEffects = Effects[] + ActiveSpell.AddedEffects (upgrade-granted, Task 6c) — see spec §4.3
     // correction. Not read directly by ResolveHit/CollisionSystem/AreaAttackSystem; they read the already-
     // composed DamageOnContact.EffectsToApply/AreaAttack.EffectsToApply instead (Task 19b/19d).
