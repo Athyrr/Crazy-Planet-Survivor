@@ -24330,6 +24330,9 @@ GameObject:
   - component: {fileID: 7227297696236979541}
   - component: {fileID: 3501787639940839575}
   - component: {fileID: 4452185056024336344}
+  - component: {fileID: 8611972820962688324}
+  - component: {fileID: 47895325831538804}
+  - component: {fileID: 7169906969116608463}
   m_Layer: 0
   m_Name: PF_Spell_ShockChain
   m_TagString: Untagged
@@ -27004,3 +27007,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b190e382b9e1f3c4ab04b4d3ef392336, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpellSourceAuthoring
+--- !u!114 &8611972820962688324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8913368109206024948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3340c3376cd3294d9e8613d09ce72cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PierceAuthoring
+--- !u!114 &47895325831538804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8913368109206024948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f544015d288fe2d4cb3f9267d7f55e2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DestroyOnContactAuthoring
+--- !u!114 &7169906969116608463
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8913368109206024948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2b84fa8e8cbd674c8acfb417a3276e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LifetimeAuthoring
+  OverrideData: 0
+  Lifetime: 0
