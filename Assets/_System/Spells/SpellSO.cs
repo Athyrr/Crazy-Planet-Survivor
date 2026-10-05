@@ -80,6 +80,21 @@ public class SpellSO : ScriptableObject
     [Tooltip("Number of enemies the projectile can pass through before being destroyed.")]
     public int Pierces;
 
+    [Header("Capabilities (what this spell is allowed to do)")]
+    [Tooltip("Allow Bounce on this spell: upgrades may grant bounces. The prefab must carry the Bounce slot (BounceAuthoring).")]
+    public bool AllowBounce = true;
+
+    [Tooltip("Allow Pierce on this spell: upgrades may grant pierces. The prefab must carry the Pierce slot (PierceAuthoring).")]
+    public bool AllowPierce = true;
+
+    [Tooltip("Allow ExplodeOnContact on this spell (still needs the Explosive tag at cast time, granted by a spell upgrade).")]
+    public bool AllowExplode = false;
+
+    public ESpellCapability AllowedCapabilities =>
+        (AllowBounce ? ESpellCapability.Bounce : ESpellCapability.None)
+        | (AllowPierce ? ESpellCapability.Pierce : ESpellCapability.None)
+        | (AllowExplode ? ESpellCapability.Explode : ESpellCapability.None);
+
 
     [Header("Tick")] [Tooltip("Time interval in seconds between two damage ticks.")]
     public float TickRate = 1f;

@@ -8,6 +8,8 @@ public struct SpellBlob
     public ESpellID ID;
     // public FixedString512Bytes DisplayName; // 
     public ESpellTag Tag;
+    // Capabilities the spell may use = SpellSO permission (AllowBounce/AllowPierce/AllowExplode) AND the slot really present on its prefab (ruling D3). Read at cast time, in FinalTags derivation and by the upgrade filter.
+    public ESpellCapability AllowedCapabilities;
 
     // Base Stats
     public float BaseDamage;

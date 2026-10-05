@@ -15,10 +15,12 @@ MonoBehaviour:
   ID: 4
   Icon: {fileID: 21300000, guid: e1da249cf986f154c87db7a5f3a92eb8, type: 3}
   DisplayName: Shock Chain
-  Description: Strikes the nearest enemy with a bolt that arcs onward to one more target.
+  Description: Strikes the nearest enemy with a bolt that arcs onward to one more
+    target.
   SpellPrefab: {fileID: 8913368109206024948, guid: f491fbea88b5de84cb17d29b0c15b99b, type: 3}
   Rarity: 0
   Tags: 4325376
+  Effects: []
   BaseDamage: 80
   BaseCooldown: 1.5
   BaseSpeed: 30
@@ -31,7 +33,13 @@ MonoBehaviour:
   Bounces: 1
   BounceRange: 10
   Pierces: 0
+  AllowBounce: 1
+  AllowPierce: 1
+  AllowExplode: 1
   TickRate: 1
   ChildPrefab: {fileID: 0}
   BaseAmount: 1
   ChildrenSpawnRadius: 1
+  MultiCast: 0
+  SpreadAngleDegrees: 30
+  MaxSpreadDegrees: 120

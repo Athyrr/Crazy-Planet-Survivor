@@ -41,6 +41,18 @@ public class SpellSOEditor : UnityEditor.Editor
             EditorUtility.SetDirty(so);
         }
 
+        // Capability warnings: the SO says "allowed", the prefab must carry the slot; counters need the permission.
+        if (so.AllowBounce && so.SpellPrefab != null && so.SpellPrefab.GetComponent<BounceAuthoring>() == null)
+            EditorGUILayout.HelpBox("AllowBounce is checked but the prefab has no BounceAuthoring slot.", MessageType.Warning);
+        if (so.AllowPierce && so.SpellPrefab != null && so.SpellPrefab.GetComponent<PierceAuthoring>() == null)
+            EditorGUILayout.HelpBox("AllowPierce is checked but the prefab has no PierceAuthoring slot.", MessageType.Warning);
+        if (so.AllowExplode && so.SpellPrefab != null && so.SpellPrefab.GetComponent<ExplodeOnContactAuthoring>() == null)
+            EditorGUILayout.HelpBox("AllowExplode is checked but the prefab has no ExplodeOnContactAuthoring slot.", MessageType.Warning);
+        if (so.Bounces > 0 && !so.AllowBounce)
+            EditorGUILayout.HelpBox("Bounces > 0 but AllowBounce is unchecked: the bounces will never fire.", MessageType.Warning);
+        if (so.Pierces > 0 && !so.AllowPierce)
+            EditorGUILayout.HelpBox("Pierces > 0 but AllowPierce is unchecked: the pierces will never fire.", MessageType.Warning);
+
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Derived Tags (read-only)", newTags.ToString());
     }

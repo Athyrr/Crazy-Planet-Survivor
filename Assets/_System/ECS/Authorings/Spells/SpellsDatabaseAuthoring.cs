@@ -36,6 +36,18 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 // spellBlob.DisplayName = spellSO.DisplayName;
                 spellBlob.Tag = spellSO.Tags;
 
+                // Ruling D3: permission (SpellSO) AND real slot on the prefab. A spell that allows Bounce but whose prefab
+                // has no BounceAuthoring cannot bounce, so it must not count for the upgrade filter either.
+                ESpellCapability slots = ESpellCapability.None;
+                if (spellSO.SpellPrefab != null)
+                {
+                    DependsOn(spellSO.SpellPrefab); // rebake when the prefab gains/loses a slot
+                    if (spellSO.SpellPrefab.GetComponent<BounceAuthoring>() != null) slots |= ESpellCapability.Bounce;
+                    if (spellSO.SpellPrefab.GetComponent<PierceAuthoring>() != null) slots |= ESpellCapability.Pierce;
+                    if (spellSO.SpellPrefab.GetComponent<ExplodeOnContactAuthoring>() != null) slots |= ESpellCapability.Explode;
+                }
+                spellBlob.AllowedCapabilities = spellSO.AllowedCapabilities & slots;
+
                 // Base Stats
                 spellBlob.BaseDamage = spellSO.BaseDamage;
                 spellBlob.BaseCooldown = spellSO.BaseCooldown;

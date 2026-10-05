@@ -19,6 +19,7 @@ MonoBehaviour:
   SpellPrefab: {fileID: 486797506737824905, guid: b47681fa60ab1fa4eb35a7bbc055896a, type: 3}
   Rarity: 0
   Tags: 4194560
+  Effects: []
   BaseDamage: 65
   BaseCooldown: 1
   BaseSpeed: 18
@@ -31,7 +32,13 @@ MonoBehaviour:
   Bounces: 0
   BounceRange: 0
   Pierces: 0
+  AllowBounce: 1
+  AllowPierce: 1
+  AllowExplode: 1
   TickRate: -1
   ChildPrefab: {fileID: 0}
   BaseAmount: 1
   ChildrenSpawnRadius: 1
+  MultiCast: 0
+  SpreadAngleDegrees: 30
+  MaxSpreadDegrees: 120

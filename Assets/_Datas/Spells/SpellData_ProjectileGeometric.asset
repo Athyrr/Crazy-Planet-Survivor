@@ -15,10 +15,12 @@ MonoBehaviour:
   ID: 20
   Icon: {fileID: 21300000, guid: a611cddded2873b40a9858784b8ac142, type: 3}
   DisplayName: GeometricProjectile
-  Description: Launches a geometric shard at the nearest enemy, dealing damage on hit.
+  Description: Launches a geometric shard at the nearest enemy, dealing damage on
+    hit.
   SpellPrefab: {fileID: 486797506737824905, guid: 28d407a1315e07043ba6ec22876e0d38, type: 3}
   Rarity: 0
   Tags: 4194560
+  Effects: []
   BaseDamage: 65
   BaseCooldown: 0.7
   BaseSpeed: 18
@@ -31,7 +33,13 @@ MonoBehaviour:
   Bounces: 0
   BounceRange: 0
   Pierces: 0
+  AllowBounce: 1
+  AllowPierce: 1
+  AllowExplode: 1
   TickRate: -1
   ChildPrefab: {fileID: 0}
   BaseAmount: 1
   ChildrenSpawnRadius: 1
+  MultiCast: 0
+  SpreadAngleDegrees: 30
+  MaxSpreadDegrees: 120
