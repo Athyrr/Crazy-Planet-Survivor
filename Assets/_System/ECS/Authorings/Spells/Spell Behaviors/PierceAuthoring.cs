@@ -1,8 +1,6 @@
 using Unity.Entities;
-using UnityEngine;
 
-[RequireComponent(typeof(DestructibleAuthoring))]
-public class PierceAuthoring : MonoBehaviour
+public class PierceAuthoring : SpellCapabilityAuthoring
 {
     class Baker : Baker<PierceAuthoring>
     {
@@ -10,7 +8,7 @@ public class PierceAuthoring : MonoBehaviour
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            AddComponent<Pierce>(entity);
+            BakeDisabled<Pierce>(this, entity);
         }
     }
 }

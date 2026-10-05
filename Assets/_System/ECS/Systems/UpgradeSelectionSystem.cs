@@ -399,7 +399,11 @@ public partial struct UpgradeSelectionSystem : ISystem
                 ref SpellBlob spellBlob = ref spellBlobs[activeSpells[i].DatabaseIndex];
                 if (spellBlob.ID == id)
                 {
-                    ESpellTag combinedTags = spellBlob.Tag | activeSpells[i].AddedTags;
+                    // Ruling D2: FinalTags (derived Bouncing/Piercing) once computed; authored tags while FinalTags is
+                    // still None (~2 frames after a spell unlock).
+                    ESpellTag combinedTags = activeSpells[i].FinalTags != ESpellTag.None
+                        ? activeSpells[i].FinalTags
+                        : (spellBlob.Tag | activeSpells[i].AddedTags);
                     return (combinedTags & tag) != 0;
                 }
             }
@@ -445,7 +449,11 @@ public partial struct UpgradeSelectionSystem : ISystem
             for (int i = 0; i < activeSpells.Length; i++)
             {
                 ref SpellBlob spellBlob = ref spellBlobs[activeSpells[i].DatabaseIndex];
-                ESpellTag combinedTags = spellBlob.Tag | activeSpells[i].AddedTags;
+                // Ruling D2: FinalTags (derived Bouncing/Piercing) once computed; authored tags while FinalTags is
+                // still None (~2 frames after a spell unlock).
+                ESpellTag combinedTags = activeSpells[i].FinalTags != ESpellTag.None
+                    ? activeSpells[i].FinalTags
+                    : (spellBlob.Tag | activeSpells[i].AddedTags);
 
                 if ((combinedTags & tag) != 0)
                     return true;

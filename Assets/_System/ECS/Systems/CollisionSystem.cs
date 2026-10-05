@@ -397,7 +397,7 @@ public partial struct CollisionSystem : ISystem
                     // ExplodeOnContactLookup check earlier in this method).
                     bool bounceConsumedHit = false;
 
-                    if (!dashInvincible && BounceLookup.HasComponent(damagerEntity))
+                    if (!dashInvincible && CapabilityUtils.IsCapabilityActive(BounceLookup, damagerEntity))
                     {
                         var bounce = BounceLookup[damagerEntity];
                         if (bounce.RemainingBounces > 0
@@ -424,7 +424,7 @@ public partial struct CollisionSystem : ISystem
                         }
                     }
 
-                    if (!bounceConsumedHit && !dashInvincible && PierceLookup.HasComponent(damagerEntity))
+                    if (!bounceConsumedHit && !dashInvincible && CapabilityUtils.IsCapabilityActive(PierceLookup, damagerEntity))
                     {
                         var pierce = PierceLookup[damagerEntity];
                         if (pierce.RemainingPierces > 0)
@@ -442,7 +442,7 @@ public partial struct CollisionSystem : ISystem
                     // pre-existing pass-through invariant documented above ("Only a dash's i-frames let the
                     // projectile pass through unharmed") — without it, a Bounce-only projectile hitting a
                     // dash-invincible target would get destroyed instead of passing through.
-                    else if (!bounceConsumedHit && !dashInvincible && BounceLookup.HasComponent(damagerEntity) && !PierceLookup.HasComponent(damagerEntity))
+                    else if (!bounceConsumedHit && !dashInvincible && CapabilityUtils.IsCapabilityActive(BounceLookup, damagerEntity) && !CapabilityUtils.IsCapabilityActive(PierceLookup, damagerEntity))
                     {
                         // Bounce exists but this hit didn't consume it (exhausted or no target) and there's no
                         // Pierce to fall back to — destroy, matching the pre-fix behavior for a Bounce-only
@@ -453,7 +453,7 @@ public partial struct CollisionSystem : ISystem
                     // A bounce/pierce spell that survives a hit gets its lifetime refreshed, so
                     // chained hits keep it alive instead of letting it expire mid-flight.
                     if (!shouldDestroy
-                        && (BounceLookup.HasComponent(damagerEntity) || PierceLookup.HasComponent(damagerEntity))
+                        && (CapabilityUtils.IsCapabilityActive(BounceLookup, damagerEntity) || CapabilityUtils.IsCapabilityActive(PierceLookup, damagerEntity))
                         && LifetimeLookup.HasComponent(damagerEntity))
                     {
                         var lifetime = LifetimeLookup[damagerEntity];

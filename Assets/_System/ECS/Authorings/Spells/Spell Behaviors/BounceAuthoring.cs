@@ -1,8 +1,6 @@
 using Unity.Entities;
-using UnityEngine;
 
-[RequireComponent(typeof(DestructibleAuthoring))]
-public class BounceAuthoring : MonoBehaviour
+public class BounceAuthoring : SpellCapabilityAuthoring
 {
     class Baker : Baker<BounceAuthoring>
     {
@@ -10,7 +8,7 @@ public class BounceAuthoring : MonoBehaviour
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            AddComponent<Bounce>(entity);
+            BakeDisabled<Bounce>(this, entity);
 
             AddComponent(entity, new FollowTargetMovement
             {

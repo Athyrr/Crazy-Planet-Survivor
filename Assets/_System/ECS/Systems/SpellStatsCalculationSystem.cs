@@ -212,9 +212,6 @@ public partial struct SpellStatsCalculationSystem : ISystem
                     }
                 }
 
-                // 3) currentTags is stable now — safe for the RequiredTags-gated SpellStatUpgrade loop below.
-                ESpellTag currentTags = (baseSpellData.Tag & ~StatusBitsMask) | (spell.AddedTags & ~StatusBitsMask) | derivedStatusBits;
-
                 // Multipliers
                 // Total = 1 + Global(Player) + Buff(Player, temp) + Local(Spell)  (all stored as deltas, neutral = 0)
                 float dmgMult = 1f + coreStats.Damage + bDamage + spell.LocalDamageBonusMultiplier;
@@ -237,6 +234,21 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 int amountAdd = coreStats.Amount + (int)bAmount + spell.LocalAmountBonus;
                 int bounceAdd = coreStats.Bounce + (int)bBounce + spell.LocalBounceBonus;
                 int pierceAdd = coreStats.Pierce + (int)bPierce + spell.LocalPierceBonus;
+
+                // 3) Tags used by the RequiredTags-gated SpellStatUpgrade loop below. Bouncing/Piercing are DERIVED from the
+                // active state (counter > 0 AND allowed), never read from the authored base / AddedTags. The pre-loop count
+                // (base + global + buff + local) is used here so a Bouncing-gated BounceCount modifier is not self-referential.
+                ESpellCapability allowed = baseSpellData.AllowedCapabilities;
+                const ESpellTag CapabilityBitsMask = ESpellTag.Bouncing | ESpellTag.Piercing;
+                ESpellTag derivedCapabilityBits = ESpellTag.None;
+                if ((allowed & ESpellCapability.Bounce) != 0 && baseSpellData.Bounces + bounceAdd > 0)
+                    derivedCapabilityBits |= ESpellTag.Bouncing;
+                if ((allowed & ESpellCapability.Pierce) != 0 && baseSpellData.Pierces + pierceAdd > 0)
+                    derivedCapabilityBits |= ESpellTag.Piercing;
+
+                ESpellTag currentTags = (baseSpellData.Tag & ~(StatusBitsMask | CapabilityBitsMask))
+                                        | (spell.AddedTags & ~(StatusBitsMask | CapabilityBitsMask))
+                                        | derivedStatusBits | derivedCapabilityBits;
 
                 // Crit
                 float critChanceAdd = coreStats.CritChance + bCritChance + spell.LocalCritChanceBonusPercent;
@@ -349,7 +361,11 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 spell.FinalSlowMagnitudeBonus = slowMagnitudeBonus;
 
                 spell.FinalEffects = effectiveEffects;
-                spell.FinalTags = currentTags;
+                // Definitive Bouncing/Piercing derivation from the FINAL counters (after the gated modifier loop).
+                ESpellTag finalTags = currentTags & ~CapabilityBitsMask;
+                if (spell.FinalBounces > 0 && (allowed & ESpellCapability.Bounce) != 0) finalTags |= ESpellTag.Bouncing;
+                if (spell.FinalPierces > 0 && (allowed & ESpellCapability.Pierce) != 0) finalTags |= ESpellTag.Piercing;
+                spell.FinalTags = finalTags;
 
                 // Save
                 activeSpells[i] = spell;

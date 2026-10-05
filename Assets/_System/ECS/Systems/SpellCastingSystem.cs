@@ -696,9 +696,10 @@ public partial struct SpellCastingSystem : ISystem
                     }
                 }
 
-                // Bounce
-                bool forceBounce = (totalTags & ESpellTag.Bouncing) != 0;
-                if ((activeSpell.FinalBounces > 0 || forceBounce) && BounceLookup.HasComponent(spellPrefab))
+                ESpellCapability allowed = baseSpellData.AllowedCapabilities;
+
+                // Bounce: counter > 0 AND allowed (the "or Bouncing tag" path is gone: the tag describes, it does not create).
+                if (activeSpell.FinalBounces > 0 && (allowed & ESpellCapability.Bounce) != 0 && BounceLookup.HasComponent(spellPrefab))
                 {
                     ECB.SetComponentEnabled<Bounce>(chunkIndex, spellEntity, true);
                     ECB.SetComponent(chunkIndex, spellEntity, new Bounce
@@ -709,16 +710,15 @@ public partial struct SpellCastingSystem : ISystem
                     });
                 }
 
-                // Pierce
-                bool forcePierce = (totalTags & ESpellTag.Piercing) != 0;
-                if ((finalPierce > 0 || forcePierce) && PierceLookup.HasComponent(spellPrefab))
+                // Pierce: counter > 0 AND allowed.
+                if (finalPierce > 0 && (allowed & ESpellCapability.Pierce) != 0 && PierceLookup.HasComponent(spellPrefab))
                 {
                     ECB.SetComponentEnabled<Pierce>(chunkIndex, spellEntity, true);
                     ECB.SetComponent(chunkIndex, spellEntity, new Pierce { RemainingPierces = finalPierce });
                 }
 
-                // Explosion
-                bool forceExplode = (totalTags & ESpellTag.Explosive) != 0;
+                // Explode on contact: Explosive tag (an input, documented exception) AND allowed.
+                bool forceExplode = (totalTags & ESpellTag.Explosive) != 0 && (allowed & ESpellCapability.Explode) != 0;
 
                 // Explose on contact
                 if (forceExplode && ExplodeOnContactLookup.HasComponent(spellPrefab))
