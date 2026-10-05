@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Upgrade_Stat_Bouncing_2
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStatUpgradeSO
   DisplayName: Bounce
-  Description: 'All bouncing spells: +2 ricochets.'
+  Description: 'All projectile spells: +2 ricochets.'
   Icon: {fileID: 0}
   UpgradeType: 0
   ModifierStrategy: 0
@@ -23,5 +23,6 @@ MonoBehaviour:
   - CharacterStat: 16
     Strategy: 0
     Value: 2
-  RequiredSpellTag: 131072
+  RequiredSpellTag: 0
+  RequiredCapability: 1
   _legacyCharacterStat: 0

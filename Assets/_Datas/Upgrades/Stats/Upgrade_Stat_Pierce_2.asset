@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Upgrade_Stat_Pierce_2
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStatUpgradeSO
   DisplayName: Perforate
-  Description: 'All piercing spells: +2 pierce. Lines get longer.'
+  Description: 'All projectile spells: +2 pierce. Lines get longer.'
   Icon: {fileID: 0}
   UpgradeType: 0
   ModifierStrategy: 1
@@ -23,5 +23,6 @@ MonoBehaviour:
   - CharacterStat: 17
     Strategy: 0
     Value: 2
-  RequiredSpellTag: 65536
+  RequiredSpellTag: 0
+  RequiredCapability: 2
   _legacyCharacterStat: 0

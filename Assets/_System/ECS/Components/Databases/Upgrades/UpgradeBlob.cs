@@ -22,6 +22,12 @@ public struct UpgradeBlob
     /// </summary>
     public ESpellTag RequiredSpellTag;
 
+    /// <summary>
+    /// Optional capability this stat upgrade needs: offered only when an equipped spell's
+    /// <see cref="SpellBlob.AllowedCapabilities"/> contains it. None = no requirement.
+    /// </summary>
+    public ESpellCapability RequiredCapability;
+
     // --- Spell upgrade / unlock (EUpgradeType.UpgradeSpell / UnlockSpell) ---
     public ESpellID SpellID;
     public ESpellTag SpellTags;

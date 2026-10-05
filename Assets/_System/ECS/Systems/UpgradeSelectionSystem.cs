@@ -171,6 +171,12 @@ public partial struct UpgradeSelectionSystem : ISystem
                     (!hasSpells || !HasAnySpellWithTag(requiredTag, activeSpells, ref spellBlobs)))
                     continue;
 
+                // Capability gating ("can"): needs an equipped spell whose SpellSO allows it.
+                ESpellCapability requiredCapability = upgrades[idx].RequiredCapability;
+                if (requiredCapability != ESpellCapability.None &&
+                    (!hasSpells || !HasAnySpellAllowing(requiredCapability, activeSpells, ref spellBlobs)))
+                    continue;
+
                 // Dash-effect gating: hide unlocks once active, hide stackables until unlock is picked.
                 if (!IsDashUpgradeEligible(ref upgrades[idx], hasDash, dashEffect))
                     continue;
@@ -438,6 +444,20 @@ public partial struct UpgradeSelectionSystem : ISystem
                 }
             }
             return true;
+        }
+
+        /// <summary>True when at least one equipped spell's SpellSO allows the capability.</summary>
+        private bool HasAnySpellAllowing(ESpellCapability capability, DynamicBuffer<ActiveSpell> activeSpells,
+            ref BlobArray<SpellBlob> spellBlobs)
+        {
+            for (int i = 0; i < activeSpells.Length; i++)
+            {
+                ref SpellBlob spellBlob = ref spellBlobs[activeSpells[i].DatabaseIndex];
+                if ((spellBlob.AllowedCapabilities & capability) != 0)
+                    return true;
+            }
+
+            return false;
         }
 
         /// <summary>

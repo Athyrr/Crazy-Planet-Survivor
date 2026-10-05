@@ -42,6 +42,7 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
                 {
                     blob.Rarity = statUpgrade.Rarity;
                     blob.RequiredSpellTag = statUpgrade.RequiredSpellTag;
+                    blob.RequiredCapability = statUpgrade.RequiredCapability;
 
                     var modifiers = statUpgrade.Modifiers;
                     int modCount = modifiers != null ? modifiers.Length : 0;

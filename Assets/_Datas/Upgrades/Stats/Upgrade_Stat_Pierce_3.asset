@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Upgrade_Stat_Pierce_3
   m_EditorClassIdentifier: Assembly-CSharp::CharacterStatUpgradeSO
   DisplayName: Perforate
-  Description: 'All piercing spells: +3 pierce, -5% range. Tight formations only.'
+  Description: 'All projectile spells: +3 pierce, -5% range. Tight formations only.'
   Icon: {fileID: 0}
   UpgradeType: 0
   ModifierStrategy: 1
@@ -26,5 +26,6 @@ MonoBehaviour:
   - CharacterStat: 29
     Strategy: 1
     Value: -0.05
-  RequiredSpellTag: 65536
+  RequiredSpellTag: 0
+  RequiredCapability: 2
   _legacyCharacterStat: 0
