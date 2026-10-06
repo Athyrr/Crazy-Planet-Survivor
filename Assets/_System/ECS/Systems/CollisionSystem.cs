@@ -438,17 +438,6 @@ public partial struct CollisionSystem : ISystem
                             shouldDestroy = true;
                         }
                     }
-                    // dashInvincible guard added here (not in the plan's literal snippet) to preserve the
-                    // pre-existing pass-through invariant documented above ("Only a dash's i-frames let the
-                    // projectile pass through unharmed") — without it, a Bounce-only projectile hitting a
-                    // dash-invincible target would get destroyed instead of passing through.
-                    else if (!bounceConsumedHit && !dashInvincible && CapabilityUtils.IsCapabilityActive(BounceLookup, damagerEntity) && !CapabilityUtils.IsCapabilityActive(PierceLookup, damagerEntity))
-                    {
-                        // Bounce exists but this hit didn't consume it (exhausted or no target) and there's no
-                        // Pierce to fall back to — destroy, matching the pre-fix behavior for a Bounce-only
-                        // projectile.
-                        shouldDestroy = true;
-                    }
 
                     // A bounce/pierce spell that survives a hit gets its lifetime refreshed, so
                     // chained hits keep it alive instead of letting it expire mid-flight.
