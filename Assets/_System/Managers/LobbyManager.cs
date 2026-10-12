@@ -62,7 +62,10 @@ public class LobbyManager : MonoBehaviour
     private void OnEnable()
     {
         if (GameManager.Instance != null)
+        {
             GameManager.Instance.OnGameStateChanged += HandleStateChange;
+            GameManager.Instance.OnPlanetSelected += HandlePlanetLoaded;
+        }
 
         if (PlanetSelectionUIController != null)
             PlanetSelectionUIController.OnPlanetSelected += HandlePlanetFocus;
@@ -71,7 +74,10 @@ public class LobbyManager : MonoBehaviour
     private void OnDisable()
     {
         if (GameManager.Instance != null)
+        {
             GameManager.Instance.OnGameStateChanged -= HandleStateChange;
+            GameManager.Instance.OnPlanetSelected -= HandlePlanetLoaded;
+        }
 
         if (PlanetSelectionUIController != null)
             PlanetSelectionUIController.OnPlanetSelected -= HandlePlanetFocus;
@@ -302,6 +308,43 @@ public class LobbyManager : MonoBehaviour
 
         _selectedPlanetID = EPlanetID.None;
         _selectedPlanetTransform = null;
+    }
+
+    /// <summary>
+    /// A launch pad carried the run to another planet: show the previous planet again in the background
+    /// galaxy, hide the new one and move the galaxy to the new planet's placement.
+    /// </summary>
+    private void HandlePlanetLoaded(EPlanetID planetID)
+    {
+        if (planetID == EPlanetID.Lobby || planetID == _selectedPlanetID)
+            return;
+
+        if (GameManager.Instance == null || GameManager.Instance.GetGameState() != EGameState.PlanetTransfer)
+            return;
+
+        if (_deactivatedPlanet != null)
+        {
+            _deactivatedPlanet.SetActive(true);
+            _deactivatedPlanet = null;
+        }
+
+        _selectedPlanetID = planetID;
+        _selectedPlanetTransform = FindGalaxyPlanet(planetID);
+        BeginRunGalaxyState();
+    }
+
+    private Transform FindGalaxyPlanet(EPlanetID planetID)
+    {
+        if (_galaxy == null)
+            return null;
+
+        foreach (var planet in _galaxy.GetComponentsInChildren<PlanetComponent>(true))
+        {
+            if (planet.PlanetID == planetID)
+                return planet.transform;
+        }
+
+        return null;
     }
 
     private bool TryGetGalaxyPlacement(EPlanetID planetID, out GalaxyPlanetPlacement placement)

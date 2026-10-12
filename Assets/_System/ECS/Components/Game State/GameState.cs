@@ -29,4 +29,9 @@ public enum EGameState
     // timer are held until the RunStart delay elapses (arrival animation / intro text). Appended
     // last to keep existing enum values stable.
     RunStarting,
+
+    // Launch-pad flight between two planets during a run (launch, scene swap, landing). Gameplay is
+    // frozen and the PlanetTransferSystem animates the player. Appended last to keep existing enum
+    // values stable.
+    PlanetTransfer,
 }

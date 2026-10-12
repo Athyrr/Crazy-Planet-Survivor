@@ -63,6 +63,7 @@ public class ChronoController : MonoBehaviour
             case EGameState.Paused:
             case EGameState.UpgradeSelection:
             case EGameState.GameOver:
+            case EGameState.PlanetTransfer:
                 _isRunning = false;
                 break;
 

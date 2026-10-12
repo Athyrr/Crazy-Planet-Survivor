@@ -218,6 +218,11 @@ namespace _System.Audio
                     RuntimeManager.PlayOneShot(levelUp);
                     break;
 
+                case EGameState.PlanetTransfer:
+                    // Launch-pad flight: whoosh on take-off and on landing, keep the run music going.
+                    RuntimeManager.PlayOneShot(whooshPlanet);
+                    break;
+
                 case EGameState.GameOver:
                 case EGameState.MainMenu:
                 default:
