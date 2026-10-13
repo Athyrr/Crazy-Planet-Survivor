@@ -133,5 +133,24 @@ public partial class HitFrameFeedbackSystem : SystemBase
 
             ecb.DestroyEntity(requestEntity);
         }
+
+        var toDisable = new NativeList<Entity>(Allocator.Temp);
+        float decreasing = (MaterialPropMax / FlashDuration) * deltaTime;
+
+        foreach (var (hitColor, entity) in SystemAPI.Query<RefRW<HitFrameColor>>().WithEntityAccess())
+        {
+            hitColor.ValueRW.Value -= decreasing;
+
+            if (hitColor.ValueRW.Value <= MaterialPropMin)
+            {
+                hitColor.ValueRW.Value = MaterialPropMin;
+                toDisable.Add(entity);
+            }
+        }
+
+        foreach (var entity in toDisable)
+            entityManager.SetComponentEnabled<HitFrameColor>(entity, false);
+
+        toDisable.Dispose();
     }
 }
