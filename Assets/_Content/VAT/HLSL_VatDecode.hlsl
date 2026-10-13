@@ -20,4 +20,13 @@ void GetVATPixel_float(uint vertexId, float frameIdx, uint2 texWidthHeight, floa
     uvNormal = (float2(pix2) + 0.5) * texelWidth;
 }
 
+/* Normale VAT sûre : le mélange lerp(normaleA, normaleB) de deux normales presque opposées
+   donne un vecteur ~nul, et normalize(0) = NaN -> éclairage NaN -> perso noir sur quelques frames.
+   Sous le seuil on retombe sur la normale du mesh. */
+void VAT_SafeNormal_float(float3 In, float3 Fallback, out float3 Out)
+{
+    float lenSq = dot(In, In);
+    Out = lenSq > 1e-6 ? In * rsqrt(lenSq) : normalize(Fallback);
+}
+
 #endif // HLSL_VATDECODE_INCLUDED
