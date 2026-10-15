@@ -130,6 +130,11 @@ public static class NetTestSceneBuilder
         config.PlayerPrefab = playerPrefab;
         config.EnemyPrefab = enemyPrefab;
 
+        // Netcode only ticks the physics group when predicted physics ghosts exist. Our ghosts have no physics
+        // bodies but every movement system raycasts the planet collider, so the collision world must always be built.
+        var physicsConfig = configGo.AddComponent<NetCodePhysicsConfig>();
+        physicsConfig.PhysicGroupRunMode = PhysicGroupRunMode.AlwaysRun;
+
         EditorSceneManager.SaveScene(scene, PlanetScenePath);
     }
 

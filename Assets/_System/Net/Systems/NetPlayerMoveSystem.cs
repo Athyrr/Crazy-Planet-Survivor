@@ -49,18 +49,15 @@ public partial struct NetPlayerMoveSystem : ISystem
         public void Execute(ref LocalTransform transform, in NetPlayer player, in NetPlayerInput input)
         {
             float throttle = math.saturate(math.length(input.MoveDirection));
-            if (throttle < 0.05f)
-                return;
-
             float3 toPlayer = transform.Position - PlanetCenter;
             float altitude = math.length(toPlayer);
             float3 up = toPlayer / altitude;
 
             PlanetUtils.ProjectDirectionOnSurface(input.MoveDirection, up, out float3 tangent);
-            if (math.lengthsq(tangent) < 0.001f)
-                return;
+            bool moving = throttle >= 0.05f && math.lengthsq(tangent) > 0.001f;
 
-            float3 desired = transform.Position + tangent * (player.Speed * throttle * DeltaTime);
+            // Still snapped when idle so a spawn above/below the terrain settles on the ground.
+            float3 desired = moving ? transform.Position + tangent * (player.Speed * throttle * DeltaTime) : transform.Position;
             var filter = new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape };
 
             float3 newUp;
@@ -76,8 +73,10 @@ public partial struct NetPlayerMoveSystem : ISystem
                 newUp = math.normalize(snapped - PlanetCenter);
             }
 
-            PlanetUtils.ProjectDirectionOnSurface(tangent, newUp, out float3 facing);
-            transform.Rotation = quaternion.LookRotationSafe(facing, newUp);
+            float3 heading = moving ? tangent : math.mul(transform.Rotation, new float3(0, 0, 1));
+            PlanetUtils.ProjectDirectionOnSurface(heading, newUp, out float3 facing);
+            if (math.lengthsq(facing) > 0.001f)
+                transform.Rotation = quaternion.LookRotationSafe(facing, newUp);
         }
     }
 }

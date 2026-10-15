@@ -119,7 +119,76 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1001 &188251149
+--- !u!1 &676862272
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 676862275}
+  - component: {fileID: 676862274}
+  - component: {fileID: 676862273}
+  m_Layer: 0
+  m_Name: NetTestConfig
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &676862273
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 676862272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5bd6bf266b32e49ac8c5951317b6b250, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.NetCode.Physics.Hybrid::Unity.NetCode.NetCodePhysicsConfig
+  PhysicGroupRunMode: 2
+  EnableLagCompensation: 0
+  ServerHistorySize: 0
+  ClientHistorySize: 1
+  ClientNonGhostWorldIndex: 0
+  DeepCopyDynamicColliders: 1
+  DeepCopyStaticColliders: 0
+--- !u!114 &676862274
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 676862272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f302fb8190e54c4699416862de29e37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetTestConfigAuthoring
+  PlayerPrefab: {fileID: 4910450895842652434, guid: c90ae5f18d6f9a848a0cb595d9f74d27, type: 3}
+  EnemyPrefab: {fileID: 5696633336367448186, guid: c7871830347989246864b3050d16b44c, type: 3}
+  EnemySpawnMinDistance: 25
+  EnemySpawnMaxDistance: 45
+  MaxSpawnPerTick: 50
+--- !u!4 &676862275
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 676862272}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1583432240
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -176,58 +245,9 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 81a70868508abfd4fa77dcc860dfc73a, type: 3}
---- !u!1 &2074528016
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2074528018}
-  - component: {fileID: 2074528017}
-  m_Layer: 0
-  m_Name: NetTestConfig
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2074528017
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2074528016}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 192171a0ae1ca2f42913d85c65567b88, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NetTestConfigAuthoring
-  PlayerPrefab: {fileID: 4910450895842652434, guid: c90ae5f18d6f9a848a0cb595d9f74d27, type: 3}
-  EnemyPrefab: {fileID: 5696633336367448186, guid: c7871830347989246864b3050d16b44c, type: 3}
-  EnemySpawnMinDistance: 25
-  EnemySpawnMaxDistance: 45
-  MaxSpawnPerTick: 50
---- !u!4 &2074528018
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2074528016}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 188251149}
-  - {fileID: 2074528018}
+  - {fileID: 1583432240}
+  - {fileID: 676862275}
