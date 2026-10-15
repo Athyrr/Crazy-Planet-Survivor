@@ -63,6 +63,37 @@ CPS_NetTest.exe -batchmode -nographics -nettest-join 127.0.0.1 -nettest-transpor
 `NetCodePhysicsConfig` (Always Run) sits in the planet sub scene: netcode otherwise skips the physics group when no
 predicted physics ghost exists, and all movement raycasts the planet collider.
 
+## Measured bandwidth (2026-10-15)
+Two Windows players on one PC, Unity Transport UDP over localhost (EOS not measured: no product IDs yet),
+host + 1 remote client, both players moving (bot input), netcode defaults (60 Hz simulation and network tick),
+enemies = interpolated ghosts replicating `LocalTransform` (position + rotation), no other data.
+Transport-level numbers (headers included), per remote client:
+
+| Enemies | Client download | Client upload | Note |
+|---|---|---|---|
+| 0 | ~4.3 KB/s | ~8.2 KB/s | 2 players only. Upload is the 60 Hz input stream, constant. |
+| 100 | ~29 KB/s | ~8.2 KB/s | |
+| 300 | ~79 KB/s | ~8.2 KB/s | |
+| 500 | ~83.5 KB/s | ~8.2 KB/s | **Capped**: netcode default = one ~1400 B snapshot packet per tick, so not every enemy is updated every tick (prioritized round robin). |
+| 500, snapshot target 16000 B | ~131 KB/s | ~8.2 KB/s | `-nettest-snapshot-size 16000`: what 500 enemies really cost at 60 Hz (2 fragmented packets per tick). |
+
+RTT on localhost: ~9 ms. The host's upload grows linearly with the number of remote clients (one stream each).
+EOS P2P packets are limited to 1170 B (vs 1400 for UDP), so the default cap is ~70 KB/s per client over EOS.
+
+Levers before the real game: network tick 30 Hz (halves it), `GhostOptimizationMode` / importance + relevancy
+(only send enemies near each player), quantized position-only enemy variant (rotation derived from velocity on the
+client), or not replicating enemies at all (deterministic spawn + server-only damage events).
+
+## Known caveats
+- **The PlayEveryWare plugin blocks every Windows build (the main game too) until a valid EOS config exists**:
+  its build validators require `Assets/StreamingAssets/EOS/eos_windows_config.json` with a sandbox and deployment
+  id, and they ignore `EOS_DISABLE`. Its native render plugin (`GfxPluginNativeRender-x64.dll`) also initializes
+  EOS at player startup and crashes the player on an invalid config. `NetTestSceneBuilder.BuildWindowsPlayer` works
+  around both for the UDP-only test player (temporary placeholder config + `EOS_DISABLE` + EOS DLLs stripped).
+- Test player is built with Mono when the Windows IL2CPP module is not installed (project setting restored after).
+- Some solo systems still run in the client/server worlds (no `WorldSystemFilter`); they are idle there because
+  their singletons (GameState, Player...) don't exist. One harmless warning: HealthSystem's UpdateAfter(CollisionSystem).
+
 ## Porting the real game (not done in this prototype)
 Single-player assumptions to remove before the real gameplay can run in client/server worlds:
 

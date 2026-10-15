@@ -45,6 +45,7 @@ public class NetTestLauncher : MonoBehaviour
     private float _quitAfter = -1f;
     private string _logPath;
     private string _screenshotPath;
+    private float _screenshotAt = -1f;
     private float _startTime;
     private float _lastLogTime;
     private int _currentStep = -1;
@@ -267,7 +268,7 @@ public class NetTestLauncher : MonoBehaviour
             LogStats(elapsed);
         }
 
-        if (!_screenshotTaken && !string.IsNullOrEmpty(_screenshotPath) && elapsed > Mathf.Max(10f, _quitAfter - 5f))
+        if (!_screenshotTaken && !string.IsNullOrEmpty(_screenshotPath) && elapsed > (_screenshotAt > 0f ? _screenshotAt : Mathf.Max(10f, _quitAfter - 5f)))
         {
             _screenshotTaken = true;
             ScreenCapture.CaptureScreenshot(_screenshotPath);
@@ -340,6 +341,7 @@ public class NetTestLauncher : MonoBehaviour
                 case "-nettest-bot": NetPlayerInputSystem.BotInput = true; break;
                 case "-nettest-log": if (nextIsValue) _logPath = next; break;
                 case "-nettest-screenshot": if (nextIsValue) _screenshotPath = next; break;
+                case "-nettest-screenshot-at": if (nextIsValue) float.TryParse(next, NumberStyles.Float, CultureInfo.InvariantCulture, out _screenshotAt); break;
             }
         }
     }
