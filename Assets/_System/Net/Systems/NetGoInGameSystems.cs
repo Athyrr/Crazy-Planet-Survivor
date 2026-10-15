@@ -48,6 +48,11 @@ public partial struct NetGoInGameClientSystem : ISystem
 [BurstCompile]
 public partial struct NetGoInGameServerSystem : ISystem
 {
+    /// <summary>0 = netcode default (one MTU per snapshot). Set by NetTestLauncher (-nettest-snapshot-size).</summary>
+    public static readonly Unity.Burst.SharedStatic<int> SnapshotTargetSizeStatic = Unity.Burst.SharedStatic<int>.GetOrCreate<NetGoInGameServerSystem, SnapshotKey>();
+    private struct SnapshotKey { }
+    private static int SnapshotTargetSize => SnapshotTargetSizeStatic.Data;
+
     private ComponentLookup<NetworkId> _networkIdLookup;
 
     [BurstCompile]
@@ -81,6 +86,8 @@ public partial struct NetGoInGameServerSystem : ISystem
 
             int networkId = _networkIdLookup[connection].Value;
             ecb.AddComponent<NetworkStreamInGame>(connection);
+            if (SnapshotTargetSize > 0) // debug: let snapshots grow past one MTU (fragmented) to measure the uncapped need
+                ecb.AddComponent(connection, new NetworkStreamSnapshotTargetSize { Value = SnapshotTargetSize });
 
             // Spread players around the planet "north pole" so they don't spawn inside each other.
             float angle = networkId * 2.4f;

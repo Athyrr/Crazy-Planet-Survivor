@@ -13,7 +13,6 @@ using Unity.Transforms;
 /// against the Landscape layer, fall back to keeping the current altitude if the ray misses.
 /// </summary>
 [UpdateInGroup(typeof(PredictedSimulationSystemGroup))]
-[UpdateBefore(typeof(PredictedFixedStepSimulationSystemGroup))]
 [BurstCompile]
 public partial struct NetPlayerMoveSystem : ISystem
 {

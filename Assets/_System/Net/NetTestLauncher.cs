@@ -31,6 +31,7 @@ public class NetTestLauncher : MonoBehaviour
 
     private ETransport _transport = ETransport.EOS;
     private string _address = "127.0.0.1";
+    private string _listenAddress = "0.0.0.0";
     private string _hostIdInput = "";
     private string _displayName = "Player";
     private bool _started;
@@ -92,7 +93,7 @@ public class NetTestLauncher : MonoBehaviour
         LoadPlanet(client);
 
         using (var query = server.EntityManager.CreateEntityQuery(ComponentType.ReadWrite<NetworkStreamDriver>()))
-            query.GetSingletonRW<NetworkStreamDriver>().ValueRW.Listen(NetworkEndpoint.AnyIpv4.WithPort(_port));
+            query.GetSingletonRW<NetworkStreamDriver>().ValueRW.Listen(NetworkEndpoint.TryParse(_listenAddress, _port, out var listen) ? listen : NetworkEndpoint.AnyIpv4.WithPort(_port));
 
         using (var query = client.EntityManager.CreateEntityQuery(ComponentType.ReadWrite<NetworkStreamDriver>()))
             query.GetSingletonRW<NetworkStreamDriver>().ValueRW.Connect(client.EntityManager, NetworkEndpoint.LoopbackIpv4.WithPort(_port));
@@ -189,16 +190,25 @@ public class NetTestLauncher : MonoBehaviour
     /// </summary>
     private static void DestroyLocalWorlds()
     {
-        foreach (var world in World.All.ToArray())
+        foreach (var world in SnapshotWorlds())
         {
             if (world.IsCreated && world.Flags == WorldFlags.Game)
                 world.Dispose();
         }
     }
 
+    // World.All can't be enumerated through LINQ (it refuses boxing) and must not change while iterated.
+    private static System.Collections.Generic.List<World> SnapshotWorlds()
+    {
+        var worlds = new System.Collections.Generic.List<World>();
+        foreach (var world in World.All)
+            worlds.Add(world);
+        return worlds;
+    }
+
     private void StopAll()
     {
-        foreach (var world in World.All.ToArray())
+        foreach (var world in SnapshotWorlds())
         {
             if (world.IsCreated && (world.IsClient() || world.IsServer()))
                 world.Dispose();
@@ -314,6 +324,7 @@ public class NetTestLauncher : MonoBehaviour
                     autoJoin = true;
                     if (nextIsValue) _address = next;
                     break;
+                case "-nettest-listen": if (nextIsValue) _listenAddress = next; break;
                 case "-nettest-host-id": if (nextIsValue) _hostIdInput = next; break;
                 case "-nettest-transport":
                     if (nextIsValue) _transport = next.Equals("eos", StringComparison.OrdinalIgnoreCase) ? ETransport.EOS : ETransport.UDP;
@@ -325,6 +336,7 @@ public class NetTestLauncher : MonoBehaviour
                     break;
                 case "-nettest-step-seconds": if (nextIsValue) float.TryParse(next, NumberStyles.Float, CultureInfo.InvariantCulture, out _stepSeconds); break;
                 case "-nettest-quit-after": if (nextIsValue) float.TryParse(next, NumberStyles.Float, CultureInfo.InvariantCulture, out _quitAfter); break;
+                case "-nettest-snapshot-size": if (nextIsValue && int.TryParse(next, out var size)) NetGoInGameServerSystem.SnapshotTargetSizeStatic.Data = size; break;
                 case "-nettest-bot": NetPlayerInputSystem.BotInput = true; break;
                 case "-nettest-log": if (nextIsValue) _logPath = next; break;
                 case "-nettest-screenshot": if (nextIsValue) _screenshotPath = next; break;

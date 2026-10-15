@@ -21,6 +21,7 @@ public static class NetTestSceneBuilder
     private const string SceneDir = "Assets/_Scenes/NetTest";
     public const string MainScenePath = SceneDir + "/SC_NetTest.unity";
     private const string PlanetScenePath = SceneDir + "/SC_NetTest_Planet.unity";
+    private const string EosConfigDir = "Assets/StreamingAssets/EOS";
     private const string PlanetPrefabPath = "Assets/_Prefabs/Planets/WFC_Earth/PF_WFC_Planet_Earth.prefab";
 
     [MenuItem("Crazy Planet/Net Test/Rebuild Net Test Content")]
@@ -188,13 +189,74 @@ public static class NetTestSceneBuilder
         int index = args.IndexOf("-nettestBuildPath");
         string path = index >= 0 && index + 1 < args.Count ? args[index + 1] : "Builds/NetTest/CPS_NetTest.exe";
 
-        var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+        // The project's Standalone backend is IL2CPP; fall back to Mono for this test build when the Windows IL2CPP
+        // module is not installed, and restore the setting afterwards (no ProjectSettings change left behind).
+        var standalone = UnityEditor.Build.NamedBuildTarget.Standalone;
+        var previousBackend = PlayerSettings.GetScriptingBackend(standalone);
+        bool il2cppInstalled = Directory.Exists(Path.Combine(BuildPipeline.GetPlaybackEngineDirectory(BuildTarget.StandaloneWindows64, BuildOptions.None),
+            "Variations", "win64_player_nondevelopment_il2cpp"));
+        if (previousBackend == ScriptingImplementation.IL2CPP && !il2cppInstalled)
+            PlayerSettings.SetScriptingBackend(standalone, ScriptingImplementation.Mono2x);
+
+        // Without local EOS IDs the PlayEveryWare build validators reject every Windows build (they ignore EOS_DISABLE),
+        // and its native render plugin initializes EOS at player startup and crashes on an invalid config. For a
+        // UDP-only test player: compile EOS out (EOS_DISABLE), satisfy the validators with a temporary placeholder
+        // platform config, then strip the EOS native DLLs and the placeholder from the output. All restored afterwards.
+        var previousDefines = PlayerSettings.GetScriptingDefineSymbols(standalone);
+        bool hasEosConfig = File.Exists(EosConfigDir + "/eos_product_config.json");
+        bool createdPlaceholder = false;
+        if (!hasEosConfig)
         {
-            scenes = new[] { MainScenePath },
-            target = BuildTarget.StandaloneWindows64,
-            locationPathName = path,
-            options = BuildOptions.None
-        });
+            Debug.LogWarning("[NetTest] No EOS config in " + EosConfigDir + ": building a UDP-only player (EOS_DISABLE).");
+            if (!previousDefines.Contains("EOS_DISABLE"))
+                PlayerSettings.SetScriptingDefineSymbols(standalone, string.IsNullOrEmpty(previousDefines) ? "EOS_DISABLE" : previousDefines + ";EOS_DISABLE");
+            string platformConfig = EosConfigDir + "/eos_windows_config.json";
+            if (!File.Exists(platformConfig))
+            {
+                Directory.CreateDirectory(EosConfigDir);
+                File.WriteAllText(platformConfig, "{\"deployment\":{\"SandboxId\":{\"Value\":\"0123456789abcdef0123456789abcdef\"},\"DeploymentId\":\"00000000-0000-0000-0000-000000000001\"}}");
+                createdPlaceholder = true;
+            }
+        }
+
+        UnityEditor.Build.Reporting.BuildReport report;
+        try
+        {
+            report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = new[] { MainScenePath },
+                target = BuildTarget.StandaloneWindows64,
+                locationPathName = path,
+                options = BuildOptions.None
+            });
+        }
+        finally
+        {
+            PlayerSettings.SetScriptingBackend(standalone, previousBackend);
+            PlayerSettings.SetScriptingDefineSymbols(standalone, previousDefines);
+            if (createdPlaceholder)
+            {
+                FileUtil.DeleteFileOrDirectory(EosConfigDir);
+                FileUtil.DeleteFileOrDirectory(EosConfigDir + ".meta");
+                if (Directory.GetFileSystemEntries("Assets/StreamingAssets").Length == 0)
+                {
+                    FileUtil.DeleteFileOrDirectory("Assets/StreamingAssets");
+                    FileUtil.DeleteFileOrDirectory("Assets/StreamingAssets.meta");
+                }
+            }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        if (!hasEosConfig && report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded)
+        {
+            string dataDir = Path.Combine(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + "_Data");
+            foreach (var dll in new[] { "GfxPluginNativeRender-x64.dll", "EOSSDK-Win64-Shipping.dll" })
+                File.Delete(Path.Combine(dataDir, "Plugins", "x86_64", dll));
+            string eosOut = Path.Combine(dataDir, "StreamingAssets", "EOS");
+            if (Directory.Exists(eosOut))
+                Directory.Delete(eosOut, true);
+        }
         Debug.Log($"[NetTest] Build {report.summary.result}: {path} ({report.summary.totalSize / (1024 * 1024)} MB, {report.summary.totalErrors} errors)");
         if (Application.isBatchMode && report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
             EditorApplication.Exit(1);
