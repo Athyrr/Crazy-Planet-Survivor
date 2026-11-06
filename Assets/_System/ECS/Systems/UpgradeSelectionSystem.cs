@@ -362,6 +362,16 @@ public partial struct UpgradeSelectionSystem : ISystem
                                 isValid = false;
                             }
                         }
+
+                        // Q11: a capability already granted is never offered again (Fireball_Explosive once).
+                        if (upgradeData.GrantCapabilities != ESpellCapability.None
+                            && SpellHasGrantedCapabilities(upgradeData.SpellID, upgradeData.GrantCapabilities, activeSpells, ref spellBlobs))
+                            isValid = false;
+
+                        // "Does" gating for spell upgrades: the capability must be ACTIVE on the target spell.
+                        if (upgradeData.RequiredCapability != ESpellCapability.None
+                            && !SpellHasActiveCapability(upgradeData.SpellID, upgradeData.RequiredCapability, activeSpells, ref spellBlobs))
+                            isValid = false;
                     }
                     // Target tag
                     else if (upgradeData.SpellTags != ESpellTag.None)
@@ -414,6 +424,33 @@ public partial struct UpgradeSelectionSystem : ISystem
                 }
             }
 
+            return false;
+        }
+
+        private bool SpellHasGrantedCapabilities(ESpellID id, ESpellCapability caps, DynamicBuffer<ActiveSpell> activeSpells,
+            ref BlobArray<SpellBlob> spellBlobs)
+        {
+            for (int i = 0; i < activeSpells.Length; i++)
+                if (spellBlobs[activeSpells[i].DatabaseIndex].ID == id)
+                    return (activeSpells[i].GrantedCapabilities & caps) == caps;
+            return false;
+        }
+
+        private bool SpellHasActiveCapability(ESpellID id, ESpellCapability cap, DynamicBuffer<ActiveSpell> activeSpells,
+            ref BlobArray<SpellBlob> spellBlobs)
+        {
+            for (int i = 0; i < activeSpells.Length; i++)
+            {
+                ref SpellBlob blob = ref spellBlobs[activeSpells[i].DatabaseIndex];
+                if (blob.ID != id) continue;
+                if ((blob.AllowedCapabilities & cap) != cap) return false;
+                var s = activeSpells[i];
+                if ((cap & ESpellCapability.Split) != 0 && s.FinalSplitCount <= 0) return false;
+                if ((cap & ESpellCapability.Explode) != 0 && (s.GrantedCapabilities & ESpellCapability.Explode) == 0) return false;
+                if ((cap & ESpellCapability.Bounce) != 0 && s.FinalBounces <= 0) return false;
+                if ((cap & ESpellCapability.Pierce) != 0 && s.FinalPierces <= 0) return false;
+                return true;
+            }
             return false;
         }
 

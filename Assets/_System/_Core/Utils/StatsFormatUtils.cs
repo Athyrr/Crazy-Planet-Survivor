@@ -120,7 +120,7 @@ public static class StatsFormatUtils
 
     /// <summary>True when the spell stat is displayed as a percentage (everything but the count stats).</summary>
     public static bool IsPercentStat(ESpellStat stat)
-        => stat is not (ESpellStat.Amount or ESpellStat.BounceCount or ESpellStat.PierceCount);
+        => stat is not (ESpellStat.Amount or ESpellStat.BounceCount or ESpellStat.PierceCount or ESpellStat.SplitCount or ESpellStat.SplitDepth);
 
     // ----------------------------------------------------------------------------------
     // Low-level signed formatting

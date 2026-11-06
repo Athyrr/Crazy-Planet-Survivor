@@ -405,6 +405,9 @@ public class UpgradeViewItem : MonoBehaviour,
             case ESpellStat.PierceCount: return spell.LocalPierceBonus;
             case ESpellStat.CritChance: return spell.LocalCritChanceBonusPercent;
             case ESpellStat.CritDamage: return spell.LocalCritDamageBonus;
+            case ESpellStat.SplitCount: return spell.LocalSplitCount;
+            case ESpellStat.SplitDepth: return spell.LocalSplitDepth;
+            case ESpellStat.ExplosionSize: return spell.LocalExplosionSizeBonus;
             default: return 0f;
         }
     }

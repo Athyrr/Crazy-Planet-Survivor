@@ -30,6 +30,7 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
             for (int i = 0; i < count; i++)
             {
                 UpgradeSO upgradeSO = allUpgrades[i];
+                if (upgradeSO != null) DependsOn(upgradeSO);
                 ref UpgradeBlob blob = ref arrayBuilder[i];
 
                 builder.AllocateString(ref blob.DisplayName, upgradeSO.DisplayName);
@@ -69,6 +70,8 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
                     blob.SpellID = spellUpgrade.SpellID;
                     blob.SpellTags = spellUpgrade.RequiredTags;
                     blob.SpellStat = spellUpgrade.SpellStat;
+                    blob.GrantCapabilities = spellUpgrade.GrantCapabilities;
+                    blob.RequiredCapability = spellUpgrade.RequiredCapability;
 
                     // Spell upgrades keep a single value/strategy.
                     blob.ModifierStrategy = upgradeSO.ModifierStrategy;

@@ -29,6 +29,14 @@ public class SpellUpgradeSO : UpgradeSO
              "spell's effective effect list — see spec §4.3 correction.")]
     public EffectSpec[] GrantedEffects = new EffectSpec[0];
 
+    [Header("Capabilities")]
+    [Tooltip("Capabilities granted to the target spell (e.g. Explode). Needs SpellID, and the spell must declare a " +
+             "matching emitter entry. Replaces the old 'RequiredTags = Explosive' grant (Explosive is now derived).")]
+    public ESpellCapability GrantCapabilities = ESpellCapability.None;
+
+    [Tooltip("Offered only once the target spell has this capability ACTIVE (Split: FinalSplitCount > 0; Explode: granted).")]
+    public ESpellCapability RequiredCapability = ESpellCapability.None;
+
     private void OnValidate()
     {
         // A spell upgrade is never a PlayerStat upgrade: it either unlocks or upgrades a spell.

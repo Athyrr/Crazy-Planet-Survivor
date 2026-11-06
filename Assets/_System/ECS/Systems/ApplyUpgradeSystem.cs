@@ -138,10 +138,9 @@ public partial struct ApplyUpgradeSystem : ISystem
                 }
             }
 
-            // SPECIFIC SPELL UPGRADE: STAT OR NEW TAG (Modify ActiveSpell Buffer)
-            else if (upgrade.UpgradeType == EUpgradeType.UpgradeSpell)
+            // SPECIFIC SPELL UPGRADE (SpellID set): stat / tags / effects / capabilities on that spell.
+            else if (upgrade.UpgradeType == EUpgradeType.UpgradeSpell && upgrade.SpellID != ESpellID.None)
             {
-                // todo handle case where the upgrade adds a tag to the spell (ex: make fireball also apply burn or explode on impact).
                 if (ActiveSpellLookup.TryGetBuffer(playerEntity, out var spells))
                 {
                     var newTags = upgrade.SpellTags != ESpellTag.None ? upgrade.SpellTags : ESpellTag.None;
@@ -155,6 +154,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                         {
                             // Modify spell
                             ApplySpellUpgrade(ref spell, upgrade.SpellStat, upgrade.Value, newTags, ref upgrade.GrantedEffects);
+                            spell.GrantedCapabilities |= upgrade.GrantCapabilities;
 
                             // Level up
                             spell.Level++;
@@ -179,18 +179,17 @@ public partial struct ApplyUpgradeSystem : ISystem
                 });
             }
 
-            // TAGGED SPELLS UPGRADE: TARGETING ALL SPELLS WITH THE SAME TAG (Modif spell Modifier Buffer)
-            else if (upgrade.UpgradeType == EUpgradeType.UpgradeSpell && upgrade.SpellTags != ESpellTag.None &&
-                     upgrade.SpellID == ESpellID.None)
+            // TAGGED SPELLS UPGRADE (SpellID None): every spell carrying the tags, through the SpellStatUpgrade buffer.
+            else if (upgrade.UpgradeType == EUpgradeType.UpgradeSpell && upgrade.SpellTags != ESpellTag.None)
             {
                 if (SpellStatUpgradeLookup.TryGetBuffer(playerEntity, out var spellStatUpgrades))
                 {
                     spellStatUpgrades.Add(new SpellStatUpgrade
                     {
                         RequiredTags = upgrade.SpellTags,
-                        SpellStat = upgrade.SpellStat, // ex: Damage
-                        Value = upgrade.Value, // ex: 0.1
-                        Strategy = EModiferStrategy.Multiply // ou Add selon logique
+                        SpellStat = upgrade.SpellStat,
+                        Value = upgrade.Value,
+                        Strategy = upgrade.ModifierStrategy,
                     });
                     needSpellUpdate = true;
                 }
@@ -487,6 +486,9 @@ public partial struct ApplyUpgradeSystem : ISystem
             case ECharacterStat.BurnCanLifeSteal:
                 playerCoreStats.BurnCanLifeSteal += value;
                 break;
+            case ECharacterStat.ExplosionCanLifeSteal:
+                playerCoreStats.ExplosionCanLifeSteal += value;
+                break;
 
             // todo other character stats (ex SpellSize, SpellSpeed, Duration...)
         }
@@ -570,6 +572,18 @@ public partial struct ApplyUpgradeSystem : ISystem
 
             case ESpellStat.Size:
                 spell.LocalSizeBonusMultiplier += value;
+                break;
+
+            case ESpellStat.SplitCount:
+                spell.LocalSplitCount += (int)value;
+                break;
+
+            case ESpellStat.SplitDepth:
+                spell.LocalSplitDepth += (int)value;
+                break;
+
+            case ESpellStat.ExplosionSize:
+                spell.LocalExplosionSizeBonus += value;
                 break;
 
             case ESpellStat.LifeStealChance:
