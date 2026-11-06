@@ -95,6 +95,22 @@ public class SpellSO : ScriptableObject
         | (AllowPierce ? ESpellCapability.Pierce : ESpellCapability.None)
         | (AllowExplode ? ESpellCapability.Explode : ESpellCapability.None);
 
+    [Header("Emitters (max 2) — generalized-emitter")]
+    [Tooltip("Children this spell emits (explosion, split, orbs). Presence of an entry = permission for its capability.")]
+    public SpellEmitterEntry[] Emitters = new SpellEmitterEntry[0];
+
+    [Tooltip("Capabilities granted from the start, without upgrade (Explode/Split still need a matching emitter entry).")]
+    public ESpellCapability BaseGrantedCapabilities = ESpellCapability.None;
+
+    [Tooltip("Split: fragments per split. 0 = Split inactive until an upgrade raises it.")]
+    public int BaseSplitCount = 0;
+
+    [Tooltip("Split: generations allowed (clamped by EmitterConfig.MaxSplitDepth).")]
+    public int BaseSplitDepth = 0;
+
+    [Tooltip("Re-hit delay in seconds for this spell's instances. 0 = EmitterConfig.DefaultReHitDelay.")]
+    [Min(0f)] public float ReHitDelayOverride = 0f;
+
 
     [Header("Tick")] [Tooltip("Time interval in seconds between two damage ticks.")]
     public float TickRate = 1f;

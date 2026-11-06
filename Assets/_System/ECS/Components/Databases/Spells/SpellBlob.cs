@@ -2,13 +2,31 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 
+// One validated emitter entry of a SpellSO (generalized-emitter).
+// ChildIndex = position of the child SpellSO in GameSpellDatabase.Spells, resolved at bake.
+public struct EmitterBlob
+{
+    public ESpellCapability Capability;
+    public EEmitterTrigger Trigger;
+    public EEmitterAttachment Attachment;
+    public EEmitterLayout Layout;
+    public EEmitterCount Count;
+    public int FixedCount;
+    public int ChildIndex;
+    public float Radius;
+    public float SpreadAngleDegrees;
+    public EEmitterFrame Frame;
+    public float Chance;
+    public float DamageRatio;
+}
+
 public struct SpellBlob
 {
     // Identity
     public ESpellID ID;
     // public FixedString512Bytes DisplayName; // 
     public ESpellTag Tag;
-    // Capabilities the spell may use = SpellSO permission (AllowBounce/AllowPierce/AllowExplode) AND the slot really present on its prefab (ruling D3). Read at cast time, in FinalTags derivation and by the upgrade filter.
+    // Capabilities the spell may use. Bounce/Pierce = SpellSO permission AND prefab slot (ruling D3); Explode/Split = a valid emitter entry of that capability (+ legacy ExplodeOnContact slot until Task 16). Read at cast time, in FinalTags derivation and by the upgrade filter.
     public ESpellCapability AllowedCapabilities;
 
     // Base Stats
@@ -52,4 +70,11 @@ public struct SpellBlob
     // correction. Not read directly by ResolveHit/CollisionSystem/AreaAttackSystem; they read the already-
     // composed DamageOnContact.EffectsToApply/AreaAttack.EffectsToApply instead (Task 19b/19d).
     public BlobArray<EffectSpec> Effects;
+
+    // Emitters (generalized-emitter): validated entries only (invalid ones are logged and skipped at bake).
+    public BlobArray<EmitterBlob> Emitters;
+    public ESpellCapability BaseGrantedCapabilities;
+    public int BaseSplitCount;
+    public int BaseSplitDepth;
+    public float ReHitDelayOverride;
 }

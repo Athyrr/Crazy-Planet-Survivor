@@ -53,6 +53,35 @@ public class SpellSOEditor : UnityEditor.Editor
         if (so.Pierces > 0 && !so.AllowPierce)
             EditorGUILayout.HelpBox("Pierces > 0 but AllowPierce is unchecked: the pierces will never fire.", MessageType.Warning);
 
+        // Emitter validation (same rules as the bake, which logs and skips invalid entries).
+        var emitterErrors = new System.Collections.Generic.List<string>();
+        SpellEmitterValidation.Validate(so, emitterErrors);
+        foreach (var err in emitterErrors)
+            EditorGUILayout.HelpBox(err, MessageType.Error);
+
+        // Warning: this spell is used as an emitter child AND is the target of an UnlockSpell upgrade.
+        bool usedAsChild = false;
+        foreach (string guid in AssetDatabase.FindAssets("t:SpellSO"))
+        {
+            var other = AssetDatabase.LoadAssetAtPath<SpellSO>(AssetDatabase.GUIDToAssetPath(guid));
+            if (other == null || other == so || other.Emitters == null) continue;
+            foreach (var e in other.Emitters)
+                if (e != null && e.Child == so) { usedAsChild = true; break; }
+            if (usedAsChild) break;
+        }
+        if (usedAsChild)
+        {
+            foreach (string guid in AssetDatabase.FindAssets("t:SpellUpgradeSO"))
+            {
+                var up = AssetDatabase.LoadAssetAtPath<SpellUpgradeSO>(AssetDatabase.GUIDToAssetPath(guid));
+                if (up != null && up.UpgradeType == EUpgradeType.UnlockSpell && up.SpellID == so.ID)
+                {
+                    EditorGUILayout.HelpBox($"'{so.name}' is an emitter child AND is unlocked by '{up.name}': it would also be cast on its own.", MessageType.Warning);
+                    break;
+                }
+            }
+        }
+
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Derived Tags (read-only)", newTags.ToString());
     }

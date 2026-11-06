@@ -126,6 +126,10 @@ public class EnemyAuthoring : MonoBehaviour
                 {
                     if (spellSO == null) continue;
 
+                    if (spellSO.Emitters != null && spellSO.Emitters.Length > 0)
+                        Debug.LogError($"[EnemyAuthoring] {authoring.name}: spell '{spellSO.name}' declares emitters — " +
+                                       "enemy emitters are not delivered in lot 1 (Q24), they will never fire.", authoring);
+
                     baseSpellBuffer.Add(new SpellActivationRequest
                     {
                         ID = spellSO.ID,
