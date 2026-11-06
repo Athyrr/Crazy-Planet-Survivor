@@ -141,4 +141,11 @@ public struct HitSource
     /// emitters, tracking of nothing — but takes 0 damage (no DamageBufferElement, no life steal).
     /// Dash i-frames are NOT this: a dashing target is skipped entirely by the call site.</summary>
     public bool DamageImmune;
+
+    /// <summary>Split generation of the hitting instance: damage × SplitDamageFalloff^Generation (0 = root).</summary>
+    public byte Generation;
+    /// <summary>Roll (default) / ForceCrit / ForceNoCrit — Explode children inherit the trigger's crit.</summary>
+    public ECritMode CritMode;
+    /// <summary>Explosion life-steal rule (see ResolveHit.IsLifeStealBlocked).</summary>
+    public bool LifeStealBlocked;
 }

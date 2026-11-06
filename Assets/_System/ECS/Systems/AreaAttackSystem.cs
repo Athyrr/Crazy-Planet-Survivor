@@ -37,6 +37,8 @@ public partial struct AreaAttackSystem : ISystem
     private ComponentLookup<Invincible> _invincibleLookup;
     private ComponentLookup<DashIFrames> _dashIFramesLookup;
     private ComponentLookup<GlobalIFrames> _globalIFramesLookup;
+    private ComponentLookup<SpellLineage> _spellLineageLookup;
+    private ComponentLookup<EmittedHitRules> _emittedHitRulesLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -62,6 +64,8 @@ public partial struct AreaAttackSystem : ISystem
         _invincibleLookup = state.GetComponentLookup<Invincible>(true);
         _dashIFramesLookup = state.GetComponentLookup<DashIFrames>(true);
         _globalIFramesLookup = state.GetComponentLookup<GlobalIFrames>(true);
+        _spellLineageLookup = state.GetComponentLookup<SpellLineage>(true);
+        _emittedHitRulesLookup = state.GetComponentLookup<EmittedHitRules>(true);
 
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
@@ -105,6 +109,8 @@ public partial struct AreaAttackSystem : ISystem
         _invincibleLookup.Update(ref state);
         _dashIFramesLookup.Update(ref state);
         _globalIFramesLookup.Update(ref state);
+        _spellLineageLookup.Update(ref state);
+        _emittedHitRulesLookup.Update(ref state);
 
         float deltaTime = SystemAPI.Time.DeltaTime;
         uint seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1;
@@ -121,6 +127,7 @@ public partial struct AreaAttackSystem : ISystem
             ActiveSpellLookup = _activeSpellLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
             RequestLookup = _statusEffectRequestLookup,
+            Emitter = SystemAPI.TryGetSingleton<EmitterConfig>(out var emitterCfg) ? emitterCfg : EmitterConfig.Default,
         };
 
         // Burst zones — hit-once over an active window (matches entities carrying HitEntityMemory).
@@ -137,6 +144,8 @@ public partial struct AreaAttackSystem : ISystem
             InvincibleLookup = _invincibleLookup,
             DashIFramesLookup = _dashIFramesLookup,
             GlobalIFramesLookup = _globalIFramesLookup,
+            SpellLineageLookup = _spellLineageLookup,
+            EmittedHitRulesLookup = _emittedHitRulesLookup,
             Resolve = resolveContext,
             Seed = seed,
         };
@@ -155,6 +164,8 @@ public partial struct AreaAttackSystem : ISystem
             InvincibleLookup = _invincibleLookup,
             DashIFramesLookup = _dashIFramesLookup,
             GlobalIFramesLookup = _globalIFramesLookup,
+            SpellLineageLookup = _spellLineageLookup,
+            EmittedHitRulesLookup = _emittedHitRulesLookup,
             Resolve = resolveContext,
             Seed = seed,
         };
@@ -252,6 +263,8 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
         [ReadOnly] public ComponentLookup<DashIFrames> DashIFramesLookup;
         [ReadOnly] public ComponentLookup<GlobalIFrames> GlobalIFramesLookup;
+        [ReadOnly] public ComponentLookup<SpellLineage> SpellLineageLookup;
+        [ReadOnly] public ComponentLookup<EmittedHitRules> EmittedHitRulesLookup;
 
         public ResolveHitContext Resolve;
         public uint Seed;
@@ -312,6 +325,10 @@ public partial struct AreaAttackSystem : ISystem
                 caster = spellSource.CasterEntity;
             }
 
+            // Emitted-hit rules of this zone (constant over its hits): split generation, imposed crit, life-steal rule.
+            byte generation = SpellLineageLookup.TryGetComponent(entity, out var lineage) ? lineage.Generation : (byte)0;
+            EmittedHitRulesLookup.TryGetComponent(entity, out var hitRules);
+
             for (int i = 0; i < hits.Length; i++)
             {
                 Entity hitEntity = hits[i].Entity;
@@ -348,6 +365,7 @@ public partial struct AreaAttackSystem : ISystem
                 {
                     Caster = caster, DatabaseIndex = dbIndex, PushOrigin = PlayerPosition, Shake = shakeSource, Emitter = entity,
                     DamageImmune = damageImmune,
+                    Generation = generation, CritMode = hitRules.CritMode, LifeStealBlocked = hitRules.LifeStealBlocked,
                 };
                 ResolveHit.ApplyMany(in Resolve, ECB, chunkIndex, hitEntity, in actions, in source, ref random);
 
@@ -386,6 +404,8 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
         [ReadOnly] public ComponentLookup<DashIFrames> DashIFramesLookup;
         [ReadOnly] public ComponentLookup<GlobalIFrames> GlobalIFramesLookup;
+        [ReadOnly] public ComponentLookup<SpellLineage> SpellLineageLookup;
+        [ReadOnly] public ComponentLookup<EmittedHitRules> EmittedHitRulesLookup;
 
         public ResolveHitContext Resolve;
         public uint Seed;
@@ -475,6 +495,10 @@ public partial struct AreaAttackSystem : ISystem
 
             hits.Dispose();
 
+            // Emitted-hit rules of this zone (constant over its targets): split generation, imposed crit, life-steal rule.
+            byte generation = SpellLineageLookup.TryGetComponent(zoneEntity, out var lineage) ? lineage.Generation : (byte)0;
+            EmittedHitRulesLookup.TryGetComponent(zoneEntity, out var hitRules);
+
             for (int i = 0; i < targets.Length; i++)
             {
                 Entity target = targets[i].Value;
@@ -497,6 +521,7 @@ public partial struct AreaAttackSystem : ISystem
                     Caster = spellSource.CasterEntity, DatabaseIndex = spellSource.DatabaseIndex,
                     PushOrigin = zonePos, Shake = EDamageShakeSource.DoT, Emitter = zoneEntity,
                     DamageImmune = damageImmune,
+                    Generation = generation, CritMode = hitRules.CritMode, LifeStealBlocked = hitRules.LifeStealBlocked,
                 };
                 var rng = HitRandom.CreateForHit(Seed, target, zoneEntity);
                 ResolveHit.ApplyMany(in Resolve, ECB, chunkIndex, target, in actions, in source, ref rng);

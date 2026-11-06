@@ -36,6 +36,8 @@ public partial struct CollisionSystem : ISystem
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
     private ComponentLookup<Boss> _bossLookup;
     private BufferLookup<StatusEffectApplyRequest> _statusEffectRequestLookup;
+    private ComponentLookup<SpellLineage> _spellLineageLookup;
+    private ComponentLookup<EmittedHitRules> _emittedHitRulesLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -82,6 +84,8 @@ public partial struct CollisionSystem : ISystem
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
         _bossLookup = state.GetComponentLookup<Boss>(true);
         _statusEffectRequestLookup = state.GetBufferLookup<StatusEffectApplyRequest>(true);
+        _spellLineageLookup = state.GetComponentLookup<SpellLineage>(true);
+        _emittedHitRulesLookup = state.GetComponentLookup<EmittedHitRules>(true);
 
         _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
         _lifetimeLookup = state.GetComponentLookup<Lifetime>(false);
@@ -131,6 +135,8 @@ public partial struct CollisionSystem : ISystem
         _bossLookup.Update(ref state);
         _lifetimeLookup.Update(ref state);
         _statusEffectRequestLookup.Update(ref state);
+        _spellLineageLookup.Update(ref state);
+        _emittedHitRulesLookup.Update(ref state);
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
@@ -148,6 +154,7 @@ public partial struct CollisionSystem : ISystem
             ActiveSpellLookup = _activeSpellBufferLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
             RequestLookup = _statusEffectRequestLookup,
+            Emitter = SystemAPI.TryGetSingleton<EmitterConfig>(out var emitterCfg) ? emitterCfg : EmitterConfig.Default,
         };
 
         var triggerCollisionJob = new TriggerCollisionJob
@@ -180,6 +187,8 @@ public partial struct CollisionSystem : ISystem
             ExplodeOnContactLookup = _explodeLookup,
 
             SpellSourceLookup = _subSpellRootLookup,
+            SpellLineageLookup = _spellLineageLookup,
+            EmittedHitRulesLookup = _emittedHitRulesLookup,
 
             ColliderLookup = _colliderLookup,
             BossLookup = _bossLookup,
@@ -233,6 +242,8 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeOnContactLookup;
 
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
+        [ReadOnly] public ComponentLookup<SpellLineage> SpellLineageLookup;
+        [ReadOnly] public ComponentLookup<EmittedHitRules> EmittedHitRulesLookup;
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
         [ReadOnly] public ComponentLookup<Boss> BossLookup;
         public ComponentLookup<Lifetime> LifetimeLookup;
@@ -335,6 +346,9 @@ public partial struct CollisionSystem : ISystem
                         for (int e = 0; e < damageData.EffectsToApply.Length; e++)
                             actions.Add(HitAction.MakeApplyEffect(damageData.EffectsToApply[e].Type));
 
+                        byte generation = SpellLineageLookup.TryGetComponent(damagerEntity, out var lineage) ? lineage.Generation : (byte)0;
+                        EmittedHitRulesLookup.TryGetComponent(damagerEntity, out var hitRules);
+
                         var hitSource = new HitSource
                         {
                             Caster = caster,
@@ -343,8 +357,12 @@ public partial struct CollisionSystem : ISystem
                             Shake = ResolveShakeSource(damagerEntity, damageData.Tags),
                             Emitter = damagerEntity,
                             DamageImmune = damageImmune,
+                            Generation = generation,
+                            CritMode = hitRules.CritMode,
+                            LifeStealBlocked = hitRules.LifeStealBlocked,
                         };
-                        ResolveHit.ApplyMany(in Resolve, ResolveECB, target.Index, target, in actions, in hitSource, ref random);
+                        // Crit result of the Damage action: read by the OnImpact poster (Task 13), not yet used.
+                        bool hitCrit = ResolveHit.ApplyMany(in Resolve, ResolveECB, target.Index, target, in actions, in hitSource, ref random);
 
                         // GlobalIFrames + flash only for a hit that actually damaged (an immune hit must not
                         // refresh the i-frames forever).

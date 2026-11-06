@@ -57,6 +57,7 @@ public partial struct ActiveEffectsSystem : ISystem
             // CollisionSystem/AreaAttackSystem populate it in; leaving it default would be a latent trap
             // for whatever calls ApplyEffect through this context next.
             RequestLookup = SystemAPI.GetBufferLookup<StatusEffectApplyRequest>(true),
+            Emitter = SystemAPI.TryGetSingleton<EmitterConfig>(out var emitterCfg) ? emitterCfg : EmitterConfig.Default,
         };
 
         // Phase 1: drain this frame's StatusEffectApplyRequest into the real StatusEffectInstance buffer.
