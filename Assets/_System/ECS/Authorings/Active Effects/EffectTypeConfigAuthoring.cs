@@ -6,11 +6,13 @@ using _System.Settings;
 /// <summary>Bakes both the status-effect rules (EffectTypeConfig, LifeStealConfig — from EffectSettings)
 /// and the status-effect VFX prefabs (ActiveEffectsVfxConfig — from VfxSettings). Merged from what used to
 /// be 3 separate Authorings (ActiveEffectsConfigAuthoring, EffectTypeConfigAuthoring,
-/// LifeStealConfigAuthoring) — all 3 only ever baked from the same prefab, so the split isolated nothing.</summary>
+/// LifeStealConfigAuthoring) — all 3 only ever baked from the same prefab, so the split isolated nothing.
+/// Also bakes the global emitter rules (EmitterConfig — from EmitterSettings).</summary>
 public class EffectTypeConfigAuthoring : MonoBehaviour
 {
     public CpEffectTypeSettings EffectSettings;
     public CpCombatEffectsSettings VfxSettings;
+    public CpEmitterSettings EmitterSettings;
 
     private class Baker : Baker<EffectTypeConfigAuthoring>
     {
@@ -68,6 +70,18 @@ public class EffectTypeConfigAuthoring : MonoBehaviour
                 Conversion = effectSettings != null ? effectSettings.LifeStealConversion : 0.075f,
                 ProcCooldown = effectSettings != null ? effectSettings.LifeStealProcCooldown : 0.1f,
             });
+
+            // --- EmitterConfig (generalized-emitter) ---
+            var emitterSettings = authoring.EmitterSettings;
+            if (emitterSettings != null)
+                DependsOn(emitterSettings);
+#if UNITY_EDITOR
+            string emitterPath = emitterSettings != null ? UnityEditor.AssetDatabase.GetAssetPath(emitterSettings) : null;
+            if (emitterSettings == null || !emitterPath.StartsWith("Assets/Resources/Settings/"))
+                Debug.LogError($"[EffectTypeConfigAuthoring] CpEmitterSettings must be assigned and live under " +
+                               $"Assets/Resources/Settings/ (found: '{emitterPath ?? "none"}'). EmitterConfig uses its struct defaults.", authoring);
+#endif
+            AddComponent(entity, emitterSettings != null ? emitterSettings.ToConfig() : EmitterConfig.Default);
 
             // --- ActiveEffectsVfxConfig ---
             AddComponentObject(entity, new ActiveEffectsVfxConfig
