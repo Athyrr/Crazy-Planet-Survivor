@@ -10,6 +10,8 @@ using Unity.Mathematics;
 public partial struct ActiveEffectsSystem : ISystem
 {
     private ComponentLookup<SlowState> _slowStateLookup;
+    private ComponentLookup<Invincible> _invincibleLookup;
+    private ComponentLookup<GlobalIFrames> _globalIFramesLookup;
 
     public void OnCreate(ref SystemState state)
     {
@@ -17,6 +19,8 @@ public partial struct ActiveEffectsSystem : ISystem
         state.RequireForUpdate<EffectTypeConfig>();
 
         _slowStateLookup = state.GetComponentLookup<SlowState>(true);
+        _invincibleLookup = state.GetComponentLookup<Invincible>(true);
+        _globalIFramesLookup = state.GetComponentLookup<GlobalIFrames>(true);
     }
 
     [BurstCompile]
@@ -33,6 +37,8 @@ public partial struct ActiveEffectsSystem : ISystem
         uint seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1;
 
         _slowStateLookup.Update(ref state);
+        _invincibleLookup.Update(ref state);
+        _globalIFramesLookup.Update(ref state);
 
         // Damage tracking queue for Burn ticks routed through ResolveHit.ApplyDamage.
         var damageEvents = new NativeQueue<SpellDamageEvent>(Allocator.TempJob);
@@ -69,6 +75,8 @@ public partial struct ActiveEffectsSystem : ISystem
             Resolve = resolveCtx,
             ECB = ecbTick.AsParallelWriter(),
             SpellSourceLookup = SystemAPI.GetComponentLookup<SpellSource>(true),
+            InvincibleLookup = _invincibleLookup,
+            GlobalIFramesLookup = _globalIFramesLookup,
         }.ScheduleParallel(drainHandle);
 
         var trackHandle = new TrackDamageJob
@@ -113,6 +121,8 @@ public partial struct ActiveEffectsSystem : ISystem
         [ReadOnly] public uint Seed;
         [ReadOnly] public BlobAssetReference<EffectTypeConfigBlob> EffectConfig;
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
+        [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
+        [ReadOnly] public ComponentLookup<GlobalIFrames> GlobalIFramesLookup;
         public ResolveHitContext Resolve;
         public EntityCommandBuffer.ParallelWriter ECB;
 
@@ -291,6 +301,9 @@ public partial struct ActiveEffectsSystem : ISystem
             var rng = HitRandom.CreateForHit(Seed, entity, burnSource);
             var action = HitAction.MakeDamage(damage, critChance, critMult, ESpellTag.Burn);
             var source = new HitSource { Caster = caster, DatabaseIndex = dbIndex, PushOrigin = default, Shake = EDamageShakeSource.DoT, Emitter = burnSource };
+            // Invincible / GlobalIFrames target: the Burn keeps running (duration, visual, expiry) but this
+            // tick deals 0 damage. Its carry was already consumed by the caller — no catch-up afterwards.
+            source.DamageImmune = ResolveHit.IsDamageImmune(entity, in InvincibleLookup, in GlobalIFramesLookup);
             ResolveHit.ApplyDamage(in Resolve, ECB, chunkIndex, entity, in action, in source, ref rng, allowCrit, allowLifeSteal);
         }
     }

@@ -34,6 +34,9 @@ public partial struct AreaAttackSystem : ISystem
     private BufferLookup<ActiveSpell> _activeSpellLookup;
     private ComponentLookup<CoreStats> _coreStatsLookup;
     private BufferLookup<StatusEffectApplyRequest> _statusEffectRequestLookup;
+    private ComponentLookup<Invincible> _invincibleLookup;
+    private ComponentLookup<DashIFrames> _dashIFramesLookup;
+    private ComponentLookup<GlobalIFrames> _globalIFramesLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -56,6 +59,9 @@ public partial struct AreaAttackSystem : ISystem
         _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(false);
         _coreStatsLookup = state.GetComponentLookup<CoreStats>(true);
         _statusEffectRequestLookup = state.GetBufferLookup<StatusEffectApplyRequest>(true);
+        _invincibleLookup = state.GetComponentLookup<Invincible>(true);
+        _dashIFramesLookup = state.GetComponentLookup<DashIFrames>(true);
+        _globalIFramesLookup = state.GetComponentLookup<GlobalIFrames>(true);
 
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
@@ -96,6 +102,9 @@ public partial struct AreaAttackSystem : ISystem
         _activeSpellLookup.Update(ref state);
         _coreStatsLookup.Update(ref state);
         _statusEffectRequestLookup.Update(ref state);
+        _invincibleLookup.Update(ref state);
+        _dashIFramesLookup.Update(ref state);
+        _globalIFramesLookup.Update(ref state);
 
         float deltaTime = SystemAPI.Time.DeltaTime;
         uint seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1;
@@ -125,6 +134,9 @@ public partial struct AreaAttackSystem : ISystem
             DamageBufferLookup = _damageBufferLookup,
             SpellSourceLookup = _spellSourceLookup,
             BossLookup = _bossLookup,
+            InvincibleLookup = _invincibleLookup,
+            DashIFramesLookup = _dashIFramesLookup,
+            GlobalIFramesLookup = _globalIFramesLookup,
             Resolve = resolveContext,
             Seed = seed,
         };
@@ -140,6 +152,9 @@ public partial struct AreaAttackSystem : ISystem
             LtwLookup = _ltwLookup,
             DestroyFlagLookup = _destroyFlagLookup,
             DamageBufferLookup = _damageBufferLookup,
+            InvincibleLookup = _invincibleLookup,
+            DashIFramesLookup = _dashIFramesLookup,
+            GlobalIFramesLookup = _globalIFramesLookup,
             Resolve = resolveContext,
             Seed = seed,
         };
@@ -190,6 +205,18 @@ public partial struct AreaAttackSystem : ISystem
         }
     }
 
+    /// <summary>Player i-frames after a damaging area hit (Burst or OverTime), mirroring the contact path —
+    /// so N area hits in one window don't all land. Deferred (ECB): this job is parallel, no live write.</summary>
+    private static void GrantGlobalIFrames(EntityCommandBuffer.ParallelWriter ecb, int sortKey, Entity target,
+        Entity playerEntity, in ComponentLookup<GlobalIFrames> globalIFramesLookup)
+    {
+        if (target != playerEntity || !globalIFramesLookup.HasComponent(target))
+            return;
+
+        ecb.SetComponent(sortKey, target, new GlobalIFrames { RemainingTime = GlobalIFrames.OnHitDuration });
+        ecb.SetComponentEnabled<GlobalIFrames>(sortKey, target, true);
+    }
+
     private static bool IsInHitMemory(in DynamicBuffer<HitEntityMemory> hitMemory, Entity hitEntity)
     {
         for (int i = 0; i < hitMemory.Length; i++)
@@ -222,6 +249,9 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
         [ReadOnly] public ComponentLookup<Boss> BossLookup;
+        [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
+        [ReadOnly] public ComponentLookup<DashIFrames> DashIFramesLookup;
+        [ReadOnly] public ComponentLookup<GlobalIFrames> GlobalIFramesLookup;
 
         public ResolveHitContext Resolve;
         public uint Seed;
@@ -301,6 +331,12 @@ public partial struct AreaAttackSystem : ISystem
                 if (!inShape)
                     continue;
 
+                // Dash i-frames: skipped, not remembered — the burst can still hit once the dash ends.
+                if (DashIFramesLookup.HasComponent(hitEntity) && DashIFramesLookup.IsComponentEnabled(hitEntity))
+                    continue;
+                // Invincible / GlobalIFrames: the hit is received (effects) with 0 damage.
+                bool damageImmune = ResolveHit.IsDamageImmune(hitEntity, in InvincibleLookup, in GlobalIFramesLookup);
+
                 // Crit is rolled AND its multiplier applied inside ResolveHit — the Burst path used to
                 // write a cosmetic IsCritical while dealing base damage (half of the "crit gruyère").
                 var actions = new FixedList512Bytes<HitAction>(); // widened from FixedList128Bytes, see Task 24's 2026-09-26 Ruling — 128 only holds 2 HitActions
@@ -311,8 +347,22 @@ public partial struct AreaAttackSystem : ISystem
                 var source = new HitSource
                 {
                     Caster = caster, DatabaseIndex = dbIndex, PushOrigin = PlayerPosition, Shake = shakeSource, Emitter = entity,
+                    DamageImmune = damageImmune,
                 };
                 ResolveHit.ApplyMany(in Resolve, ECB, chunkIndex, hitEntity, in actions, in source, ref random);
+
+                // I-frames + flash only for a hit that actually damaged (an immune hit must not refresh the
+                // i-frames forever). The flash is Burst-only (Q6); OverTime ticks don't flash.
+                if (!damageImmune)
+                {
+                    GrantGlobalIFrames(ECB, chunkIndex, hitEntity, Resolve.PlayerEntity, in GlobalIFramesLookup);
+
+                    if (DestructibleLookup.HasComponent(hitEntity))
+                    {
+                        var flashReq = ECB.CreateEntity(chunkIndex);
+                        ECB.AddComponent(chunkIndex, flashReq, new HitFrameFeedbackSystem.HitFrameColorRequest { TargetEntity = hitEntity });
+                    }
+                }
 
                 hitMemory.Add(new HitEntityMemory { HitEntity = hitEntity, LastHitTime = 0f });
             }
@@ -333,6 +383,9 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public ComponentLookup<LocalToWorld> LtwLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyFlagLookup;
         [ReadOnly] public BufferLookup<DamageBufferElement> DamageBufferLookup;
+        [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
+        [ReadOnly] public ComponentLookup<DashIFrames> DashIFramesLookup;
+        [ReadOnly] public ComponentLookup<GlobalIFrames> GlobalIFramesLookup;
 
         public ResolveHitContext Resolve;
         public uint Seed;
@@ -426,6 +479,12 @@ public partial struct AreaAttackSystem : ISystem
             {
                 Entity target = targets[i].Value;
 
+                // Dash i-frames: this tick skips the target (it stays tracked for the next tick).
+                if (DashIFramesLookup.HasComponent(target) && DashIFramesLookup.IsComponentEnabled(target))
+                    continue;
+                // Invincible / GlobalIFrames: the tick is received (effects) with 0 damage.
+                bool damageImmune = ResolveHit.IsDamageImmune(target, in InvincibleLookup, in GlobalIFramesLookup);
+
                 // OverTime ticks now crit too — the tick used to deal flat damage with no roll at all
                 // (the other half of the "crit gruyère").
                 var actions = new FixedList512Bytes<HitAction>(); // widened from FixedList128Bytes, see Task 24's 2026-09-26 Ruling — 128 only holds 2 HitActions
@@ -437,9 +496,13 @@ public partial struct AreaAttackSystem : ISystem
                 {
                     Caster = spellSource.CasterEntity, DatabaseIndex = spellSource.DatabaseIndex,
                     PushOrigin = zonePos, Shake = EDamageShakeSource.DoT, Emitter = zoneEntity,
+                    DamageImmune = damageImmune,
                 };
                 var rng = HitRandom.CreateForHit(Seed, target, zoneEntity);
                 ResolveHit.ApplyMany(in Resolve, ECB, chunkIndex, target, in actions, in source, ref rng);
+
+                if (!damageImmune)
+                    GrantGlobalIFrames(ECB, chunkIndex, target, Resolve.PlayerEntity, in GlobalIFramesLookup);
             }
         }
     }

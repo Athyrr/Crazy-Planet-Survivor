@@ -7,4 +7,7 @@ using Unity.Entities;
 public struct GlobalIFrames : IComponentData, IEnableableComponent
 {
     public float RemainingTime;
+
+    /// <summary>Window granted after a resolved, damaging hit on the player (contact and area paths).</summary>
+    public const float OnHitDuration = 0.3f;
 }

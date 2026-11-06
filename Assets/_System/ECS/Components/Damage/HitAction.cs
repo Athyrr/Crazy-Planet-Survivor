@@ -136,4 +136,9 @@ public struct HitSource
     /// StatusEffectInstance.Source so multiple sources of the same effect type coexist on one target (a spell's
     /// Burn and a lava zone's Burn are different Source entities). Entity.Null is a valid, distinct source.</summary>
     public Entity Emitter;
+
+    /// <summary>Target is damage-immune (Invincible / GlobalIFrames): it still RECEIVES the hit — effects,
+    /// emitters, tracking of nothing — but takes 0 damage (no DamageBufferElement, no life steal).
+    /// Dash i-frames are NOT this: a dashing target is skipped entirely by the call site.</summary>
+    public bool DamageImmune;
 }

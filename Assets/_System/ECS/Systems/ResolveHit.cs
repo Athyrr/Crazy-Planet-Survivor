@@ -29,6 +29,17 @@ public struct ResolveHitContext
 /// Damage action, resolved via ApplyMany.</summary>
 public static class ResolveHit
 {
+    /// <summary>Damage immunity of a target, the single test every hit path uses to fill
+    /// <see cref="HitSource.DamageImmune"/>: the <see cref="Invincible"/> tag, or <see cref="GlobalIFrames"/>
+    /// enabled (player-only, baked by PlayerAuthoring). An immune target still RECEIVES the hit (effects,
+    /// emitters) with 0 damage. Dash i-frames are NOT tested here: the call site skips a dashing target.</summary>
+    public static bool IsDamageImmune(Entity target, in ComponentLookup<Invincible> invincibleLookup,
+        in ComponentLookup<GlobalIFrames> globalIFramesLookup)
+    {
+        return invincibleLookup.HasComponent(target)
+               || (globalIFramesLookup.HasComponent(target) && globalIFramesLookup.IsComponentEnabled(target));
+    }
+
     /// <summary>Applies one atomic action (no other actions from the same hit in play — used where a hit is
     /// pure Damage/Heal/ApplyBuff with no accompanying effects).</summary>
     public static void Apply(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
@@ -95,6 +106,11 @@ public static class ResolveHit
     private static void ApplyDamage(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
         Entity target, in HitAction action, in HitSource source, ref Random rng, bool allowLifeSteal)
     {
+        // Damage-immune target (Invincible / GlobalIFrames): the hit is received (effects run in ApplyMany),
+        // only the damage, its tracking and its life steal are skipped.
+        if (source.DamageImmune)
+            return;
+
         bool isCrit = action.CritChance > 0f && rng.NextFloat(0f, 1f) <= action.CritChance;
         float dmg = action.Damage;
         if (isCrit)

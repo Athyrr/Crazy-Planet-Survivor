@@ -304,18 +304,15 @@ public partial struct CollisionSystem : ISystem
                     bool dashInvincible = DashIFramesLookup.HasComponent(target)
                                           && DashIFramesLookup.IsComponentEnabled(target);
 
-                    // Global player i-frames: enabled by this same job after any resolved hit on the
-                    // player (below), ticked down and disabled at 0 by GlobalIFramesSystem.
-                    bool globalIFramesActive = target == PlayerEntity
-                        && GlobalIFramesLookup.HasComponent(target) && GlobalIFramesLookup.IsComponentEnabled(target);
+                    // Dash i-frames: the damager passes through untouched (dash reflect) — nothing is applied,
+                    // and (below) no destroy/explode either, so the reflect can catch enemy projectiles.
+                    // Invincible / GlobalIFrames (enabled by this same job after a damaging hit on the player,
+                    // below; ticked down and disabled at 0 by GlobalIFramesSystem): the target still RECEIVES
+                    // the hit (effects, emitters) with 0 damage (heuristics.md "Invincible = immune to damage,
+                    // not to the hit").
+                    bool damageImmune = ResolveHit.IsDamageImmune(target, in InvincibleLookup, in GlobalIFramesLookup);
 
-                    // An immune target lets the damager pass through untouched: no damage, and (below)
-                    // no destroy/explode either — so a dash's reflect can catch enemy projectiles instead
-                    // of them being consumed on contact with the invincible player.
-                    bool targetImmune = InvincibleLookup.HasComponent(target) || dashInvincible || globalIFramesActive;
-
-                    // todo let target receive damge even if invincible. Consume damage on Health system and avoid health loss instead
-                    if (!targetImmune)
+                    if (!dashInvincible)
                     {
                         var random = HitRandom.CreateForHit(Seed, entityA, entityB);
 
@@ -345,29 +342,35 @@ public partial struct CollisionSystem : ISystem
                             PushOrigin = LocalTransformLookup[PlayerEntity].Position,
                             Shake = ResolveShakeSource(damagerEntity, damageData.Tags),
                             Emitter = damagerEntity,
+                            DamageImmune = damageImmune,
                         };
                         ResolveHit.ApplyMany(in Resolve, ResolveECB, target.Index, target, in actions, in hitSource, ref random);
 
-                        // Global player i-frames: enabled after any resolved hit on the player (not enemies).
-                        if (target == PlayerEntity)
+                        // GlobalIFrames + flash only for a hit that actually damaged (an immune hit must not
+                        // refresh the i-frames forever).
+                        if (!damageImmune)
                         {
-                            // Live write (I1 fix): closes the same-frame gap where N simultaneous contacts
-                            // in this one sequential job pass would otherwise all read "not immune yet" —
-                            // the ECB-only enable below plays back at EndSimulation, one frame too late for
-                            // this. Kept alongside the ECB write for consistency (and because GlobalIFrames
-                            // isn't guaranteed present pre-bake on every target — HasComponent guards it).
-                            if (GlobalIFramesLookup.HasComponent(target))
+                            // Global player i-frames: enabled after any damaging hit on the player (not enemies).
+                            if (target == PlayerEntity)
                             {
-                                GlobalIFramesLookup[target] = new GlobalIFrames { RemainingTime = 0.3f };
-                                GlobalIFramesLookup.SetComponentEnabled(target, true);
+                                // Live write (I1 fix): closes the same-frame gap where N simultaneous contacts
+                                // in this one sequential job pass would otherwise all read "not immune yet" —
+                                // the ECB-only enable below plays back at EndSimulation, one frame too late for
+                                // this. Kept alongside the ECB write for consistency (and because GlobalIFrames
+                                // isn't guaranteed present pre-bake on every target — HasComponent guards it).
+                                if (GlobalIFramesLookup.HasComponent(target))
+                                {
+                                    GlobalIFramesLookup[target] = new GlobalIFrames { RemainingTime = GlobalIFrames.OnHitDuration };
+                                    GlobalIFramesLookup.SetComponentEnabled(target, true);
+                                }
+
+                                ResolveECB.SetComponent(target.Index, target, new GlobalIFrames { RemainingTime = GlobalIFrames.OnHitDuration });
+                                ResolveECB.SetComponentEnabled<GlobalIFrames>(target.Index, target, true);
                             }
 
-                            ResolveECB.SetComponent(target.Index, target, new GlobalIFrames { RemainingTime = 0.3f });
-                            ResolveECB.SetComponentEnabled<GlobalIFrames>(target.Index, target, true);
+                            // Feedbacks
+                            ApplyFeedbacks(target);
                         }
-
-                        // Feedbacks
-                        ApplyFeedbacks(target);
                     }
 
                     if (!dashInvincible &&
