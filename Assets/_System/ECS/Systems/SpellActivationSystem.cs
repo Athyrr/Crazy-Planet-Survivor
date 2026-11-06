@@ -138,6 +138,10 @@ public partial struct SpellActivationSystem : ISystem
 
                         AddedTags = ESpellTag.None,
 
+                        // emitters: base SO rights, lost without this line (unlisted fields default to 0)
+                        GrantedCapabilities = spellData.BaseGrantedCapabilities,
+                        PersistentInstance = Entity.Null,
+
                         // final
                         FinalDamage = 0f,
                         FinalSize = 0f,

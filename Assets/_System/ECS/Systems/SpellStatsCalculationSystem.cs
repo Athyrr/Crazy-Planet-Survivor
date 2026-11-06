@@ -215,7 +215,6 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 // Multipliers
                 // Total = 1 + Global(Player) + Buff(Player, temp) + Local(Spell)  (all stored as deltas, neutral = 0)
                 float dmgMult = 1f + coreStats.Damage + bDamage + spell.LocalDamageBonusMultiplier;
-                // todo add explosion dmg + explosion size stats
                 float sizeMult = 1f + coreStats.SpellSize + bSpellSize + spell.LocalSizeBonusMultiplier;
                 float speedMult = 1f + coreStats.SpellSpeed + bSpellSpeed + spell.LocalSpeedBonusMultiplier;
                 float durationMult = 1f + coreStats.SpellDuration + bSpellDuration + spell.LocalSpellDurationBonusMultiplier;
@@ -234,6 +233,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 int amountAdd = coreStats.Amount + (int)bAmount + spell.LocalAmountBonus;
                 int bounceAdd = coreStats.Bounce + (int)bBounce + spell.LocalBounceBonus;
                 int pierceAdd = coreStats.Pierce + (int)bPierce + spell.LocalPierceBonus;
+                int splitCountAdd = spell.LocalSplitCount;
+                int splitDepthAdd = spell.LocalSplitDepth;
+                float explosionSizeAdd = spell.LocalExplosionSizeBonus;
 
                 // 3) Tags used by the RequiredTags-gated SpellStatUpgrade loop below. Bouncing/Piercing are DERIVED from the
                 // active state (counter > 0 AND allowed), never read from the authored base / AddedTags. The pre-loop count
@@ -246,9 +248,16 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 if ((allowed & ESpellCapability.Pierce) != 0 && baseSpellData.Pierces + pierceAdd > 0)
                     derivedCapabilityBits |= ESpellTag.Piercing;
 
+                // Explosive is DERIVED from the active Explode capability (entry present AND granted), like
+                // Bouncing/Piercing — computed before the SpellStatUpgrade loop so "all Explosive: +x %" sees it.
+                // The authored base Explosive bit is NOT masked (Q14: Boss_Fireball keeps its explosion shake).
+                bool explodeActive = (allowed & ESpellCapability.Explode) != 0
+                                     && (spell.GrantedCapabilities & ESpellCapability.Explode) != 0;
+                ESpellTag derivedExplosive = explodeActive ? ESpellTag.Explosive : ESpellTag.None;
+
                 ESpellTag currentTags = (baseSpellData.Tag & ~(StatusBitsMask | CapabilityBitsMask))
                                         | (spell.AddedTags & ~(StatusBitsMask | CapabilityBitsMask))
-                                        | derivedStatusBits | derivedCapabilityBits;
+                                        | derivedStatusBits | derivedCapabilityBits | derivedExplosive;
 
                 // Crit
                 float critChanceAdd = coreStats.CritChance + bCritChance + spell.LocalCritChanceBonusPercent;
@@ -322,6 +331,18 @@ public partial struct SpellStatsCalculationSystem : ISystem
                             case ESpellStat.SlowMagnitude:
                                 slowMagnitudeBonus += mod.Value;
                                 break;
+
+                            case ESpellStat.ExplosionSize:
+                                explosionSizeAdd += mod.Value;
+                                break;
+
+                            case ESpellStat.SplitCount:
+                                splitCountAdd += (int)mod.Value;
+                                break;
+
+                            case ESpellStat.SplitDepth:
+                                splitDepthAdd += (int)mod.Value;
+                                break;
                         }
                     }
                 }
@@ -344,6 +365,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 spell.FinalAmount = math.max(1, baseSpellData.BaseAmount + amountAdd);
                 spell.FinalBounces = baseSpellData.Bounces + bounceAdd;
                 spell.FinalPierces = baseSpellData.Pierces + pierceAdd;
+                spell.FinalSplitCount = math.max(0, baseSpellData.BaseSplitCount + splitCountAdd);
+                spell.FinalSplitDepth = math.max(0, baseSpellData.BaseSplitDepth + splitDepthAdd);
+                spell.FinalExplosionSize = math.max(-0.9f, explosionSizeAdd);
 
                 // Melee/CaC spells extend their cast range with size upgrades.
                 float effectiveRangeMult = baseSpellData.SizeScalesRange

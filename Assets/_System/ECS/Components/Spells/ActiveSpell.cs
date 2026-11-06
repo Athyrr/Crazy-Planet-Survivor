@@ -23,9 +23,8 @@ public struct ActiveSpell : IBufferElementData
 
     public float LocalBounceRangeBonusMultiplier;
 
-    public float LocalExplosionDamageBonusMultiplier;
-    public float LocalExplosionSizeBonusMultiplier;
-    
+    public float LocalExplosionSizeBonus;
+
     public float LocalCritChanceBonusPercent;
     public float LocalCritDamageBonus;
 
@@ -37,6 +36,14 @@ public struct ActiveSpell : IBufferElementData
     // Populated by ApplyUpgradeSystem.ApplySpellUpgrade, deduped by EffectType (a repeated upgrade pick never
     // grows this past one entry per type — max 4 possible today).
     public FixedList32Bytes<EffectSpec> AddedEffects;
+
+    // Emitters (generalized-emitter)
+    public int LocalSplitCount;
+    public int LocalSplitDepth;
+    // (LocalExplosionSizeBonus above: per-spell ExplosionSize delta, 0.1 = +10 % radius)
+    public ESpellCapability GrantedCapabilities; // base SO | upgrades (Explode is granted, Split is driven by FinalSplitCount)
+    /// <summary>Lifetime = -1 attached owner (FireOrbs): the cast is skipped while this entity exists.</summary>
+    public Entity PersistentInstance;
 
     // Final values (cache)
     public float FinalDamage;
@@ -54,8 +61,9 @@ public struct ActiveSpell : IBufferElementData
 
     public float FinalBounceRange;
 
-    public float FinalExplosionDamageBonusMultiplier;
-    public float FinalExplosionSizeBonusMultiplier;
+    public int FinalSplitCount;
+    public int FinalSplitDepth;
+    public float FinalExplosionSize; // delta: explosion radius = prefab RadiusEnd × (1 + FinalExplosionSize)
 
     public float FinalCritChance;
     public float FinalCritDamageMultiplier;
