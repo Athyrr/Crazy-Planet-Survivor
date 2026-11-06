@@ -3,6 +3,7 @@ using System;
 /// <summary>
 /// What a spell is ALLOWED to do (the SpellSO decides, the prefab only offers the slot).
 /// Mirrors the Bounce / Pierce / ExplodeOnContact enableable components.
+/// Split mirrors the Split emitter entry; active while FinalSplitCount > 0.
 /// </summary>
 [Flags]
 public enum ESpellCapability : byte
@@ -11,4 +12,5 @@ public enum ESpellCapability : byte
     Bounce = 1 << 0,
     Pierce = 1 << 1,
     Explode = 1 << 2,
+    Split = 1 << 3,
 }

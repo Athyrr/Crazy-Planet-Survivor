@@ -28,7 +28,14 @@ public enum ESpellID : byte
     VoidPulse = 14,
     FreezingBlow = 19,
     ProjecttileGeometric = 20,
-    VolcanusVortux = 21   
+    VolcanusVortux = 21,
+
+    // Emitter children (generalized-emitter, lot 1) — never unlocked directly, one unique ID each.
+    Explosion_Fire = 22,
+    Explosion_Tech = 23,
+    Explosion_Shock = 24,
+    Explosion_Frost = 25,
+    FireOrb = 26
 }
 
 /// <summary>

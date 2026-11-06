@@ -115,6 +115,7 @@ public struct CoreStats : IComponentData
     public float GlobalStunDurationMultiplier;
     public float BurnCanCrit;
     public float BurnCanLifeSteal;
+    public float ExplosionCanLifeSteal;
 
     [Header("Dash")]
     [Tooltip("Number of dash charges the entity can store (0 = cannot dash).")]

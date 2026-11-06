@@ -70,4 +70,7 @@ public enum ECharacterStat
 
     /// <summary>One-shot: lets a Burn tick trigger life steal (EffectTypeConfig.AllowLifeSteal stays the static default).</summary>
     BurnCanLifeSteal = 42,
+
+    /// <summary>One-shot: lets explosions (Explode emitter children) trigger life steal (EmitterConfig.ExplosionAllowLifeSteal stays the static default).</summary>
+    ExplosionCanLifeSteal = 43,
 }

@@ -29,5 +29,10 @@ public enum ESpellStat
 
     // Status effects (per-spell bonus, opt-in via a concrete upgrade)
     BurnMagnitude,
-    SlowMagnitude
+    SlowMagnitude,
+
+    // Emitters (generalized-emitter) — appended at the END: assets serialize the index.
+    SplitCount,
+    SplitDepth,
+    ExplosionSize
 }

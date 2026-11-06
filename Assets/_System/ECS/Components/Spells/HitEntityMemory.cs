@@ -9,4 +9,6 @@ public struct HitEntityMemory : IBufferElementData
 {
     public Entity HitEntity;
     public double LastHitTime;
+    /// <summary>Pre-filled entry (the target that triggered an emission): never re-hit, never evicted.</summary>
+    public bool Pinned;
 }
