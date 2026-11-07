@@ -1,7 +1,7 @@
 # ECS-Planet-Survivor
 
 **Commit:** 891ba4a6 | **Branch:** master
-**Stack:** Unity DOTS (ECS 1.3) + URP + FMOD + PrimeTween
+**Stack:** Unity DOTS (Entities 6.4.0 = ECS 1.4, Unity Physics 1.4.6) + URP + FMOD + PrimeTween
 
 ## Overview
 

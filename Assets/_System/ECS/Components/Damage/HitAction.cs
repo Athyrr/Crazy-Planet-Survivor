@@ -2,8 +2,8 @@ using Unity.Entities;
 
 /// <summary>
 /// Which outcome a single <see cref="HitAction"/> applies. <b>Atomic</b> — one kind per action.
-/// A spell that both damages and debuffs is a <i>list</i> of actions (a future
-/// <c>DynamicBuffer&lt;HitAction&gt;</c>), not one multi-outcome struct: <c>[Damage(...), ApplyBuff(Armor,-x)]</c>.
+/// A spell that both damages and debuffs is a <i>list</i> of actions (today a <c>FixedList512Bytes&lt;HitAction&gt;</c> built per hit by the call site
+/// (CollisionSystem / AreaAttackSystem); a <c>DynamicBuffer&lt;HitAction&gt;</c> is chantier #5's target, not today's container), not one multi-outcome struct: <c>[Damage(...), ApplyBuff(Armor,-x)]</c>.
 /// See §9.4 / §10 of <c>SPELL_TAXONOMY.md</c>.
 /// </summary>
 public enum EHitKind : byte
@@ -39,7 +39,8 @@ public enum EStatOp : byte { Add, Mult }
 /// <summary>
 /// One <b>atomic</b> result to apply to a target, consumed by <see cref="ResolveHit"/>. Tagged by
 /// <see cref="Kind"/>; only that kind's fields are meaningful (the others are unused — the accepted cost
-/// of a Burst value type that doubles as the element of a future on-hit effect list). Build with the
+/// of a Burst value type that doubles as the element of the per-hit <c>FixedList512Bytes&lt;HitAction&gt;</c> built by the call site
+/// (CollisionSystem / AreaAttackSystem); a <c>DynamicBuffer&lt;HitAction&gt;</c> is chantier #5's target, not today's container). Build with the
 /// <c>Make*</c> helpers for readability at call sites.
 /// </summary>
 public struct HitAction
