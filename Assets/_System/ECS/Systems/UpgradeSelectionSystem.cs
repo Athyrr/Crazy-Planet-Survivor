@@ -63,6 +63,10 @@ public partial struct UpgradeSelectionSystem : ISystem
             SpellsDatabaseRef = spellsDatabase.Blobs,
             RaritySettingsRef = raritySettings.Blob,
 
+            MaxSplitDepth = SystemAPI.TryGetSingleton<EmitterConfig>(out var emitterCfg)
+                ? emitterCfg.MaxSplitDepth
+                : EmitterConfig.Default.MaxSplitDepth,
+
             PlayerExperienceLookup = SystemAPI.GetComponentLookup<PlayerExperience>(true),
             PlayerLevelRequestLookup = SystemAPI.GetComponentLookup<PlayerLevelUpRequest>(false),
             CoreStatsLookup = SystemAPI.GetComponentLookup<CoreStats>(true),
@@ -87,6 +91,9 @@ public partial struct UpgradeSelectionSystem : ISystem
         [ReadOnly] public BlobAssetReference<UpgradeBlobs> UpgradesDatabaseRef;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellsDatabaseRef;
         [ReadOnly] public BlobAssetReference<RaritySettingsBlob> RaritySettingsRef;
+
+        /// <summary>Hard cap on Split generations (EmitterConfig); a SplitDepth upgrade past it has no effect.</summary>
+        public int MaxSplitDepth;
 
         [ReadOnly] public ComponentLookup<PlayerExperience> PlayerExperienceLookup;
         public ComponentLookup<PlayerLevelUpRequest> PlayerLevelRequestLookup;
@@ -368,6 +375,12 @@ public partial struct UpgradeSelectionSystem : ISystem
                             && SpellHasGrantedCapabilities(upgradeData.SpellID, upgradeData.GrantCapabilities, activeSpells, ref spellBlobs))
                             isValid = false;
 
+                        // A SplitDepth upgrade is never offered once the target spell reaches the split depth cap
+                        // (SpellCastingSystem clamps the cast depth to MaxSplitDepth, so more would do nothing).
+                        if (upgradeData.SpellStat == ESpellStat.SplitDepth
+                            && SpellSplitDepthAtMax(upgradeData.SpellID, activeSpells, ref spellBlobs))
+                            isValid = false;
+
                         // "Does" gating for spell upgrades: the capability must be ACTIVE on the target spell.
                         if (upgradeData.RequiredCapability != ESpellCapability.None
                             && !SpellHasActiveCapability(upgradeData.SpellID, upgradeData.RequiredCapability, activeSpells, ref spellBlobs))
@@ -433,6 +446,15 @@ public partial struct UpgradeSelectionSystem : ISystem
             for (int i = 0; i < activeSpells.Length; i++)
                 if (spellBlobs[activeSpells[i].DatabaseIndex].ID == id)
                     return (activeSpells[i].GrantedCapabilities & caps) == caps;
+            return false;
+        }
+
+        private bool SpellSplitDepthAtMax(ESpellID id, DynamicBuffer<ActiveSpell> activeSpells,
+            ref BlobArray<SpellBlob> spellBlobs)
+        {
+            for (int i = 0; i < activeSpells.Length; i++)
+                if (spellBlobs[activeSpells[i].DatabaseIndex].ID == id)
+                    return activeSpells[i].FinalSplitDepth >= MaxSplitDepth;
             return false;
         }
 
