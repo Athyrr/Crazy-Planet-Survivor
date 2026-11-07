@@ -126,7 +126,12 @@ public partial struct SpellCastingSystem : ISystem
             OrbitMovementLookup = _orbitMovementLookup,
             SubSpellsSpawnerLookup = _subSpellsSpawnerLookup,
             SubSpellsCircleLayoutLookup = _subSpellsCircleLayoutLookup,
-            ExplodeOnContactLookup = _explodeOnContactLookup
+            ExplodeOnContactLookup = _explodeOnContactLookup,
+
+            QueueEntity = SystemAPI.TryGetSingletonEntity<EmitRequestQueue>(out var queue) ? queue : Entity.Null,
+            MaxSplitDepth = SystemAPI.TryGetSingleton<EmitterConfig>(out var emitterCfg)
+                ? emitterCfg.MaxSplitDepth
+                : EmitterConfig.Default.MaxSplitDepth,
         };
 
         state.Dependency = castJob.ScheduleParallel(state.Dependency);
@@ -159,6 +164,10 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<SubSpellsSpawner> SubSpellsSpawnerLookup;
         [ReadOnly] public ComponentLookup<SubSpellsLayout_Circle> SubSpellsCircleLayoutLookup;
         [ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeOnContactLookup;
+
+        // Emitters: EmitRequest queue singleton (Entity.Null = no emission system) and Split depth cap.
+        public Entity QueueEntity;
+        public int MaxSplitDepth;
 
         public void Execute([ChunkIndexInQuery] int chunkIndex, Entity requestEntity, in CastSpellRequest request)
         {
@@ -444,6 +453,12 @@ public partial struct SpellCastingSystem : ISystem
                 }
             }
 
+            // Emitters: only player casts post (Q24). Root instances carry the lineage (LineageId = first instance).
+            bool postEmitters = isPlayerCaster && QueueEntity != Entity.Null && baseSpellData.Emitters.Length > 0;
+            bool hasOnActivation = postEmitters && EmitterQueries.HasTrigger(ref baseSpellData, EEmitterTrigger.OnActivation);
+            byte rootDepth = (byte)math.clamp(math.min(activeSpell.FinalSplitDepth, MaxSplitDepth), 0, 255);
+            Entity lineageId = Entity.Null;
+
             // Spawn loop
             for (int i = 0; i < totalCount; i++)
             {
@@ -519,6 +534,39 @@ public partial struct SpellCastingSystem : ISystem
                     BounceRange = finalBounceRange,
                     Pierces = finalPierce,
                 });
+
+                if (baseSpellData.ReHitDelayOverride > 0f)
+                    ECB.AddComponent(chunkIndex, spellEntity, new ReHitDelay { Value = baseSpellData.ReHitDelayOverride });
+
+                if (postEmitters)
+                {
+                    if (i == 0)
+                        lineageId = spellEntity; // deferred entity: remapped at playback (same ECB)
+                    ECB.AddComponent(chunkIndex, spellEntity, new SpellLineage
+                    {
+                        LineageId = lineageId, Generation = 0, DepthLeft = rootDepth, ShapeDatabaseIndex = request.DatabaseIndex,
+                    });
+                    if (hasOnActivation)
+                    {
+                        ECB.AppendToBuffer(chunkIndex, QueueEntity, new EmitRequest
+                        {
+                            RootDatabaseIndex = request.DatabaseIndex,
+                            ShapeDatabaseIndex = request.DatabaseIndex,
+                            Caster = request.Caster,
+                            Trigger = EEmitterTrigger.OnActivation,
+                            Position = spawnPos,
+                            Direction = finalDirection,
+                            Rotation = finalRotation,
+                            Owner = spellEntity,
+                            LineageId = lineageId,
+                            Generation = 0,
+                            DepthLeft = rootDepth,
+                            TriggerCrit = false,
+                            IgnoreTarget = Entity.Null,
+                            RollSeed = random.NextUInt(),
+                        });
+                    }
+                }
 
                 // Legacy blocks below write on the helper's entity (removed in Tasks 16 and 22).
                 if (OrbitMovementLookup.HasComponent(spellPrefab))

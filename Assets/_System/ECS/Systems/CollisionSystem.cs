@@ -38,6 +38,7 @@ public partial struct CollisionSystem : ISystem
     private BufferLookup<StatusEffectApplyRequest> _statusEffectRequestLookup;
     private ComponentLookup<SpellLineage> _spellLineageLookup;
     private ComponentLookup<EmittedHitRules> _emittedHitRulesLookup;
+    private ComponentLookup<ReHitDelay> _reHitDelayLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -86,6 +87,7 @@ public partial struct CollisionSystem : ISystem
         _statusEffectRequestLookup = state.GetBufferLookup<StatusEffectApplyRequest>(true);
         _spellLineageLookup = state.GetComponentLookup<SpellLineage>(true);
         _emittedHitRulesLookup = state.GetComponentLookup<EmittedHitRules>(true);
+        _reHitDelayLookup = state.GetComponentLookup<ReHitDelay>(true);
 
         _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
         _lifetimeLookup = state.GetComponentLookup<Lifetime>(false);
@@ -137,6 +139,7 @@ public partial struct CollisionSystem : ISystem
         _statusEffectRequestLookup.Update(ref state);
         _spellLineageLookup.Update(ref state);
         _emittedHitRulesLookup.Update(ref state);
+        _reHitDelayLookup.Update(ref state);
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
@@ -189,6 +192,10 @@ public partial struct CollisionSystem : ISystem
             SpellSourceLookup = _subSpellRootLookup,
             SpellLineageLookup = _spellLineageLookup,
             EmittedHitRulesLookup = _emittedHitRulesLookup,
+            ReHitDelayLookup = _reHitDelayLookup,
+
+            QueueEntity = SystemAPI.TryGetSingletonEntity<EmitRequestQueue>(out var queue) ? queue : Entity.Null,
+            SpellDb = SystemAPI.TryGetSingleton<SpellsDatabase>(out var spellDb) ? spellDb.Blobs : default,
 
             ColliderLookup = _colliderLookup,
             BossLookup = _bossLookup,
@@ -248,7 +255,12 @@ public partial struct CollisionSystem : ISystem
         [ReadOnly] public ComponentLookup<Boss> BossLookup;
         public ComponentLookup<Lifetime> LifetimeLookup;
 
-        private const double MultiHitDelay = 1f; // Delay before allowing another hit if collision stays.
+        [ReadOnly] public ComponentLookup<ReHitDelay> ReHitDelayLookup;
+
+        // Emitters (OnImpact): EmitRequest queue singleton (Entity.Null = no emission system) and the spell DB.
+        public Entity QueueEntity;
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDb;
+
         private const int MaxHitMemoryEntries = 16; // bounded window — piercing/bouncing rarely exceeds this per projectile lifetime.
 
         public void Execute(TriggerEvent triggerEvent)
@@ -279,6 +291,9 @@ public partial struct CollisionSystem : ISystem
                 if (HitMemoryLookup.HasBuffer(damagerEntity))
                 {
                     var history = HitMemoryLookup[damagerEntity];
+                    double reHitDelay = ReHitDelayLookup.TryGetComponent(damagerEntity, out var rhd)
+                        ? rhd.Value
+                        : Resolve.Emitter.DefaultReHitDelay;
                     bool asAlreadyHit = false;
 
                     for (var i = 0; i < history.Length; i++)
@@ -286,7 +301,8 @@ public partial struct CollisionSystem : ISystem
                         if (history[i].HitEntity == target)
                         {
                             asAlreadyHit = true;
-                            if (CurrentTime - history[i].LastHitTime < MultiHitDelay)
+                            // Pinned = the target that triggered this child's emission: never re-hit (Q9).
+                            if (history[i].Pinned || CurrentTime - history[i].LastHitTime < reHitDelay)
                             {
                                 canDealDamage = false;
                             }
@@ -304,8 +320,19 @@ public partial struct CollisionSystem : ISystem
                     if (!asAlreadyHit)
                     {
                         if (history.Length >= MaxHitMemoryEntries)
-                            history.RemoveAt(0); // evict oldest — a target hit long enough ago to be evicted is safe to re-hit.
-                        history.Add(new HitEntityMemory { HitEntity = target, LastHitTime = CurrentTime });
+                        {
+                            // Evict the oldest NON-pinned entry; pinned entries are never evicted.
+                            for (int k = 0; k < history.Length; k++)
+                            {
+                                if (!history[k].Pinned)
+                                {
+                                    history.RemoveAt(k);
+                                    break;
+                                }
+                            }
+                        }
+                        if (history.Length < MaxHitMemoryEntries)
+                            history.Add(new HitEntityMemory { HitEntity = target, LastHitTime = CurrentTime });
                     }
                 }
 
@@ -322,6 +349,10 @@ public partial struct CollisionSystem : ISystem
                     // the hit (effects, emitters) with 0 damage (heuristics.md "Invincible = immune to damage,
                     // not to the hit").
                     bool damageImmune = ResolveHit.IsDamageImmune(target, in InvincibleLookup, in GlobalIFramesLookup);
+
+                    // Crit result of this hit's Damage action (ResolveHit), shared by the OnImpact poster and
+                    // the legacy ExplodeOnContact path below (no second roll).
+                    bool hitCrit = false;
 
                     if (!dashInvincible)
                     {
@@ -361,8 +392,52 @@ public partial struct CollisionSystem : ISystem
                             CritMode = hitRules.CritMode,
                             LifeStealBlocked = hitRules.LifeStealBlocked,
                         };
-                        // Crit result of the Damage action: read by the OnImpact poster (Task 13), not yet used.
-                        bool hitCrit = ResolveHit.ApplyMany(in Resolve, ResolveECB, target.Index, target, in actions, in hitSource, ref random);
+                        hitCrit = ResolveHit.ApplyMany(in Resolve, ResolveECB, target.Index, target, in actions, in hitSource, ref random);
+
+                        // Emitters (OnImpact): one request per resolved hit — pierce / bounce included, damage-immune
+                        // target included (Q21). Player casts only (Q24). Position read now, before the ECB.
+                        if (QueueEntity != Entity.Null && SpellDb.IsCreated && dbIndex >= 0 && caster == PlayerEntity)
+                        {
+                            int shapeIndex = dbIndex;
+                            Entity lineageId = damagerEntity;
+                            byte emitGeneration = 0, depthLeft = 0;
+                            if (SpellLineageLookup.TryGetComponent(damagerEntity, out var lin))
+                            {
+                                shapeIndex = lin.ShapeDatabaseIndex;
+                                lineageId = lin.LineageId;
+                                emitGeneration = lin.Generation;
+                                depthLeft = lin.DepthLeft;
+                            }
+
+                            if (shapeIndex >= 0 && shapeIndex < SpellDb.Value.Spells.Length
+                                && EmitterQueries.HasTrigger(ref SpellDb.Value.Spells[shapeIndex], EEmitterTrigger.OnImpact))
+                            {
+                                var damagerTransform = LocalTransformLookup[damagerEntity];
+                                float3 direction = LinearMovementLookup.HasComponent(damagerEntity)
+                                                   && LinearMovementLookup.IsComponentEnabled(damagerEntity)
+                                    ? LinearMovementLookup[damagerEntity].Direction
+                                    : damagerTransform.Forward();
+                                var emitRng = HitRandom.CreateForHit(Seed ^ 0xA5A5A5A5u, entityA, entityB);
+
+                                ECB.AppendToBuffer(QueueEntity, new EmitRequest
+                                {
+                                    RootDatabaseIndex = dbIndex,
+                                    ShapeDatabaseIndex = shapeIndex,
+                                    Caster = caster,
+                                    Trigger = EEmitterTrigger.OnImpact,
+                                    Position = damagerTransform.Position,
+                                    Direction = direction,
+                                    Rotation = damagerTransform.Rotation,
+                                    Owner = Entity.Null,
+                                    LineageId = lineageId,
+                                    Generation = emitGeneration,
+                                    DepthLeft = depthLeft,
+                                    TriggerCrit = hitCrit,
+                                    IgnoreTarget = target,
+                                    RollSeed = emitRng.NextUInt(),
+                                });
+                            }
+                        }
 
                         // GlobalIFrames + flash only for a hit that actually damaged (an immune hit must not
                         // refresh the i-frames forever).
@@ -395,15 +470,11 @@ public partial struct CollisionSystem : ISystem
                         ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
                         ExplodeOnContactLookup.IsComponentEnabled(damagerEntity))
                     {
-                        var random = HitRandom.CreateForHit(Seed, entityA, entityB);
-
-                        bool isCrit = random.NextFloat(0f, 1f) <= damageData.TotalCritChance;
-                        float criticalDamagesMultiplier = 1f;
-                        if (isCrit)
-                            criticalDamagesMultiplier = math.max(1.0f, damageData.TotalCritMultiplier);
+                        // The explosion inherits the hit's crit (ResolveHit result), no independent roll.
+                        float criticalDamagesMultiplier = hitCrit ? math.max(1.0f, damageData.TotalCritMultiplier) : 1f;
 
                         CreateExplosion(damagerEntity, damageData.TargetLayers, explosion, criticalDamagesMultiplier,
-                            isCrit, ECB);
+                            hitCrit, ECB);
                     }
 
                     // Only a dash's i-frames let the projectile pass through unharmed (so the dash's
