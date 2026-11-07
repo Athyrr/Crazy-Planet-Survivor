@@ -24,12 +24,6 @@ public partial struct SpellCastingSystem : ISystem
 
     // Behaviors
     private ComponentLookup<PhysicsCollider> _colliderLookup;
-    private ComponentLookup<AttachToCaster> _attachLookup;
-
-    private ComponentLookup<OrbitMovement> _orbitMovementLookup;
-
-    private ComponentLookup<SubSpellsSpawner> _subSpellsSpawnerLookup;
-    private ComponentLookup<SubSpellsLayout_Circle> _subSpellsCircleLayoutLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -48,10 +42,6 @@ public partial struct SpellCastingSystem : ISystem
         _entityInfo = state.GetEntityStorageInfoLookup();
         _spawn = SpellSpawnLookups.Create(ref state);
         _colliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true);
-        _attachLookup = SystemAPI.GetComponentLookup<AttachToCaster>(true);
-        _orbitMovementLookup = SystemAPI.GetComponentLookup<OrbitMovement>(true);
-        _subSpellsSpawnerLookup = SystemAPI.GetComponentLookup<SubSpellsSpawner>(true);
-        _subSpellsCircleLayoutLookup = SystemAPI.GetComponentLookup<SubSpellsLayout_Circle>(true);
     }
 
     [BurstCompile]
@@ -69,10 +59,6 @@ public partial struct SpellCastingSystem : ISystem
 
         _spawn.Update(ref state);
         _colliderLookup.Update(ref state);
-        _attachLookup.Update(ref state);
-        _orbitMovementLookup.Update(ref state);
-        _subSpellsSpawnerLookup.Update(ref state);
-        _subSpellsCircleLayoutLookup.Update(ref state);
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
@@ -80,7 +66,6 @@ public partial struct SpellCastingSystem : ISystem
 
         var spellDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
         var mainSpellPrefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
-        var childSpellPrefabs = SystemAPI.GetSingletonBuffer<ChildSpellPrefab>(true);
 
         Entity playerEntity = SystemAPI.TryGetSingletonEntity<Player>(out var playerSingleton)
             ? playerSingleton
@@ -111,7 +96,6 @@ public partial struct SpellCastingSystem : ISystem
             CollisionWorld = physicsWorldSingleton.CollisionWorld,
             SpellDatabaseRef = spellDatabase.Blobs,
             MainSpellPrefabs = mainSpellPrefabs,
-            ChildSpellPrefabs = childSpellPrefabs,
 
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
@@ -121,10 +105,6 @@ public partial struct SpellCastingSystem : ISystem
 
             Spawn = _spawn,
             ColliderLookup = _colliderLookup,
-            AttachLookup = _attachLookup,
-            OrbitMovementLookup = _orbitMovementLookup,
-            SubSpellsSpawnerLookup = _subSpellsSpawnerLookup,
-            SubSpellsCircleLayoutLookup = _subSpellsCircleLayoutLookup,
 
             QueueEntity = SystemAPI.TryGetSingletonEntity<EmitRequestQueue>(out var queue) ? queue : Entity.Null,
             MaxSplitDepth = SystemAPI.TryGetSingleton<EmitterConfig>(out var emitterCfg)
@@ -146,7 +126,6 @@ public partial struct SpellCastingSystem : ISystem
 
         [ReadOnly] public CollisionWorld CollisionWorld;
         [ReadOnly] public DynamicBuffer<SpellPrefab> MainSpellPrefabs;
-        [ReadOnly] public DynamicBuffer<ChildSpellPrefab> ChildSpellPrefabs;
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
@@ -158,10 +137,6 @@ public partial struct SpellCastingSystem : ISystem
         public SpellSpawnLookups Spawn; // all [ReadOnly] inside
 
         [ReadOnly] public ComponentLookup<PhysicsCollider> ColliderLookup;
-        [ReadOnly] public ComponentLookup<AttachToCaster> AttachLookup;
-        [ReadOnly] public ComponentLookup<OrbitMovement> OrbitMovementLookup;
-        [ReadOnly] public ComponentLookup<SubSpellsSpawner> SubSpellsSpawnerLookup;
-        [ReadOnly] public ComponentLookup<SubSpellsLayout_Circle> SubSpellsCircleLayoutLookup;
 
         // Emitters: EmitRequest queue singleton (Entity.Null = no emission system) and Split depth cap.
         public Entity QueueEntity;
@@ -242,12 +217,9 @@ public partial struct SpellCastingSystem : ISystem
 
 
             // Multi-cast — how Amount is consumed at cast time (Single/Spread/MultiTarget).
-            // Orbital spawners always cast exactly 1 root; Amount flows to the spawner's child count elsewhere.
             // Enemy casts with MultiTarget degenerate to Spread (handled once isPlayerCaster is known, below).
             var multiCast = baseSpellData.MultiCast;
             int totalCount = multiCast == ESpellMultiCast.Single ? 1 : math.max(1, finalAmount);
-            if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
-                totalCount = 1;
 
             // Targeting
             float3 targetPosition = casterTransform.Position;
@@ -382,37 +354,33 @@ public partial struct SpellCastingSystem : ISystem
             float3 surfaceNormal = math.normalize(casterTransform.Position - planetCenter);
 
             bool isProjectile = Spawn.LinearMovement.HasComponent(spellPrefab);
-            bool isAttached = AttachLookup.HasComponent(spellPrefab);
 
-            if (!isAttached)
+            // Caster-anchored (melee/aura that follows the player, via CopyEntityPosition) vs
+            // world-anchored (a ranged strike that lands ON the target, e.g. lightning).
+            bool casterAnchored = Spawn.CopyPosition.HasComponent(spellPrefab);
+            bool isArea = Spawn.AreaAttack.HasComponent(spellPrefab);
+
+            if (targetFound && (isProjectile || isArea))
             {
-                // Caster-anchored (melee/aura that follows the player, via CopyEntityPosition) vs
-                // world-anchored (a ranged strike that lands ON the target, e.g. lightning).
-                bool casterAnchored = Spawn.CopyPosition.HasComponent(spellPrefab);
-                bool isArea = Spawn.AreaAttack.HasComponent(spellPrefab);
-
-                if (targetFound && (isProjectile || isArea))
+                // Facing = caster→target (the aim), independent of the spawn offset, so a spell can sit
+                // in front of the caster and still face the target (close/melee targets no longer
+                // collapse the direction to ~0 and leave it stuck on the caster's raw rotation).
+                float3 toTarget = targetPosition - casterTransform.Position;
+                if (math.lengthsq(toTarget) > math.EPSILON)
                 {
-                    // Facing = caster→target (the aim), independent of the spawn offset, so a spell can sit
-                    // in front of the caster and still face the target (close/melee targets no longer
-                    // collapse the direction to ~0 and leave it stuck on the caster's raw rotation).
-                    float3 toTarget = targetPosition - casterTransform.Position;
-                    if (math.lengthsq(toTarget) > math.EPSILON)
-                    {
-                        fireDirection = math.normalize(toTarget);
-                        baseRotation = quaternion.LookRotationSafe(fireDirection, surfaceNormal);
-                    }
+                    fireDirection = math.normalize(toTarget);
+                    baseRotation = quaternion.LookRotationSafe(fireDirection, surfaceNormal);
+                }
 
-                    // A ranged area strike (no caster anchor) lands AT the target point; caster-anchored
-                    // melee areas and projectiles keep spawning near the caster.
-                    if (isArea && !casterAnchored)
-                        baseSpawnPos = targetPosition;
-                }
-                else if (!isProjectile)
-                {
-                    baseSpawnPos = targetPosition; // Area spells spawn on target
-                    baseRotation = quaternion.LookRotationSafe(casterTransform.Forward(), surfaceNormal);
-                }
+                // A ranged area strike (no caster anchor) lands AT the target point; caster-anchored
+                // melee areas and projectiles keep spawning near the caster.
+                if (isArea && !casterAnchored)
+                    baseSpawnPos = targetPosition;
+            }
+            else if (!isProjectile)
+            {
+                baseSpawnPos = targetPosition; // Area spells spawn on target
+                baseRotation = quaternion.LookRotationSafe(casterTransform.Forward(), surfaceNormal);
             }
 
             // Rotation axis for the fan — the entity's local Y in world = surface normal at cast time
@@ -485,8 +453,7 @@ public partial struct SpellCastingSystem : ISystem
                         finalDirection = math.normalize(toTarget);
                         finalRotation = quaternion.LookRotationSafe(finalDirection, upAxis);
                     }
-                    if (Spawn.AreaAttack.HasComponent(spellPrefab)
-                        && !Spawn.CopyPosition.HasComponent(spellPrefab) && !isAttached)
+                    if (isArea && !casterAnchored)
                     {
                         spawnPos = targetPos;
                     }
@@ -572,59 +539,6 @@ public partial struct SpellCastingSystem : ISystem
                             IgnoreTarget = Entity.Null,
                             RollSeed = random.NextUInt(),
                         });
-                    }
-                }
-
-                // Legacy blocks below write on the helper's entity (removed in Tasks 16 and 22).
-                if (OrbitMovementLookup.HasComponent(spellPrefab))
-                {
-                    float orbitRadius =
-                        math.length(baseSpellData.BaseSpawnOffset) *
-                        finalSize;
-                    ECB.SetComponent(chunkIndex, spellEntity, new OrbitMovement
-                    {
-                        OrbitCenterEntity = request.Caster,
-                        Radius = orbitRadius,
-                        AngularSpeed = finalSpeed,
-                        RelativeOffset = new float3(0, 0, orbitRadius),
-                        OrbitCenterPosition = casterTransform.Position
-                    });
-                }
-
-                if (AttachLookup.HasComponent(spellPrefab))
-                {
-                    ECB.AddComponent(chunkIndex, spellEntity, new Parent { Value = request.Caster });
-                    ECB.SetComponent(chunkIndex, spellEntity, new LocalTransform
-                    {
-                        // Parent-local offset: caster-local x/y/z relative to the caster transform.
-                        Position = baseSpellData.BaseSpawnOffset,
-                        Rotation = quaternion.identity,
-                        Scale = finalSize
-                    });
-                }
-
-                // Sub Spell Spawner
-                if (SubSpellsSpawnerLookup.HasComponent(spellPrefab))
-                {
-                    if (baseSpellData.ChildPrefabIndex >= 0 &&
-                        baseSpellData.ChildPrefabIndex < ChildSpellPrefabs.Length)
-                    {
-                        SubSpellsSpawner childSpawnerData = SubSpellsSpawnerLookup[spellPrefab];
-                        childSpawnerData.ChildEntityPrefab = ChildSpellPrefabs[baseSpellData.ChildPrefabIndex].Prefab;
-                        childSpawnerData.DesiredSubSpellsCount = finalAmount;
-                        childSpawnerData.IsDirty = true;
-                        childSpawnerData.CollisionFilter = filter;
-
-                        ECB.SetComponent(chunkIndex, spellEntity, childSpawnerData);
-
-                        if (SubSpellsCircleLayoutLookup.HasComponent(spellPrefab))
-                        {
-                            ECB.SetComponent(chunkIndex, spellEntity, new SubSpellsLayout_Circle
-                            {
-                                Radius = baseSpellData.ChildrenSpawnRadius,
-                                AngleInDegrees = 360
-                            });
-                        }
                     }
                 }
             }

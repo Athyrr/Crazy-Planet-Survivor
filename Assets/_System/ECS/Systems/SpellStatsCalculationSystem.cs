@@ -12,16 +12,10 @@ public partial struct SpellStatsCalculationSystem : ISystem
 {
     private EntityQuery _calculationRequestQuery;
     private EntityQuery _activeTickDamageSpellQuery;
-    private EntityQuery _subSpellsSpawnerQuery;
 
     private ComponentLookup<CoreStats> _statsLookup;
-    private ComponentLookup<DamageOnContact> _damageLookup;
-    private ComponentLookup<AreaAttack> _areaAttackLookup;
-    private ComponentLookup<LocalTransform> _transformLookup;
-    private ComponentLookup<OrbitMovement> _orbitLookup;
 
     private BufferLookup<ActiveSpell> _activeSpellLookup;
-    private BufferLookup<Child> _childLookup;
     private BufferLookup<SpellStatUpgrade> _spellStatUpgradeLookup;
 
     [BurstCompile]
@@ -42,19 +36,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
             .WithAll<SpellSource>()
             .Build();
 
-        _subSpellsSpawnerQuery = SystemAPI.QueryBuilder()
-            .WithAllRW<SubSpellsSpawner>()
-            .WithAll<SpellSource>()
-            .Build();
-
         _statsLookup = state.GetComponentLookup<CoreStats>(true);
-        _damageLookup = state.GetComponentLookup<DamageOnContact>(true);
-        _areaAttackLookup = state.GetComponentLookup<AreaAttack>(true);
-        _transformLookup = state.GetComponentLookup<LocalTransform>(true);
-        _orbitLookup = state.GetComponentLookup<OrbitMovement>(true);
 
         _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(true);
-        _childLookup = state.GetBufferLookup<Child>(true);
         _spellStatUpgradeLookup = state.GetBufferLookup<SpellStatUpgrade>(true);
     }
 
@@ -69,16 +53,10 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecbCalculate = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
-        var ecbSubSpells = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         var spellBlobs = SystemAPI.GetSingleton<SpellsDatabase>().Blobs;
 
         _activeSpellLookup.Update(ref state);
         _statsLookup.Update(ref state);
-        _damageLookup.Update(ref state);
-        _areaAttackLookup.Update(ref state);
-        _transformLookup.Update(ref state);
-        _orbitLookup.Update(ref state);
-        _childLookup.Update(ref state);
         _spellStatUpgradeLookup.Update(ref state);
 
         // Calculate spells stats
@@ -98,29 +76,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
         JobHandle updateTickDamageSpellJobHandle =
             updateTickDamageSpellJob.ScheduleParallel(_activeTickDamageSpellQuery, calculateSpellStatsJobHandle);
 
-        // Update sub spells (eg. Fire orbs)
-        var updateSubSpellsJob = new UpdateSubSpellsJob
-        {
-            ECB = ecbSubSpells.AsParallelWriter(),
-            ActiveSpellLookup = _activeSpellLookup,
-            // SpellsDatabaseRef = spellBlobs,
-
-            DamageOnContactLookup = _damageLookup,
-            AreaAttackLookup = _areaAttackLookup,
-            TransformLookup = _transformLookup,
-            OrbitLookup = _orbitLookup,
-            ChildLookup = _childLookup
-        };
-        // JobHandle subSpellHandle =
-        //     updateSubSpellsJob.ScheduleParallel(_subSpellsSpawnerQuery, calculateSpellStatsJobHandle); 
-
-        JobHandle subSpellHandle =
-            updateSubSpellsJob.ScheduleParallel(_subSpellsSpawnerQuery, updateTickDamageSpellJobHandle);
-
-        state.Dependency = subSpellHandle;
-
-        // System ends after both jobs (tick spells and sub spells) are done, but can run in parallel
-        // state.Dependency = JobHandle.CombineDependencies(updateTickDamageSpellJobHandle, subSpellHandle);
+        state.Dependency = updateTickDamageSpellJobHandle;
     }
 
     [WithAll(typeof(SpellStatsCalculationRequest))]
@@ -437,117 +393,6 @@ public partial struct SpellStatsCalculationSystem : ISystem
             area.CritMultiplier = activeSpell.FinalCritDamageMultiplier;
 
             transform.Scale = activeSpell.FinalSize;
-        }
-    }
-
-    [BurstCompile]
-    private partial struct UpdateSubSpellsJob : IJobEntity
-    {
-        public EntityCommandBuffer.ParallelWriter ECB;
-
-        [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
-        [ReadOnly] public ComponentLookup<AreaAttack> AreaAttackLookup;
-        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
-        [ReadOnly] public ComponentLookup<OrbitMovement> OrbitLookup;
-
-        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
-        [ReadOnly] public BufferLookup<Child> ChildLookup;
-
-        private static void AppendUniqueEffects(ref FixedList32Bytes<EffectSpec> list, in FixedList32Bytes<EffectSpec> toAdd)
-        {
-            for (int i = 0; i < toAdd.Length; i++)
-            {
-                bool alreadyPresent = false;
-                for (int j = 0; j < list.Length; j++)
-                {
-                    if (list[j].Type == toAdd[i].Type) { alreadyPresent = true; break; }
-                }
-                if (!alreadyPresent)
-                    list.Add(toAdd[i]);
-            }
-        }
-
-        private void Execute(
-            [ChunkIndexInQuery] int chunkIndex,
-            Entity parentEntity,
-            ref SubSpellsSpawner spawner,
-            in SpellSource spellSource)
-        {
-            if (!ActiveSpellLookup.TryGetBuffer(spellSource.CasterEntity, out var activeSpells))
-                return;
-
-            ActiveSpell activeSpell = default;
-            bool found = false;
-
-            for (int i = 0; i < activeSpells.Length; i++)
-            {
-                if (activeSpells[i].DatabaseIndex == spellSource.DatabaseIndex)
-                {
-                    activeSpell = activeSpells[i];
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-                return;
-
-            if (spawner.DesiredSubSpellsCount != activeSpell.FinalAmount)
-            {
-                spawner.DesiredSubSpellsCount = activeSpell.FinalAmount;
-                spawner.IsDirty = true;
-            }
-
-            if (OrbitLookup.HasComponent(parentEntity))
-            {
-                var orbit = OrbitLookup[parentEntity];
-                orbit.AngularSpeed = activeSpell.FinalSpeed;
-                orbit.Radius = activeSpell.FinalRange;
-                if (math.lengthsq(orbit.RelativeOffset) > 0.001f)
-                    orbit.RelativeOffset = math.normalize(orbit.RelativeOffset) * activeSpell.FinalRange;
-                else
-                    orbit.RelativeOffset = new float3(0, 0, activeSpell.FinalRange);
-
-                ECB.SetComponent(chunkIndex, parentEntity, orbit);
-            }
-
-            if (ChildLookup.HasBuffer(parentEntity))
-            {
-                var children = ChildLookup[parentEntity];
-                for (int i = 0; i < children.Length; i++)
-                {
-                    var child = children[i].Value;
-
-                    // Scale parent = scale children
-                    if (TransformLookup.HasComponent(parentEntity))
-                    {
-                        var parentTransform = TransformLookup[parentEntity];
-                        parentTransform.Scale = activeSpell.FinalRange;
-                        ECB.SetComponent(chunkIndex, parentEntity, parentTransform);
-                    }
-
-                    if (DamageOnContactLookup.HasComponent(child))
-                    {
-                        var childDmg = DamageOnContactLookup[child];
-                        childDmg.Damage = activeSpell.FinalDamage;
-                        childDmg.Tags |= activeSpell.AddedTags;
-                        AppendUniqueEffects(ref childDmg.EffectsToApply, activeSpell.AddedEffects);
-                        ECB.SetComponent(chunkIndex, child, childDmg);
-                    }
-
-                    if (AreaAttackLookup.HasComponent(child))
-                    {
-                        var childDmg = AreaAttackLookup[child];
-                        childDmg.Damage = activeSpell.FinalDamage;
-                        float childBaseRadius = childDmg.PrefabRadius > 0f ? childDmg.PrefabRadius : 1f;
-                        childDmg.RadiusStart = activeSpell.FinalSize * childBaseRadius;
-                        childDmg.RadiusEnd = childDmg.RadiusStart;
-                        childDmg.Tags |= activeSpell.AddedTags;
-                        AppendUniqueEffects(ref childDmg.EffectsToApply, activeSpell.AddedEffects);
-                        ECB.SetComponent(chunkIndex, child, childDmg);
-                    }
-                }
-            }
         }
     }
 }

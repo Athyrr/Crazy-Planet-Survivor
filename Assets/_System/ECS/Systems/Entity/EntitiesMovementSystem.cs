@@ -8,7 +8,7 @@ using Unity.Burst;
 using Unity.Jobs;
 
 /// <summary>
-/// system for entity locomotion. Handles Linear, Follow, and Orbital movement patterns.
+/// system for entity locomotion. Handles Linear and Follow movement patterns.
 /// Supports two modes: "Snapped" (uses Physics Raycasts for terrain) and "Bare" (uses mathematical radius for perfect spheres).
 /// </summary>
 // Runs every frame (not in the rate-capped CustomUpdateGroup) so movement is applied at the render
@@ -114,30 +114,7 @@ public partial struct EntitiesMovementSystem : ISystem
         //};
         //JobHandle followBareHandle = followBareJob.ScheduleParallel(followSnappedHandle);
 
-        var updateOrbitCenterJob = new UpdateOrbitCenterPositionJob
-        {
-            LocalTransformLookup = _transformLookup
-        };
-        //JobHandle orbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(followBareHandle);
-        JobHandle orbitCenterHandle = updateOrbitCenterJob.ScheduleParallel(followSnappedHandle);
-
-        var orbitSnappedJob = new MoveOrbitSnappedJob
-        {
-            DeltaTime = delta,
-            PlanetCenter = planetData.Center,
-            PhysicsCollisionWorld = collisionWorld
-        };
-        JobHandle orbitSnappedHandle = orbitSnappedJob.ScheduleParallel(orbitCenterHandle);
-
-        var orbitBareJob = new MoveOrbitBareJob
-        {
-            DeltaTime = delta,
-            PlanetCenter = planetData.Center,
-            PlanetRadius = planetData.Radius
-        };
-        JobHandle orbitBareHandle = orbitBareJob.ScheduleParallel(orbitSnappedHandle);
-
-        state.Dependency = orbitBareHandle;
+        state.Dependency = followSnappedHandle;
     }
 
     #region Jobs
@@ -486,115 +463,6 @@ public partial struct EntitiesMovementSystem : ISystem
 
             transform.Position = snappedPosition;
             transform.Rotation = rotation;
-        }
-    }
-
-    /// <summary>
-    /// Rotates an entity around a center point while snapping to terrain.
-    /// </summary>
-    [BurstCompile]
-    [WithAll(typeof(OrbitMovement), typeof(HardSnappedMovement))]
-    [WithNone(typeof(LinearMovement), typeof(FollowTargetMovement))]
-    private partial struct MoveOrbitSnappedJob : IJobEntity
-    {
-        [ReadOnly] public float DeltaTime;
-        [ReadOnly] public float3 PlanetCenter;
-        [ReadOnly] public CollisionWorld PhysicsCollisionWorld;
-        private const float SNAP_DISTANCE = 500f;
-
-        public void Execute(ref LocalTransform transform, ref OrbitMovement movement)
-        {
-            if (movement.OrbitCenterEntity == Entity.Null) return;
-            float3 orbitCenterPosition = movement.OrbitCenterPosition;
-            float3 orbitNormal = math.normalize(orbitCenterPosition - PlanetCenter);
-
-            // Find the normal at the orbit center
-            var input = new RaycastInput
-            {
-                Start = orbitCenterPosition + (orbitNormal * SNAP_DISTANCE),
-                End = orbitCenterPosition - (orbitNormal * SNAP_DISTANCE),
-                Filter = new CollisionFilter
-                    { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Landscape }
-            };
-
-            if (PhysicsCollisionWorld.CastRay(input, out var centerHit))
-                orbitNormal = centerHit.SurfaceNormal;
-
-            // Rotate the relative offset around the center's normal
-            quaternion rotation = quaternion.AxisAngle(orbitNormal, movement.AngularSpeed * DeltaTime);
-            movement.RelativeOffset = math.mul(rotation, movement.RelativeOffset);
-            movement.RelativeOffset = math.normalize(movement.RelativeOffset) * movement.Radius;
-            float3 newOrbitPosition = orbitCenterPosition + movement.RelativeOffset;
-
-            // Snap the final position to the ground
-            input.Start = newOrbitPosition + (orbitNormal * SNAP_DISTANCE);
-            input.End = newOrbitPosition - (orbitNormal * SNAP_DISTANCE);
-
-            if (PhysicsCollisionWorld.CastRay(input, out var hit))
-            {
-                transform.Position = hit.Position;
-                float3 tangentDirection = math.normalize(math.cross(hit.SurfaceNormal, orbitNormal));
-                PlanetUtils.GetRotationOnSurface(in tangentDirection, hit.SurfaceNormal, out quaternion targetRotation);
-                transform.Rotation = targetRotation;
-            }
-            else
-            {
-                transform.Position = newOrbitPosition;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Rotates an entity around a center point, snapping to a perfect sphere radius.
-    /// </summary>
-    [BurstCompile]
-    [WithAll(typeof(OrbitMovement))]
-    [WithNone(typeof(LinearMovement), typeof(FollowTargetMovement))]
-    [WithNone(typeof(HardSnappedMovement))]
-    private partial struct MoveOrbitBareJob : IJobEntity
-    {
-        [ReadOnly] public float DeltaTime;
-        [ReadOnly] public float3 PlanetCenter;
-        [ReadOnly] public float PlanetRadius;
-
-        public void Execute(ref LocalTransform transform, ref OrbitMovement movement)
-        {
-            if (movement.OrbitCenterEntity == Entity.Null) return;
-            float3 orbitCenterPosition = movement.OrbitCenterPosition;
-            PlanetUtils.GetSurfaceNormalRadius(in orbitCenterPosition, in PlanetCenter, out float3 orbitNormal);
-
-            quaternion rotation = quaternion.AxisAngle(orbitNormal, movement.AngularSpeed * DeltaTime);
-
-            movement.RelativeOffset = math.mul(rotation, movement.RelativeOffset);
-            movement.RelativeOffset = math.normalize(movement.RelativeOffset) * movement.Radius;
-            float3 newOrbitPosition = orbitCenterPosition + movement.RelativeOffset;
-
-            PlanetUtils.SnapToSurfaceRadius(in newOrbitPosition, in PlanetCenter, PlanetRadius,
-                out float3 snappedPosition);
-            transform.Position = snappedPosition;
-            PlanetUtils.GetSurfaceNormalRadius(in snappedPosition, in PlanetCenter, out float3 normal);
-            float3 tangentDirection = math.normalize(math.cross(normal, orbitNormal));
-            PlanetUtils.GetRotationOnSurface(in tangentDirection, in normal, out quaternion targetRotation);
-            transform.Rotation = targetRotation;
-        }
-    }
-
-    /// <summary>
-    /// Updates the cached world position of an orbit center entity.
-    /// </summary>
-    [BurstCompile]
-    [WithAll(typeof(OrbitMovement))]
-    [WithNone(typeof(LinearMovement), typeof(FollowTargetMovement))]
-    private partial struct UpdateOrbitCenterPositionJob : IJobEntity
-    {
-        [ReadOnly] public ComponentLookup<LocalTransform> LocalTransformLookup;
-
-        public void Execute(ref OrbitMovement movement)
-        {
-            if (LocalTransformLookup.HasComponent(movement.OrbitCenterEntity))
-            {
-                movement.OrbitCenterPosition = LocalTransformLookup[movement.OrbitCenterEntity].Position;
-            }
         }
     }
 

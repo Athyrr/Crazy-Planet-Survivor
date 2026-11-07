@@ -41,13 +41,12 @@ public class SpellSO : ScriptableObject
 
 
     [Header("Spatial & Movement")]
-    [Tooltip("Movement speed for linear projectiles or rotation speed for orbiting objects.")]
+    [Tooltip("Movement speed for linear projectiles or angular speed (degrees/s) of attached emitter children.")]
     public float BaseSpeed = 5f;
 
     [Tooltip(
         "Caster-local spawn offset (X = right, Y = up, Z = forward). " +
-        "Use Z > 0 to spawn the spell in front of the caster instead of on it (e.g. Void Slash, Freezing Blow). " +
-        "For orbit spells this vector's length is used as the orbit radius."
+        "Use Z > 0 to spawn the spell in front of the caster instead of on it (e.g. Void Slash, Freezing Blow)."
     )]
     public Vector3 BaseSpawnOffset = Vector3.zero;
     
@@ -113,16 +112,8 @@ public class SpellSO : ScriptableObject
     public float TickRate = 1f;
 
 
-    [Header("Mechanic: Children based Spells (ex: Blades, Perma shield etc..)")]
-    [Tooltip("Prefab of the child spell entities spawned by this spell.")]
-    public GameObject ChildPrefab;
-
-
     [Header("Amount")] [Tooltip("Number of projectile/sub spells.")]
     public int BaseAmount;
-
-    [Tooltip("Radius around the caster where child spells will spawn.")]
-    public float ChildrenSpawnRadius = 1f;
 
     [Tooltip("How Amount is consumed at cast time. Single = ignored (novas/auras). Spread = fan of N " +
              "(volley projectiles). MultiTarget = one per distinct enemy (volley strikes, e.g. Lightning).")]

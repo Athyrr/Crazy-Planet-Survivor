@@ -52,10 +52,6 @@ public struct SpellBlob
     // Tick Effects
     public float TickRate;
 
-    // Children based spells
-    public float ChildrenSpawnRadius;
-    public int ChildPrefabIndex;
-    
     // Amount
     public int BaseAmount;
 

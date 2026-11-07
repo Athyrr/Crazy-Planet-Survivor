@@ -14,7 +14,6 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
             Entity dbEntity = GetEntity(TransformUsageFlags.None);
 
             var mainPrefabBuffer = AddBuffer<SpellPrefab>(dbEntity);
-            var childPrefabBuffer = AddBuffer<ChildSpellPrefab>(dbEntity);
 
             // Create spell blobs for data
             BlobBuilder builder = new BlobBuilder(Allocator.Temp);
@@ -132,9 +131,6 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlob.BaseSplitDepth = spellSO.BaseSplitDepth;
                 spellBlob.ReHitDelayOverride = spellSO.ReHitDelayOverride;
 
-                // Children based spells
-                spellBlob.ChildrenSpawnRadius = spellSO.ChildrenSpawnRadius;
-                
                 if (spellSO.SpellPrefab != null)
                 {
                     var mainEntity = GetEntity(spellSO.SpellPrefab, TransformUsageFlags.Dynamic);
@@ -143,17 +139,6 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 else
                 {
                     mainPrefabBuffer.Add(new SpellPrefab { Prefab = Entity.Null });
-                }
-
-                if (spellSO.ChildPrefab != null)
-                {
-                    var childEntity = GetEntity(spellSO.ChildPrefab, TransformUsageFlags.Dynamic);
-                    childPrefabBuffer.Add(new ChildSpellPrefab { Prefab = childEntity });
-                    spellBlob.ChildPrefabIndex = childPrefabBuffer.Length - 1;
-                }
-                else
-                {
-                    spellBlob.ChildPrefabIndex = -1;
                 }
             }
 
