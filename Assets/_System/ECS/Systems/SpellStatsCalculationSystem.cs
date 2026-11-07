@@ -300,7 +300,8 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 spell.FinalSpeed = baseSpellData.BaseSpeed * speedMult;
                 spell.FinalDuration = math.max(0.1f, baseSpellData.Lifetime * durationMult);
 
-                spell.FinalTickRate = math.max(0.3f, baseSpellData.TickRate * tickRateMult);
+                // TickRate is an interval (AreaAttackSystem): a +30% bonus means ticks 30% more often → interval / 1.3.
+                spell.FinalTickRate = math.max(0.3f, baseSpellData.TickRate / math.max(0.01f, tickRateMult));
 
                 // if passive/aura spell, cooldown is 0, otherwise apply multiplier
                 if (baseSpellData.BaseCooldown <= 0)
