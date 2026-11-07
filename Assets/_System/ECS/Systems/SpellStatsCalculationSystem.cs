@@ -225,8 +225,8 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 float slowMagnitudeBonus = spell.LocalSlowMagnitudeBonus;
 
                 // Spell modifier buffer (tagged upgrades + amulets).
-                // All modifiers are additive (Strategy is ignored, removed in Task 24b): mult += Value for every
-                // multiplier stat, integer stats and CooldownReduction included.
+                // All modifiers are additive: mult += Value for every multiplier stat, integer stats and
+                // CooldownReduction included.
                 for (int j = 0; j < spellStatUpgrades.Length; j++)
                 {
                     var mod = spellStatUpgrades[j];

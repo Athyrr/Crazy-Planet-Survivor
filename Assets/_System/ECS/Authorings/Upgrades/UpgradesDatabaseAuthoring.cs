@@ -55,7 +55,6 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
                         modArray[m] = new StatModifierBlob
                         {
                             CharacterStat = modifiers[m].CharacterStat,
-                            Strategy = modifiers[m].Strategy,
                             Value = modifiers[m].Value,
                         };
                     }
@@ -73,8 +72,7 @@ public class UpgradesDatabaseAuthoring : MonoBehaviour
                     blob.GrantCapabilities = spellUpgrade.GrantCapabilities;
                     blob.RequiredCapability = spellUpgrade.RequiredCapability;
 
-                    // Spell upgrades keep a single value/strategy.
-                    blob.ModifierStrategy = upgradeSO.ModifierStrategy;
+                    // Spell upgrades keep a single additive value.
                     blob.Value = upgradeSO.Value;
 
                     var grantedEffects = spellUpgrade.GrantedEffects;

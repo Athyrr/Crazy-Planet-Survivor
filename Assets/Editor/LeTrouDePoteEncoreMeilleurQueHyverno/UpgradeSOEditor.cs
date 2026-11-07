@@ -23,7 +23,6 @@ public class UpgradeSOEditor : UnityEditor.Editor
                 // Stat upgrades are always PlayerStat and now use the Modifiers list:
                 // the type + base single-value fields are redundant, hide them.
                 if (prop.name == "UpgradeType") continue;
-                if (prop.name == "ModifierStrategy") continue;
                 if (prop.name == "Value") continue;
             }
 
@@ -42,38 +41,19 @@ public class UpgradeSOEditor : UnityEditor.Editor
     private void ShowHelpBox()
     {
         UpgradeSO upgrade = (UpgradeSO)target;
-        string helpText = "";
+        ESpellStat stat = target is SpellUpgradeSO spellUpgrade ? spellUpgrade.SpellStat : ESpellStat.None;
+        bool isAbsoluteStat = IsAbsoluteSpellStat(stat);
         MessageType messageType = MessageType.Info;
 
-        switch (upgrade.ModifierStrategy)
+        // All modifiers are additive (stat += Value).
+        string helpText = "Additive: Value 0.1 = +10% on a multiplier stat (Damage, Size, Speed...), " +
+                          "Value 5 = +5 on an absolute stat (Amount, Bounce, Pierce, Split...).";
+
+        if (!isAbsoluteStat && upgrade.Value >= 2.0f)
         {
-            case EModiferStrategy.Flat:
-                helpText = "Flat: Stat = Stat + Value\n" +
-                           "Example: Value 5 means +5 to the base stat.";
-
-                // Verification: Check if value looks like a converted percentage (e.g. 1.1 or 0.9)
-                if (upgrade.Value >= 0.001f && upgrade.Value <= 1.999f && (upgrade.Value % 1) != 0)
-                {
-                    float potentialPerc = (upgrade.Value - 1f) * 100f;
-                    helpText += $"\n\nWARNING: Value {upgrade.Value} looks like a percentage multiplier ({potentialPerc:+0.##;-0.##}%). " +
-                                "If you intended a percentage, switch to 'Multiply'.";
-                    messageType = MessageType.Warning;
-                }
-                break;
-            case EModiferStrategy.Multiply:
-                float percentage = (upgrade.Value - 1f) * 100f;
-                helpText = "Multiply: Stat = Stat * Value\n" +
-                           "Example: Value 1.1 = +10%, Value 0.9 = -10%.\n" +
-                           $"Base value is 1.0 (100%).\n\n" +
-                           $"Current Representation: {percentage:+0.##;-0.##}%";
-
-                if (upgrade.Value >= 2.0f)
-                {
-                    helpText += $"\n\nWARNING: Value {upgrade.Value} represents +{percentage}%. " +
-                                $"If you meant +{upgrade.Value}%, use Value {1f + (upgrade.Value / 100f)}.";
-                    messageType = MessageType.Warning;
-                }
-                break;
+            helpText += $"\n\nWARNING: Value {upgrade.Value} on a multiplier stat means +{upgrade.Value * 100f:0.##}%. " +
+                        $"If you meant +{upgrade.Value}%, use Value {upgrade.Value / 100f}.";
+            messageType = MessageType.Warning;
         }
 
         if (!string.IsNullOrEmpty(helpText))
@@ -83,11 +63,16 @@ public class UpgradeSOEditor : UnityEditor.Editor
             EditorGUILayout.Space(5);
         }
     }
+
+    /// <summary>Integer stats: Value is a whole-number count, not a multiplier delta.</summary>
+    private static bool IsAbsoluteSpellStat(ESpellStat stat)
+        => stat == ESpellStat.Amount || stat == ESpellStat.BounceCount || stat == ESpellStat.PierceCount ||
+           stat == ESpellStat.SplitCount || stat == ESpellStat.SplitDepth;
 }
 
 /// <summary>
 /// One-time migration from the legacy single-stat <see cref="CharacterStatUpgradeSO"/> format
-/// (CharacterStat + base Value/ModifierStrategy) to the multi-modifier <c>Modifiers[]</c> list.
+/// (CharacterStat + base Value) to the multi-modifier <c>Modifiers[]</c> list.
 /// </summary>
 public static class StatUpgradeMigration
 {
@@ -116,7 +101,6 @@ public static class StatUpgradeMigration
                 new StatModifier
                 {
                     CharacterStat = so.LegacyCharacterStat,
-                    Strategy = so.ModifierStrategy,
                     Value = so.Value,
                 }
             };

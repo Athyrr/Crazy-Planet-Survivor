@@ -13,6 +13,6 @@ public abstract class UpgradeSO : ScriptableObject
 
     [Header("Core")] public EUpgradeType UpgradeType;
 
-    [Header("Modifier")] public EModiferStrategy ModifierStrategy;
-    public float Value;
+    /// <summary>Additive delta: 0.1 = +10% on a multiplier stat, 5 = +5 on an absolute (integer) stat.</summary>
+    [Header("Modifier")] public float Value;
 }

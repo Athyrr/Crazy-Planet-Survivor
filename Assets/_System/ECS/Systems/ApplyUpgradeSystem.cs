@@ -189,7 +189,6 @@ public partial struct ApplyUpgradeSystem : ISystem
                         RequiredTags = upgrade.SpellTags,
                         SpellStat = upgrade.SpellStat,
                         Value = upgrade.Value,
-                        Strategy = upgrade.ModifierStrategy,
                     });
                     needSpellUpdate = true;
                 }
@@ -273,8 +272,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                         {
                             RequiredTags = mod.SpellTags,
                             SpellStat = mod.SpellStat,
-                            Value = mod.Value,
-                            Strategy = mod.Strategy
+                            Value = mod.Value
                         });
                         needSpellUpdate = true;
                     }
@@ -523,8 +521,7 @@ public partial struct ApplyUpgradeSystem : ISystem
     private static void ApplySpellStatAndTags(ref ActiveSpell spell, ESpellStat stat, float value, ESpellTag newTags)
     {
         // upgrade.Value is a DELTA (e.g., 0.1 for +10%).
-        // All modifiers are additive (Strategy is ignored, removed in Task 24b): same rule as tagged upgrades and
-        // amulets in SpellStatsCalculationSystem.
+        // All modifiers are additive: same rule as tagged upgrades and amulets in SpellStatsCalculationSystem.
         switch (stat)
         {
             case ESpellStat.Damage:

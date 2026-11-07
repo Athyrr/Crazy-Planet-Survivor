@@ -36,7 +36,6 @@ public struct UpgradeBlob
     public ESpellID SpellID;
     public ESpellTag SpellTags;
     public ESpellStat SpellStat;
-    public EModiferStrategy ModifierStrategy;
     public float Value;
     public BlobArray<EffectSpec> GrantedEffects;
 }
@@ -47,6 +46,5 @@ public struct UpgradeBlob
 public struct StatModifierBlob
 {
     public ECharacterStat CharacterStat;
-    public EModiferStrategy Strategy;
     public float Value;
 }

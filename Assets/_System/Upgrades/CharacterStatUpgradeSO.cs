@@ -11,10 +11,7 @@ public struct StatModifier
     [Tooltip("Player stat to modify.")]
     public ECharacterStat CharacterStat;
 
-    [Tooltip("How Value is applied to the stat (Flat = +Value, Multiply = *Value).")]
-    public EModiferStrategy Strategy;
-
-    [Tooltip("Modifier value. Can be negative for a malus.")]
+    [Tooltip("Additive modifier value (stat += Value). Can be negative for a malus.")]
     public float Value;
 }
 

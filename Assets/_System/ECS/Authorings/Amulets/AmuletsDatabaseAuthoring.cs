@@ -48,7 +48,6 @@ public class AmuletsDatabaseAuthoring : MonoBehaviour
                             SpellStat = modifier.SpellStat,
                             SpellTags = modifier.SpellTags,
                             SpellID = modifier.SpellID,
-                            Strategy = modifier.Strategy,
                             Value = modifier.Value
                         };
                     }

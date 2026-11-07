@@ -20,7 +20,6 @@ public struct AmuletModifierBlob
     public ESpellStat SpellStat;
     public ESpellTag SpellTags;
     public ESpellID SpellID;
-    public EModiferStrategy Strategy;
     public float Value;
 }
 

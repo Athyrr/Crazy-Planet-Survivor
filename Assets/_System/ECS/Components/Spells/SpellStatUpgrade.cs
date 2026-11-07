@@ -12,6 +12,6 @@ public struct SpellStatUpgrade : IBufferElementData
 {
     public ESpellTag RequiredTags;
     public ESpellStat SpellStat;
+    /// <summary>Additive delta (all modifiers are additive).</summary>
     public float Value;
-    public EModiferStrategy Strategy;
 }
