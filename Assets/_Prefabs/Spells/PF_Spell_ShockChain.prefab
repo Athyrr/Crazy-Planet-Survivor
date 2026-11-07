@@ -24325,7 +24325,6 @@ GameObject:
   - component: {fileID: -6768202641293891050}
   - component: {fileID: -3046622321105270786}
   - component: {fileID: 2248150641823454588}
-  - component: {fileID: 3265751959081834841}
   - component: {fileID: 1898412360352966185}
   - component: {fileID: 7227297696236979541}
   - component: {fileID: 3501787639940839575}
@@ -26943,22 +26942,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5640ef44bda7e8e458075717de2dfbe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DamageOnContactAuthoring
---- !u!114 &3265751959081834841
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8913368109206024948}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 622f06a16c0617b4699cdaf3f81b31ba, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ExplodeOnContactAuthoring
-  Radius: 3
-  Damage: 10
-  VfxPrefab: {fileID: 6340610747241723204, guid: 4a502cb8a500ca24995247a2b0b0395e, type: 3}
-  StartEnabled: 0
 --- !u!114 &1898412360352966185
 MonoBehaviour:
   m_ObjectHideFlags: 0

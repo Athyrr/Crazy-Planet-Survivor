@@ -87,13 +87,10 @@ public class SpellSO : ScriptableObject
     [Tooltip("Allow Pierce on this spell: upgrades may grant pierces. The prefab must carry the Pierce slot (PierceAuthoring).")]
     public bool AllowPierce = true;
 
-    [Tooltip("Allow ExplodeOnContact on this spell (still needs the Explosive tag at cast time, granted by a spell upgrade).")]
-    public bool AllowExplode = false;
-
+    // Bounce | Pierce only. Explode / Split come from the Emitters entries.
     public ESpellCapability AllowedCapabilities =>
         (AllowBounce ? ESpellCapability.Bounce : ESpellCapability.None)
-        | (AllowPierce ? ESpellCapability.Pierce : ESpellCapability.None)
-        | (AllowExplode ? ESpellCapability.Explode : ESpellCapability.None);
+        | (AllowPierce ? ESpellCapability.Pierce : ESpellCapability.None);
 
     [Header("Emitters (max 2) — generalized-emitter")]
     [Tooltip("Children this spell emits (explosion, split, orbs). Presence of an entry = permission for its capability.")]

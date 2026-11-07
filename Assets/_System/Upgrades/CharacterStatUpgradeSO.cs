@@ -43,7 +43,7 @@ public class CharacterStatUpgradeSO : UpgradeSO
     public ESpellTag RequiredSpellTag = ESpellTag.None;
 
     [Tooltip("If set, this upgrade is only offered when at least one equipped spell ALLOWS this capability " +
-             "(SpellSO.AllowBounce/AllowPierce/AllowExplode). 'Can': used by upgrades that GRANT a capability " +
+             "(SpellSO.AllowBounce/AllowPierce, or an Explode/Split emitter entry). 'Can': used by upgrades that GRANT a capability " +
              "(Bouncing_*, Pierce_*). Synergy upgrades keep RequiredSpellTag ('does': a spell really bounces/pierces).\n" +
              "None = no requirement.")]
     public ESpellCapability RequiredCapability = ESpellCapability.None;

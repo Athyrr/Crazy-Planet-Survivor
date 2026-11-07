@@ -56,7 +56,6 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                     DependsOn(spellSO.SpellPrefab); // rebake when the prefab gains/loses a slot
                     if (spellSO.SpellPrefab.GetComponent<BounceAuthoring>() != null) slots |= ESpellCapability.Bounce;
                     if (spellSO.SpellPrefab.GetComponent<PierceAuthoring>() != null) slots |= ESpellCapability.Pierce;
-                    if (spellSO.SpellPrefab.GetComponent<ExplodeOnContactAuthoring>() != null) slots |= ESpellCapability.Explode;
                 }
 
                 // Base Stats

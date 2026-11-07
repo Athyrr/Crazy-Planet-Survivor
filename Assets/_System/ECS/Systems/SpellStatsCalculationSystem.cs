@@ -190,12 +190,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
                         effectiveEffects.Add(spell.AddedEffects[e]);
                 }
 
-                // 2) Derive Tags' 4 status bits from effectiveEffects — never the other way around. AddedTags is NOT dead
-                // weight after this chantier — verified live, not assumed: Upgrade_Spell_Fireball_Explosive.asset:21 and
-                // Upgrade_Spell_ShockChain_Explosive.asset:21 (both RequiredTags=8192=ESpellTag.Explosive, SpellID set)
-                // still grant a real behavior tag through AddedTags, consumed by SpellCastingSystem.cs's
-                // `forceExplode = (totalTags & ESpellTag.Explosive) != 0` (~line 716) — out of this chantier's scope,
-                // chantier #4. AddedTags' own copy of the 4 STATUS bits (from a status-granting Upgrade_Spell_* asset's
+                // 2) Derive Tags' 4 status bits from effectiveEffects — never the other way around. Explosive is derived
+                // from the Explode capability (Task 7); an Explosive bit in AddedTags (legacy grant) is ignored; the
+                // authored base bit is kept (Q14). AddedTags' own copy of the 4 STATUS bits (from a status-granting Upgrade_Spell_* asset's
                 // RequiredTags, e.g. Upgrade_Spell_Fireball_Burn.asset:21, still RequiredTags=262144 after Task 20b —
                 // intentionally left in place, not stripped) is masked out here so effectiveEffects stays the single
                 // source of truth for those 4 bits specifically.
@@ -256,7 +253,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 ESpellTag derivedExplosive = explodeActive ? ESpellTag.Explosive : ESpellTag.None;
 
                 ESpellTag currentTags = (baseSpellData.Tag & ~(StatusBitsMask | CapabilityBitsMask))
-                                        | (spell.AddedTags & ~(StatusBitsMask | CapabilityBitsMask))
+                                        | (spell.AddedTags & ~(StatusBitsMask | CapabilityBitsMask | ESpellTag.Explosive))
                                         | derivedStatusBits | derivedCapabilityBits | derivedExplosive;
 
                 // Crit

@@ -35,7 +35,23 @@ MonoBehaviour:
   Pierces: 0
   AllowBounce: 1
   AllowPierce: 1
-  AllowExplode: 1
+  Emitters:
+  - Capability: 4
+    Trigger: 1
+    Attachment: 0
+    Layout: 0
+    Count: 0
+    FixedCount: 1
+    Child: {fileID: 11400000, guid: 0735ec928d7fc8e4fadc2046500a47b1, type: 2}
+    Radius: 8
+    SpreadAngleDegrees: 30
+    Frame: 0
+    Chance: 1
+    DamageRatio: 0
+  BaseGrantedCapabilities: 0
+  BaseSplitCount: 0
+  BaseSplitDepth: 0
+  ReHitDelayOverride: 0
   TickRate: -1
   ChildPrefab: {fileID: 0}
   BaseAmount: 1

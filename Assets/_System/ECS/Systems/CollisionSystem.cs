@@ -31,7 +31,6 @@ public partial struct CollisionSystem : ISystem
 
     private ComponentLookup<CoreStats> _coreStatsLookup;
 
-    private ComponentLookup<ExplodeOnContact> _explodeLookup;
     private ComponentLookup<SpellSource> _subSpellRootLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
     private ComponentLookup<Boss> _bossLookup;
@@ -80,7 +79,6 @@ public partial struct CollisionSystem : ISystem
         _linearMovementLookup = state.GetComponentLookup<LinearMovement>(false);
         _followMovementLookup = state.GetComponentLookup<FollowTargetMovement>(false);
 
-        _explodeLookup = state.GetComponentLookup<ExplodeOnContact>(true);
         _subSpellRootLookup = state.GetComponentLookup<SpellSource>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
         _bossLookup = state.GetComponentLookup<Boss>(true);
@@ -130,7 +128,6 @@ public partial struct CollisionSystem : ISystem
         _coreStatsLookup.Update(ref state);
         _linearMovementLookup.Update(ref state);
         _followMovementLookup.Update(ref state);
-        _explodeLookup.Update(ref state);
         _subSpellRootLookup.Update(ref state);
         _activeSpellBufferLookup.Update(ref state);
         _colliderLookup.Update(ref state);
@@ -187,7 +184,6 @@ public partial struct CollisionSystem : ISystem
             InvincibleLookup = _invincibleLookup,
             DashIFramesLookup = _dashIFramesLookup,
             GlobalIFramesLookup = _globalIFramesLookup,
-            ExplodeOnContactLookup = _explodeLookup,
 
             SpellSourceLookup = _subSpellRootLookup,
             SpellLineageLookup = _spellLineageLookup,
@@ -246,7 +242,6 @@ public partial struct CollisionSystem : ISystem
         public ComponentLookup<FollowTargetMovement> FollowMovementLookup;
         public ComponentLookup<Bounce> BounceLookup;
         public ComponentLookup<Pierce> PierceLookup;
-        [ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeOnContactLookup;
 
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
         [ReadOnly] public ComponentLookup<SpellLineage> SpellLineageLookup;
@@ -350,8 +345,8 @@ public partial struct CollisionSystem : ISystem
                     // not to the hit").
                     bool damageImmune = ResolveHit.IsDamageImmune(target, in InvincibleLookup, in GlobalIFramesLookup);
 
-                    // Crit result of this hit's Damage action (ResolveHit), shared by the OnImpact poster and
-                    // the legacy ExplodeOnContact path below (no second roll).
+                    // Crit result of this hit's Damage action (ResolveHit), carried by the OnImpact poster
+                    // (TriggerCrit) so an emitted explosion inherits it (no second roll).
                     bool hitCrit = false;
 
                     if (!dashInvincible)
@@ -466,17 +461,6 @@ public partial struct CollisionSystem : ISystem
                         }
                     }
 
-                    if (!dashInvincible &&
-                        ExplodeOnContactLookup.TryGetComponent(damagerEntity, out var explosion) &&
-                        ExplodeOnContactLookup.IsComponentEnabled(damagerEntity))
-                    {
-                        // The explosion inherits the hit's crit (ResolveHit result), no independent roll.
-                        float criticalDamagesMultiplier = hitCrit ? math.max(1.0f, damageData.TotalCritMultiplier) : 1f;
-
-                        CreateExplosion(damagerEntity, damageData.TargetLayers, explosion, criticalDamagesMultiplier,
-                            hitCrit, ECB);
-                    }
-
                     // Only a dash's i-frames let the projectile pass through unharmed (so the dash's
                     // reflect can catch it). The debug Invincible tag still destroys projectiles on
                     // contact as before — it only cancels damage, not the impact.
@@ -484,9 +468,8 @@ public partial struct CollisionSystem : ISystem
 
                     // Cascade by priority: Bounce first (unchanged — matches Brotato/PoE, intentional, do not
                     // "clean up" this order in a future refactor), then Pierce as the fallback when Bounce is
-                    // exhausted or has no target. Explode is independent and re-evaluated on every hit
-                    // regardless of Bounce/Pierce state (unchanged, already correct — see the
-                    // ExplodeOnContactLookup check earlier in this method).
+                    // exhausted or has no target. Explode is an emitter now, posted after ApplyMany (OnImpact
+                    // request above): independent of Bounce/Pierce, one request per resolved hit.
                     bool bounceConsumedHit = false;
 
                     if (!dashInvincible && CapabilityUtils.IsCapabilityActive(BounceLookup, damagerEntity))
@@ -548,43 +531,6 @@ public partial struct CollisionSystem : ISystem
                     }
                 }
             }
-        }
-
-        private void CreateExplosion(Entity damager, uint targetLayers, ExplodeOnContact explosionData,
-            float criticalDamagesMultiplier,
-            bool isCrit, EntityCommandBuffer ECB)
-        {
-            var requestEntity = ECB.CreateEntity();
-
-            ESpellTag tags = ESpellTag.None;
-            if (DamageOnContactLookup.HasComponent(damager))
-            {
-                tags = DamageOnContactLookup[damager].Tags | ESpellTag.Explosive;
-            }
-
-            int dbIndex = -1;
-            if (SpellSourceLookup.TryGetComponent(damager, out var spellSource))
-            {
-                dbIndex = spellSource.DatabaseIndex;
-            }
-
-            float3 pos = LocalTransformLookup[damager].Position;
-
-            ECB.AddComponent(
-                requestEntity,
-                new ExplosionRequest()
-                {
-                    Position = pos,
-                    Damage = explosionData.Damage * criticalDamagesMultiplier,
-                    VfxPrefab = explosionData.VfxPrefab,
-                    IsCritical = isCrit,
-                    Tags = tags,
-                    // TargetLayers = collisionLayer,
-                    TargetLayers = targetLayers,
-                    DatabaseIndex = dbIndex,
-                    Damager = damager
-                }
-            );
         }
 
         private void ApplyFeedbacks(Entity hitEntity)

@@ -30,9 +30,6 @@ public partial struct SpellCastingSystem : ISystem
     private ComponentLookup<SubSpellsSpawner> _subSpellsSpawnerLookup;
     private ComponentLookup<SubSpellsLayout_Circle> _subSpellsCircleLayoutLookup;
 
-    // Enableable Components
-    private ComponentLookup<ExplodeOnContact> _explodeOnContactLookup;
-
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
@@ -53,7 +50,6 @@ public partial struct SpellCastingSystem : ISystem
         _orbitMovementLookup = SystemAPI.GetComponentLookup<OrbitMovement>(true);
         _subSpellsSpawnerLookup = SystemAPI.GetComponentLookup<SubSpellsSpawner>(true);
         _subSpellsCircleLayoutLookup = SystemAPI.GetComponentLookup<SubSpellsLayout_Circle>(true);
-        _explodeOnContactLookup = SystemAPI.GetComponentLookup<ExplodeOnContact>(true);
     }
 
     [BurstCompile]
@@ -74,7 +70,6 @@ public partial struct SpellCastingSystem : ISystem
         _orbitMovementLookup.Update(ref state);
         _subSpellsSpawnerLookup.Update(ref state);
         _subSpellsCircleLayoutLookup.Update(ref state);
-        _explodeOnContactLookup.Update(ref state);
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
@@ -126,7 +121,6 @@ public partial struct SpellCastingSystem : ISystem
             OrbitMovementLookup = _orbitMovementLookup,
             SubSpellsSpawnerLookup = _subSpellsSpawnerLookup,
             SubSpellsCircleLayoutLookup = _subSpellsCircleLayoutLookup,
-            ExplodeOnContactLookup = _explodeOnContactLookup,
 
             QueueEntity = SystemAPI.TryGetSingletonEntity<EmitRequestQueue>(out var queue) ? queue : Entity.Null,
             MaxSplitDepth = SystemAPI.TryGetSingleton<EmitterConfig>(out var emitterCfg)
@@ -163,7 +157,6 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<OrbitMovement> OrbitMovementLookup;
         [ReadOnly] public ComponentLookup<SubSpellsSpawner> SubSpellsSpawnerLookup;
         [ReadOnly] public ComponentLookup<SubSpellsLayout_Circle> SubSpellsCircleLayoutLookup;
-        [ReadOnly] public ComponentLookup<ExplodeOnContact> ExplodeOnContactLookup;
 
         // Emitters: EmitRequest queue singleton (Entity.Null = no emission system) and Split depth cap.
         public Entity QueueEntity;
@@ -620,23 +613,6 @@ public partial struct SpellCastingSystem : ISystem
                         }
                     }
                 }
-
-                ESpellCapability allowed = baseSpellData.AllowedCapabilities;
-
-                // Explode on contact: Explosive tag (an input, documented exception) AND allowed.
-                bool forceExplode = (totalTags & ESpellTag.Explosive) != 0 && (allowed & ESpellCapability.Explode) != 0;
-
-                // Explose on contact
-                if (forceExplode && ExplodeOnContactLookup.HasComponent(spellPrefab))
-                {
-                    ECB.SetComponentEnabled<ExplodeOnContact>(chunkIndex, spellEntity, true);
-                    var explosion = ExplodeOnContactLookup[spellPrefab];
-                    explosion.Damage += finalDamage * 0.5f; // todo explosion damage multiplier on stats
-                    explosion.Radius *= finalSize;
-                    ECB.SetComponent(chunkIndex, spellEntity, explosion);
-                }
-
-                //todo Explose on death or directly on prefab
             }
 
             if (multiTargets.IsCreated)
