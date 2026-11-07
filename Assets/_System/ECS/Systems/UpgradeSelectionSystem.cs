@@ -363,7 +363,7 @@ public partial struct UpgradeSelectionSystem : ISystem
                             }
                         }
 
-                        // Q11: a capability already granted is never offered again (Fireball_Explosive once).
+                        // A capability already granted is never offered again (Fireball_Explosive once).
                         if (upgradeData.GrantCapabilities != ESpellCapability.None
                             && SpellHasGrantedCapabilities(upgradeData.SpellID, upgradeData.GrantCapabilities, activeSpells, ref spellBlobs))
                             isValid = false;

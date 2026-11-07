@@ -207,7 +207,7 @@ public partial struct SpellCastingSystem : ISystem
             int finalPierce = activeSpell.FinalPierces;
             float finalBounceRange = activeSpell.FinalBounceRange;
 
-            // FinalTags/FinalEffects are already composed by SpellStatsCalculationSystem (Task 19c), which runs
+            // FinalTags/FinalEffects are already composed by SpellStatsCalculationSystem, which runs
             // before this system ([UpdateAfter(typeof(SpellStatsCalculationSystem))], line 11) — read the cache
             // instead of recomputing tags here (recomputing would silently drop the derived status bits).
             ESpellTag totalTags = activeSpell.FinalTags;
@@ -428,7 +428,7 @@ public partial struct SpellCastingSystem : ISystem
                 }
             }
 
-            // Emitters: only player casts post (Q24). Root instances carry the lineage (LineageId = first instance).
+            // Emitters: only player casts post. Root instances carry the lineage (LineageId = first instance).
             bool postEmitters = isPlayerCaster && QueueEntity != Entity.Null && baseSpellData.Emitters.Length > 0;
             bool hasOnActivation = postEmitters && EmitterQueries.HasTrigger(ref baseSpellData, EEmitterTrigger.OnActivation);
             byte rootDepth = (byte)math.clamp(math.min(activeSpell.FinalSplitDepth, MaxSplitDepth), 0, 255);

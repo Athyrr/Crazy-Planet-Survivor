@@ -301,7 +301,7 @@ public partial struct CollisionSystem : ISystem
                         if (history[i].HitEntity == target)
                         {
                             asAlreadyHit = true;
-                            // Pinned = the target that triggered this child's emission: never re-hit (Q9).
+                            // Pinned = the target that triggered this child's emission: never re-hit.
                             if (history[i].Pinned || CurrentTime - history[i].LastHitTime < reHitDelay)
                             {
                                 canDealDamage = false;
@@ -368,8 +368,8 @@ public partial struct CollisionSystem : ISystem
 
                         // The whole crit → damage buffer → tag effects → life steal → tracking bundle now
                         // lives in ResolveHit, shared with the area paths (kills the "crit gruyère").
-                        // EffectsToApply is the list composed once at cast time (Task 19c/19d) — never
-                        // re-derived from damageData.Tags (spec §4.3 correction: Tags is a read-only
+                        // EffectsToApply is the list composed once at cast time — never
+                        // re-derived from damageData.Tags (Tags is a read-only
                         // derived OUTPUT of that list, never an input to hit-time dispatch).
                         float hitDamage = damageData.Damage;
                         float hitCritChance = damageData.TotalCritChance;
@@ -410,7 +410,7 @@ public partial struct CollisionSystem : ISystem
                         hitCrit = ResolveHit.ApplyMany(in Resolve, ResolveECB, target.Index, target, in actions, in hitSource, ref random);
 
                         // Emitters (OnImpact): one request per resolved hit — pierce / bounce included, damage-immune
-                        // target included (Q21). Player casts only (Q24). Position read now, before the ECB.
+                        // target included. Player casts only. Position read now, before the ECB.
                         if (QueueEntity != Entity.Null && SpellDb.IsCreated && dbIndex >= 0 && caster == PlayerEntity)
                         {
                             int shapeIndex = dbIndex;

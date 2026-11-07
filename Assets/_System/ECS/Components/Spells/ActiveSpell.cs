@@ -79,8 +79,8 @@ public struct ActiveSpell : IBufferElementData
     public float FinalBurnMagnitudeBonus;
     public float FinalSlowMagnitudeBonus;
 
-    // Composed once per SpellStatsCalculationRequest by SpellStatsCalculationSystem (Task 19c): base
-    // SpellBlob.Effects[] + this spell's AddedEffects, deduped by EffectType. SpellCastingSystem (Task 19d)
+    // Composed once per SpellStatsCalculationRequest by SpellStatsCalculationSystem: base
+    // SpellBlob.Effects[] + this spell's AddedEffects, deduped by EffectType. SpellCastingSystem
     // copies this onto the spawned entity's DamageOnContact/AreaAttack.EffectsToApply — CollisionSystem/
     // AreaAttackSystem never re-derive it from Tags at hit time.
     public FixedList32Bytes<EffectSpec> FinalEffects;
@@ -88,7 +88,7 @@ public struct ActiveSpell : IBufferElementData
     // currentTags from SpellStatsCalculationSystem's per-spell loop, cached: (base Tag | AddedTags) with the
     // 4 status bits (Burn/Slow/Stun/Knockback) MASKED OUT and replaced by bits derived from FinalEffects —
     // never read Tags to decide whether to apply a status effect, only for cheap presence checks (RequiredTags
-    // gating, UI, resistance calc). SpellCastingSystem (Task 19d) uses this instead of recomputing tags itself.
+    // gating, UI, resistance calc). SpellCastingSystem uses this instead of recomputing tags itself.
     public ESpellTag FinalTags;
 
     // Tracking

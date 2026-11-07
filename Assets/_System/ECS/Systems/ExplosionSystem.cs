@@ -61,13 +61,13 @@ public partial struct ExplosionSystem : ISystem
         {
             if (explosion.VfxPrefab != Entity.Null && AreaAttackLookup.HasComponent(explosion.VfxPrefab))
             {
-                // Shared prefab, low-level helper (Q13). Enemy requests carry DatabaseIndex -1 → no SpellSource
+                // Shared prefab, low-level helper. Enemy requests carry DatabaseIndex -1 → no SpellSource
                 // attribution (Caster Null): no tracking, no life steal.
                 bool hasSource = explosion.DatabaseIndex >= 0;
                 SpellSpawnUtils.SpawnBurstArea(in TransformLookup, in AreaAttackLookup, in SpellSourceLookup, ECB, chunkIndex,
                     explosion.VfxPrefab, explosion.Position, quaternion.identity, 1f,
                     explosion.Damage, 0f, 0f, explosion.Tags, explosion.TargetLayers,
-                    hasSource ? explosion.Damager : Entity.Null, hasSource ? explosion.DatabaseIndex : -1);
+                    hasSource ? explosion.Damager : Entity.Null, hasSource ? explosion.DatabaseIndex : -1, default);
             }
 
             ECB.DestroyEntity(chunkIndex, entity);
@@ -77,19 +77,17 @@ public partial struct ExplosionSystem : ISystem
 
 /// <summary>
 /// Request for an explosion, turned into an AreaAttack Burst by <see cref="ExplosionSystem"/>: enemy
-/// ExplodeOnDeath (and, until Task 16, the legacy player ExplodeOnContact); DatabaseIndex -1 = no source.
+/// ExplodeOnDeath; DatabaseIndex -1 = no source.
 /// </summary>
 public struct ExplosionRequest : IComponentData
 {
     public float3 Position;
     public float Damage;
     public ESpellTag Tags;
-    public bool IsCritical;
     public Entity VfxPrefab;
 
     public uint TargetLayers;
     public int DatabaseIndex;
 
     public Entity Damager;
-    public bool IsPlayer;
 }

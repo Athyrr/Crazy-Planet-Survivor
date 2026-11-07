@@ -26,7 +26,7 @@ public struct SpellBlob
     public ESpellID ID;
     // public FixedString512Bytes DisplayName; // 
     public ESpellTag Tag;
-    // Capabilities the spell may use. Bounce/Pierce = SpellSO permission AND prefab slot (ruling D3); Explode/Split = a valid emitter entry of that capability (+ legacy ExplodeOnContact slot until Task 16). Read at cast time, in FinalTags derivation and by the upgrade filter.
+    // Capabilities the spell may use. Bounce/Pierce = SpellSO permission AND prefab slot (ruling D3); Explode/Split = a valid emitter entry of that capability. Read at cast time, in FinalTags derivation and by the upgrade filter.
     public ESpellCapability AllowedCapabilities;
 
     // Base Stats
@@ -61,10 +61,9 @@ public struct SpellBlob
     public float MaxSpreadDegrees;
 
     // Status effects this spell declares at authoring time (base Tags bits are derived from this — see
-    // SpellSOEditor). Read at cast-stats time by SpellStatsCalculationSystem (Task 19c) as the base of
-    // effectiveEffects = Effects[] + ActiveSpell.AddedEffects (upgrade-granted, Task 6c) — see spec §4.3
-    // correction. Not read directly by ResolveHit/CollisionSystem/AreaAttackSystem; they read the already-
-    // composed DamageOnContact.EffectsToApply/AreaAttack.EffectsToApply instead (Task 19b/19d).
+    // SpellSOEditor). Read at cast-stats time by SpellStatsCalculationSystem as the base of
+    // effectiveEffects = Effects[] + ActiveSpell.AddedEffects (upgrade-granted). Not read directly by ResolveHit/CollisionSystem/AreaAttackSystem; they read the already-
+    // composed DamageOnContact.EffectsToApply/AreaAttack.EffectsToApply instead.
     public BlobArray<EffectSpec> Effects;
 
     // Emitters (generalized-emitter): validated entries only (invalid ones are logged and skipped at bake).

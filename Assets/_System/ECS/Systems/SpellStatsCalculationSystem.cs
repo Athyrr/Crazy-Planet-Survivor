@@ -147,9 +147,9 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 }
 
                 // 2) Derive Tags' 4 status bits from effectiveEffects — never the other way around. Explosive is derived
-                // from the Explode capability (Task 7); an Explosive bit in AddedTags (legacy grant) is ignored; the
-                // authored base bit is kept (Q14). AddedTags' own copy of the 4 STATUS bits (from a status-granting Upgrade_Spell_* asset's
-                // RequiredTags, e.g. Upgrade_Spell_Fireball_Burn.asset:21, still RequiredTags=262144 after Task 20b —
+                // from the Explode capability; an Explosive bit in AddedTags (legacy grant) is ignored; the
+                // authored base bit is kept. AddedTags' own copy of the 4 STATUS bits (from a status-granting Upgrade_Spell_* asset's
+                // RequiredTags, e.g. Upgrade_Spell_Fireball_Burn.asset:21, still RequiredTags=262144 —
                 // intentionally left in place, not stripped) is masked out here so effectiveEffects stays the single
                 // source of truth for those 4 bits specifically.
                 const ESpellTag StatusBitsMask = ESpellTag.Burn | ESpellTag.Slow | ESpellTag.Stun | ESpellTag.Knockback;
@@ -203,7 +203,7 @@ public partial struct SpellStatsCalculationSystem : ISystem
 
                 // Explosive is DERIVED from the active Explode capability (entry present AND granted), like
                 // Bouncing/Piercing — computed before the SpellStatUpgrade loop so "all Explosive: +x %" sees it.
-                // The authored base Explosive bit is NOT masked (Q14: Boss_Fireball keeps its explosion shake).
+                // The authored base Explosive bit is NOT masked (Boss_Fireball keeps its explosion shake).
                 bool explodeActive = (allowed & ESpellCapability.Explode) != 0
                                      && (spell.GrantedCapabilities & ESpellCapability.Explode) != 0;
                 ESpellTag derivedExplosive = explodeActive ? ESpellTag.Explosive : ESpellTag.None;

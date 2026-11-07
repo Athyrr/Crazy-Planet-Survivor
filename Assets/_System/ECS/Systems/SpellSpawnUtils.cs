@@ -161,13 +161,13 @@ public static class SpellSpawnUtils
         return e;
     }
 
-    /// <summary>Low-level "pose an AreaAttack Burst" with no parent spell assumed (Q13): enemy ExplodeOnDeath,
+    /// <summary>Low-level "pose an AreaAttack Burst" with no parent spell assumed: enemy ExplodeOnDeath,
     /// future environment explosions, and emitted explosions. caster = Null + databaseIndex = -1 → no tracking,
     /// no life steal (SpellSource is overwritten with -1 if the prefab carries one).</summary>
     public static Entity SpawnBurstArea(in ComponentLookup<LocalTransform> transformLookup, in ComponentLookup<AreaAttack> areaLookup,
         in ComponentLookup<SpellSource> sourceLookup, EntityCommandBuffer.ParallelWriter ecb, int sortKey, Entity prefab,
         float3 position, quaternion rotation, float scale, float damage, float critChance, float critMultiplier,
-        ESpellTag tags, uint targetLayers, Entity caster, int databaseIndex)
+        ESpellTag tags, uint targetLayers, Entity caster, int databaseIndex, in FixedList32Bytes<EffectSpec> effects)
     {
         var e = ecb.Instantiate(sortKey, prefab);
         float finalScale = PrefabScale(in transformLookup, prefab) * scale;
@@ -182,14 +182,14 @@ public static class SpellSpawnUtils
         {
             var zone = areaLookup[prefab];
             ScaleBurstRadii(ref zone, scale);
-            SetZonePower(ref zone, damage, critChance, critMultiplier, caster, targetLayers, tags, default);
+            SetZonePower(ref zone, damage, critChance, critMultiplier, caster, targetLayers, tags, in effects);
             ecb.SetComponent(sortKey, e, zone);
         }
 
         return e;
     }
 
-    // Shared zone core (K2): the single place that writes a zone's power/ownership and scales Burst radii,
+    // Shared zone core: the single place that writes a zone's power/ownership and scales Burst radii,
     // used by both SpawnSpellInstance and SpawnBurstArea so the two never diverge.
 
     /// <summary>Power and ownership of a freshly-spawned zone; restarts its clock.</summary>

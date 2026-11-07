@@ -128,7 +128,7 @@ public class EnemyAuthoring : MonoBehaviour
 
                     if (spellSO.Emitters != null && spellSO.Emitters.Length > 0)
                         Debug.LogError($"[EnemyAuthoring] {authoring.name}: spell '{spellSO.name}' declares emitters — " +
-                                       "enemy emitters are not delivered in lot 1 (Q24), they will never fire.", authoring);
+                                       "emitters are only fired by player casts, they will never fire on an enemy.", authoring);
 
                     baseSpellBuffer.Add(new SpellActivationRequest
                     {

@@ -30,7 +30,7 @@ public enum ESpellID : byte
     ProjecttileGeometric = 20,
     VolcanusVortux = 21,
 
-    // Emitter children (generalized-emitter, lot 1) — never unlocked directly, one unique ID each.
+    // Emitter children — never unlocked directly, one unique ID each.
     Explosion_Fire = 22,
     Explosion_Tech = 23,
     Explosion_Shock = 24,

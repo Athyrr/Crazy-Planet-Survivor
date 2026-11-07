@@ -89,7 +89,7 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 for (int e = 0; e < effectsArray.Length; e++)
                     effectsArray[e] = spellSO.Effects[e];
 
-                // Emitters: validated entries only, child resolved to its DB index. Invalid entry = LogError + skipped (Q16).
+                // Emitters: validated entries only, child resolved to its DB index. Invalid entry = LogError + skipped.
                 var emitterErrors = new List<string>();
                 bool[] emitterValid = SpellEmitterValidation.Validate(spellSO, emitterErrors);
                 var kept = new List<(SpellEmitterEntry entry, int childIndex)>();

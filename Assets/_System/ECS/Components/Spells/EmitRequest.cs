@@ -3,7 +3,7 @@ using Unity.Mathematics;
 
 /// <summary>One emission request, appended through ECB.AppendToBuffer onto the EmitRequestQueue singleton by
 /// SpellCastingSystem (OnActivation) and CollisionSystem (OnImpact), drained by SpellEmissionSystem the next
-/// frame (2-frame latency, decision Q1).</summary>
+/// frame (accepted 2-frame latency).</summary>
 public struct EmitRequest : IBufferElementData
 {
     /// <summary>Root spell (POWER): its ActiveSpell on the caster gives damage/size/crit/capabilities.</summary>
@@ -20,7 +20,7 @@ public struct EmitRequest : IBufferElementData
     public Entity LineageId;
     public byte Generation;
     public byte DepthLeft;
-    /// <summary>Crit result of the triggering hit (Explode children inherit it, Q7).</summary>
+    /// <summary>Crit result of the triggering hit (Explode children inherit it).</summary>
     public bool TriggerCrit;
     /// <summary>Directly hit target, pre-filled (pinned) in the children's HitEntityMemory.</summary>
     public Entity IgnoreTarget;

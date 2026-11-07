@@ -6,8 +6,8 @@
 public enum ESpellMultiCast : byte
 {
     /// <summary>One instance per cast. Amount is ignored at cast time.
-    /// Use for singular hits: novas, auras, slashes. (For Orbital, Amount still flows to the spawner's
-    /// child count — a different consumer, unrelated to this mode.)</summary>
+    /// Use for singular hits: novas, auras, slashes. (For an orbital spell, Amount still flows to its
+    /// emitter's child count, EEmitterCount.Amount — a different consumer, unrelated to this mode.)</summary>
     Single = 0,
 
     /// <summary>N instances in a fan around the aim direction.

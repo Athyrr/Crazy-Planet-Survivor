@@ -310,9 +310,8 @@ public partial struct ActiveEffectsSystem : ISystem
     }
 
     // I4 fix: the nested TrackDamageJob that used to live here is gone — this system now uses the shared
-    // top-level TrackDamageJob (Assets/_System/ECS/Systems/TrackDamageJob.cs, extracted by Task 21 from
-    // CollisionSystem and already reused by AreaAttackSystem). This file predates that extraction (Task 9,
-    // before Task 21 existed) and was never repointed at it. Same namespace, same shape — the construction
+    // top-level TrackDamageJob (Assets/_System/ECS/Systems/TrackDamageJob.cs, extracted from
+    // CollisionSystem and also used by AreaAttackSystem). Same namespace, same shape — the construction
     // site in OnUpdate resolves to the shared type unchanged.
 
     [BurstCompile]

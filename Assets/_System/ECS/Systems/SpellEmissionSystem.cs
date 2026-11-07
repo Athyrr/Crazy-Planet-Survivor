@@ -74,9 +74,9 @@ public static class EmitterQueries
 }
 
 /// <summary>Drains the EmitRequest queue (posted through ECB the previous frame: children are born 2 frames after
-/// their trigger, Q1). One single-threaded Burst job applies, per request: validity, active capability, Explode
-/// Chance, count, per-lineage budget, global MaxEmitPerFrame (overflow dropped + counted, Q23), layout, then
-/// spawns: emitted explosions through the shared low-level SpawnBurstArea (Q13 / K2), other children through
+/// their trigger). One single-threaded Burst job applies, per request: validity, active capability, Explode
+/// Chance, count, per-lineage budget, global MaxEmitPerFrame (overflow dropped + counted), layout, then
+/// spawns: emitted explosions through the shared low-level SpawnBurstArea, other children through
 /// SpawnSpellInstance. Attached emitters (OnActivation only) set up the owner instance and spawn anchored
 /// children with live root stats (AttachedEmitterUtils).</summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -290,7 +290,7 @@ public partial struct SpellEmissionSystem : ISystem
                     continue;
                 }
 
-                // Attached (ruling K5: after IsEmitterActive / Chance / requested / prefab check, before the
+                // Attached (after IsEmitterActive / Chance / requested / prefab check, before the
                 // detached ConsumeBudget): children anchored to the owner instance, live root stats.
                 if (em.Attachment == EEmitterAttachment.Attached)
                 {
@@ -372,8 +372,8 @@ public partial struct SpellEmissionSystem : ISystem
             float3 dir = EmitterMath.TangentReference(normal, hint);
             quaternion baseRot = quaternion.LookRotationSafe(dir, normal);
 
-            // Children never inherit the root's FinalEffects (Q5 / ruling K3): they carry the child SO's own
-            // effects. Exception = attached None children, which read the root live (Task 20, ruling K4).
+            // Children never inherit the root's FinalEffects: they carry the child SO's own effects (explosions
+            // included). Exception = attached None children, which read the root live (AttachedEmitterUtils).
             var p = new SpellSpawnParams
             {
                 Prefab = childPrefab,
@@ -412,9 +412,9 @@ public partial struct SpellEmissionSystem : ISystem
             {
                 p.Damage = root.FinalDamage; // falloff^generation is applied at hit time (ResolveHit)
                 p.Scale = root.FinalSize;
-                p.Tags = root.FinalTags;      // ruling K3: the fragment IS the root spell (same family)
+                p.Tags = root.FinalTags;      // the fragment IS the root spell (same family)
                 p.Allowed = rootBlob.AllowedCapabilities;
-                p.Bounces = root.FinalBounces;   // Q5: fragments inherit Bounce / Pierce
+                p.Bounces = root.FinalBounces;   // fragments inherit Bounce / Pierce
                 p.BounceRange = root.FinalBounceRange;
                 p.Pierces = root.FinalPierces;
                 lineage.Generation = (byte)math.min(255, req.Generation + 1);
@@ -428,7 +428,7 @@ public partial struct SpellEmissionSystem : ISystem
                 p.Allowed = ESpellCapability.None;
             }
 
-            // Emitted explosions go through the shared low-level Burst-zone helper (Q13 / ruling K2): it writes
+            // Emitted explosions go through the shared low-level Burst-zone helper: it writes
             // LocalToWorld itself, so the first BurstZoneJob tick reads the real position. The child's Lifetime
             // stays the prefab's (SpawnBurstArea does not write it), equal to the child SO by authoring.
             bool burstExplosion = explode && Spawn.AreaAttack.HasComponent(childPrefab);
@@ -460,7 +460,7 @@ public partial struct SpellEmissionSystem : ISystem
                 {
                     child = SpellSpawnUtils.SpawnBurstArea(in Spawn.Transform, in Spawn.AreaAttack, in Spawn.SpellSource, ECB, 0,
                         childPrefab, pos, rot, p.Scale, p.Damage, p.CritChance, p.CritMultiplier, p.Tags, p.TargetLayers,
-                        req.Caster, req.RootDatabaseIndex);
+                        req.Caster, req.RootDatabaseIndex, in p.Effects);
                 }
                 else
                 {

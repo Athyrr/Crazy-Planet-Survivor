@@ -275,7 +275,6 @@ public partial struct HealthSystem : ISystem
                         // Same difficulty scaling as enemy spells (authored base × EnemyDamageMult).
                         Damage = explosionData.Damage * EnemyDamageMult,
                         VfxPrefab = explosionData.VfxPrefab,
-                        IsCritical = false,
                         Tags = explosionData.Tags,
                         TargetLayers = CollisionLayers.Enemy | CollisionLayers.Player | CollisionLayers.Obstacle,
                         DatabaseIndex = -1, // no source: was 0 by default, attributing the damage to spell 0

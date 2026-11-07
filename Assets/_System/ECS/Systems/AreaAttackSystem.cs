@@ -184,7 +184,7 @@ public partial struct AreaAttackSystem : ISystem
 
     /// <summary>Shape-based filtering beyond the OverlapSphere radius. Circle is fully covered by the sphere.
     /// Widened from private to internal so an Edit-Mode test can sample it directly against the gizmo's own
-    /// preview math (AreaAttackAuthoring.OnDrawGizmosSelected) — see Task 28.</summary>
+    /// preview math (AreaAttackAuthoring.OnDrawGizmosSelected).</summary>
     internal static bool IsInShape(EAttackAreaShape shape, float3 pos, quaternion rot,
         float radius, float halfAngle, float sweep, float ringThickness, float3 hitPos)
     {
@@ -356,7 +356,7 @@ public partial struct AreaAttackSystem : ISystem
 
                 // Crit is rolled AND its multiplier applied inside ResolveHit — the Burst path used to
                 // write a cosmetic IsCritical while dealing base damage (half of the "crit gruyère").
-                var actions = new FixedList512Bytes<HitAction>(); // widened from FixedList128Bytes, see Task 24's 2026-09-26 Ruling — 128 only holds 2 HitActions
+                var actions = new FixedList512Bytes<HitAction>(); // widened from FixedList128Bytes: 128 bytes only hold 2 HitActions
                 actions.Add(HitAction.MakeDamage(area.Damage, area.CritChance, area.CritMultiplier, area.Tags));
                 for (int e = 0; e < area.EffectsToApply.Length; e++)
                     actions.Add(HitAction.MakeApplyEffect(area.EffectsToApply[e].Type));
@@ -370,7 +370,7 @@ public partial struct AreaAttackSystem : ISystem
                 ResolveHit.ApplyMany(in Resolve, ECB, chunkIndex, hitEntity, in actions, in source, ref random);
 
                 // I-frames + flash only for a hit that actually damaged (an immune hit must not refresh the
-                // i-frames forever). The flash is Burst-only (Q6); OverTime ticks don't flash.
+                // i-frames forever). The flash is Burst-only; OverTime ticks don't flash.
                 if (!damageImmune)
                 {
                     GrantGlobalIFrames(ECB, chunkIndex, hitEntity, Resolve.PlayerEntity, in GlobalIFramesLookup);
@@ -511,7 +511,7 @@ public partial struct AreaAttackSystem : ISystem
 
                 // OverTime ticks now crit too — the tick used to deal flat damage with no roll at all
                 // (the other half of the "crit gruyère").
-                var actions = new FixedList512Bytes<HitAction>(); // widened from FixedList128Bytes, see Task 24's 2026-09-26 Ruling — 128 only holds 2 HitActions
+                var actions = new FixedList512Bytes<HitAction>(); // widened from FixedList128Bytes: 128 bytes only hold 2 HitActions
                 actions.Add(HitAction.MakeDamage(area.Damage, area.CritChance, area.CritMultiplier, area.Tags));
                 for (int e = 0; e < area.EffectsToApply.Length; e++)
                     actions.Add(HitAction.MakeApplyEffect(area.EffectsToApply[e].Type));

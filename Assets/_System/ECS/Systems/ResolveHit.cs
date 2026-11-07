@@ -54,7 +54,7 @@ public static class ResolveHit
 
     /// <summary>Applies every action from one hit event, in list order. The Damage action (and the triggerDamage
     /// threaded into ApplyEffect, so Burn follows) is scaled by SplitDamageFalloff^Generation. Returns the crit
-    /// result of the Damage action (Explode children inherit it, Q7).</summary>
+    /// result of the Damage action (Explode children inherit it).</summary>
     public static bool ApplyMany(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
         Entity target, in FixedList512Bytes<HitAction> actions, in HitSource source, ref Random rng)
     {

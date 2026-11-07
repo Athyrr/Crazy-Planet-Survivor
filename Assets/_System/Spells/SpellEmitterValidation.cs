@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
 /// <summary>Emitter rules shared by the bake (SpellsDatabaseAuthoring: LogError + entry skipped) and the
-/// inspector (SpellSOEditor: HelpBox). Spec "Erreurs et garde-fous", decision Q16.</summary>
+/// inspector (SpellSOEditor: HelpBox).</summary>
 public static class SpellEmitterValidation
 {
     public const int MaxEmitters = 2;
@@ -36,9 +36,9 @@ public static class SpellEmitterValidation
             && (e.Child.SpellPrefab == null || e.Child.SpellPrefab.GetComponent<AreaAttackAuthoring>() == null))
             return "an Explode child must be an AreaAttack Burst (AreaAttackAuthoring on its prefab).";
         if (e.Attachment == EEmitterAttachment.Attached && e.Trigger == EEmitterTrigger.OnImpact)
-            return "Attached + OnImpact is not delivered (lot 1).";
+            return "Attached + OnImpact is not supported.";
         if (e.Trigger == EEmitterTrigger.OnImpact && ownerIsArea)
-            return "OnImpact on an Area spell is not delivered (lot 1).";
+            return "OnImpact on an Area spell is not supported.";
         if (e.Child == so && e.Capability != ESpellCapability.Split)
             return "self-reference is only allowed for Split (bounded by depth).";
         if (e.Child != so && ReachesRoot(so, e.Child, new HashSet<SpellSO>()))
