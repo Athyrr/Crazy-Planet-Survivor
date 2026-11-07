@@ -48,9 +48,21 @@ MonoBehaviour:
     Frame: 0
     Chance: 1
     DamageRatio: 0
+  - Capability: 8
+    Trigger: 1
+    Attachment: 0
+    Layout: 2
+    Count: 2
+    FixedCount: 1
+    Child: {fileID: 11400000, guid: a13ca1f0a33c36a46bac651b45432abc, type: 2}
+    Radius: 0
+    SpreadAngleDegrees: 30
+    Frame: 0
+    Chance: 1
+    DamageRatio: 0
   BaseGrantedCapabilities: 0
   BaseSplitCount: 0
-  BaseSplitDepth: 0
+  BaseSplitDepth: 1
   ReHitDelayOverride: 0
   TickRate: -1
   ChildPrefab: {fileID: 0}
