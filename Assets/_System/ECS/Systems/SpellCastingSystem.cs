@@ -17,6 +17,7 @@ public partial struct SpellCastingSystem : ISystem
     private ComponentLookup<LocalToWorld> _localToWorldLookup;
 
     private BufferLookup<ActiveSpell> _activeSpellLookup;
+    private EntityStorageInfoLookup _entityInfo;
 
     // Per-instance spawn lookups (transform, movement, combat, lifetime, capabilities, source)
     private SpellSpawnLookups _spawn;
@@ -44,6 +45,7 @@ public partial struct SpellCastingSystem : ISystem
         _enemyLookup = SystemAPI.GetComponentLookup<Enemy>(true);
         _localToWorldLookup = SystemAPI.GetComponentLookup<LocalToWorld>(true);
         _activeSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(true);
+        _entityInfo = state.GetEntityStorageInfoLookup();
         _spawn = SpellSpawnLookups.Create(ref state);
         _colliderLookup = SystemAPI.GetComponentLookup<PhysicsCollider>(true);
         _attachLookup = SystemAPI.GetComponentLookup<AttachToCaster>(true);
@@ -63,6 +65,7 @@ public partial struct SpellCastingSystem : ISystem
         _enemyLookup.Update(ref state);
         _localToWorldLookup.Update(ref state);
         _activeSpellLookup.Update(ref state);
+        _entityInfo.Update(ref state);
 
         _spawn.Update(ref state);
         _colliderLookup.Update(ref state);
@@ -114,6 +117,7 @@ public partial struct SpellCastingSystem : ISystem
             EnemyLookup = _enemyLookup,
             LocalToWorldLookup = _localToWorldLookup,
             ActiveSpellLookup = _activeSpellLookup,
+            EntityInfo = _entityInfo,
 
             Spawn = _spawn,
             ColliderLookup = _colliderLookup,
@@ -149,6 +153,7 @@ public partial struct SpellCastingSystem : ISystem
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
         [ReadOnly] public ComponentLookup<LocalToWorld> LocalToWorldLookup;
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        [ReadOnly] public EntityStorageInfoLookup EntityInfo;
 
         public SpellSpawnLookups Spawn; // all [ReadOnly] inside
 
@@ -199,6 +204,15 @@ public partial struct SpellCastingSystem : ISystem
 
             // If active spell not found -> return
             if (!found)
+            {
+                ECB.DestroyEntity(chunkIndex, requestEntity);
+                return;
+            }
+
+            // Lifetime = -1 attached owner (FireOrbs): skip the cast while the persistent instance lives;
+            // an invalid (destroyed) instance allows the recast.
+            if (baseSpellData.Lifetime < 0f && activeSpell.PersistentInstance != Entity.Null
+                && EntityInfo.Exists(activeSpell.PersistentInstance))
             {
                 ECB.DestroyEntity(chunkIndex, requestEntity);
                 return;

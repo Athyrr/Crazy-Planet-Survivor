@@ -77,7 +77,8 @@ public static class EmitterQueries
 /// their trigger, Q1). One single-threaded Burst job applies, per request: validity, active capability, Explode
 /// Chance, count, per-lineage budget, global MaxEmitPerFrame (overflow dropped + counted, Q23), layout, then
 /// spawns: emitted explosions through the shared low-level SpawnBurstArea (Q13 / K2), other children through
-/// SpawnSpellInstance. Attached emitters are handled by Task 20's branch.</summary>
+/// SpawnSpellInstance. Attached emitters (OnActivation only) set up the owner instance and spawn anchored
+/// children with live root stats (AttachedEmitterUtils).</summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(SpellCastingSystem))]
 [BurstCompile]
@@ -109,7 +110,7 @@ public partial struct SpellEmissionSystem : ISystem
         _spawn = SpellSpawnLookups.Create(ref state);
         _requestLookup = state.GetBufferLookup<EmitRequest>(false);
         _statsLookup = state.GetComponentLookup<EmitterStats>(false);
-        _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(true);
+        _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(false); // written: PersistentInstance (attached owner)
         _hitMemoryLookup = state.GetBufferLookup<HitEntityMemory>(true);
         _playerLookup = state.GetComponentLookup<Player>(true);
         _entityInfo = state.GetEntityStorageInfoLookup();
@@ -209,7 +210,7 @@ public partial struct SpellEmissionSystem : ISystem
         [ReadOnly] public DynamicBuffer<SpellPrefab> Prefabs;
         public bool PrefabsAligned;
         [ReadOnly] public SpellSpawnLookups Spawn;
-        [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [ReadOnly] public BufferLookup<HitEntityMemory> HitMemoryLookup;
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public EntityStorageInfoLookup EntityInfo;
@@ -269,8 +270,6 @@ public partial struct SpellEmissionSystem : ISystem
                 ref var em = ref shapeBlob.Emitters[slot];
                 if (em.Trigger != req.Trigger)
                     continue;
-                if (em.Attachment == EEmitterAttachment.Attached)
-                    continue; // Task 20
                 if (!EmitterQueries.IsEmitterActive(ref em, in root, rootBlob.AllowedCapabilities, req.DepthLeft))
                     continue;
 
@@ -288,6 +287,20 @@ public partial struct SpellEmissionSystem : ISystem
                 if (em.ChildIndex < 0 || em.ChildIndex >= Prefabs.Length || Prefabs[em.ChildIndex].Prefab == Entity.Null)
                 {
                     stats.DroppedInvalid += requested;
+                    continue;
+                }
+
+                // Attached (ruling K5: after IsEmitterActive / Chance / requested / prefab check, before the
+                // detached ConsumeBudget): children anchored to the owner instance, live root stats.
+                if (em.Attachment == EEmitterAttachment.Attached)
+                {
+                    if (req.Trigger != EEmitterTrigger.OnActivation || req.Owner == Entity.Null || !EntityInfo.Exists(req.Owner))
+                    {
+                        stats.DroppedInvalid++;
+                        continue;
+                    }
+                    int granted = ConsumeBudget(req.LineageId, requested, ref emitted, ref stats);
+                    SpawnAttached(in req, ref em, in root, ref rootBlob, slot, Prefabs[em.ChildIndex].Prefab, granted);
                     continue;
                 }
 
@@ -312,6 +325,43 @@ public partial struct SpellEmissionSystem : ISystem
             Budget[lineageId] = entry;
             emitted += byFrame;
             return byFrame;
+        }
+
+        private void SpawnAttached(in EmitRequest req, ref EmitterBlob em, in ActiveSpell root, ref SpellBlob rootBlob,
+            int slot, Entity childPrefab, int count)
+        {
+            float childBaseScale = SpellSpawnUtils.PrefabScale(in Spawn.Transform, childPrefab);
+            ECB.SetComponent(0, req.Owner, new EmitterOwner
+            {
+                Angle = 0f,
+                AngularSpeed = math.radians(root.FinalSpeed),
+                Count = count,
+                Radius = EmitterMath.OrbitRadius(em.Radius, root.FinalRange, rootBlob.BaseCastRange),
+                Frame = em.Frame,
+                EmitterIndex = slot,
+                ChildBaseScale = childBaseScale,
+                ChildScale = childBaseScale * root.FinalSize,
+            });
+
+            uint layers = PlayerLookup.HasComponent(req.Caster)
+                ? CollisionLayers.Enemy | CollisionLayers.Obstacle
+                : CollisionLayers.Player | CollisionLayers.Obstacle;
+            for (int i = 0; i < count; i++)
+                AttachedEmitterUtils.SpawnAnchoredChild(in Spawn, ECB, 0, req.Owner, childPrefab, i, req.Caster,
+                    req.RootDatabaseIndex, req.Position, layers);
+
+            // Lifetime = -1 (read from the blob, not FinalDuration which clamps to 0.1): single persistent instance.
+            if (rootBlob.Lifetime < 0f && ActiveSpellLookup.TryGetBuffer(req.Caster, out var spells))
+            {
+                for (int k = 0; k < spells.Length; k++)
+                {
+                    if (spells[k].DatabaseIndex != req.RootDatabaseIndex) continue;
+                    var s = spells[k];
+                    s.PersistentInstance = req.Owner;
+                    spells[k] = s;
+                    break;
+                }
+            }
         }
 
         private void SpawnDetached(in EmitRequest req, ref EmitterBlob em, in ActiveSpell root, ref SpellBlob rootBlob,

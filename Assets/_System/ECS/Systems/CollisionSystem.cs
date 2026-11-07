@@ -38,6 +38,7 @@ public partial struct CollisionSystem : ISystem
     private ComponentLookup<SpellLineage> _spellLineageLookup;
     private ComponentLookup<EmittedHitRules> _emittedHitRulesLookup;
     private ComponentLookup<ReHitDelay> _reHitDelayLookup;
+    private ComponentLookup<LiveSpellStats> _liveSpellStatsLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -86,6 +87,7 @@ public partial struct CollisionSystem : ISystem
         _spellLineageLookup = state.GetComponentLookup<SpellLineage>(true);
         _emittedHitRulesLookup = state.GetComponentLookup<EmittedHitRules>(true);
         _reHitDelayLookup = state.GetComponentLookup<ReHitDelay>(true);
+        _liveSpellStatsLookup = state.GetComponentLookup<LiveSpellStats>(true);
 
         _colliderLookup = state.GetComponentLookup<PhysicsCollider>(true);
         _lifetimeLookup = state.GetComponentLookup<Lifetime>(false);
@@ -137,6 +139,7 @@ public partial struct CollisionSystem : ISystem
         _spellLineageLookup.Update(ref state);
         _emittedHitRulesLookup.Update(ref state);
         _reHitDelayLookup.Update(ref state);
+        _liveSpellStatsLookup.Update(ref state);
 
         var playerEntity = SystemAPI.GetSingletonEntity<Player>();
 
@@ -189,6 +192,7 @@ public partial struct CollisionSystem : ISystem
             SpellLineageLookup = _spellLineageLookup,
             EmittedHitRulesLookup = _emittedHitRulesLookup,
             ReHitDelayLookup = _reHitDelayLookup,
+            LiveSpellStatsLookup = _liveSpellStatsLookup,
 
             QueueEntity = SystemAPI.TryGetSingletonEntity<EmitRequestQueue>(out var queue) ? queue : Entity.Null,
             SpellDb = SystemAPI.TryGetSingleton<SpellsDatabase>(out var spellDb) ? spellDb.Blobs : default,
@@ -251,6 +255,7 @@ public partial struct CollisionSystem : ISystem
         public ComponentLookup<Lifetime> LifetimeLookup;
 
         [ReadOnly] public ComponentLookup<ReHitDelay> ReHitDelayLookup;
+        [ReadOnly] public ComponentLookup<LiveSpellStats> LiveSpellStatsLookup;
 
         // Emitters (OnImpact): EmitRequest queue singleton (Entity.Null = no emission system) and the spell DB.
         public Entity QueueEntity;
@@ -366,11 +371,26 @@ public partial struct CollisionSystem : ISystem
                         // EffectsToApply is the list composed once at cast time (Task 19c/19d) — never
                         // re-derived from damageData.Tags (spec §4.3 correction: Tags is a read-only
                         // derived OUTPUT of that list, never an input to hit-time dispatch).
+                        float hitDamage = damageData.Damage;
+                        float hitCritChance = damageData.TotalCritChance;
+                        float hitCritMult = damageData.TotalCritMultiplier;
+                        ESpellTag hitTags = damageData.Tags;
+                        var hitEffects = damageData.EffectsToApply;
+                        // Attached children (FireOrbs): live stats of the ROOT ActiveSpell, read at hit time.
+                        if (LiveSpellStatsLookup.HasComponent(damagerEntity)
+                            && EmitterQueries.TryGetActiveSpell(Resolve.ActiveSpellLookup, caster, dbIndex, out var live))
+                        {
+                            hitDamage = live.FinalDamage;
+                            hitCritChance = live.FinalCritChance;
+                            hitCritMult = live.FinalCritDamageMultiplier;
+                            hitTags = live.FinalTags;
+                            hitEffects = live.FinalEffects;
+                        }
+
                         var actions = new FixedList512Bytes<HitAction>();
-                        actions.Add(HitAction.MakeDamage(damageData.Damage, damageData.TotalCritChance,
-                            damageData.TotalCritMultiplier, damageData.Tags));
-                        for (int e = 0; e < damageData.EffectsToApply.Length; e++)
-                            actions.Add(HitAction.MakeApplyEffect(damageData.EffectsToApply[e].Type));
+                        actions.Add(HitAction.MakeDamage(hitDamage, hitCritChance, hitCritMult, hitTags));
+                        for (int e = 0; e < hitEffects.Length; e++)
+                            actions.Add(HitAction.MakeApplyEffect(hitEffects[e].Type));
 
                         byte generation = SpellLineageLookup.TryGetComponent(damagerEntity, out var lineage) ? lineage.Generation : (byte)0;
                         EmittedHitRulesLookup.TryGetComponent(damagerEntity, out var hitRules);
@@ -380,7 +400,7 @@ public partial struct CollisionSystem : ISystem
                             Caster = caster,
                             DatabaseIndex = dbIndex,
                             PushOrigin = LocalTransformLookup[PlayerEntity].Position,
-                            Shake = ResolveShakeSource(damagerEntity, damageData.Tags),
+                            Shake = ResolveShakeSource(damagerEntity, hitTags),
                             Emitter = damagerEntity,
                             DamageImmune = damageImmune,
                             Generation = generation,
