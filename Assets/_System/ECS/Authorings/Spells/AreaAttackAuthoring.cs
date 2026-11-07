@@ -9,6 +9,8 @@ public class AreaAttackAuthoring : MonoBehaviour
     [Header("Shape Parameters")]
     public float RadiusStart = 1f;
     public float RadiusEnd = 1f;
+    [Tooltip("Burst: easing of the radius over ActiveDuration (Linear keeps the old behavior; explosions use EaseOutCubic).")]
+    public ERadiusEase RadiusEase = ERadiusEase.Linear;
 
     [Tooltip("Cone aperture half-angle in degrees (e.g., 45 = 90° total cone)")]
     public float HalfAngle = 45f;
@@ -44,6 +46,7 @@ public class AreaAttackAuthoring : MonoBehaviour
 
                 RadiusStart = authoring.RadiusStart,
                 RadiusEnd = authoring.RadiusEnd,
+                RadiusEase = authoring.RadiusEase,
 
                 HalfAngle = math.radians(authoring.HalfAngle),
                 SweepStart = math.radians(authoring.SweepStart),
@@ -151,7 +154,7 @@ public class AreaAttackAuthoring : MonoBehaviour
     private void DrawShapeAtTime(float t, Color color, bool isFinal,
         Vector3 casterPos, Vector3 hitboxCenter, Quaternion rot, Vector3 up)
     {
-        float radius = Mathf.Lerp(RadiusStart, RadiusEnd, t);
+        float radius = Mathf.Lerp(RadiusStart, RadiusEnd, EmitterMath.EaseRadiusT(RadiusEase, t));
         float sweep = Mathf.Lerp(SweepStart, SweepEnd, t);
 
         switch (Shape)

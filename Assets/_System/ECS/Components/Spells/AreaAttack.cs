@@ -34,6 +34,7 @@ public struct AreaAttack : IComponentData
     public float RadiusStart;       // OverTime: == RadiusEnd (static). Burst: animated (Expand).
     public float RadiusEnd;
     public float PrefabRadius;      // base radius from prefab, for size-scaling (OverTime refresh)
+    public ERadiusEase RadiusEase;  // Burst: easing of RadiusStart→RadiusEnd over ActiveDuration (default Linear)
 
     public float HalfAngle;         // Cone: aperture half-angle in radians
     public float SweepStart;        // Cone: initial center rotation relative to forward (radians)

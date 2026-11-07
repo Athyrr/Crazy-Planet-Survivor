@@ -82,8 +82,12 @@ public partial struct HealthSystem : ISystem
             : EnemyScalingConfig.Default;
 
         float playerArmorPen = 0f;
+        float enemyDamageMult = 1f;
         if (SystemAPI.TryGetSingleton<RunProgression>(out var runProg))
+        {
             playerArmorPen = scaleCfg.ComputeArmorPenetration(runProg.Timer, runProg.EnemiesKilledCount);
+            enemyDamageMult = scaleCfg.ComputeDamageMult(runProg.Timer, runProg.EnemiesKilledCount);
+        }
 
         var applyDamageJob = new ApplyDamageJob
         {
@@ -99,6 +103,7 @@ public partial struct HealthSystem : ISystem
             CoreStatsLookup = _coreStatsLookup,
             LiveStatsLookup = _liveStatsLookup,
             PlayerArmorPen = playerArmorPen,
+            EnemyDamageMult = enemyDamageMult,
             MinDamagePerHit = scaleCfg.MinDamagePerHit,
         };
 
@@ -141,6 +146,9 @@ public partial struct HealthSystem : ISystem
 
         // Flat armor neutralized this frame against the player (run-difficulty scaled).
         public float PlayerArmorPen;
+
+        // Run-difficulty damage multiplier of enemy attacks (same as enemy spells), applied to ExplodeOnDeath.
+        public float EnemyDamageMult;
 
         // Damage floor per hit after armor mitigation.
         public float MinDamagePerHit;
@@ -256,28 +264,23 @@ public partial struct HealthSystem : ISystem
             {
                 health.Value = 0;
 
-                if (
-                    !isPlayer && ExplodeOnDeathLookup.TryGetComponent(entity, out var explosionData)
-                )
+                if (!isPlayer
+                    && ExplodeOnDeathLookup.TryGetComponent(entity, out var explosionData)
+                    && ExplodeOnDeathLookup.IsComponentEnabled(entity))
                 {
                     var explosionRequest = ECB.CreateEntity(0);
-
-                    ECB.AddComponent(
-                        0,
-                        explosionRequest,
-                        new ExplosionRequest()
-                        {
-                            Position = transform.Position,
-                            Damage = explosionData.Damage,
-                            VfxPrefab = explosionData.VfxPrefab,
-                            IsCritical = false,
-                            Tags = explosionData.Tags,
-                            TargetLayers =
-                                CollisionLayers.Enemy
-                                | CollisionLayers.Player
-                                | CollisionLayers.Obstacle,
-                        }
-                    );
+                    ECB.AddComponent(0, explosionRequest, new ExplosionRequest()
+                    {
+                        Position = transform.Position,
+                        // Same difficulty scaling as enemy spells (authored base × EnemyDamageMult).
+                        Damage = explosionData.Damage * EnemyDamageMult,
+                        VfxPrefab = explosionData.VfxPrefab,
+                        IsCritical = false,
+                        Tags = explosionData.Tags,
+                        TargetLayers = CollisionLayers.Enemy | CollisionLayers.Player | CollisionLayers.Obstacle,
+                        DatabaseIndex = -1, // no source: was 0 by default, attributing the damage to spell 0
+                        Damager = Entity.Null,
+                    });
                 }
 
                 ECB.SetComponentEnabled<DestroyEntityFlag>(index, entity, true);

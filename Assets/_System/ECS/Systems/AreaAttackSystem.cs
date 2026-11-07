@@ -284,7 +284,7 @@ public partial struct AreaAttackSystem : ISystem
                 return;
 
             float t = area.ActiveDuration > 0f ? math.saturate(activeTime / area.ActiveDuration) : 1f;
-            float currentRadius = math.lerp(area.RadiusStart, area.RadiusEnd, t);
+            float currentRadius = math.lerp(area.RadiusStart, area.RadiusEnd, EmitterMath.EaseRadiusT(area.RadiusEase, t));
             float currentSweep = math.lerp(area.SweepStart, area.SweepEnd, t);
 
             quaternion rotation = localToWorld.Rotation;

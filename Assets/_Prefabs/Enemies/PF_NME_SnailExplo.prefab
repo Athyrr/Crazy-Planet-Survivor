@@ -196,11 +196,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   MainRenderer: {fileID: 3288070921046098492}
   UseSnappedMovement: 1
+  Acceleration: 0
+  MaxTurnRateDeg: 0
   BaseStats:
     MaxHealth: 150
     HealthRegen: 0
     BaseArmor: 0
     Armor: 0
+    KnockbackResistance: 0
     BaseMoveSpeed: 12
     MoveSpeed: 0
     BasePickupRange: 0
@@ -217,6 +220,17 @@ MonoBehaviour:
     CritChance: 0
     CritDamage: 0
     Luck: 0
+    LifeStealChance: 0
+    GlobalBurnDamageMultiplier: 0
+    GlobalBurnDurationMultiplier: 0
+    GlobalSlowStrengthMultiplier: 0
+    GlobalSlowDurationMultiplier: 0
+    GlobalStunDurationMultiplier: 0
+    BurnCanCrit: 0
+    BurnCanLifeSteal: 0
+    ExplosionCanLifeSteal: 0
+    DashCount: 0
+    DashCooldown: 0
   InitialSpells: []
   ContactDamage: 50
 --- !u!114 &7077652745905088192
@@ -247,8 +261,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 569916e10732eba4caf53ace7f5ac10d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
-  _avoidanceDetectionRadius: 2
-  _avoidanceWeight: 0.8
+  _avoidanceRadius: 2
+  _mass: 1
 --- !u!114 &-8517440183909175222
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -289,7 +303,7 @@ MonoBehaviour:
   Radius: 3
   Tags: 8192
   VfxPrefab: {fileID: 5356559924620498424, guid: 9911c20334e002e4884d404a475a6974, type: 3}
-  StartEnabled: 0
+  StartEnabled: 1
 --- !u!1001 &1097470578289537263
 PrefabInstance:
   m_ObjectHideFlags: 0
