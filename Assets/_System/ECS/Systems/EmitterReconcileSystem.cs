@@ -69,6 +69,11 @@ public partial struct EmitterReconcileSystem : ISystem
                 continue;
             }
 
+            // Owner not initialized by SpellEmissionSystem yet (cast frame → emission drain: baked Count = 0):
+            // the drain spawns the children and writes PersistentInstance; reconciling now would double them.
+            if (root.PersistentInstance != ownerEntity)
+                continue;
+
             int newCount = EmitterQueries.ResolveCount(ref em, in root);
             owner.AngularSpeed = math.radians(root.FinalSpeed);
             owner.Radius = EmitterMath.OrbitRadius(em.Radius, root.FinalRange, rootBlob.BaseCastRange);
