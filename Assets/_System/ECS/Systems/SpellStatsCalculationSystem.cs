@@ -219,11 +219,14 @@ public partial struct SpellStatsCalculationSystem : ISystem
                 // Life steal proc chance (global + temp buff + per-spell), clamped to 0..1 below
                 float lifeStealChanceAdd = coreStats.LifeStealChance + bLifeSteal + spell.LocalLifeStealChanceBonus;
 
-                // Per-spell status-effect magnitude bonus (opt-in, only exists if a concrete upgrade creates it)
-                float burnMagnitudeBonus = 0f;
-                float slowMagnitudeBonus = 0f;
+                // Per-spell status-effect magnitude bonus (opt-in, only exists if a concrete upgrade creates it):
+                // specific-spell upgrades (local) + tagged upgrades/amulets (loop below).
+                float burnMagnitudeBonus = spell.LocalBurnMagnitudeBonus;
+                float slowMagnitudeBonus = spell.LocalSlowMagnitudeBonus;
 
-                // Spell modifier buffer
+                // Spell modifier buffer (tagged upgrades + amulets).
+                // All modifiers are additive (Strategy is ignored, removed in Task 24b): mult += Value for every
+                // multiplier stat, integer stats and CooldownReduction included.
                 for (int j = 0; j < spellStatUpgrades.Length; j++)
                 {
                     var mod = spellStatUpgrades[j];
@@ -232,25 +235,15 @@ public partial struct SpellStatsCalculationSystem : ISystem
                     {
                         switch (mod.SpellStat)
                         {
-                            case ESpellStat.Damage:
-                                if (mod.Strategy == EModiferStrategy.Flat) dmgMult += mod.Value;
-                                else dmgMult *= mod.Value;
-                                break;
-
-                            case ESpellStat.Size:
-                                if (mod.Strategy == EModiferStrategy.Flat) sizeMult += mod.Value;
-                                else sizeMult *= (1f + mod.Value);
-                                break;
-
-                            case ESpellStat.Speed:
-                                if (mod.Strategy == EModiferStrategy.Flat) speedMult += mod.Value;
-                                else speedMult *= (1f + mod.Value);
-                                break;
+                            case ESpellStat.Damage: dmgMult += mod.Value; break;
+                            case ESpellStat.Size: sizeMult += mod.Value; break;
+                            case ESpellStat.Speed: speedMult += mod.Value; break;
+                            case ESpellStat.Range: rangeMult += mod.Value; break;
+                            case ESpellStat.Duration: durationMult += mod.Value; break;
+                            case ESpellStat.TickRate: tickRateMult += mod.Value; break;
 
                             case ESpellStat.CooldownReduction:
-                                //todo reclaculate cd
-                                if (mod.Strategy == EModiferStrategy.Flat) cdReductionMult += mod.Value;
-                                // else cdReductionMult *= math.max(0.1f, 1f - mod.Value);
+                                cdReductionMult += mod.Value;
                                 break;
 
                             case ESpellStat.Amount:

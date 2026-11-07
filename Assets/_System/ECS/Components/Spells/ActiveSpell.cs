@@ -30,6 +30,10 @@ public struct ActiveSpell : IBufferElementData
 
     public float LocalLifeStealChanceBonus;
 
+    // Per-spell status-effect magnitude bonus, from a specific spell upgrade (additive delta, 0.1 = +10 %).
+    public float LocalBurnMagnitudeBonus;
+    public float LocalSlowMagnitudeBonus;
+
     public ESpellTag AddedTags;
 
     // Upgrade-granted effect deltas — the effect-DATA parallel to AddedTags above (spec §4.3 correction).

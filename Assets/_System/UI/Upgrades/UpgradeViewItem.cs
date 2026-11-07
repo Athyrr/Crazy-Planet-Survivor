@@ -408,6 +408,8 @@ public class UpgradeViewItem : MonoBehaviour,
             case ESpellStat.SplitCount: return spell.LocalSplitCount;
             case ESpellStat.SplitDepth: return spell.LocalSplitDepth;
             case ESpellStat.ExplosionSize: return spell.LocalExplosionSizeBonus;
+            case ESpellStat.BurnMagnitude: return spell.LocalBurnMagnitudeBonus;
+            case ESpellStat.SlowMagnitude: return spell.LocalSlowMagnitudeBonus;
             default: return 0f;
         }
     }

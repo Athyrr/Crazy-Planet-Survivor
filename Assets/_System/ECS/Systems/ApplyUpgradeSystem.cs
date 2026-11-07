@@ -522,8 +522,9 @@ public partial struct ApplyUpgradeSystem : ISystem
 
     private static void ApplySpellStatAndTags(ref ActiveSpell spell, ESpellStat stat, float value, ESpellTag newTags)
     {
-        // upgrade.Value is a DELTA (e.g., 0.1 for +10%)
-        // ALL percent-based modifiers should be ADDITIVE (+=).
+        // upgrade.Value is a DELTA (e.g., 0.1 for +10%).
+        // All modifiers are additive (Strategy is ignored, removed in Task 24b): same rule as tagged upgrades and
+        // amulets in SpellStatsCalculationSystem.
         switch (stat)
         {
             case ESpellStat.Damage:
@@ -588,6 +589,14 @@ public partial struct ApplyUpgradeSystem : ISystem
 
             case ESpellStat.LifeStealChance:
                 spell.LocalLifeStealChanceBonus += value;
+                break;
+
+            case ESpellStat.BurnMagnitude:
+                spell.LocalBurnMagnitudeBonus += value;
+                break;
+
+            case ESpellStat.SlowMagnitude:
+                spell.LocalSlowMagnitudeBonus += value;
                 break;
         }
 
