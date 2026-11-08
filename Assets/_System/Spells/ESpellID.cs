@@ -40,7 +40,12 @@ public enum ESpellID : byte
 
     // Channeled beam: Beam = root (unlocked), Beam_Ray = its attached child (never unlocked directly)
     Beam = 28,
-    Beam_Ray = 29
+    Beam_Ray = 29,
+
+    // Summons (allegeance-summon): test content, provisional visuals
+    Summon_TurretFireball = 30,
+    Summon_Pet = 31,
+    Summon_TurretBeam = 32
 }
 
 /// <summary>
