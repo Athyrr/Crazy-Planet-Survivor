@@ -137,6 +137,11 @@ public static class SpellSpawnUtils
             }
 
             ecb.SetComponent(sortKey, e, zone);
+
+            // Same as SpawnBurstArea: write LocalToWorld so the first BurstZoneJob evaluation (and an OnArm request
+            // posted on the first frame, ActivationDelay = 0) reads the real position, not the prefab's.
+            float zoneScale = PrefabScale(in lk.Transform, p.Prefab) * p.Scale;
+            ecb.SetComponent(sortKey, e, new LocalToWorld { Value = float4x4.TRS(p.Position, p.Rotation, new float3(zoneScale)) });
         }
 
         if (lk.Lifetime.HasComponent(p.Prefab))
@@ -204,6 +209,7 @@ public static class SpellSpawnUtils
         zone.Tags = tags;
         zone.EffectsToApply = effects;
         zone.ElapsedTime = 0f;
+        zone.Armed = false;
     }
 
     /// <summary>Burst radii scale once at spawn (the prefab's start/end radii are the unit-size wave).</summary>

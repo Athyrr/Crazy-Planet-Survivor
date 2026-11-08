@@ -55,6 +55,9 @@ public struct AreaAttack : IComponentData
 
     // ── Runtime timer (shared) ──
     public float ElapsedTime;
+    /// <summary>Burst: true once ElapsedTime ≥ ActivationDelay has been observed — OnArm emitters fire once per
+    /// instance. Runtime only: false at bake, reset by SpellSpawnUtils.SetZonePower (the single clock restart).</summary>
+    public bool Armed;
 
     // ── Combat (shared) ──
     public float Damage;            // per-hit (Burst) or per-tick (OverTime)
