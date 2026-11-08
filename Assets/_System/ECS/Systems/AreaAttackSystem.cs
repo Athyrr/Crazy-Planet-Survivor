@@ -178,6 +178,7 @@ public partial struct AreaAttackSystem : ISystem
             EmittedHitRulesLookup = _emittedHitRulesLookup,
             SegmentLookup = _segmentLookup,
             BeamActiveLookup = _beamActiveLookup,
+            DestructibleLookup = _destructibleLookup,
             Resolve = resolveContext,
             Seed = seed,
         };
@@ -447,7 +448,7 @@ public partial struct AreaAttackSystem : ISystem
                 ResolveHit.ApplyMany(in Resolve, ECB, chunkIndex, hitEntity, in actions, in source, ref random);
 
                 // I-frames + flash only for a hit that actually damaged (an immune hit must not refresh the
-                // i-frames forever). The flash is Burst-only; OverTime ticks don't flash.
+                // i-frames forever). OverTime ticks flash the same way (OverTimeZoneJob).
                 if (!damageImmune)
                 {
                     GrantGlobalIFrames(ECB, chunkIndex, hitEntity, Resolve.PlayerEntity, in GlobalIFramesLookup);
@@ -532,6 +533,7 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public ComponentLookup<EmittedHitRules> EmittedHitRulesLookup;
         [ReadOnly] public ComponentLookup<AreaSegment> SegmentLookup;
         [ReadOnly] public ComponentLookup<BeamActive> BeamActiveLookup;
+        [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
 
         public ResolveHitContext Resolve;
         public uint Seed;
@@ -679,8 +681,17 @@ public partial struct AreaAttackSystem : ISystem
                 var rng = HitRandom.CreateForHit(Seed, target, zoneEntity);
                 ResolveHit.ApplyMany(in Resolve, ECB, chunkIndex, target, in actions, in source, ref rng);
 
+                // I-frames + flash only for a tick that actually damaged, same rule as the Burst path.
                 if (!damageImmune)
+                {
                     GrantGlobalIFrames(ECB, chunkIndex, target, Resolve.PlayerEntity, in GlobalIFramesLookup);
+
+                    if (DestructibleLookup.HasComponent(target))
+                    {
+                        var flashReq = ECB.CreateEntity(chunkIndex);
+                        ECB.AddComponent(chunkIndex, flashReq, new HitFrameFeedbackSystem.HitFrameColorRequest { TargetEntity = target });
+                    }
+                }
             }
         }
     }
