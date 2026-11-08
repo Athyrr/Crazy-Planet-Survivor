@@ -119,12 +119,16 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                         Layout = entry.Layout, Count = entry.Count, FixedCount = entry.FixedCount,
                         ChildIndex = childIndex, Radius = entry.Radius, SpreadAngleDegrees = entry.SpreadAngleDegrees,
                         Frame = entry.Frame, Chance = entry.Chance, DamageRatio = entry.DamageRatio,
+                        LineStartDistance = entry.LineStartDistance, LineSpacing = entry.LineSpacing,
+                        Timing = entry.Timing, SequenceInterval = entry.SequenceInterval,
                     };
                     if (entry.Capability == ESpellCapability.Explode) emitterCaps |= ESpellCapability.Explode;
                     if (entry.Capability == ESpellCapability.Split) emitterCaps |= ESpellCapability.Split;
+                    if (entry.Capability == ESpellCapability.Emit) emitterCaps |= ESpellCapability.Emit;
                 }
 
-                // Ruling D3 (Bounce/Pierce: permission AND slot) + emitter entries (Explode/Split).
+                // Ruling D3 (Bounce/Pierce: permission AND slot) + emitter entries (Explode/Split/Emit).
+                // SpellSO.AllowedCapabilities stays Bounce|Pierce only: this is the single place Emit becomes allowed.
                 spellBlob.AllowedCapabilities = (spellSO.AllowedCapabilities & slots) | emitterCaps;
                 spellBlob.BaseGrantedCapabilities = spellSO.BaseGrantedCapabilities;
                 spellBlob.BaseSplitCount = spellSO.BaseSplitCount;

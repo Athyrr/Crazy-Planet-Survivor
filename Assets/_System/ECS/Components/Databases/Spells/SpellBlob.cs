@@ -18,6 +18,10 @@ public struct EmitterBlob
     public EEmitterFrame Frame;
     public float Chance;
     public float DamageRatio;
+    public float LineStartDistance;
+    public float LineSpacing;
+    public EEmitterTiming Timing;
+    public float SequenceInterval;
 }
 
 public struct SpellBlob
@@ -26,7 +30,7 @@ public struct SpellBlob
     public ESpellID ID;
     // public FixedString512Bytes DisplayName; // 
     public ESpellTag Tag;
-    // Capabilities the spell may use. Bounce/Pierce = SpellSO permission AND prefab slot (ruling D3); Explode/Split = a valid emitter entry of that capability. Read at cast time, in FinalTags derivation and by the upgrade filter.
+    // Capabilities the spell may use. Bounce/Pierce = SpellSO permission AND prefab slot (ruling D3); Explode/Split/Emit = a valid emitter entry of that capability. Read at cast time, in FinalTags derivation, by the upgrade filter and by EmitterQueries.IsEmitterActive.
     public ESpellCapability AllowedCapabilities;
 
     // Base Stats
