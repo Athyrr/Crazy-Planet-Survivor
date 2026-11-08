@@ -18,14 +18,17 @@ public partial struct DashChainDamageSystem : ISystem
 {
     private ComponentLookup<KnockbackState> _knockbackLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
+    private ComponentLookup<Destructible> _destructibleLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<PhysicsWorldSingleton>();
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
 
         _knockbackLookup = state.GetComponentLookup<KnockbackState>(true);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(false);
+        _destructibleLookup = state.GetComponentLookup<Destructible>(true);
     }
 
     [BurstCompile]
@@ -36,6 +39,10 @@ public partial struct DashChainDamageSystem : ISystem
 
         _knockbackLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
+        _destructibleLookup.Update(ref state);
+
+        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>()
+            .CreateCommandBuffer(state.WorldUnmanaged);
 
         state.Dependency = new ChainDamageJob
         {
@@ -43,6 +50,8 @@ public partial struct DashChainDamageSystem : ISystem
             CollisionWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().CollisionWorld,
             KnockbackLookup = _knockbackLookup,
             DamageBufferLookup = _damageBufferLookup,
+            DestructibleLookup = _destructibleLookup,
+            ECB = ecb,
         }.Schedule(state.Dependency);
     }
 
@@ -57,6 +66,8 @@ public partial struct DashChainDamageSystem : ISystem
         // instead of being deferred to EndSimulation, so an enemy that dies same-frame from a spell/dash
         // can no longer trigger "Buffer does not exist on entity" during ECB playback.
         [NativeDisableParallelForRestriction] public BufferLookup<DamageBufferElement> DamageBufferLookup;
+        [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
+        public EntityCommandBuffer ECB;
 
         // How often a flung enemy deals its chain damage while airborne.
         private const float TickRate = 0.08f;
@@ -106,6 +117,7 @@ public partial struct DashChainDamageSystem : ISystem
                         continue; // not a damageable target (or already teared down)
 
                     DamageBufferLookup[other].Add(damage);
+                    RequestFlash(other);
                     hitAny = true;
                 }
 
@@ -113,10 +125,22 @@ public partial struct DashChainDamageSystem : ISystem
 
                 // The flung enemy takes damage from the impact too ("both take damage").
                 if (hitAny && DamageBufferLookup.HasBuffer(self))
+                {
                     DamageBufferLookup[self].Add(damage);
+                    RequestFlash(self);
+                }
             }
 
             hits.Dispose();
+        }
+
+        /// <summary>Hit flash for a target this job just damaged, same rule as the spell hit paths.</summary>
+        private void RequestFlash(Entity target)
+        {
+            if (!DestructibleLookup.HasComponent(target))
+                return;
+            var flashReq = ECB.CreateEntity();
+            ECB.AddComponent(flashReq, new HitFrameFeedbackSystem.HitFrameColorRequest { TargetEntity = target });
         }
     }
 }

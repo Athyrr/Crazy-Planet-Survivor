@@ -12,6 +12,7 @@ public partial struct ActiveEffectsSystem : ISystem
     private ComponentLookup<SlowState> _slowStateLookup;
     private ComponentLookup<Invincible> _invincibleLookup;
     private ComponentLookup<GlobalIFrames> _globalIFramesLookup;
+    private ComponentLookup<Destructible> _destructibleLookup;
 
     public void OnCreate(ref SystemState state)
     {
@@ -21,6 +22,7 @@ public partial struct ActiveEffectsSystem : ISystem
         _slowStateLookup = state.GetComponentLookup<SlowState>(true);
         _invincibleLookup = state.GetComponentLookup<Invincible>(true);
         _globalIFramesLookup = state.GetComponentLookup<GlobalIFrames>(true);
+        _destructibleLookup = state.GetComponentLookup<Destructible>(true);
     }
 
     [BurstCompile]
@@ -39,6 +41,7 @@ public partial struct ActiveEffectsSystem : ISystem
         _slowStateLookup.Update(ref state);
         _invincibleLookup.Update(ref state);
         _globalIFramesLookup.Update(ref state);
+        _destructibleLookup.Update(ref state);
 
         // Damage tracking queue for Burn ticks routed through ResolveHit.ApplyDamage.
         var damageEvents = new NativeQueue<SpellDamageEvent>(Allocator.TempJob);
@@ -78,6 +81,7 @@ public partial struct ActiveEffectsSystem : ISystem
             SpellSourceLookup = SystemAPI.GetComponentLookup<SpellSource>(true),
             InvincibleLookup = _invincibleLookup,
             GlobalIFramesLookup = _globalIFramesLookup,
+            DestructibleLookup = _destructibleLookup,
         }.ScheduleParallel(drainHandle);
 
         var trackHandle = new TrackDamageJob
@@ -124,6 +128,7 @@ public partial struct ActiveEffectsSystem : ISystem
         [ReadOnly] public ComponentLookup<SpellSource> SpellSourceLookup;
         [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
         [ReadOnly] public ComponentLookup<GlobalIFrames> GlobalIFramesLookup;
+        [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
         public ResolveHitContext Resolve;
         public EntityCommandBuffer.ParallelWriter ECB;
 
@@ -306,6 +311,13 @@ public partial struct ActiveEffectsSystem : ISystem
             // tick deals 0 damage. Its carry was already consumed by the caller — no catch-up afterwards.
             source.DamageImmune = ResolveHit.IsDamageImmune(entity, in InvincibleLookup, in GlobalIFramesLookup);
             ResolveHit.ApplyDamage(in Resolve, ECB, chunkIndex, entity, in action, in source, ref rng, allowCrit, allowLifeSteal);
+
+            // Flash only for a tick that actually damaged, same rule as the Burst and OverTime paths.
+            if (!source.DamageImmune && DestructibleLookup.HasComponent(entity))
+            {
+                var flashReq = ECB.CreateEntity(chunkIndex);
+                ECB.AddComponent(chunkIndex, flashReq, new HitFrameFeedbackSystem.HitFrameColorRequest { TargetEntity = entity });
+            }
         }
     }
 

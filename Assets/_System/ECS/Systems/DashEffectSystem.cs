@@ -26,6 +26,7 @@ public partial struct DashEffectSystem : ISystem
     private ComponentLookup<LinearMovement> _linearLookup;
     private ComponentLookup<PhysicsCollider> _colliderLookup;
     private BufferLookup<DamageBufferElement> _damageBufferLookup;
+    private ComponentLookup<Destructible> _destructibleLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -40,6 +41,7 @@ public partial struct DashEffectSystem : ISystem
         _linearLookup = state.GetComponentLookup<LinearMovement>(false);
         _colliderLookup = state.GetComponentLookup<PhysicsCollider>(false);
         _damageBufferLookup = state.GetBufferLookup<DamageBufferElement>(false);
+        _destructibleLookup = state.GetComponentLookup<Destructible>(true);
     }
 
     [BurstCompile]
@@ -54,6 +56,7 @@ public partial struct DashEffectSystem : ISystem
         _linearLookup.Update(ref state);
         _colliderLookup.Update(ref state);
         _damageBufferLookup.Update(ref state);
+        _destructibleLookup.Update(ref state);
 
         var effectConfig = SystemAPI.GetSingleton<EffectTypeConfig>().Blob;
         ref var effectEntries = ref effectConfig.Value.Entries;
@@ -73,6 +76,7 @@ public partial struct DashEffectSystem : ISystem
             RequestLookup = _statusEffectRequestLookup,
             ChainLookup = _chainLookup,
             DamageBufferLookup = _damageBufferLookup,
+            DestructibleLookup = _destructibleLookup,
             KnockbackDuration = knockbackDuration,
             KnockbackStackMode = knockbackCfg.StackMode,
             KnockbackMaxStacks = knockbackCfg.MaxStacks,
@@ -98,6 +102,7 @@ public partial struct DashEffectSystem : ISystem
         [ReadOnly] public BufferLookup<StatusEffectApplyRequest> RequestLookup;
         [ReadOnly] public ComponentLookup<DashChainDamage> ChainLookup;
         [NativeDisableParallelForRestriction] public BufferLookup<DamageBufferElement> DamageBufferLookup;
+        [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
         [ReadOnly] public float KnockbackDuration;
         [ReadOnly] public EStackMode KnockbackStackMode;
         [ReadOnly] public int KnockbackMaxStacks;
@@ -197,6 +202,13 @@ public partial struct DashEffectSystem : ISystem
                             IsCritical = false,
                             ShakeSource = EDamageShakeSource.None,
                         });
+
+                        // Hit flash for the damaged enemy, same rule as the spell hit paths.
+                        if (DestructibleLookup.HasComponent(enemy))
+                        {
+                            var flashReq = ECB.CreateEntity();
+                            ECB.AddComponent(flashReq, new HitFrameFeedbackSystem.HitFrameColorRequest { TargetEntity = enemy });
+                        }
                     }
                 }
             }
