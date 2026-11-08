@@ -103,6 +103,8 @@ public static class EmitterQueries
 /// Chance, count, per-lineage budget, global MaxEmitPerFrame (overflow dropped + counted), layout (AtPoint / Circle /
 /// Spread / Line), then spawns every detached child through the shared SpawnEmittedChild body (emitted explosions via
 /// SpawnBurstArea, others via SpawnSpellInstance). None / Emit / Split children inherit the root FinalEffects (D11).
+/// Sequential (None / Emit): child 0 spawns now, children i ≥ 1 become PendingEmit tickets processed by
+/// ProcessTicketsJob before EmitJob.
 /// Attached emitters (OnActivation only) set up the owner instance and spawn anchored
 /// children with live root stats (AttachedEmitterUtils).</summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
@@ -111,6 +113,7 @@ public static class EmitterQueries
 public partial struct SpellEmissionSystem : ISystem
 {
     private NativeHashMap<Entity, LineageBudget> _lineageBudget;
+    private NativeReference<int> _ticketsEmitted;
     private SpellSpawnLookups _spawn;
     private BufferLookup<EmitRequest> _requestLookup;
     private ComponentLookup<EmitterStats> _statsLookup;
@@ -133,6 +136,7 @@ public partial struct SpellEmissionSystem : ISystem
         state.EntityManager.SetName(queue, "EmitRequestQueue");
 
         _lineageBudget = new NativeHashMap<Entity, LineageBudget>(256, Allocator.Persistent);
+        _ticketsEmitted = new NativeReference<int>(0, Allocator.Persistent);
         _spawn = SpellSpawnLookups.Create(ref state);
         _requestLookup = state.GetBufferLookup<EmitRequest>(false);
         _statsLookup = state.GetComponentLookup<EmitterStats>(false);
@@ -146,6 +150,8 @@ public partial struct SpellEmissionSystem : ISystem
     {
         if (_lineageBudget.IsCreated)
             _lineageBudget.Dispose();
+        if (_ticketsEmitted.IsCreated)
+            _ticketsEmitted.Dispose();
     }
 
     [BurstCompile]
@@ -195,10 +201,25 @@ public partial struct SpellEmissionSystem : ISystem
         _playerLookup.Update(ref state);
         _entityInfo.Update(ref state);
 
-        var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
+        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        // One ECB per job (AreaAttackSystem convention): tickets and requests each get their own.
+        var ticketEcb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+        var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
         // PlanetCenter = float3.zero is a legitimate centre: the Line layout needs an explicit "no planet" flag.
         bool hasPlanet = SystemAPI.TryGetSingleton<PlanetData>(out var planet);
         float3 planetCenter = hasPlanet ? planet.Center : float3.zero;
+
+        // Deferred children first: they are already paid on their lineage (spec §6). Pause / upgrade choice never
+        // reach this point (early return above), so tickets freeze instead of bursting out on resume.
+        state.Dependency = new ProcessTicketsJob
+        {
+            ECB = ticketEcb.AsParallelWriter(),
+            Spawn = _spawn,
+            TicketsEmitted = _ticketsEmitted,
+            MaxEmitPerFrame = cfg.MaxEmitPerFrame,
+            DeltaTime = SystemAPI.Time.DeltaTime,
+            ClearAll = !hasPlayer,
+        }.Schedule(state.Dependency);
 
         state.Dependency = new EmitJob
         {
@@ -206,6 +227,7 @@ public partial struct SpellEmissionSystem : ISystem
             RequestLookup = _requestLookup,
             StatsLookup = _statsLookup,
             Budget = _lineageBudget,
+            TicketsEmitted = _ticketsEmitted,
             ECB = ecb.AsParallelWriter(),
             SpellDb = spellDb,
             Prefabs = prefabs,
@@ -246,6 +268,40 @@ public partial struct SpellEmissionSystem : ISystem
             ecb.AppendToBuffer(0, child, new HitEntityMemory { HitEntity = ignoreTarget, LastHitTime = 0, Pinned = true });
     }
 
+    /// <summary>Spawns due PendingEmit tickets through the shared body, within MaxEmitPerFrame (a due ticket over the
+    /// cap stays in the world and retries next frame: a deferral, not a drop). Single-threaded, before EmitJob,
+    /// which reads then resets TicketsEmitted. ClearAll (no player) destroys every ticket.</summary>
+    [BurstCompile]
+    private partial struct ProcessTicketsJob : IJobEntity
+    {
+        public EntityCommandBuffer.ParallelWriter ECB;
+        [ReadOnly] public SpellSpawnLookups Spawn;
+        public NativeReference<int> TicketsEmitted;
+        public int MaxEmitPerFrame;
+        public float DeltaTime;
+        public bool ClearAll;
+
+        private void Execute(Entity entity, ref PendingEmit ticket)
+        {
+            if (ClearAll)
+            {
+                ECB.DestroyEntity(0, entity);
+                return;
+            }
+
+            ticket.Remaining -= DeltaTime;
+            if (ticket.Remaining > 0f)
+                return;
+            if (TicketsEmitted.Value >= MaxEmitPerFrame)
+                return;
+
+            SpawnEmittedChild(in Spawn, ECB, in ticket.Params, false, in ticket.Lineage, in ticket.Rules,
+                ticket.ReHitDelay, ticket.IgnoreTarget);
+            TicketsEmitted.Value = TicketsEmitted.Value + 1;
+            ECB.DestroyEntity(0, entity);
+        }
+    }
+
     [BurstCompile]
     private struct EmitJob : IJob
     {
@@ -255,6 +311,7 @@ public partial struct SpellEmissionSystem : ISystem
         public BufferLookup<EmitRequest> RequestLookup;
         public ComponentLookup<EmitterStats> StatsLookup;
         public NativeHashMap<Entity, LineageBudget> Budget;
+        public NativeReference<int> TicketsEmitted; // children spawned this frame by ProcessTicketsJob
         public EntityCommandBuffer.ParallelWriter ECB;
 
         [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDb;
@@ -276,6 +333,12 @@ public partial struct SpellEmissionSystem : ISystem
         public void Execute()
         {
             var requests = RequestLookup[QueueEntity];
+
+            // Tickets spawned earlier this frame count against MaxEmitPerFrame; read then reset (ClearAll included,
+            // otherwise a run end would leave a stale count for the next run).
+            int emitted = TicketsEmitted.Value;
+            TicketsEmitted.Value = 0;
+
             if (ClearAll)
             {
                 Budget.Clear();
@@ -284,7 +347,6 @@ public partial struct SpellEmissionSystem : ISystem
             }
 
             var stats = StatsLookup[QueueEntity];
-            int emitted = 0;
             for (int r = 0; r < requests.Length; r++)
                 Process(requests[r], ref emitted, ref stats);
             requests.Clear();
@@ -351,32 +413,56 @@ public partial struct SpellEmissionSystem : ISystem
                         stats.DroppedInvalid++;
                         continue;
                     }
-                    int granted = ConsumeBudget(req.LineageId, requested, ref emitted, ref stats);
+                    int granted = ConsumeBudget(req.LineageId, requested, false, ref emitted, ref stats);
                     SpawnAttached(in req, ref em, in root, ref rootBlob, slot, Prefabs[em.ChildIndex].Prefab, granted);
                     continue;
                 }
 
-                int count = ConsumeBudget(req.LineageId, requested, ref emitted, ref stats);
+                // Sequential is reserved to None / Emit (D14, enforced at bake); anything else falls back to Instant.
+                bool sequential = em.Timing == EEmitterTiming.Sequential
+                    && (em.Capability == ESpellCapability.None || em.Capability == ESpellCapability.Emit);
+                int count = ConsumeBudget(req.LineageId, requested, sequential, ref emitted, ref stats);
                 if (count <= 0)
                     continue;
 
-                SpawnDetached(in req, ref em, in root, ref rootBlob, ref spells[em.ChildIndex], Prefabs[em.ChildIndex].Prefab, count);
+                SpawnDetached(in req, ref em, in root, ref rootBlob, ref spells[em.ChildIndex], Prefabs[em.ChildIndex].Prefab, count, sequential);
             }
         }
 
-        private int ConsumeBudget(Entity lineageId, int requested, ref int emitted, ref EmitterStats stats)
+        /// <summary>Lineage budget: debited for every granted child at request time (deferred ones included).
+        /// Frame cap: debited only for the children spawned THIS frame (all of them in Instant, child 0 in
+        /// Sequential — a ticket pays the cap when it spawns). Sequential with no room for child 0 = the whole
+        /// emission is dropped (DroppedFrameCap) without touching the lineage.</summary>
+        private int ConsumeBudget(Entity lineageId, int requested, bool sequential, ref int emitted, ref EmitterStats stats)
         {
             Budget.TryGetValue(lineageId, out var entry);
             int byLineage = EmitterMath.ClampToBudget(requested, Config.LineageSpawnBudget - entry.Spent);
             stats.DroppedLineageBudget += requested - byLineage;
-            int byFrame = EmitterMath.ClampToBudget(byLineage, Config.MaxEmitPerFrame - emitted);
-            stats.DroppedFrameCap += byLineage - byFrame;
 
-            entry.Spent += byFrame;
+            int granted;
+            int spawnedNow;
+            if (sequential)
+            {
+                if (byLineage > 0 && Config.MaxEmitPerFrame - emitted < 1)
+                {
+                    stats.DroppedFrameCap += byLineage;
+                    byLineage = 0;
+                }
+                granted = byLineage;
+                spawnedNow = math.min(1, granted);
+            }
+            else
+            {
+                granted = EmitterMath.ClampToBudget(byLineage, Config.MaxEmitPerFrame - emitted);
+                stats.DroppedFrameCap += byLineage - granted;
+                spawnedNow = granted;
+            }
+
+            entry.Spent += granted;
             entry.LastTouched = Now;
             Budget[lineageId] = entry;
-            emitted += byFrame;
-            return byFrame;
+            emitted += spawnedNow;
+            return granted;
         }
 
         private void SpawnAttached(in EmitRequest req, ref EmitterBlob em, in ActiveSpell root, ref SpellBlob rootBlob,
@@ -417,7 +503,7 @@ public partial struct SpellEmissionSystem : ISystem
         }
 
         private void SpawnDetached(in EmitRequest req, ref EmitterBlob em, in ActiveSpell root, ref SpellBlob rootBlob,
-            ref SpellBlob childBlob, Entity childPrefab, int count)
+            ref SpellBlob childBlob, Entity childPrefab, int count, bool sequential)
         {
             float3 normal = math.normalizesafe(req.Position - PlanetCenter, new float3(0f, 1f, 0f));
             float3 hint = math.lengthsq(req.Direction) > 1e-6f ? req.Direction : math.forward(req.Rotation);
@@ -522,6 +608,23 @@ public partial struct SpellEmissionSystem : ISystem
                 p.Position = pos;
                 p.Rotation = rot;
                 p.Direction = d;
+
+                if (sequential && i > 0)
+                {
+                    // Deferred child (D9): a ticket frozen with everything the immediate spawn would write.
+                    Entity ticket = ECB.CreateEntity(0);
+                    ECB.AddComponent(0, ticket, new PendingEmit
+                    {
+                        Params = p,
+                        Lineage = lineage,
+                        Rules = rules,
+                        ReHitDelay = reHitDelay,
+                        IgnoreTarget = ignoreTarget,
+                        Remaining = i * em.SequenceInterval,
+                    });
+                    continue;
+                }
+
                 SpawnEmittedChild(in Spawn, ECB, in p, burstExplosion, in lineage, in rules, reHitDelay, ignoreTarget);
             }
         }
