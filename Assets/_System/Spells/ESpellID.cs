@@ -35,7 +35,8 @@ public enum ESpellID : byte
     Explosion_Tech = 23,
     Explosion_Shock = 24,
     Explosion_Frost = 25,
-    FireOrb = 26
+    FireOrb = 26,
+    IcePillar = 27
 }
 
 /// <summary>
