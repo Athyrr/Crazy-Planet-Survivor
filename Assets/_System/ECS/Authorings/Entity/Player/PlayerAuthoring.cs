@@ -142,7 +142,10 @@ public class PlayerAuthoring : MonoBehaviour
             {
                 foreach (var spellSO in initialSpells)
                 {
-                    if (spellSO == null || spellSO.SpellPrefab == null)
+                    // A Summon spell has no SpellPrefab (its agents come from SummonSO.AgentPrefab): accept it too.
+                    // SpellActivationSystem turns the request into an ActiveSpell + SpellStatsCalculationRequest,
+                    // which SummonReconcileSystem latches until the first Running frame.
+                    if (spellSO == null || (spellSO.SpellPrefab == null && spellSO.Summon == null))
                         continue;
 
                     spellActivationBuffer.Add(new SpellActivationRequest { ID = spellSO.ID });
