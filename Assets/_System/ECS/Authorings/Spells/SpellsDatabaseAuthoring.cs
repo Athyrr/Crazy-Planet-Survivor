@@ -117,7 +117,11 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                     {
                         Capability = entry.Capability, Trigger = entry.Trigger, Attachment = entry.Attachment,
                         Layout = entry.Layout, Count = entry.Count, FixedCount = entry.FixedCount,
-                        ChildIndex = childIndex, Radius = entry.Radius, SpreadAngleDegrees = entry.SpreadAngleDegrees,
+                        // Decision I1 (channeled-beam): an attached AtPoint child sits ON the caster — no orbit radius
+                        // (the attached path ignores Layout and always uses the orbit, SpellEmissionSystem SpawnAttached).
+                        ChildIndex = childIndex,
+                        Radius = entry.Attachment == EEmitterAttachment.Attached && entry.Layout == EEmitterLayout.AtPoint ? 0f : entry.Radius,
+                        SpreadAngleDegrees = entry.SpreadAngleDegrees,
                         Frame = entry.Frame, Chance = entry.Chance, DamageRatio = entry.DamageRatio,
                         LineStartDistance = entry.LineStartDistance, LineSpacing = entry.LineSpacing,
                         Timing = entry.Timing, SequenceInterval = entry.SequenceInterval,
