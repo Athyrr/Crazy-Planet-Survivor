@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
+  m_Name: SpellData_Fireball_Turret
+  m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
+  ID: 33
+  Icon: {fileID: 21300000, guid: 4ec8fdf781de5cd4789609b970c63bfd, type: 3}
+  DisplayName: Fireball
+  Description: Throws a fireball at the nearest enemy, dealing damage on impact.
+  SpellPrefab: {fileID: 486797506737824905, guid: 41fa62722a0249648b1dbdd9ff513461, type: 3}
+  Rarity: 0
+  Tags: 4456704
+  Effects:
+  - Type: 0
+  BaseDamage: 70
+  BaseCooldown: 0.7
+  BaseSpeed: 18
+  BaseSpawnOffset: {x: 0, y: 0, z: 0}
+  BaseCastRange: 20
+  SizeScalesRange: 0
+  BaseSize: 1
+  TargetingMode: 0
+  Lifetime: 2
+  Bounces: 0
+  BounceRange: 5
+  Pierces: 0
+  AllowBounce: 1
+  AllowPierce: 1
+  Emitters:
+  - Capability: 4
+    Trigger: 1
+    Attachment: 0
+    Layout: 0
+    Count: 0
+    FixedCount: 1
+    Child: {fileID: 11400000, guid: c9a8d68d015dcad4da28add22da95dff, type: 2}
+    Radius: 0
+    SpreadAngleDegrees: 0
+    LineStartDistance: 0
+    LineSpacing: 3
+    Frame: 0
+    Timing: 0
+    SequenceInterval: 0.15
+    Chance: 1
+    DamageRatio: 0
+  - Capability: 8
+    Trigger: 1
+    Attachment: 0
+    Layout: 2
+    Count: 2
+    FixedCount: 1
+    Child: {fileID: 11400000}
+    Radius: 0
+    SpreadAngleDegrees: 30
+    LineStartDistance: 0
+    LineSpacing: 3
+    Frame: 0
+    Timing: 0
+    SequenceInterval: 0.15
+    Chance: 1
+    DamageRatio: 0
+  BaseGrantedCapabilities: 0
+  BaseSplitCount: 0
+  BaseSplitDepth: 1
+  ReHitDelayOverride: 0
+  TickRate: -1
+  BaseAmount: 1
+  MultiCast: 2
+  SpreadAngleDegrees: 30
+  MaxSpreadDegrees: 120
+  Summon: {fileID: 0}

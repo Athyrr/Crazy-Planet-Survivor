@@ -9,7 +9,8 @@ using Unity.Entities;
 ///     (SummonPower included) are not inherited;
 ///   • each attack ActiveSpell of the agent receives the RAW upgrades of the owner's Summon spell (Local*, AddedEffects,
 ///     AddedTags without form bits, GrantedCapabilities), never its Final* (they already hold the owner's CoreStats);
-///     Amount and Duration are excluded (consumed by the Summon);
+///     Amount and Duration are excluded (consumed by the Summon); plus the owner's CoreStats Bounce / Pierce in full, only
+///     on an attack spell that bounces (resp. pierces) at base (SummonMath.InheritedOwnerCount, spec §2 amended 2026-11-08);
 ///   • the agent's SpellStatUpgrade buffer = the owner's entries tagged Summon (RequiredTags → All, without Amount /
 ///     Duration); every other tagged upgrade of the player stays out (no leak: the player influences the agent only
 ///     through its character stats and SummonPower).
@@ -92,7 +93,10 @@ public partial struct SummonStatsSystem : ISystem
             for (int k = 0; k < agentSpells.Length; k++)
             {
                 var attack = agentSpells[k];
-                ProjectSummonUpgrades(ref attack, in summonSpell, spells[attack.DatabaseIndex].BaseGrantedCapabilities);
+                ref var attackBlob = ref spells[attack.DatabaseIndex];
+                ProjectSummonUpgrades(ref attack, in summonSpell, attackBlob.BaseGrantedCapabilities,
+                    SummonMath.InheritedOwnerCount(attackBlob.Bounces, ownerCore.Bounce),
+                    SummonMath.InheritedOwnerCount(attackBlob.Pierces, ownerCore.Pierce));
                 agentSpells[k] = attack;
             }
 
@@ -126,8 +130,10 @@ public partial struct SummonStatsSystem : ISystem
 
     /// <summary>Raw upgrades of the owner's Summon spell → one attack ActiveSpell of the agent. Overwrites (the attack copy
     /// is never upgraded on its own). Excluded: LocalAmountBonus (number of agents) and LocalSpellDurationBonusMultiplier
-    /// (time before relocation) — no double effect (spec §2, validated 2026-11-08).</summary>
-    internal static void ProjectSummonUpgrades(ref ActiveSpell attack, in ActiveSpell summonSpell, ESpellCapability attackBaseGranted)
+    /// (time before relocation) — no double effect (spec §2, validated 2026-11-08). inheritedBounce / inheritedPierce = the
+    /// owner's share (SummonMath.InheritedOwnerCount), added to the Summon spell's local bonus.</summary>
+    internal static void ProjectSummonUpgrades(ref ActiveSpell attack, in ActiveSpell summonSpell, ESpellCapability attackBaseGranted,
+        int inheritedBounce, int inheritedPierce)
     {
         attack.Level = summonSpell.Level;
         attack.LocalDamageBonusMultiplier = summonSpell.LocalDamageBonusMultiplier;
@@ -137,8 +143,8 @@ public partial struct SummonStatsSystem : ISystem
         attack.LocalRangeBonusMultiplier = summonSpell.LocalRangeBonusMultiplier;
         attack.LocalTickRateBonusMultiplier = summonSpell.LocalTickRateBonusMultiplier;
         attack.LocalBounceRangeBonusMultiplier = summonSpell.LocalBounceRangeBonusMultiplier;
-        attack.LocalBounceBonus = summonSpell.LocalBounceBonus;
-        attack.LocalPierceBonus = summonSpell.LocalPierceBonus;
+        attack.LocalBounceBonus = summonSpell.LocalBounceBonus + inheritedBounce;
+        attack.LocalPierceBonus = summonSpell.LocalPierceBonus + inheritedPierce;
         attack.LocalExplosionSizeBonus = summonSpell.LocalExplosionSizeBonus;
         attack.LocalCritChanceBonusPercent = summonSpell.LocalCritChanceBonusPercent;
         attack.LocalCritDamageBonus = summonSpell.LocalCritDamageBonus;

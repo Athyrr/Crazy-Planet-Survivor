@@ -45,7 +45,8 @@ public enum ESpellID : byte
     // Summons (allegeance-summon): test content, provisional visuals
     Summon_TurretFireball = 30,
     Summon_Pet = 31,
-    Summon_TurretBeam = 32
+    Summon_TurretBeam = 32,
+    Fireball_Turret = 33 // attack spell of Summon_TurretFireball (no base bounce), never in the player's pools
 }
 
 /// <summary>

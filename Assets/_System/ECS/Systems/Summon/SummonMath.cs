@@ -51,7 +51,8 @@ public static class SummonMath
 
     /// <summary>Agent CoreStats = its base (absolute stats kept: MaxHealth, BaseMoveSpeed…) + the owner's inherited
     /// bonuses; Damage is further multiplied by (1 + owner SummonPower). Every other stat keeps the base value (0 =
-    /// neutral): Amount / Pierce / Bounce, status-effect multipliers, armor… are never inherited.</summary>
+    /// neutral): Amount, status-effect multipliers, armor… are never inherited. The owner's Bounce / Pierce are not
+    /// added here either: they count per attack spell, see InheritedOwnerCount.</summary>
     public static CoreStats ComposeAgentCoreStats(in CoreStats baseStats, in SummonInheritRatios ratios, in CoreStats owner)
     {
         CoreStats s = baseStats;
@@ -67,6 +68,11 @@ public static class SummonMath
         s.LifeStealChance = InheritAdditive(baseStats.LifeStealChance, ratios.LifeStealChance, owner.LifeStealChance);
         return s;
     }
+
+    /// <summary>Owner Bounce (resp. Pierce) inherited by one attack spell of an agent (spec allegeance-summon §2, amended
+    /// 2026-11-08): in full, only when the attack spell already bounces (resp. pierces) at base; 0 otherwise.</summary>
+    public static int InheritedOwnerCount(int attackBaseCount, int ownerCount)
+        => attackBaseCount > 0 ? ownerCount : 0;
 
     /// <summary>Angle of an offset around the owner, in the frame of EmitterMath.OrbitOffset (c·reference + s·side).</summary>
     public static float RingAngle(float3 offset, float3 normal, float3 reference)
