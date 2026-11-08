@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6338eaf7f9a5354193bb07da21211ed, type: 3}
+  m_Name: SummonData_Pet
+  m_EditorClassIdentifier: Assembly-CSharp::SummonSO
+  AgentPrefab: {fileID: 8130148358487003523, guid: 8c5419150134bef49a6f5b3b76489000, type: 3}
+  Archetype: 2
+  _appliedArchetype: 1
+  Mobility: 1
+  Offense: 0
+  Targeting: 0
+  EndOfLife: 1
+  TakesAggro: 0
+  BaseStats:
+  - Stat: 3
+    Value: 6
+  InheritRatio: 0.3
+  RatioOverrides:
+  - Stat: 32
+    Value: 0
+  - Stat: 18
+    Value: 0
+  AttackSpells:
+  - {fileID: 11400000, guid: 9d2abff8156af2841b780aa8dfb53cce, type: 2}
+  RingMinRadius: 2
+  RingMaxRadius: 3.5
+  LeashRadius: 12
+  Acceleration: 40
+  MaxTurnRateDeg: 540
