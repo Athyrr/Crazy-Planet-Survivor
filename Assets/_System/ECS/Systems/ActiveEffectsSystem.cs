@@ -54,6 +54,7 @@ public partial struct ActiveEffectsSystem : ISystem
             LtwLookup = SystemAPI.GetComponentLookup<Unity.Transforms.LocalToWorld>(true),
             CoreStatsLookup = SystemAPI.GetComponentLookup<CoreStats>(true),
             ActiveSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(true),
+            SummonLookup = SystemAPI.GetComponentLookup<Summon>(true),
             DamageEventsWriter = damageEvents.AsParallelWriter(),
             // Not exercised today (TickBurnDamage only ever calls ResolveHit.ApplyDamage directly, never
             // ApplyEffect) — populated anyway since this is the same shared ResolveHitContext struct
@@ -88,6 +89,7 @@ public partial struct ActiveEffectsSystem : ISystem
         {
             DamageEventsQueue = damageEvents,
             ActiveSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(false),
+            SummonLookup = SystemAPI.GetComponentLookup<Summon>(true),
             PlayerEntity = playerEntity,
         }.Schedule(tickHandle);
 

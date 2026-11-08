@@ -14,6 +14,8 @@ public struct ResolveHitContext
     [ReadOnly] public ComponentLookup<LocalToWorld> LtwLookup;
     [ReadOnly] public ComponentLookup<CoreStats> CoreStatsLookup;
     [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+    /// <summary>Summon runtime of the caster: life steal and damage credit go to its owner (spec allegeance-summon §1, §3).</summary>
+    [ReadOnly] public ComponentLookup<Summon> SummonLookup;
     /// <summary>Existence check only (HasBuffer) — the actual append still goes through the caller's ECB.
     /// Guards ApplyEffect against a target with no StatusEffectApplyRequest buffer (e.g. the player prefab
     /// today, pending an Editor-side ActiveEffectsAuthoring addition — C2, final whole-branch review):
@@ -142,19 +144,21 @@ public static class ResolveHit
         if (source.DatabaseIndex < 0)
             return isCrit;
 
-        ctx.DamageEventsWriter.Enqueue(new SpellDamageEvent { DatabaseIndex = source.DatabaseIndex, DamageAmount = damageDealt });
+        ctx.DamageEventsWriter.Enqueue(new SpellDamageEvent { DatabaseIndex = source.DatabaseIndex, DamageAmount = damageDealt, Caster = source.Caster });
 
-        if (allowLifeSteal && !IsLifeStealBlocked(in ctx, in source)
-            && source.Caster == ctx.PlayerEntity && ctx.LifeStealConversion > 0f
-            && ctx.ActiveSpellLookup.TryGetBuffer(ctx.PlayerEntity, out var playerSpells))
+        // Life steal: the chance comes from the CASTER's own ActiveSpell (a Summon's attack spell: 0 % by default), the
+        // heal goes to the player — the caster itself, or the owner of a Summon. Identical to eee06e4e for the player.
+        if (allowLifeSteal && !IsLifeStealBlocked(in ctx, in source) && ctx.LifeStealConversion > 0f
+            && TryGetLifeStealHealer(in ctx, source.Caster, out Entity healer)
+            && ctx.ActiveSpellLookup.TryGetBuffer(source.Caster, out var casterSpells))
         {
-            for (int li = 0; li < playerSpells.Length; li++)
+            for (int li = 0; li < casterSpells.Length; li++)
             {
-                if (playerSpells[li].DatabaseIndex != source.DatabaseIndex)
+                if (casterSpells[li].DatabaseIndex != source.DatabaseIndex)
                     continue;
-                float lsChance = playerSpells[li].FinalLifeStealChance;
+                float lsChance = casterSpells[li].FinalLifeStealChance;
                 if (lsChance > 0f && rng.NextFloat() < lsChance)
-                    ecb.AppendToBuffer(sortKey, ctx.PlayerEntity, new LifeStealProcBufferElement { Heal = ctx.LifeStealConversion * damageDealt });
+                    ecb.AppendToBuffer(sortKey, healer, new LifeStealProcBufferElement { Heal = ctx.LifeStealConversion * damageDealt });
                 break;
             }
         }
@@ -170,6 +174,25 @@ public static class ResolveHit
         if (source.Caster != Entity.Null && ctx.CoreStatsLookup.TryGetComponent(source.Caster, out var cs) && cs.ExplosionCanLifeSteal > 0f)
             return false;
         return true;
+    }
+
+    /// <summary>Who a life-steal proc heals: the player for its own hits, the owner for a Summon of the player; nobody else.</summary>
+    private static bool TryGetLifeStealHealer(in ResolveHitContext ctx, Entity caster, out Entity healer)
+    {
+        healer = Entity.Null;
+        if (caster == Entity.Null || ctx.PlayerEntity == Entity.Null)
+            return false;
+        if (caster == ctx.PlayerEntity)
+        {
+            healer = caster;
+            return true;
+        }
+        if (ctx.SummonLookup.TryGetComponent(caster, out var summon) && summon.Owner == ctx.PlayerEntity)
+        {
+            healer = summon.Owner;
+            return true;
+        }
+        return false;
     }
 
     /// <summary>Public overload used by the Burn-tick job (ActiveEffectsSystem), which needs to gate crit

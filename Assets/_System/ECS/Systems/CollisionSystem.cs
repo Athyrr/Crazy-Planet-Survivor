@@ -34,6 +34,7 @@ public partial struct CollisionSystem : ISystem
 
     private ComponentLookup<SpellSource> _subSpellRootLookup;
     private BufferLookup<ActiveSpell> _activeSpellBufferLookup;
+    private ComponentLookup<Summon> _summonLookup;
     private ComponentLookup<Boss> _bossLookup;
     private BufferLookup<StatusEffectApplyRequest> _statusEffectRequestLookup;
     private ComponentLookup<SpellLineage> _spellLineageLookup;
@@ -84,6 +85,7 @@ public partial struct CollisionSystem : ISystem
 
         _subSpellRootLookup = state.GetComponentLookup<SpellSource>(true);
         _activeSpellBufferLookup = state.GetBufferLookup<ActiveSpell>(false);
+        _summonLookup = state.GetComponentLookup<Summon>(true);
         _bossLookup = state.GetComponentLookup<Boss>(true);
         _statusEffectRequestLookup = state.GetBufferLookup<StatusEffectApplyRequest>(true);
         _spellLineageLookup = state.GetComponentLookup<SpellLineage>(true);
@@ -135,6 +137,7 @@ public partial struct CollisionSystem : ISystem
         _followMovementLookup.Update(ref state);
         _subSpellRootLookup.Update(ref state);
         _activeSpellBufferLookup.Update(ref state);
+        _summonLookup.Update(ref state);
         _colliderLookup.Update(ref state);
         _bossLookup.Update(ref state);
         _lifetimeLookup.Update(ref state);
@@ -158,6 +161,7 @@ public partial struct CollisionSystem : ISystem
             LtwLookup = _ltwLookup,
             CoreStatsLookup = _coreStatsLookup,
             ActiveSpellLookup = _activeSpellBufferLookup,
+            SummonLookup = _summonLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
             RequestLookup = _statusEffectRequestLookup,
             Emitter = SystemAPI.TryGetSingleton<EmitterConfig>(out var emitterCfg) ? emitterCfg : EmitterConfig.Default,
@@ -213,6 +217,7 @@ public partial struct CollisionSystem : ISystem
         {
             DamageEventsQueue = _damageEventsQueue,
             ActiveSpellLookup = _activeSpellBufferLookup,
+            SummonLookup = _summonLookup,
             PlayerEntity = SystemAPI.GetSingletonEntity<Player>(),
         };
 
@@ -779,4 +784,6 @@ public struct SpellDamageEvent
 {
     public int DatabaseIndex;
     public int DamageAmount;
+    /// <summary>Who dealt it: the player (credited as before), a Summon (credited to its owner's Summon spell), anything else (ignored).</summary>
+    public Entity Caster;
 }

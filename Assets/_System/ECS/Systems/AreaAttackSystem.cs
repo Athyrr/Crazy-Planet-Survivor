@@ -34,6 +34,7 @@ public partial struct AreaAttackSystem : ISystem
     private ComponentLookup<SpellSource> _spellSourceLookup;
     private ComponentLookup<Boss> _bossLookup;
     private BufferLookup<ActiveSpell> _activeSpellLookup;
+    private ComponentLookup<Summon> _summonLookup;
     private ComponentLookup<CoreStats> _coreStatsLookup;
     private BufferLookup<StatusEffectApplyRequest> _statusEffectRequestLookup;
     private ComponentLookup<Invincible> _invincibleLookup;
@@ -66,6 +67,7 @@ public partial struct AreaAttackSystem : ISystem
         _spellSourceLookup = state.GetComponentLookup<SpellSource>(true);
         _bossLookup = state.GetComponentLookup<Boss>(true);
         _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(false);
+        _summonLookup = state.GetComponentLookup<Summon>(true);
         _coreStatsLookup = state.GetComponentLookup<CoreStats>(true);
         _statusEffectRequestLookup = state.GetBufferLookup<StatusEffectApplyRequest>(true);
         _invincibleLookup = state.GetComponentLookup<Invincible>(true);
@@ -116,6 +118,7 @@ public partial struct AreaAttackSystem : ISystem
         _spellSourceLookup.Update(ref state);
         _bossLookup.Update(ref state);
         _activeSpellLookup.Update(ref state);
+        _summonLookup.Update(ref state);
         _coreStatsLookup.Update(ref state);
         _statusEffectRequestLookup.Update(ref state);
         _invincibleLookup.Update(ref state);
@@ -142,6 +145,7 @@ public partial struct AreaAttackSystem : ISystem
             LtwLookup = _ltwLookup,
             CoreStatsLookup = _coreStatsLookup,
             ActiveSpellLookup = _activeSpellLookup,
+            SummonLookup = _summonLookup,
             DamageEventsWriter = _damageEventsQueue.AsParallelWriter(),
             RequestLookup = _statusEffectRequestLookup,
             Emitter = SystemAPI.TryGetSingleton<EmitterConfig>(out var emitterCfg) ? emitterCfg : EmitterConfig.Default,
@@ -200,6 +204,7 @@ public partial struct AreaAttackSystem : ISystem
         {
             DamageEventsQueue = _damageEventsQueue,
             ActiveSpellLookup = _activeSpellLookup,
+            SummonLookup = _summonLookup,
             PlayerEntity = playerEntity,
         };
         state.Dependency = trackJob.Schedule(overTimeHandle);
