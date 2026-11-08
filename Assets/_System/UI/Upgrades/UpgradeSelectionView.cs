@@ -17,6 +17,15 @@ public class UpgradeSelectionView : UIViewBase
     /// <summary>Raised with what the hovered card affects; <see cref="UpgradeHighlightTargets.Empty"/> when none.</summary>
     public event Action<UpgradeHighlightTargets> HighlightChanged;
 
+    /// <summary>Targets of the currently hovered card (Empty when none), for late subscribers.</summary>
+    public UpgradeHighlightTargets CurrentHighlight { get; private set; } = UpgradeHighlightTargets.Empty;
+
+    private void RaiseHighlight(UpgradeHighlightTargets targets)
+    {
+        CurrentHighlight = targets;
+        HighlightChanged?.Invoke(targets);
+    }
+
     private readonly Dictionary<int, UpgradeHighlightTargets> _targetsByDbIndex =
         new Dictionary<int, UpgradeHighlightTargets>();
 
@@ -80,7 +89,7 @@ public class UpgradeSelectionView : UIViewBase
         _focusedIndex = -1;
         _navAxisActive = false;
         _targetsByDbIndex.Clear();
-        HighlightChanged?.Invoke(UpgradeHighlightTargets.Empty);
+        RaiseHighlight(UpgradeHighlightTargets.Empty);
     }
 
     private void ApplyLayout(List<Transform> cards)
@@ -199,7 +208,7 @@ public class UpgradeSelectionView : UIViewBase
         _currentHoveredCard.SetHovered(false);
         _currentHoveredCard = null;
         _focusedIndex = -1;
-        HighlightChanged?.Invoke(UpgradeHighlightTargets.Empty);
+        RaiseHighlight(UpgradeHighlightTargets.Empty);
     }
 
     private void HandleItemPointerClicked(UpgradeViewItem item)
@@ -262,7 +271,7 @@ public class UpgradeSelectionView : UIViewBase
 
         card.SetHovered(true);
         _currentHoveredCard = card;
-        HighlightChanged?.Invoke(_targetsByDbIndex.TryGetValue(card.DbIndex, out var targets)
+        RaiseHighlight(_targetsByDbIndex.TryGetValue(card.DbIndex, out var targets)
             ? targets
             : UpgradeHighlightTargets.Empty);
     }
@@ -271,7 +280,7 @@ public class UpgradeSelectionView : UIViewBase
     {
         int selectedDbIndex = card.DbIndex;
         _canInteract = false;
-        HighlightChanged?.Invoke(UpgradeHighlightTargets.Empty);
+        RaiseHighlight(UpgradeHighlightTargets.Empty);
 
         Tween.Scale(card.transform, endValue: 1.2f, duration: 0.2f)
             .OnComplete(() => OnUpgradeSelected?.Invoke(selectedDbIndex));

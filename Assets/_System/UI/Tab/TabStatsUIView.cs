@@ -59,8 +59,11 @@ public class TabStatsUIView : UIViewBase
             return;
 
         _selectionView = FindFirstObjectByType<UpgradeSelectionView>(FindObjectsInactive.Include);
-        if (_selectionView != null)
-            _selectionView.HighlightChanged += OnHighlightChanged;
+        if (_selectionView == null)
+            return;
+        _selectionView.HighlightChanged += OnHighlightChanged;
+        // Re-apply whatever is hovered right now (tab or canvas re-enabled mid-hover).
+        SetHighlightedStats(_selectionView.CurrentHighlight.Stats);
     }
 
     private void OnHighlightChanged(UpgradeHighlightTargets targets) => SetHighlightedStats(targets.Stats);

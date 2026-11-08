@@ -6,7 +6,8 @@ using System.Collections.Generic;
 /// </summary>
 public readonly struct UpgradeHighlightTargets
 {
-    public static readonly UpgradeHighlightTargets Empty =
+    /// <summary>No target. Fresh sets each time so a subscriber can never corrupt a shared instance.</summary>
+    public static UpgradeHighlightTargets Empty =>
         new UpgradeHighlightTargets(new HashSet<int>(), new HashSet<ECharacterStat>());
 
     public readonly HashSet<int> SpellIndices;
@@ -70,11 +71,16 @@ public readonly struct UpgradeHighlightTargets
         for (int i = 0; i < context.ActiveSpells.Count; i++)
         {
             var active = context.ActiveSpells[i];
-            // Current tags = authored | upgrade-added | cached final (FinalTags may be 0 before first calc).
-            ESpellTag tags = active.AddedTags | active.FinalTags;
-            if (db != null && db.Spells != null && active.DatabaseIndex >= 0 && active.DatabaseIndex < db.Spells.Length
-                && db.Spells[active.DatabaseIndex] != null)
-                tags |= db.Spells[active.DatabaseIndex].Tags;
+            // Same rule as the ECS gating (ruling D2, UpgradeSelectionSystem.HasAnySpellWithTag): FinalTags once
+            // computed, authored | added while FinalTags is still None.
+            ESpellTag tags = active.FinalTags;
+            if (tags == ESpellTag.None)
+            {
+                tags = active.AddedTags;
+                if (db != null && db.Spells != null && active.DatabaseIndex >= 0
+                    && active.DatabaseIndex < db.Spells.Length && db.Spells[active.DatabaseIndex] != null)
+                    tags |= db.Spells[active.DatabaseIndex].Tags;
+            }
 
             if ((tags & mask) != 0)
                 result.Add(active.DatabaseIndex);
