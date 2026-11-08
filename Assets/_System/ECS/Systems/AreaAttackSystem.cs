@@ -41,6 +41,7 @@ public partial struct AreaAttackSystem : ISystem
     private ComponentLookup<GlobalIFrames> _globalIFramesLookup;
     private ComponentLookup<SpellLineage> _spellLineageLookup;
     private ComponentLookup<EmittedHitRules> _emittedHitRulesLookup;
+    private ComponentLookup<AreaSegment> _segmentLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -68,6 +69,7 @@ public partial struct AreaAttackSystem : ISystem
         _globalIFramesLookup = state.GetComponentLookup<GlobalIFrames>(true);
         _spellLineageLookup = state.GetComponentLookup<SpellLineage>(true);
         _emittedHitRulesLookup = state.GetComponentLookup<EmittedHitRules>(true);
+        _segmentLookup = state.GetComponentLookup<AreaSegment>(true);
 
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
@@ -113,6 +115,7 @@ public partial struct AreaAttackSystem : ISystem
         _globalIFramesLookup.Update(ref state);
         _spellLineageLookup.Update(ref state);
         _emittedHitRulesLookup.Update(ref state);
+        _segmentLookup.Update(ref state);
 
         float deltaTime = SystemAPI.Time.DeltaTime;
         uint seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1;
@@ -170,6 +173,7 @@ public partial struct AreaAttackSystem : ISystem
             GlobalIFramesLookup = _globalIFramesLookup,
             SpellLineageLookup = _spellLineageLookup,
             EmittedHitRulesLookup = _emittedHitRulesLookup,
+            SegmentLookup = _segmentLookup,
             Resolve = resolveContext,
             Seed = seed,
         };
@@ -250,6 +254,60 @@ public partial struct AreaAttackSystem : ISystem
         float3 closest = a + t * ab;
         return math.distancesq(p, closest) <= halfWidth * halfWidth;
     }
+
+    /// <summary>SurfaceArc capsule (channeled beam, decision I4): p is inside when its angle along the great circle a→b
+    /// lies in [0, θ] and its lateral arc distance to that circle is ≤ halfWidth. a and b lie on the sphere of radius
+    /// |a − center|; the test uses directions from the centre, so the height of p does not matter. Exact at any range
+    /// on any planet (a straight chord sinks L²/8R under the ground). Degenerate arc (θ ≈ 0): disc of halfWidth around a.</summary>
+    internal static bool SurfaceArcContains(float3 a, float3 b, float3 center, float halfWidth, float3 p)
+    {
+        float3 toA = a - center;
+        float radius = math.length(toA);
+        if (radius < 1e-4f)
+            return CapsuleContains(a, b, halfWidth, p);
+
+        float3 n = toA / radius;
+        float3 nB = math.normalizesafe(b - center, n);
+        float3 side = math.cross(n, nB);
+        float sideLen = math.length(side);
+        if (sideLen < 1e-6f)
+            return math.distancesq(p, a) <= halfWidth * halfWidth;
+
+        float theta = math.atan2(sideLen, math.dot(n, nB));
+        side /= sideLen;                  // unit normal of the great-circle plane (= n × direction)
+        float3 dir = math.cross(side, n); // unit tangent at a, toward b
+
+        float3 t = math.normalizesafe(p - center, n);
+        float along = math.atan2(math.dot(t, dir), math.dot(t, n));
+        if (along < 0f || along > theta)
+            return false;
+
+        float lateral = radius * math.asin(math.saturate(math.abs(math.dot(t, side))));
+        return lateral <= halfWidth;
+    }
+
+    /// <summary>OverlapSphere covering a SurfaceArc segment: centred on the chord middle, radius = half chord +
+    /// halfWidth + sagitta (L²/8R, L = arc length — slightly over the exact R(1 − cos θ/2), so it stays conservative).</summary>
+    internal static void SurfaceArcQuery(float3 a, float3 b, float3 center, float halfWidth,
+        out float3 queryCenter, out float queryRadius)
+    {
+        float radius = math.length(a - center);
+        float chord = math.distance(a, b);
+        float sagitta = 0f;
+        if (radius > 1e-4f)
+        {
+            float3 n = (a - center) / radius;
+            float3 nB = math.normalizesafe(b - center, n);
+            float arc = radius * math.atan2(math.length(math.cross(n, nB)), math.dot(n, nB));
+            sagitta = arc * arc / (8f * radius);
+        }
+        queryCenter = (a + b) * 0.5f;
+        queryRadius = chord * 0.5f + halfWidth + sagitta;
+    }
+
+    /// <summary>Capsule containment for OverTime zones: SurfaceArc when the segment asks for it, straight capsule otherwise.</summary>
+    private static bool CapsuleShapeContains(bool surfaceArc, float3 a, float3 b, float3 center, float halfWidth, float3 p)
+        => surfaceArc ? SurfaceArcContains(a, b, center, halfWidth, p) : CapsuleContains(a, b, halfWidth, p);
 
     // ── Burst cadence (was AreaAttackJob) ──
     [BurstCompile]
@@ -468,6 +526,7 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public ComponentLookup<GlobalIFrames> GlobalIFramesLookup;
         [ReadOnly] public ComponentLookup<SpellLineage> SpellLineageLookup;
         [ReadOnly] public ComponentLookup<EmittedHitRules> EmittedHitRulesLookup;
+        [ReadOnly] public ComponentLookup<AreaSegment> SegmentLookup;
 
         public ResolveHitContext Resolve;
         public uint Seed;
@@ -485,9 +544,24 @@ public partial struct AreaAttackSystem : ISystem
             quaternion zoneRot = zoneTransform.Rotation;
             float areaRadius = area.RadiusStart; // OverTime is static (RadiusStart == RadiusEnd)
 
+            // Capsule: segment from AreaSegment (world) when present, else entity origin → Offset point (Burst rule).
+            bool isCapsule = area.Shape == EAttackAreaShape.Capsule;
+            bool hasSegment = SegmentLookup.TryGetComponent(zoneEntity, out var segment);
+            float3 capsuleA = hasSegment ? segment.A : zoneTransform.Position;
+            float3 capsuleB = hasSegment ? segment.B : zonePos;
+            bool surfaceArc = isCapsule && hasSegment && segment.SurfaceArc;
+
+            float3 queryCenter = zonePos;
             float queryRadius = areaRadius;
             if (area.Shape == EAttackAreaShape.Ring)
                 queryRadius = areaRadius + area.RingThickness * 0.5f;
+            else if (surfaceArc)
+                SurfaceArcQuery(capsuleA, capsuleB, segment.Center, areaRadius, out queryCenter, out queryRadius);
+            else if (isCapsule)
+            {
+                queryCenter = (capsuleA + capsuleB) * 0.5f;
+                queryRadius = math.distance(capsuleA, capsuleB) * 0.5f + areaRadius;
+            }
 
             // Exit detection — drop targets outside the shape or destroyed.
             for (int i = targets.Length - 1; i >= 0; i--)
@@ -506,6 +580,8 @@ public partial struct AreaAttackSystem : ISystem
                     float3 targetPos = LtwLookup[target].Position;
                     if (area.Shape == EAttackAreaShape.Circle)
                         outOfRange = math.distance(zonePos, targetPos) > areaRadius;
+                    else if (isCapsule)
+                        outOfRange = !CapsuleShapeContains(surfaceArc, capsuleA, capsuleB, segment.Center, areaRadius, targetPos);
                     else
                         outOfRange = !IsInShape(area.Shape, zonePos, zoneRot, areaRadius, area.HalfAngle, 0f,
                             area.RingThickness, targetPos);
@@ -522,7 +598,7 @@ public partial struct AreaAttackSystem : ISystem
 
             var filter = new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = area.TargetLayers };
             var hits = new NativeList<DistanceHit>(16, Allocator.Temp);
-            CollisionWorld.OverlapSphere(zonePos, queryRadius, ref hits, filter);
+            CollisionWorld.OverlapSphere(queryCenter, queryRadius, ref hits, filter);
 
             for (int j = 0; j < hits.Length; j++)
             {
@@ -537,7 +613,10 @@ public partial struct AreaAttackSystem : ISystem
                 if (area.Shape != EAttackAreaShape.Circle)
                 {
                     float3 hitPos = LtwLookup[hitEntity].Position;
-                    if (!IsInShape(area.Shape, zonePos, zoneRot, areaRadius, area.HalfAngle, 0f, area.RingThickness, hitPos))
+                    bool inShape = isCapsule
+                        ? CapsuleShapeContains(surfaceArc, capsuleA, capsuleB, segment.Center, areaRadius, hitPos)
+                        : IsInShape(area.Shape, zonePos, zoneRot, areaRadius, area.HalfAngle, 0f, area.RingThickness, hitPos);
+                    if (!inShape)
                         continue;
                 }
 
@@ -581,7 +660,7 @@ public partial struct AreaAttackSystem : ISystem
                 var source = new HitSource
                 {
                     Caster = spellSource.CasterEntity, DatabaseIndex = spellSource.DatabaseIndex,
-                    PushOrigin = zonePos, Shake = EDamageShakeSource.DoT, Emitter = zoneEntity,
+                    PushOrigin = isCapsule ? capsuleA : zonePos, Shake = EDamageShakeSource.DoT, Emitter = zoneEntity,
                     DamageImmune = damageImmune,
                     Generation = generation, CritMode = hitRules.CritMode, LifeStealBlocked = hitRules.LifeStealBlocked,
                 };
