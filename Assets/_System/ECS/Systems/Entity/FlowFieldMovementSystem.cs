@@ -321,7 +321,7 @@ public partial struct FlowFieldMovementSystem : ISystem
 
                 PlanetUtils.GetSurfaceNormalRadius(in snapped, in PlanetCenter, out float3 sphereNormal);
                 PlanetUtils.GetRotationOnSurface(in faceDirection, sphereNormal, out quaternion sphereRotation);
-                transform.Rotation = RotateTowards(transform.Rotation, sphereRotation,
+                transform.Rotation = RotationMath.RotateTowards(transform.Rotation, sphereRotation,
                     math.radians(maxTurnRateDeg) * DeltaTime);
                 return;
             }
@@ -365,7 +365,7 @@ public partial struct FlowFieldMovementSystem : ISystem
                 transform.Position += horizontalDelta + currentNormal * vertSmooth;
 
                 PlanetUtils.GetRotationOnSurface(in faceDirection, hit.SurfaceNormal, out quaternion targetRotation);
-                transform.Rotation = RotateTowards(transform.Rotation, targetRotation,
+                transform.Rotation = RotationMath.RotateTowards(transform.Rotation, targetRotation,
                     math.radians(maxTurnRateDeg) * DeltaTime);
             }
             else
@@ -374,25 +374,9 @@ public partial struct FlowFieldMovementSystem : ISystem
 
                 // Keep turning even when off the navigable mesh.
                 PlanetUtils.GetRotationOnSurface(in faceDirection, currentNormal, out quaternion targetRotation);
-                transform.Rotation = RotateTowards(transform.Rotation, targetRotation,
+                transform.Rotation = RotationMath.RotateTowards(transform.Rotation, targetRotation,
                     math.radians(maxTurnRateDeg) * DeltaTime);
             }
-        }
-
-        /// <summary>
-        /// Rotates <paramref name="from"/> toward <paramref name="to"/> by at most
-        /// <paramref name="maxRadians"/> — a hard cap on angular speed (degrees/second).
-        /// </summary>
-        private static quaternion RotateTowards(quaternion from, quaternion to, float maxRadians)
-        {
-            // Angle between two unit quaternions; abs() picks the shorter of the two equivalent arcs.
-            float dot = math.clamp(math.abs(math.dot(from.value, to.value)), -1f, 1f);
-            float angle = 2f * math.acos(dot);
-
-            if (angle <= maxRadians || angle < 1e-5f)
-                return to;
-
-            return math.slerp(from, to, maxRadians / angle);
         }
 
         /// <summary>
