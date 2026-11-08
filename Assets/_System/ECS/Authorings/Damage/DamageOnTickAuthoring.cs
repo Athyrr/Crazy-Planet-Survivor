@@ -11,7 +11,7 @@ public class DamageOnTickAuthoring : MonoBehaviour
     [Header("Shape")]
     [Tooltip("Base radius of the visual. Runtime = BaseSize × this (scaled by size upgrades).")]
     public float AreaRadius = 1f;
-    [Tooltip("Circle = simple radius. Cone/Ring use shape filtering.")]
+    [Tooltip("Circle = simple radius. Cone/Ring/Capsule use shape filtering.")]
     public EAttackAreaShape Shape = EAttackAreaShape.Circle;
 
     [Tooltip("Cone aperture half-angle in degrees (e.g., 30 = 60° cone)")]
@@ -23,6 +23,9 @@ public class DamageOnTickAuthoring : MonoBehaviour
 
     [Tooltip("Ring mode: width of the ring band")]
     public float RingThickness = 0.5f;
+
+    [Tooltip("Local hitbox offset (entity space, rotation + scale aware). Capsule without an AreaSegment: segment = entity origin → this point.")]
+    public Vector3 Offset;
 
     class Baker : Baker<DamageOnTickAuthoring>
     {
@@ -41,6 +44,7 @@ public class DamageOnTickAuthoring : MonoBehaviour
                 SweepStart = math.radians(authoring.SweepStart),
                 SweepEnd = math.radians(authoring.SweepEnd),
                 RingThickness = authoring.RingThickness,
+                Offset = authoring.Offset,
                 TickRate = authoring.TickRate,
                 ElapsedTime = 0f,
             });
@@ -66,6 +70,8 @@ public class DamageOnTickAuthoring : MonoBehaviour
             label += $" | HalfAngle={HalfAngle:F0}°";
         if (Shape == EAttackAreaShape.Ring)
             label += $" | Thickness={RingThickness:F2}";
+        if (Shape == EAttackAreaShape.Capsule)
+            label += $" | Offset={Offset}";
         UnityEditor.Handles.Label(transform.position + Vector3.up * 2f, label, style);
     }
 
@@ -121,6 +127,16 @@ public class DamageOnTickAuthoring : MonoBehaviour
                     Vector3 dir = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
                     Gizmos.DrawLine(pos + dir * innerRadius, pos + dir * outerRadius);
                 }
+                break;
+            }
+
+            case EAttackAreaShape.Capsule:
+            {
+                Vector3 end = transform.TransformPoint(Offset); // same as math.transform(LocalToWorld, Offset) at runtime
+                Gizmos.color = GizmoColor;
+                Gizmos.DrawLine(pos, end);
+                Gizmos.DrawWireSphere(pos, radius);
+                Gizmos.DrawWireSphere(end, radius);
                 break;
             }
         }
