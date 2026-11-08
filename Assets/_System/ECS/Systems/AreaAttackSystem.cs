@@ -14,6 +14,8 @@ using Unity.Transforms;
 ///              (Expand/Sweep). Dedup via <see cref="HitEntityMemory"/>. (VoidSlash, ShockStrike…)
 ///   OverTime — re-hit tracked targets every TickRate; enter/exit via <see cref="TickDamageTarget"/>. (FrozenZone…)
 ///
+/// Burst also posts an OnArm EmitRequest once per instance when it arms (AreaAttack.Armed).
+///
 /// Shape filtering (<see cref="IsInShape"/>) is done here; the *consequences* of a hit (crit roll +
 /// multiplier, damage buffer, tag effects, life steal, damage tracking) are delegated to the shared
 /// <see cref="ResolveHit"/> helper — the same one the projectile-contact path uses. Both cadences build
@@ -148,6 +150,8 @@ public partial struct AreaAttackSystem : ISystem
             EmittedHitRulesLookup = _emittedHitRulesLookup,
             Resolve = resolveContext,
             Seed = seed,
+            QueueEntity = SystemAPI.TryGetSingletonEntity<EmitRequestQueue>(out var emitQueue) ? emitQueue : Entity.Null,
+            SpellDb = SystemAPI.TryGetSingleton<SpellsDatabase>(out var spellsDb) ? spellsDb.Blobs : default,
         };
         JobHandle burstHandle = burstJob.ScheduleParallel(state.Dependency);
 
@@ -269,6 +273,10 @@ public partial struct AreaAttackSystem : ISystem
         public ResolveHitContext Resolve;
         public uint Seed;
 
+        // OnArm emitters (lot 2): same guards as CollisionSystem's OnImpact post.
+        public Entity QueueEntity;
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDb;
+
         private void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity,
             ref AreaAttack area, in LocalToWorld localToWorld, ref DynamicBuffer<HitEntityMemory> hitMemory)
         {
@@ -278,6 +286,13 @@ public partial struct AreaAttackSystem : ISystem
             area.ElapsedTime += DeltaTime;
             if (area.ElapsedTime < area.ActivationDelay)
                 return;
+
+            // Arm once, BEFORE the ActiveDuration test: a large dt over a very short window must still arm.
+            if (!area.Armed)
+            {
+                area.Armed = true;
+                PostOnArm(chunkIndex, entity, in localToWorld, area.Offset);
+            }
 
             float activeTime = area.ElapsedTime - area.ActivationDelay;
             if (activeTime > area.ActiveDuration)
@@ -386,6 +401,53 @@ public partial struct AreaAttackSystem : ISystem
             }
 
             hits.Dispose();
+        }
+
+        /// <summary>OnArm (lot 2): one EmitRequest per Burst instance, when it arms, from its Offset point, if the
+        /// FORM spell declares an OnArm emitter. Player casts only (dbIndex -1 = enemy explosions). Posted even when
+        /// Emit is not granted: SpellEmissionSystem drops it before any budget debit (E9).</summary>
+        private void PostOnArm(int chunkIndex, Entity entity, in LocalToWorld localToWorld, float3 offset)
+        {
+            if (QueueEntity == Entity.Null || !SpellDb.IsCreated)
+                return;
+            if (!SpellSourceLookup.TryGetComponent(entity, out var source))
+                return;
+            if (source.DatabaseIndex < 0 || source.CasterEntity != Resolve.PlayerEntity)
+                return;
+
+            int shapeIndex = source.DatabaseIndex;
+            Entity lineageId = entity;
+            byte generation = 0, depthLeft = 0;
+            if (SpellLineageLookup.TryGetComponent(entity, out var lin))
+            {
+                shapeIndex = lin.ShapeDatabaseIndex;
+                lineageId = lin.LineageId;
+                generation = lin.Generation;
+                depthLeft = lin.DepthLeft;
+            }
+
+            if (shapeIndex < 0 || shapeIndex >= SpellDb.Value.Spells.Length
+                || !EmitterQueries.HasTrigger(ref SpellDb.Value.Spells[shapeIndex], EEmitterTrigger.OnArm))
+                return;
+
+            var rng = HitRandom.CreateForHit(Seed ^ 0x5A5A5A5Au, entity);
+            ECB.AppendToBuffer(chunkIndex, QueueEntity, new EmitRequest
+            {
+                RootDatabaseIndex = source.DatabaseIndex,
+                ShapeDatabaseIndex = shapeIndex,
+                Caster = source.CasterEntity,
+                Trigger = EEmitterTrigger.OnArm,
+                Position = math.transform(localToWorld.Value, offset),
+                Direction = localToWorld.Forward,
+                Rotation = localToWorld.Rotation,
+                Owner = Entity.Null,
+                LineageId = lineageId,
+                Generation = generation,
+                DepthLeft = depthLeft,
+                TriggerCrit = false,
+                IgnoreTarget = Entity.Null,
+                RollSeed = rng.NextUInt(),
+            });
         }
     }
 
