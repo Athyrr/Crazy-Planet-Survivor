@@ -79,6 +79,8 @@ public partial struct SpellCastingSystem : ISystem
             ? scfg
             : EnemyScalingConfig.Default;
         float enemyDamageMult = 1f;
+        // GetSingleton only checks safety, it does not complete RunProgressionJob (unordered writer) -> complete it first.
+        state.EntityManager.CompleteDependencyBeforeRO<RunProgression>();
         if (SystemAPI.TryGetSingleton<RunProgression>(out var runProg))
             enemyDamageMult = scaleCfg.ComputeDamageMult(runProg.Timer, runProg.EnemiesKilledCount);
 
