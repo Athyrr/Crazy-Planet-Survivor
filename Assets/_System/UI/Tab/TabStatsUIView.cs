@@ -29,9 +29,51 @@ public class TabStatsUIView : UIViewBase
 
     private bool _initialized;
 
+    private readonly Dictionary<ECharacterStat, StatTabViewItem> _statToRow =
+        new Dictionary<ECharacterStat, StatTabViewItem>();
+
+    private readonly HashSet<ECharacterStat> _highlightedStats = new HashSet<ECharacterStat>();
+    private UpgradeSelectionView _selectionView;
+
     private void Awake()
     {
         EnsureInitialized();
+    }
+
+    private void OnEnable()
+    {
+        TrySubscribeSelection();
+    }
+
+    private void OnDisable()
+    {
+        if (_selectionView != null)
+            _selectionView.HighlightChanged -= OnHighlightChanged;
+        _selectionView = null;
+    }
+
+    // The selection view lives in another prefab: find it lazily (also retried on OpenView).
+    private void TrySubscribeSelection()
+    {
+        if (_selectionView != null)
+            return;
+
+        _selectionView = FindFirstObjectByType<UpgradeSelectionView>(FindObjectsInactive.Include);
+        if (_selectionView != null)
+            _selectionView.HighlightChanged += OnHighlightChanged;
+    }
+
+    private void OnHighlightChanged(UpgradeHighlightTargets targets) => SetHighlightedStats(targets.Stats);
+
+    /// <summary>Highlights the rows of <paramref name="stats"/>, un-highlights the others. Rows created later honor it.</summary>
+    public void SetHighlightedStats(HashSet<ECharacterStat> stats)
+    {
+        _highlightedStats.Clear();
+        if (stats != null)
+            _highlightedStats.UnionWith(stats);
+
+        foreach (var pair in _statToRow)
+            pair.Value.SetHighlighted(_highlightedStats.Contains(pair.Key));
     }
     
     private void EnsureInitialized()
@@ -61,6 +103,7 @@ public class TabStatsUIView : UIViewBase
     public override void OpenView()
     {
         EnsureInitialized();
+        TrySubscribeSelection();
 
         IsOpen = true;
         gameObject.SetActive(true);
@@ -87,16 +130,19 @@ public class TabStatsUIView : UIViewBase
 
             string formattedValue = StatsFormatUtils.FormatPanelStat(
                 rawValue, attr.Stat, attr.NeutralValue, attr.Absolute, attr.Suffix, attr.Decimals);
-            UpdateStat(attr.DisplayName, formattedValue);
+            UpdateStat(attr.DisplayName, attr.Stat, formattedValue);
         }
     }
 
-    private void UpdateStat(string label, string formattedValue)
+    private void UpdateStat(string label, ECharacterStat stat, string formattedValue)
     {
         if (!_statUIs.TryGetValue(label, out StatTabViewItem statUI))
         {
             statUI = Instantiate(TabStatItemPrefab, StatsContainer);
             _statUIs.Add(label, statUI);
+            _statToRow[stat] = statUI;
+            if (_highlightedStats.Contains(stat))
+                statUI.SetHighlighted(true);
         }
 
         statUI.Refresh(label, formattedValue);

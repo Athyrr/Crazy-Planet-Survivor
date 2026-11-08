@@ -1,3 +1,5 @@
+using _System.Settings;
+using PrimeTween;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,6 +21,13 @@ public class ActiveSpellWidgetItem : UIViewItemBase
     [Tooltip("Hide the cooldown text while the spell is ready (no active cooldown).")]
     public bool HideTextWhenReady = true;
 
+    private bool _baseCaptured;
+    private bool _highlighted;
+    private Vector3 _baseScale = Vector3.one;
+    private Color _baseBorderColor = Color.white;
+    private Tween _scaleTween;
+    private Tween _colorTween;
+
     public void Refresh(SpellSO data, int databaseIndex, int level)
     {
         if (data == null)
@@ -28,6 +37,60 @@ public class ActiveSpellWidgetItem : UIViewItemBase
             Icon.sprite = data.Icon;
     }
     
+    /// <summary>Hides cooldown visuals (used where the widget is a plain spell icon, e.g. the upgrade strip).</summary>
+    public void HideCooldown()
+    {
+        if (CooldownOverlay)
+            CooldownOverlay.gameObject.SetActive(false);
+        if (CooldownText)
+            CooldownText.gameObject.SetActive(false);
+    }
+
+    /// <summary>Tints the border to the upgrade highlight color and pops the scale; restores both when off.</summary>
+    public void SetHighlighted(bool highlighted)
+    {
+        if (!_baseCaptured)
+        {
+            _baseCaptured = true;
+            _baseScale = transform.localScale;
+            if (Border)
+                _baseBorderColor = Border.color;
+        }
+
+        if (_highlighted == highlighted)
+            return;
+        _highlighted = highlighted;
+
+        if (_scaleTween.isAlive)
+            _scaleTween.Stop();
+        if (_colorTween.isAlive)
+            _colorTween.Stop();
+
+        float duration = CpUISettings.HoverDuration;
+        Vector3 targetScale = highlighted ? _baseScale * CpUISettings.HoverScale : _baseScale;
+        if (transform.localScale != targetScale)
+            _scaleTween = Tween.Scale(transform, targetScale, duration, CpUISettings.HoverEase, useUnscaledTime: true);
+
+        if (Border)
+        {
+            Color targetColor = highlighted ? CpUISettings.UpgradeCardHighlightColor : _baseBorderColor;
+            if (Border.color != targetColor)
+                _colorTween = Tween.Color(Border, targetColor, duration, CpUISettings.HoverEase, useUnscaledTime: true);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (!_baseCaptured)
+            return;
+        if (_scaleTween.isAlive) _scaleTween.Stop();
+        if (_colorTween.isAlive) _colorTween.Stop();
+        transform.localScale = _baseScale;
+        if (Border)
+            Border.color = _baseBorderColor;
+        _highlighted = false;
+    }
+
     public void RefreshCooldown(float current, float final)
     {
         bool onCooldown = current > 0f && final > 0f;

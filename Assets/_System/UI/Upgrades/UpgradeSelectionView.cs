@@ -11,6 +11,15 @@ public class UpgradeSelectionView : UIViewBase
 {
     public event Action<int> OnUpgradeSelected;
 
+    /// <summary>Raised when a selection opens (after the view is active), with the live display context.</summary>
+    public event Action<UpgradeDisplayContext> SelectionShown;
+
+    /// <summary>Raised with what the hovered card affects; <see cref="UpgradeHighlightTargets.Empty"/> when none.</summary>
+    public event Action<UpgradeHighlightTargets> HighlightChanged;
+
+    private readonly Dictionary<int, UpgradeHighlightTargets> _targetsByDbIndex =
+        new Dictionary<int, UpgradeHighlightTargets>();
+
     [Header("References")] public Transform UpgradesContainer;
     public UpgradeViewItem UpgradePrefab;
 
@@ -70,6 +79,8 @@ public class UpgradeSelectionView : UIViewBase
         _currentHoveredCard = null;
         _focusedIndex = -1;
         _navAxisActive = false;
+        _targetsByDbIndex.Clear();
+        HighlightChanged?.Invoke(UpgradeHighlightTargets.Empty);
     }
 
     private void ApplyLayout(List<Transform> cards)
@@ -143,6 +154,7 @@ public class UpgradeSelectionView : UIViewBase
     {
         gameObject.SetActive(true);
         ClearSelection();
+        SelectionShown?.Invoke(context);
 
         List<Transform> cardsTransforms = new List<Transform>();
 
@@ -156,6 +168,7 @@ public class UpgradeSelectionView : UIViewBase
             cardsTransforms.Add(upgradeViewItem.transform);
 
             upgradeViewItem.SetData(ref upgradeData, indice, in context);
+            _targetsByDbIndex[indice] = UpgradeHighlightTargets.Resolve(ref upgradeData, in context);
             upgradeViewItem.PointerEntered += HandleItemPointerEntered;
             upgradeViewItem.PointerExited += HandleItemPointerExited;
             upgradeViewItem.PointerClicked += HandleItemPointerClicked;
@@ -186,6 +199,7 @@ public class UpgradeSelectionView : UIViewBase
         _currentHoveredCard.SetHovered(false);
         _currentHoveredCard = null;
         _focusedIndex = -1;
+        HighlightChanged?.Invoke(UpgradeHighlightTargets.Empty);
     }
 
     private void HandleItemPointerClicked(UpgradeViewItem item)
@@ -248,12 +262,16 @@ public class UpgradeSelectionView : UIViewBase
 
         card.SetHovered(true);
         _currentHoveredCard = card;
+        HighlightChanged?.Invoke(_targetsByDbIndex.TryGetValue(card.DbIndex, out var targets)
+            ? targets
+            : UpgradeHighlightTargets.Empty);
     }
 
     private void ConfirmSelection(UpgradeViewItem card)
     {
         int selectedDbIndex = card.DbIndex;
         _canInteract = false;
+        HighlightChanged?.Invoke(UpgradeHighlightTargets.Empty);
 
         Tween.Scale(card.transform, endValue: 1.2f, duration: 0.2f)
             .OnComplete(() => OnUpgradeSelected?.Invoke(selectedDbIndex));
