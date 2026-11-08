@@ -247,6 +247,8 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
             blob.LeashRadius = summon.LeashRadius;
             blob.Acceleration = summon.Acceleration;
             blob.MaxTurnRateDeg = summon.MaxTurnRateDeg;
+            blob.ReturnSpeedMultiplier = summon.ReturnSpeedMultiplier;
+            blob.TeleportDistanceFactor = summon.TeleportDistanceFactor;
         }
     }
 }

@@ -65,6 +65,11 @@ public class SummonSO : ScriptableObject
     public float Acceleration = 40f;
     [Tooltip("Turn rate cap (°/s).")]
     public float MaxTurnRateDeg = 540f;
+    [Tooltip("Follow: speed and acceleration multiplier while returning to the owner (beyond the leash). 1 = unchanged.")]
+    [Min(0.1f)] public float ReturnSpeedMultiplier = 1f;
+    [Tooltip("Follow: beyond TeleportDistanceFactor × LeashRadius (arc distance) the agent teleports to a free point of " +
+             "the ring around its owner. 0 = never.")]
+    [Min(0f)] public float TeleportDistanceFactor = 0f;
 
     /// <summary>Pre-fills the axes from the archetype (Turret = Fixed/Relocate, Pet = Follow/Permanent).</summary>
     public void ApplyArchetypePreset()
@@ -140,6 +145,8 @@ public class SummonSO : ScriptableObject
             warnings.Add($"{name}: no attack spell — the agent will never cast.");
         if (RingMinRadius > RingMaxRadius)
             warnings.Add($"{name}: RingMinRadius > RingMaxRadius.");
+        if (TeleportDistanceFactor > 0f && TeleportDistanceFactor <= 1f)
+            warnings.Add($"{name}: TeleportDistanceFactor <= 1 teleports before the leash return can start (use > 1, or 0 = never).");
         BuildBaseStats(warnings);
         BuildRatios(warnings);
     }

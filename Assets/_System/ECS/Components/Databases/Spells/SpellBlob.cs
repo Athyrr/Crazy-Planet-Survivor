@@ -45,6 +45,10 @@ public struct SummonBlob
     public float LeashRadius;
     public float Acceleration;
     public float MaxTurnRateDeg;
+    // Follow catch-up: speed / acceleration × ReturnSpeedMultiplier while returning; teleport beyond
+    // TeleportDistanceFactor × LeashRadius (0 = never).
+    public float ReturnSpeedMultiplier;
+    public float TeleportDistanceFactor;
 }
 
 public struct SpellBlob

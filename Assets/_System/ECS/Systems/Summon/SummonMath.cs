@@ -127,6 +127,11 @@ public static class SummonMath
     public static bool UpdateLeash(bool returning, float distanceToOwner, float leashRadius, float returnFraction)
         => returning ? distanceToOwner > leashRadius * returnFraction : distanceToOwner > leashRadius;
 
+    /// <summary>Follow catch-up: teleport when the agent is beyond teleportFactor × leashRadius; never when
+    /// teleportFactor ≤ 0.</summary>
+    public static bool ShouldTeleport(float distanceToOwner, float leashRadius, float teleportFactor)
+        => teleportFactor > 0f && distanceToOwner > leashRadius * teleportFactor;
+
     /// <summary>Speed factor toward a goal: 0 within stopDistance, easing in over half of it beyond; 1 when stopDistance ≤ 0.</summary>
     public static float ApproachFactor(float distance, float stopDistance)
     {
