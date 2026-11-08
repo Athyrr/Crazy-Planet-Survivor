@@ -10,8 +10,11 @@ using Unity.Transforms;
 /// spawns the missing slots at a free position of the ring around the owner (never on it), removes the surplus and the
 /// groups whose spell is gone, relocates a Relocate agent at once when it reaches ExpiresAt. Work only happens on frames
 /// where an owner recomputed its stats (Amount, spell added / removed), an agent's owner is gone, or an agent expired —
-/// otherwise one read-only scan of Summon, no sync point. Spawn / destroy go through the EndSimulation ECB (agents live
-/// next frame); relocation writes LocalTransform directly after CompleteDependency. Removing an agent also destroys its
+/// otherwise one read-only scan of Summon, no sync point. A recalculation seen outside Running (upgrade pick = pause,
+/// SpellStatsCalculationSystem ignores the game state and consumes the request) or before the planet / physics / summon
+/// prefabs exist is latched and reconciled on the first Running frame, so a spawn is never missed.
+/// Spawn / destroy go through the EndSimulation ECB (agents live next frame); relocation writes LocalTransform directly
+/// after CompleteDependency. Removing an agent also destroys its
 /// PersistentInstance(s) (Beam emitter owner): EmitterReconcileSystem never cleans an owner whose caster is gone.
 /// End of run: RunScope (RunCleanerSystem).
 /// </summary>
@@ -23,27 +26,38 @@ public partial struct SummonReconcileSystem : ISystem
 {
     private EntityQuery _dirtyOwnerQuery;
 
+    /// <summary>An owner recomputed its stats while this system could not act (not Running, or planet / physics /
+    /// summon prefabs missing): the request tag is consumed at EndSimulation regardless, so it is latched here.</summary>
+    private bool _pendingReconcile;
+
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
+        // Only what SpellStatsCalculationSystem also needs: the request tag outlives a missing SpellsDatabase. PlanetData,
+        // PhysicsWorldSingleton and SummonPrefab are checked in OnUpdate, after the latch, so no request is lost.
         state.RequireForUpdate<SpellsDatabase>();
-        state.RequireForUpdate<SummonPrefab>();
-        state.RequireForUpdate<PlanetData>();
-        state.RequireForUpdate<PhysicsWorldSingleton>();
         state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
         _dirtyOwnerQuery = SystemAPI.QueryBuilder().WithAll<Player, SpellStatsCalculationRequest, ActiveSpell>().Build();
+        _pendingReconcile = false;
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        // Latch first, in every game state (structural query check, no sync point).
+        if (!_dirtyOwnerQuery.IsEmptyIgnoreFilter)
+            _pendingReconcile = true;
+
         if (!SystemAPI.TryGetSingleton<GameState>(out var gameState) || gameState.State != EGameState.Running)
+            return;
+        if (!SystemAPI.HasSingleton<PlanetData>() || !SystemAPI.HasSingleton<PhysicsWorldSingleton>()
+            || !SystemAPI.HasSingleton<SummonPrefab>())
             return;
 
         double now = SystemAPI.Time.ElapsedTime;
 
         // Cheap trigger scan (Summon is written by nobody but this system: no job to complete).
-        bool work = !_dirtyOwnerQuery.IsEmptyIgnoreFilter;
+        bool work = _pendingReconcile;
         if (!work)
         {
             foreach (var summon in SystemAPI.Query<RefRO<Summon>>())
@@ -57,6 +71,7 @@ public partial struct SummonReconcileSystem : ISystem
         }
         if (!work)
             return;
+        _pendingReconcile = false; // the full reconcile below covers every owner
 
         // FinalAmount / FinalDuration were written this frame by SpellStatsCalculationSystem's job; transforms and the
         // collision world are read below. Rare frames only.
@@ -181,7 +196,9 @@ public partial struct SummonReconcileSystem : ISystem
             }
         }
 
-        // 2) Removals: the agent and the persistent instances it owns (Beam owner + its rays through the LinkedEntityGroup).
+        // 2) Removals: the agent and the persistent instances it owns (Beam emitter owner). Its rays are registered in the
+        // owner's LinkedEntityGroup (AttachedEmitterUtils.SpawnAnchoredChild) and go with it; any ray left orphaned
+        // self-destroys in EmitterAnchorSystem (owner or caster gone).
         for (int i = 0; i < toDestroy.Length; i++)
         {
             Entity agent = toDestroy[i];
