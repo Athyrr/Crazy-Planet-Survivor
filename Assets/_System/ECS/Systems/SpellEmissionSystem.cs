@@ -21,7 +21,7 @@ public static class EmitterQueries
         return false;
     }
 
-    /// <summary>None = always; Explode = allowed AND granted; Split = allowed AND FinalSplitCount > 0 AND depth left.</summary>
+    /// <summary>None = always; Explode / Emit = allowed AND granted; Split = allowed AND FinalSplitCount > 0 AND depth left.</summary>
     public static bool IsEmitterActive(ref EmitterBlob em, in ActiveSpell root, ESpellCapability rootAllowed, byte depthLeft)
     {
         switch (em.Capability)
@@ -32,6 +32,8 @@ public static class EmitterQueries
                 return (rootAllowed & ESpellCapability.Explode) != 0 && (root.GrantedCapabilities & ESpellCapability.Explode) != 0;
             case ESpellCapability.Split:
                 return (rootAllowed & ESpellCapability.Split) != 0 && root.FinalSplitCount > 0 && depthLeft > 0;
+            case ESpellCapability.Emit:
+                return (rootAllowed & ESpellCapability.Emit) != 0 && (root.GrantedCapabilities & ESpellCapability.Emit) != 0;
             default:
                 return false;
         }
@@ -71,13 +73,37 @@ public static class EmitterQueries
             list.Add(effects[i]);
         return list;
     }
+
+    /// <summary>D11: child SO effects first, then the root's FinalEffects without a duplicate Type, within the list
+    /// capacity (surplus silently ignored — theoretical: there are fewer effect types than slots).</summary>
+    public static FixedList32Bytes<EffectSpec> MergeEffects(in FixedList32Bytes<EffectSpec> childEffects,
+        in FixedList32Bytes<EffectSpec> rootEffects)
+    {
+        var list = childEffects;
+        for (int i = 0; i < rootEffects.Length && list.Length < list.Capacity; i++)
+        {
+            bool duplicate = false;
+            for (int j = 0; j < list.Length; j++)
+            {
+                if (list[j].Type == rootEffects[i].Type)
+                {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate)
+                list.Add(rootEffects[i]);
+        }
+        return list;
+    }
 }
 
 /// <summary>Drains the EmitRequest queue (posted through ECB the previous frame: children are born 2 frames after
 /// their trigger). One single-threaded Burst job applies, per request: validity, active capability, Explode
-/// Chance, count, per-lineage budget, global MaxEmitPerFrame (overflow dropped + counted), layout, then
-/// spawns: emitted explosions through the shared low-level SpawnBurstArea, other children through
-/// SpawnSpellInstance. Attached emitters (OnActivation only) set up the owner instance and spawn anchored
+/// Chance, count, per-lineage budget, global MaxEmitPerFrame (overflow dropped + counted), layout (AtPoint / Circle /
+/// Spread / Line), then spawns every detached child through the shared SpawnEmittedChild body (emitted explosions via
+/// SpawnBurstArea, others via SpawnSpellInstance). None / Emit / Split children inherit the root FinalEffects (D11).
+/// Attached emitters (OnActivation only) set up the owner instance and spawn anchored
 /// children with live root stats (AttachedEmitterUtils).</summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 [UpdateAfter(typeof(SpellCastingSystem))]
@@ -170,7 +196,9 @@ public partial struct SpellEmissionSystem : ISystem
         _entityInfo.Update(ref state);
 
         var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
-        float3 planetCenter = SystemAPI.TryGetSingleton<PlanetData>(out var planet) ? planet.Center : float3.zero;
+        // PlanetCenter = float3.zero is a legitimate centre: the Line layout needs an explicit "no planet" flag.
+        bool hasPlanet = SystemAPI.TryGetSingleton<PlanetData>(out var planet);
+        float3 planetCenter = hasPlanet ? planet.Center : float3.zero;
 
         state.Dependency = new EmitJob
         {
@@ -189,10 +217,33 @@ public partial struct SpellEmissionSystem : ISystem
             EntityInfo = _entityInfo,
             Config = cfg,
             PlanetCenter = planetCenter,
+            HasPlanet = hasPlanet,
             Now = now,
             ClearAll = !hasPlayer,
             Purge = purge,
         }.Schedule(state.Dependency);
+    }
+
+    /// <summary>Single spawn body of a detached emitted child (position already resolved in p). Shared by the
+    /// immediate spawn (EmitJob) and the deferred one (ProcessTicketsJob, Sequential): identical by construction.
+    /// ignoreTarget = Null when nothing is pinned (or the prefab has no HitEntityMemory).</summary>
+    private static void SpawnEmittedChild(in SpellSpawnLookups spawn, EntityCommandBuffer.ParallelWriter ecb, in SpellSpawnParams p,
+        bool burstExplosion, in SpellLineage lineage, in EmittedHitRules rules, float reHitDelay, Entity ignoreTarget)
+    {
+        // Emitted explosions go through the shared low-level Burst-zone helper (it writes LocalToWorld itself; the
+        // child's Lifetime stays the prefab's, equal to the child SO by authoring).
+        Entity child = burstExplosion
+            ? SpellSpawnUtils.SpawnBurstArea(in spawn.Transform, in spawn.AreaAttack, in spawn.SpellSource, ecb, 0,
+                p.Prefab, p.Position, p.Rotation, p.Scale, p.Damage, p.CritChance, p.CritMultiplier, p.Tags, p.TargetLayers,
+                p.Caster, p.DatabaseIndex, in p.Effects)
+            : SpellSpawnUtils.SpawnSpellInstance(in spawn, ecb, 0, in p);
+
+        ecb.AddComponent(0, child, lineage);
+        ecb.AddComponent(0, child, rules);
+        if (reHitDelay > 0f)
+            ecb.AddComponent(0, child, new ReHitDelay { Value = reHitDelay });
+        if (ignoreTarget != Entity.Null)
+            ecb.AppendToBuffer(0, child, new HitEntityMemory { HitEntity = ignoreTarget, LastHitTime = 0, Pinned = true });
     }
 
     [BurstCompile]
@@ -217,6 +268,7 @@ public partial struct SpellEmissionSystem : ISystem
 
         public EmitterConfig Config;
         public float3 PlanetCenter;
+        public bool HasPlanet;
         public float Now;
         public bool ClearAll;
         public bool Purge;
@@ -372,8 +424,11 @@ public partial struct SpellEmissionSystem : ISystem
             float3 dir = EmitterMath.TangentReference(normal, hint);
             quaternion baseRot = quaternion.LookRotationSafe(dir, normal);
 
-            // Children never inherit the root's FinalEffects: they carry the child SO's own effects (explosions
-            // included). Exception = attached None children, which read the root live (AttachedEmitterUtils).
+            // Effects (D11): None / Emit / Split children carry the child SO's effects plus the root's FinalEffects
+            // (upgrades included). Explode keeps the child SO's effects only (lot 1 ruling). Attached None children
+            // still read the root live (AttachedEmitterUtils).
+            bool explode = em.Capability == ESpellCapability.Explode;
+            var childEffects = EmitterQueries.CopyEffects(ref childBlob.Effects);
             var p = new SpellSpawnParams
             {
                 Prefab = childPrefab,
@@ -386,7 +441,7 @@ public partial struct SpellEmissionSystem : ISystem
                 TickRate = childBlob.TickRate,
                 CritChance = root.FinalCritChance,
                 CritMultiplier = root.FinalCritDamageMultiplier,
-                Effects = EmitterQueries.CopyEffects(ref childBlob.Effects),
+                Effects = explode ? childEffects : EmitterQueries.MergeEffects(in childEffects, in root.FinalEffects),
                 TargetLayers = PlayerLookup.HasComponent(req.Caster)
                     ? CollisionLayers.Enemy | CollisionLayers.Obstacle
                     : CollisionLayers.Player | CollisionLayers.Obstacle,
@@ -397,7 +452,6 @@ public partial struct SpellEmissionSystem : ISystem
             };
             var rules = new EmittedHitRules { CritMode = ECritMode.Roll, LifeStealBlocked = false };
 
-            bool explode = em.Capability == ESpellCapability.Explode;
             if (explode)
             {
                 float ratio = em.DamageRatio > 0f ? em.DamageRatio : Config.ExplosionDamageRatio;
@@ -422,17 +476,19 @@ public partial struct SpellEmissionSystem : ISystem
             }
             else
             {
-                p.Damage = root.FinalDamage;
+                // None and Emit: root power. Emit scales by its own DamageRatio (D13: 0 = 1.0, full root damage).
+                float ratio = em.Capability == ESpellCapability.Emit && em.DamageRatio > 0f ? em.DamageRatio : 1f;
+                p.Damage = root.FinalDamage * ratio;
                 p.Scale = root.FinalSize;
                 p.Tags = root.FinalTags;
                 p.Allowed = ESpellCapability.None;
             }
 
-            // Emitted explosions go through the shared low-level Burst-zone helper: it writes
-            // LocalToWorld itself, so the first BurstZoneJob tick reads the real position. The child's Lifetime
-            // stays the prefab's (SpawnBurstArea does not write it), equal to the child SO by authoring.
             bool burstExplosion = explode && Spawn.AreaAttack.HasComponent(childPrefab);
-            bool prefill = req.IgnoreTarget != Entity.Null && HitMemoryLookup.HasBuffer(childPrefab);
+            Entity ignoreTarget = req.IgnoreTarget != Entity.Null && HitMemoryLookup.HasBuffer(childPrefab)
+                ? req.IgnoreTarget
+                : Entity.Null;
+            float reHitDelay = childBlob.ReHitDelayOverride;
 
             for (int i = 0; i < count; i++)
             {
@@ -454,28 +510,19 @@ public partial struct SpellEmissionSystem : ISystem
                     d = math.normalizesafe(offset, dir);
                     rot = quaternion.LookRotationSafe(d, normal);
                 }
-
-                Entity child;
-                if (burstExplosion)
+                else if (em.Layout == EEmitterLayout.Line)
                 {
-                    child = SpellSpawnUtils.SpawnBurstArea(in Spawn.Transform, in Spawn.AreaAttack, in Spawn.SpellSource, ECB, 0,
-                        childPrefab, pos, rot, p.Scale, p.Damage, p.CritChance, p.CritMultiplier, p.Tags, p.TargetLayers,
-                        req.Caster, req.RootDatabaseIndex, in p.Effects);
-                }
-                else
-                {
-                    p.Position = pos;
-                    p.Rotation = rot;
-                    p.Direction = d;
-                    child = SpellSpawnUtils.SpawnSpellInstance(in Spawn, ECB, 0, in p);
+                    // Arc along dir (unit and tangent by TangentReference, as LinePoint requires). D4: fixed spacing
+                    // × FinalSize; Radius / SpreadAngle ignored.
+                    float distance = (em.LineStartDistance + i * em.LineSpacing) * root.FinalSize;
+                    EmitterMath.LinePoint(req.Position, normal, dir, PlanetCenter, HasPlanet, distance, out pos, out d, out float3 up);
+                    rot = quaternion.LookRotationSafe(d, up);
                 }
 
-                ECB.AddComponent(0, child, lineage);
-                ECB.AddComponent(0, child, rules);
-                if (childBlob.ReHitDelayOverride > 0f)
-                    ECB.AddComponent(0, child, new ReHitDelay { Value = childBlob.ReHitDelayOverride });
-                if (prefill)
-                    ECB.AppendToBuffer(0, child, new HitEntityMemory { HitEntity = req.IgnoreTarget, LastHitTime = 0, Pinned = true });
+                p.Position = pos;
+                p.Rotation = rot;
+                p.Direction = d;
+                SpawnEmittedChild(in Spawn, ECB, in p, burstExplosion, in lineage, in rules, reHitDelay, ignoreTarget);
             }
         }
 
