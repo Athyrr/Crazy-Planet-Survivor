@@ -2,6 +2,9 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Burst;
 using Unity.Jobs;
+using Unity.Mathematics;
+using Unity.Physics;
+using Unity.Transforms;
 
 /// <summary>
 /// System that handles spell cooldown and sends request for player or notify if a spell can be casted for enemies.
@@ -61,7 +64,21 @@ public partial struct SpellCooldownSystem : ISystem
         };
         JobHandle spellReadyHandle = spellReadyJob.ScheduleParallel(spellCasterHandle);
 
-        state.Dependency = spellReadyHandle;
+        // Summon spell casting job (spec allegeance-summon §3): own ECB (one per producer job), chained after the two others.
+        JobHandle summonHandle = spellReadyHandle;
+        if (SystemAPI.TryGetSingleton<PhysicsWorldSingleton>(out var physics))
+        {
+            var ecbSummon = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+            summonHandle = new CastSummonSpellJob
+            {
+                ECB = ecbSummon.AsParallelWriter(),
+                DeltaTime = deltaTime,
+                SpellDatabaseRef = spellDatabase.Blobs,
+                CollisionWorld = physics.CollisionWorld,
+            }.ScheduleParallel(spellReadyHandle);
+        }
+
+        state.Dependency = summonHandle;
     }
 
     [BurstCompile]
@@ -154,6 +171,68 @@ public partial struct SpellCooldownSystem : ISystem
 
                 spells[i] = activeSpell;
             }
+        }
+    }
+
+    /// <summary>Summon agents: same cooldown → CastSpellRequest model as the player, but only while a hostile is within
+    /// the spell's FinalRange (Targeting Nearest); otherwise the spell stays ready and fires as soon as one comes in.</summary>
+    [BurstCompile]
+    [WithAll(typeof(Summon))]
+    private partial struct CastSummonSpellJob : IJobEntity
+    {
+        [ReadOnly] public float DeltaTime;
+        public EntityCommandBuffer.ParallelWriter ECB;
+        [ReadOnly] public BlobAssetReference<SpellBlobs> SpellDatabaseRef;
+        [ReadOnly] public CollisionWorld CollisionWorld;
+
+        void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in LocalTransform transform, in Team team,
+            ref DynamicBuffer<ActiveSpell> spells)
+        {
+            if (spells.IsEmpty)
+                return;
+
+            ref var spellBlobs = ref SpellDatabaseRef.Value.Spells;
+            uint hostile = TeamUtils.HostileLayers(team.Value);
+
+            for (int i = 0; i < spells.Length; i++)
+            {
+                var activeSpell = spells[i];
+                if (spellBlobs[activeSpell.DatabaseIndex].BaseCooldown <= 0)
+                    continue;
+
+                if (activeSpell.CurrentCooldown > 0)
+                    activeSpell.CurrentCooldown -= DeltaTime;
+
+                // A brand-new agent's attack spell is not computed yet (Final* = 0, SpellActivationSystem): FinalRange 0
+                // makes HasHostileInRange false, so it never fires uncomputed and stays ready for the next frame
+                // (a computed spell has FinalRange >= 1, SpellStatsCalculationSystem).
+                if (activeSpell.CurrentCooldown <= 0 && HasHostileInRange(transform.Position, activeSpell.FinalRange, hostile))
+                {
+                    var request = ECB.CreateEntity(chunkIndex);
+                    ECB.AddComponent(chunkIndex, request, new CastSpellRequest
+                    {
+                        Caster = entity,
+                        Target = Entity.Null,
+                        DatabaseIndex = activeSpell.DatabaseIndex
+                    });
+                    activeSpell.CurrentCooldown = activeSpell.FinalCooldown;
+                }
+
+                spells[i] = activeSpell;
+            }
+        }
+
+        private bool HasHostileInRange(float3 position, float range, uint hostileLayers)
+        {
+            if (range <= 0f || hostileLayers == 0u)
+                return false;
+            var input = new PointDistanceInput
+            {
+                Position = position,
+                MaxDistance = range,
+                Filter = new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = hostileLayers },
+            };
+            return CollisionWorld.CalculateDistance(input, out DistanceHit _);
         }
     }
 }
