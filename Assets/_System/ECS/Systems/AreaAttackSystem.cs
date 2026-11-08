@@ -42,6 +42,7 @@ public partial struct AreaAttackSystem : ISystem
     private ComponentLookup<SpellLineage> _spellLineageLookup;
     private ComponentLookup<EmittedHitRules> _emittedHitRulesLookup;
     private ComponentLookup<AreaSegment> _segmentLookup;
+    private ComponentLookup<BeamActive> _beamActiveLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -70,6 +71,7 @@ public partial struct AreaAttackSystem : ISystem
         _spellLineageLookup = state.GetComponentLookup<SpellLineage>(true);
         _emittedHitRulesLookup = state.GetComponentLookup<EmittedHitRules>(true);
         _segmentLookup = state.GetComponentLookup<AreaSegment>(true);
+        _beamActiveLookup = state.GetComponentLookup<BeamActive>(true);
 
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
@@ -116,6 +118,7 @@ public partial struct AreaAttackSystem : ISystem
         _spellLineageLookup.Update(ref state);
         _emittedHitRulesLookup.Update(ref state);
         _segmentLookup.Update(ref state);
+        _beamActiveLookup.Update(ref state);
 
         float deltaTime = SystemAPI.Time.DeltaTime;
         uint seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1;
@@ -174,6 +177,7 @@ public partial struct AreaAttackSystem : ISystem
             SpellLineageLookup = _spellLineageLookup,
             EmittedHitRulesLookup = _emittedHitRulesLookup,
             SegmentLookup = _segmentLookup,
+            BeamActiveLookup = _beamActiveLookup,
             Resolve = resolveContext,
             Seed = seed,
         };
@@ -527,6 +531,7 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public ComponentLookup<SpellLineage> SpellLineageLookup;
         [ReadOnly] public ComponentLookup<EmittedHitRules> EmittedHitRulesLookup;
         [ReadOnly] public ComponentLookup<AreaSegment> SegmentLookup;
+        [ReadOnly] public ComponentLookup<BeamActive> BeamActiveLookup;
 
         public ResolveHitContext Resolve;
         public uint Seed;
@@ -537,6 +542,13 @@ public partial struct AreaAttackSystem : ISystem
         {
             if (area.Cadence != EZoneCadence.OverTime)
                 return;
+            // Channeled beam off (BeamAimSystem: no target): no query, no tick, tracked targets dropped. A zone without
+            // BeamActive has HasComponent false → unchanged. On re-light BeamAimSystem sets ElapsedTime = TickRate.
+            if (BeamActiveLookup.HasComponent(zoneEntity) && !BeamActiveLookup.IsComponentEnabled(zoneEntity))
+            {
+                targets.Clear();
+                return;
+            }
             if (!LiveStatsLookup.HasComponent(area.Caster))
                 return;
 
