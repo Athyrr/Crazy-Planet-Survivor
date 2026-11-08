@@ -118,6 +118,8 @@ public class PlayerAuthoring : MonoBehaviour
 
                 LifeStealChance = baseStats.LifeStealChance,
 
+                SummonPower = baseStats.SummonPower,
+
                 DashCount = baseStats.DashCount,
                 DashCooldown = baseStats.DashCooldown,
             });

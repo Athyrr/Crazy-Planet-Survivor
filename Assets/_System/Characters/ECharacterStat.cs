@@ -73,4 +73,7 @@ public enum ECharacterStat
 
     /// <summary>One-shot: lets explosions (Explode emitter children) trigger life steal (EmitterConfig.ExplosionAllowLifeSteal stays the static default).</summary>
     ExplosionCanLifeSteal = 43,
+
+    /// <summary>Summon power: the damage of the player's Summons is multiplied by (1 + value). Provisional name (renommage-stats).</summary>
+    SummonPower = 44,
 }

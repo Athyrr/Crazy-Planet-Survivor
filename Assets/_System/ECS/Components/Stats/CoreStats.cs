@@ -102,6 +102,11 @@ public struct CoreStats : IComponentData
     [UIStat("Life Steal", ECharacterStat.LifeStealChance)]
     public float LifeStealChance;
 
+    [Header("Summons")]
+    [Tooltip("Summon power bonus (0 = normal, 0.2 = +20% damage of the Summons). Provisional name (renommage-stats).")]
+    [UIStat("Summon Power", ECharacterStat.SummonPower)]
+    public float SummonPower;
+
     [Header("Status Effects (global — upgrades)")]
     [UIStat("Burn Dmg", ECharacterStat.BurnDamage)]
     public float GlobalBurnDamageMultiplier;

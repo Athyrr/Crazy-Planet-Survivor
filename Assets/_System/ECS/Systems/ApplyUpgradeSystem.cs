@@ -349,6 +349,7 @@ public partial struct ApplyUpgradeSystem : ISystem
                 break;
             case ECharacterStat.Speed:
                 playerCoreStats.MoveSpeed += value;
+                needSpellUpdate = true; // Follow Summons inherit MoveSpeed (SummonStatsSystem runs on this request)
                 break;
             case ECharacterStat.CollectRange:
                 playerCoreStats.PickupRange += value;
@@ -486,6 +487,10 @@ public partial struct ApplyUpgradeSystem : ISystem
                 break;
             case ECharacterStat.ExplosionCanLifeSteal:
                 playerCoreStats.ExplosionCanLifeSteal += value;
+                break;
+            case ECharacterStat.SummonPower:
+                playerCoreStats.SummonPower += value;
+                needSpellUpdate = true; // recomputes the Summons' damage (SummonStatsSystem)
                 break;
 
             // todo other character stats (ex SpellSize, SpellSpeed, Duration...)
