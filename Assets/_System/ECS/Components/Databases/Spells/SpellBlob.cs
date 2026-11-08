@@ -24,6 +24,29 @@ public struct EmitterBlob
     public float SequenceInterval;
 }
 
+// Summon of a SpellSO of the Summon family (spec allegeance-summon §2). Meaningful only when SpellBlob.IsSummon.
+public struct SummonBlob
+{
+    public ESummonMobility Mobility;
+    public ESummonOffense Offense;
+    public ESummonTargeting Targeting;
+    public ESummonEndOfLife EndOfLife;
+    public bool TakesAggro;
+
+    // Base stats (SummonSO.BuildBaseStats) and inheritance ratios (SummonSO.BuildRatios).
+    public CoreStats BaseStats;
+    public SummonInheritRatios Ratios;
+
+    // DB indices of the spells the agent casts (resolved like emitter children).
+    public BlobArray<int> AttackSpellIndices;
+
+    public float RingMinRadius;
+    public float RingMaxRadius;
+    public float LeashRadius;
+    public float Acceleration;
+    public float MaxTurnRateDeg;
+}
+
 public struct SpellBlob
 {
     // Identity
@@ -76,4 +99,8 @@ public struct SpellBlob
     public int BaseSplitCount;
     public int BaseSplitDepth;
     public float ReHitDelayOverride;
+
+    // Summon delivery family: IsSummon ⇔ SpellSO.Summon set.
+    public bool IsSummon;
+    public SummonBlob Summon;
 }

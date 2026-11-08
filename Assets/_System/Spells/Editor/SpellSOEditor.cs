@@ -11,12 +11,12 @@ public class SpellSOEditor : UnityEditor.Editor
         serializedObject.Update();
         DrawDefaultInspector();
 
-        // Derive Tags' status-effect bits from Effects[] and the Bouncing/Piercing bits from their
-        // corresponding count fields — remaining behavior/form bits (Ranged/Melee/Projectile/Area/
-        // Summon/Buff/Debuff/Explosive) are kept as whatever the field already carries (this task
-        // does not touch how those are authored), only the bits listed above are recomputed.
+        // Derive Tags' status-effect bits from Effects[], the Bouncing/Piercing bits from their
+        // corresponding count fields, and Summon from SpellSO.Summon — remaining behavior/form bits
+        // (Ranged/Melee/Projectile/Area/Buff/Debuff/Explosive) are kept as whatever the field already
+        // carries, only the bits listed above are recomputed.
         ESpellTag behaviorBits = so.Tags & ~(ESpellTag.Burn | ESpellTag.Slow | ESpellTag.Stun | ESpellTag.Knockback
-            | ESpellTag.Piercing | ESpellTag.Bouncing);
+            | ESpellTag.Piercing | ESpellTag.Bouncing | ESpellTag.Summon);
         ESpellTag derivedStatusBits = ESpellTag.None;
         foreach (var effect in so.Effects)
         {
@@ -32,6 +32,9 @@ public class SpellSOEditor : UnityEditor.Editor
 
         if (so.Pierces > 0) derivedStatusBits |= ESpellTag.Piercing;
         if (so.Bounces > 0) derivedStatusBits |= ESpellTag.Bouncing;
+
+        // Summon is derived from the delivery family (SpellSO.Summon), never hand-authored (the bake derives it too).
+        if (so.Summon != null) derivedStatusBits |= ESpellTag.Summon;
 
         ESpellTag newTags = behaviorBits | derivedStatusBits;
         if (newTags != so.Tags)
@@ -50,6 +53,17 @@ public class SpellSOEditor : UnityEditor.Editor
             EditorGUILayout.HelpBox("Bounces > 0 but AllowBounce is unchecked: the bounces will never fire.", MessageType.Warning);
         if (so.Pierces > 0 && !so.AllowPierce)
             EditorGUILayout.HelpBox("Pierces > 0 but AllowPierce is unchecked: the pierces will never fire.", MessageType.Warning);
+
+        // Summon family rules (spec allegeance-summon §2; the bake logs the same as errors).
+        if (so.Summon != null)
+        {
+            if (so.SpellPrefab != null)
+                EditorGUILayout.HelpBox("Summon spell: SpellPrefab must be empty (the agent prefab comes from the SummonSO).", MessageType.Error);
+            if (so.BaseCooldown > 0f)
+                EditorGUILayout.HelpBox("Summon spell: BaseCooldown must be <= 0 (passive; the agents cast, not this spell).", MessageType.Error);
+            if (so.BaseAmount < 1)
+                EditorGUILayout.HelpBox("Summon spell: BaseAmount must be >= 1 (Amount = agents alive; FinalAmount = max(1, …) would swallow the first +1).", MessageType.Error);
+        }
 
         // Emitter validation (same rules as the bake, which logs and skips invalid entries).
         var emitterErrors = new System.Collections.Generic.List<string>();

@@ -125,4 +125,10 @@ public class SpellSO : ScriptableObject
     [Tooltip("Spread mode: hard cap on the total spread (degrees). When N × SpreadAngle exceeds this, " +
              "the per-instance angle is tightened so the whole fan fits inside the cap.")]
     public float MaxSpreadDegrees = 120f;
+
+    [Header("Summon (delivery family)")]
+    [Tooltip("Set = this spell is a Summon: passive (BaseCooldown <= 0), no SpellPrefab, BaseAmount >= 1. Amount = agents " +
+             "alive, Lifetime = a turret's duration before relocation. All its upgrades are passed on to the agent's attack spells " +
+             "(except Amount and Duration, consumed by the Summon itself).")]
+    public SummonSO Summon;
 }

@@ -14,6 +14,7 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
             Entity dbEntity = GetEntity(TransformUsageFlags.None);
 
             var mainPrefabBuffer = AddBuffer<SpellPrefab>(dbEntity);
+            var summonPrefabBuffer = AddBuffer<SummonPrefab>(dbEntity);
 
             // Create spell blobs for data
             BlobBuilder builder = new BlobBuilder(Allocator.Temp);
@@ -31,6 +32,10 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                     indexBySO.Add(so, i);
             }
 
+            // Summon transmission (second pass, below): allowed capabilities per DB index and attack indices per Summon spell.
+            var allowedByIndex = new ESpellCapability[count];
+            var attackIndicesBySummon = new Dictionary<int, List<int>>();
+
             for (int i = 0; i < count; i++)
             {
                 SpellSO spellSO = authoring.GameSpellDatabase.Spells[i];
@@ -45,7 +50,9 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 // Identity
                 spellBlob.ID = spellSO.ID;
                 // spellBlob.DisplayName = spellSO.DisplayName;
-                spellBlob.Tag = spellSO.Tags;
+                // The Summon bit is derived from the delivery family (SpellSO.Summon), never hand-authored:
+                // FireOrbs / FireOrb carried it by hand and lose it here.
+                spellBlob.Tag = (spellSO.Tags & ~ESpellTag.Summon) | (spellSO.Summon != null ? ESpellTag.Summon : ESpellTag.None);
 
                 // Ruling D3: permission (SpellSO) AND real slot on the prefab. A spell that allows Bounce but whose prefab
                 // has no BounceAuthoring cannot bounce, so it must not count for the upgrade filter either.
@@ -138,6 +145,19 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 spellBlob.BaseSplitCount = spellSO.BaseSplitCount;
                 spellBlob.BaseSplitDepth = spellSO.BaseSplitDepth;
                 spellBlob.ReHitDelayOverride = spellSO.ReHitDelayOverride;
+                allowedByIndex[i] = spellBlob.AllowedCapabilities;
+
+                // Summon delivery family (spec allegeance-summon §2).
+                spellBlob.IsSummon = spellSO.Summon != null;
+                var attackIndices = new List<int>();
+                if (spellBlob.IsSummon)
+                {
+                    BakeSummon(spellSO, ref spellBlob.Summon, indexBySO, attackIndices);
+                    attackIndicesBySummon.Add(i, attackIndices);
+                }
+                var attackArray = builder.Allocate(ref spellBlob.Summon.AttackSpellIndices, attackIndices.Count);
+                for (int k = 0; k < attackIndices.Count; k++)
+                    attackArray[k] = attackIndices[k];
 
                 if (spellSO.SpellPrefab != null)
                 {
@@ -148,6 +168,23 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
                 {
                     mainPrefabBuffer.Add(new SpellPrefab { Prefab = Entity.Null });
                 }
+
+                summonPrefabBuffer.Add(new SummonPrefab
+                {
+                    Prefab = spellSO.Summon != null && spellSO.Summon.AgentPrefab != null
+                        ? GetEntity(spellSO.Summon.AgentPrefab, TransformUsageFlags.Dynamic)
+                        : Entity.Null,
+                });
+            }
+
+            // Transmission (spec §2): a Summon spell allows what its attack spells allow, so the pool gating
+            // (HasAnySpellAllowing / SpellHasActiveCapability) works unchanged. Second pass: an attack spell may come later.
+            foreach (var pair in attackIndicesBySummon)
+            {
+                ESpellCapability union = allowedByIndex[pair.Key];
+                foreach (int attackIndex in pair.Value)
+                    union |= allowedByIndex[attackIndex];
+                arrayBuilder[pair.Key].AllowedCapabilities = union;
             }
 
             var spellsDatabaseBlob = builder.CreateBlobAssetReference<SpellBlobs>(
@@ -161,6 +198,55 @@ public class SpellsDatabaseAuthoring : MonoBehaviour
 
             // Dispose builder
             builder.Dispose();
+        }
+
+        private void BakeSummon(SpellSO spellSO, ref SummonBlob blob, Dictionary<SpellSO, int> indexBySO, List<int> attackIndices)
+        {
+            SummonSO summon = spellSO.Summon;
+            DependsOn(summon);
+            if (summon.AgentPrefab != null)
+                DependsOn(summon.AgentPrefab);
+
+            var errors = new List<string>();
+            if (spellSO.SpellPrefab != null)
+                errors.Add($"{spellSO.name}: a Summon spell must have no SpellPrefab (the agent comes from {summon.name}).");
+            if (spellSO.BaseCooldown > 0f)
+                errors.Add($"{spellSO.name}: a Summon spell must be passive (BaseCooldown <= 0).");
+            if (spellSO.BaseAmount < 1)
+                errors.Add($"{spellSO.name}: a Summon spell needs BaseAmount >= 1 (FinalAmount = max(1, …) would swallow the first +1).");
+            if (summon.AgentPrefab == null)
+                errors.Add($"{summon.name}: AgentPrefab is missing.");
+            foreach (var attack in summon.AttackSpells)
+            {
+                if (attack == null)
+                    continue;
+                if (attack.Summon != null)
+                {
+                    errors.Add($"{summon.name}: attack spell '{attack.name}' is itself a Summon (ignored).");
+                    continue;
+                }
+                if (!indexBySO.TryGetValue(attack, out int attackIndex))
+                {
+                    errors.Add($"{summon.name}: attack spell '{attack.name}' is not in the spells database (add it).");
+                    continue;
+                }
+                attackIndices.Add(attackIndex);
+            }
+            foreach (var err in errors)
+                Debug.LogError($"[SpellsDatabaseAuthoring] {err}", spellSO);
+
+            blob.Mobility = summon.Mobility;
+            blob.Offense = summon.Offense;
+            blob.Targeting = summon.Targeting;
+            blob.EndOfLife = summon.EndOfLife;
+            blob.TakesAggro = summon.TakesAggro;
+            blob.BaseStats = summon.BuildBaseStats();
+            blob.Ratios = summon.BuildRatios();
+            blob.RingMinRadius = summon.RingMinRadius;
+            blob.RingMaxRadius = summon.RingMaxRadius;
+            blob.LeashRadius = summon.LeashRadius;
+            blob.Acceleration = summon.Acceleration;
+            blob.MaxTurnRateDeg = summon.MaxTurnRateDeg;
         }
     }
 }
