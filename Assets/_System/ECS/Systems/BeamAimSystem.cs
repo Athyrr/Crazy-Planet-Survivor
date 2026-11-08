@@ -13,7 +13,7 @@ using Unity.Transforms;
 ///     candidates = OverlapSphere(caster, FinalRange) Raycast→Enemy, deduped, not DestroyEntityFlag, arc ≤ FinalRange,
 ///     nearest arc first; distribution by AssignTargets;
 ///   • every frame: direction toward the target, re-projected on the caster's tangent plane, turned at most
-///     TurnRate × dt (set directly on re-light); transform = caster position + LookRotation(direction, normal);
+///     TurnRate × dt (set directly on re-light, and every frame when TurnRate ≤ 0 = instant follow); transform = caster position + LookRotation(direction, normal);
 ///     AreaSegment = surface arc of length FinalRange (EmitterMath.LinePoint, decision I4); POWER copied from the
 ///     ROOT ActiveSpell (decision I2); BeamActive = has a target, rising edge → ElapsedTime = TickRate (first tick
 ///     this frame, AreaAttackSystem runs after).
@@ -374,9 +374,9 @@ public partial struct BeamAimSystem : ISystem
             if (active && TransformLookup.TryGetComponent(aim.Target, out var targetTransform))
             {
                 float3 desired = EmitterMath.TangentReference(n, targetTransform.Position - p);
-                if (!wasActive)
+                if (!wasActive || aim.TurnRateRadians <= 0f)
                 {
-                    dir = desired; // re-lit: straight onto the new target
+                    dir = desired; // re-lit, or TurnRate ≤ 0 = instant follow: straight onto the target
                 }
                 else
                 {

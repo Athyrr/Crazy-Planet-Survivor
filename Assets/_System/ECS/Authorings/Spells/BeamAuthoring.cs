@@ -7,8 +7,8 @@ using UnityEngine;
 /// RunScopeAuthoring. The POWER comes from the root spell, copied every frame by BeamAimSystem.</summary>
 public class BeamAuthoring : MonoBehaviour
 {
-    [Tooltip("Max turn rate of the beam toward its target, degrees per second.")]
-    [Min(0f)] public float TurnRateDegrees = 90f;
+    [Tooltip("Max turn rate of the beam toward its target, degrees per second. 0 = follows the target instantly.")]
+    [Min(0f)] public float TurnRateDegrees = 0f;
 
     [Tooltip("Visual only: both beam ends raised by this height along the local normal (m). No effect on the hit.")]
     [Min(0f)] public float OriginHeight = 1.2f;
