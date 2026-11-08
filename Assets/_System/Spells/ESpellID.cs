@@ -46,7 +46,8 @@ public enum ESpellID : byte
     Summon_TurretFireball = 30,
     Summon_Pet = 31,
     Summon_TurretBeam = 32,
-    Fireball_Turret = 33 // attack spell of Summon_TurretFireball (no base bounce), never in the player's pools
+    Fireball_Turret = 33, // attack spell of Summon_TurretFireball (no base bounce), never in the player's pools
+    Scratch = 34 // melee attack spell of Summon_Pet (yellow-white Void Slash copy), never in the player's pools
 }
 
 /// <summary>
