@@ -641,7 +641,7 @@ public partial struct CollisionSystem : ISystem
             // Hostiles of the instance's own team: its TargetLayers were TargetLayers(caster team) at cast, and survive the caster.
             uint hostileLayers = DamageOnContactLookup.TryGetComponent(projectile, out var damager)
                 ? TeamUtils.HostileFromTargetLayers(damager.TargetLayers)
-                : CollisionLayers.Enemy;
+                : TeamUtils.HostileFromTargetLayers(0u);
             var filter = new CollisionFilter
             {
                 BelongsTo = CollisionLayers.Raycast,
@@ -689,7 +689,7 @@ public partial struct CollisionSystem : ISystem
             // Hostiles of the instance's own team: its TargetLayers were TargetLayers(caster team) at cast, and survive the caster.
             uint hostileLayers = DamageOnContactLookup.TryGetComponent(projectile, out var damager)
                 ? TeamUtils.HostileFromTargetLayers(damager.TargetLayers)
-                : CollisionLayers.Enemy;
+                : TeamUtils.HostileFromTargetLayers(0u);
             var filter = new CollisionFilter
             {
                 BelongsTo = CollisionLayers.Raycast,

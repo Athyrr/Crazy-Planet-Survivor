@@ -19,7 +19,7 @@ MonoBehaviour:
     touch.
   SpellPrefab: {fileID: 4593211969994765348, guid: a7a37f100657e574f993183d6cd118e4, type: 3}
   Rarity: 0
-  Tags: 1536
+  Tags: 512
   Effects: []
   BaseDamage: 45
   BaseCooldown: -1
@@ -45,7 +45,11 @@ MonoBehaviour:
     Child: {fileID: 11400000, guid: 4e818bc4e86a7b249aea11934135a4bc, type: 2}
     Radius: 8
     SpreadAngleDegrees: 30
+    LineStartDistance: 0
+    LineSpacing: 3
     Frame: 0
+    Timing: 0
+    SequenceInterval: 0.15
     Chance: 1
     DamageRatio: 0
   BaseGrantedCapabilities: 0
@@ -53,9 +57,8 @@ MonoBehaviour:
   BaseSplitDepth: 0
   ReHitDelayOverride: 0
   TickRate: -1
-  ChildPrefab: {fileID: 3852721855287756135, guid: d4e51b82a30614442a68b0105444ee0b, type: 3}
   BaseAmount: 1
-  ChildrenSpawnRadius: 8
   MultiCast: 0
   SpreadAngleDegrees: 30
   MaxSpreadDegrees: 120
+  Summon: {fileID: 0}

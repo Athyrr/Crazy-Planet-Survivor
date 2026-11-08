@@ -109,7 +109,8 @@ public partial struct SummonStatsSystem : ISystem
                 for (int m = 0; m < ownerMods.Length; m++)
                 {
                     var mod = ownerMods[m];
-                    if ((mod.RequiredTags & ESpellTag.Summon) == 0
+                    // All = every spell: a player-wide upgrade/amulet, never meant for the agents.
+                    if ((mod.RequiredTags & ESpellTag.Summon) == 0 || mod.RequiredTags == ESpellTag.All
                         || mod.SpellStat == ESpellStat.Amount || mod.SpellStat == ESpellStat.Duration)
                         continue;
                     mod.RequiredTags = ESpellTag.All;
