@@ -36,7 +36,11 @@ public enum ESpellID : byte
     Explosion_Shock = 24,
     Explosion_Frost = 25,
     FireOrb = 26,
-    IcePillar = 27
+    IcePillar = 27,
+
+    // Channeled beam: Beam = root (unlocked), Beam_Ray = its attached child (never unlocked directly)
+    Beam = 28,
+    Beam_Ray = 29
 }
 
 /// <summary>
