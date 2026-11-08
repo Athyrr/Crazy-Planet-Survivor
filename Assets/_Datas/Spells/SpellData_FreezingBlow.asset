@@ -19,6 +19,7 @@ MonoBehaviour:
   SpellPrefab: {fileID: 8608917286184711326, guid: 8b62aa186c5cc9142a8456cd2006560c, type: 3}
   Rarity: 0
   Tags: 8388608
+  Effects: []
   BaseDamage: 50
   BaseCooldown: 1.5
   BaseSpeed: 0
@@ -31,7 +32,31 @@ MonoBehaviour:
   Bounces: 0
   BounceRange: 0
   Pierces: 0
+  AllowBounce: 1
+  AllowPierce: 1
+  Emitters:
+  - Capability: 16
+    Trigger: 2
+    Attachment: 0
+    Layout: 3
+    Count: 0
+    FixedCount: 3
+    Child: {fileID: 11400000, guid: f8b24449fb424d64d98db1d958d0d892, type: 2}
+    Radius: 8
+    SpreadAngleDegrees: 30
+    LineStartDistance: 0
+    LineSpacing: 3
+    Frame: 0
+    Timing: 1
+    SequenceInterval: 0.15
+    Chance: 1
+    DamageRatio: 1
+  BaseGrantedCapabilities: 0
+  BaseSplitCount: 0
+  BaseSplitDepth: 0
+  ReHitDelayOverride: 0
   TickRate: 1
-  ChildPrefab: {fileID: 0}
   BaseAmount: 1
-  ChildrenSpawnRadius: 1
+  MultiCast: 0
+  SpreadAngleDegrees: 30
+  MaxSpreadDegrees: 120
