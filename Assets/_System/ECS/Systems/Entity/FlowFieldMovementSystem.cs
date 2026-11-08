@@ -161,11 +161,6 @@ public partial struct FlowFieldMovementSystem : ISystem
         /// <summary> Floor on the mass factor, so a very heavy entity never becomes unable to move or turn. </summary>
         [ReadOnly] public float MinMassFactor;
 
-        // Half-length of the short ground probe (the entity moves at most a couple of units per frame);
-        // SnapDistance is the fallback probe when the ground is out of the short ray's reach.
-        private const float GroundProbeDistance = 4f;
-        private const float SnapDistance = 500f;
-        private const float VertSnapSpeed = 20.0f;
         // Cap on the avoidance steering's share of the movement direction.
         private const float SteeringBlend = 0.35f;
         // Width of the deceleration band just outside the stop ring, as a fraction of StopDistance.
@@ -199,16 +194,11 @@ public partial struct FlowFieldMovementSystem : ISystem
             bool usesMass = MassAccelerationInfluence > 0f || MassTurnRateInfluence > 0f;
             if (usesMass && AvoidanceLookup.HasComponent(entity))
             {
-                float mass = math.max(0.0001f, AvoidanceLookup[entity].Mass);
-                float massRatio = ReferenceMass / mass;
-
+                float mass = AvoidanceLookup[entity].Mass;
                 if (MassAccelerationInfluence > 0f)
-                    acceleration *= math.max(MinMassFactor,
-                        math.pow(massRatio, MassAccelerationInfluence));
-
+                    acceleration *= SurfaceSteering.MassFactor(mass, ReferenceMass, MassAccelerationInfluence, MinMassFactor);
                 if (MassTurnRateInfluence > 0f)
-                    maxTurnRateDeg *= math.max(MinMassFactor,
-                        math.pow(massRatio, MassTurnRateInfluence));
+                    maxTurnRateDeg *= SurfaceSteering.MassFactor(mass, ReferenceMass, MassTurnRateInfluence, MinMassFactor);
             }
 
             float3 currentNormal = math.normalize(transform.Position - PlanetCenter);
@@ -289,23 +279,10 @@ public partial struct FlowFieldMovementSystem : ISystem
             // low-passes the tick-to-tick jitter of the avoidance term, keeping both path and facing stable.
             float3 desiredVelocity = moveDirection * (speed * speedFactor);
 
-            // The surface normal rotates as the entity travels, so re-project the carried velocity tangent.
-            float3 carried = movement.Velocity - currentNormal * math.dot(movement.Velocity, currentNormal);
+            movement.Velocity = SurfaceSteering.RampVelocity(movement.Velocity, currentNormal, desiredVelocity, acceleration, DeltaTime);
 
-            float3 deltaV = desiredVelocity - carried;
-            float deltaVLen = math.length(deltaV);
-            float maxDeltaV = acceleration * DeltaTime;
-            movement.Velocity = deltaVLen > maxDeltaV && deltaVLen > 1e-6f
-                ? carried + deltaV * (maxDeltaV / deltaVLen)
-                : desiredVelocity;
-
-            float currentSpeed = math.length(movement.Velocity);
-
-            // Face the direction of travel; below the speed threshold face the player instead (a
-            // near-zero velocity has no meaningful direction, and a stopped melee enemy should face its target).
-            float3 faceDirection = currentSpeed > FacingSpeedThreshold
-                ? movement.Velocity / currentSpeed
-                : fallbackDirection;
+            // Face the direction of travel; below the speed threshold face the player instead.
+            float3 faceDirection = SurfaceSteering.FaceDirection(movement.Velocity, FacingSpeedThreshold, fallbackDirection);
 
             float3 desiredPosition = transform.Position + movement.Velocity * DeltaTime;
 
@@ -315,68 +292,14 @@ public partial struct FlowFieldMovementSystem : ISystem
                                  && !AvoidanceLookup.IsComponentEnabled(entity);
             if (beyondHorizon)
             {
-                PlanetUtils.SnapToSurfaceRadius(in desiredPosition, in PlanetCenter, PlanetRadius,
-                    out float3 snapped);
-                transform.Position = snapped;
-
-                PlanetUtils.GetSurfaceNormalRadius(in snapped, in PlanetCenter, out float3 sphereNormal);
-                PlanetUtils.GetRotationOnSurface(in faceDirection, sphereNormal, out quaternion sphereRotation);
-                transform.Rotation = RotationMath.RotateTowards(transform.Rotation, sphereRotation,
+                SurfaceSteering.SnapToSphereAndTurn(ref transform, desiredPosition, PlanetCenter, PlanetRadius, faceDirection,
                     math.radians(maxTurnRateDeg) * DeltaTime);
                 return;
             }
 
-            // Terrain snap near the player: short probe first, falling back to the long ray only when it
-            // misses (cliff edge, spawn, teleport).
-            var input = new RaycastInput
-            {
-                Start = desiredPosition + currentNormal * GroundProbeDistance,
-                End = desiredPosition - currentNormal * GroundProbeDistance,
-                Filter = new CollisionFilter
-                {
-                    BelongsTo = CollisionLayers.Raycast,
-                    CollidesWith = CollisionLayers.Landscape
-                }
-            };
-
-            bool grounded = PhysicsCollisionWorld.CastRay(input, out var hit);
-            if (!grounded)
-            {
-                input.Start = desiredPosition + currentNormal * SnapDistance;
-                input.End = desiredPosition - currentNormal * SnapDistance;
-                grounded = PhysicsCollisionWorld.CastRay(input, out hit);
-            }
-
-            if (grounded)
-            {
-                // Decompose the delta into horizontal (tangential) and vertical (normal) parts.
-                // Apply full horizontal movement; smooth only the vertical (terrain-following) component
-                // to avoid jarring jumps over bumpy terrain.
-                float3 toHit = hit.Position - transform.Position;
-                float verticalDelta = math.dot(toHit, currentNormal);
-                float3 horizontalDelta = toHit - currentNormal * verticalDelta;
-
-                // Snap immediately for large gaps (spawning/teleport), smooth for small terrain bumps
-                float absVert = math.abs(verticalDelta);
-                float vertSmooth = absVert > 1.5f
-                    ? verticalDelta
-                    : verticalDelta * math.min(1f, DeltaTime * VertSnapSpeed);
-
-                transform.Position += horizontalDelta + currentNormal * vertSmooth;
-
-                PlanetUtils.GetRotationOnSurface(in faceDirection, hit.SurfaceNormal, out quaternion targetRotation);
-                transform.Rotation = RotationMath.RotateTowards(transform.Rotation, targetRotation,
-                    math.radians(maxTurnRateDeg) * DeltaTime);
-            }
-            else
-            {
-                transform.Position = desiredPosition;
-
-                // Keep turning even when off the navigable mesh.
-                PlanetUtils.GetRotationOnSurface(in faceDirection, currentNormal, out quaternion targetRotation);
-                transform.Rotation = RotationMath.RotateTowards(transform.Rotation, targetRotation,
-                    math.radians(maxTurnRateDeg) * DeltaTime);
-            }
+            // Terrain snap near the player (short probe, long fallback).
+            SurfaceSteering.SnapToGroundAndTurn(ref transform, in PhysicsCollisionWorld, desiredPosition, currentNormal, faceDirection,
+                math.radians(maxTurnRateDeg) * DeltaTime, DeltaTime);
         }
 
         /// <summary>
