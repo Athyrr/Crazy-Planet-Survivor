@@ -19,6 +19,7 @@ public class BeamVisual : MonoBehaviour
     private float[] _baseWidths;
     private float[] _baseRates;
     private ParticleSystem[] _allSystems;
+    private ParticleSystem[] _clearOnHide;
     private float _widthScale = 1f;
     private float _formation; // 0 = invisible, 1 = fully formed
     private bool _shown;
@@ -36,6 +37,14 @@ public class BeamVisual : MonoBehaviour
         _baseRates = new float[_edgeSystems.Count];
         for (int i = 0; i < _edgeSystems.Count; i++)
             _baseRates[i] = _edgeSystems[i].emission.rateOverTime.constant;
+        // Infinite-lifetime systems never die once emission stops: they are cleared on Hide (finite trails fade out on their own).
+        var infinite = new List<ParticleSystem>();
+        foreach (var ps in _allSystems)
+        {
+            var lifetime = ps.main.startLifetime;
+            if (lifetime.mode == ParticleSystemCurveMode.Constant && float.IsInfinity(lifetime.constantMax)) infinite.Add(ps);
+        }
+        _clearOnHide = infinite.ToArray();
         ApplyWidth();
     }
 
@@ -61,6 +70,7 @@ public class BeamVisual : MonoBehaviour
         if (!_shown) return;
         _shown = false;
         foreach (var ps in _allSystems) ps.Stop(false, ParticleSystemStopBehavior.StopEmitting);
+        foreach (var ps in _clearOnHide) ps.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
     }
 
     /// <summary>k multiplies the authored widths (1 = the prefab as authored).</summary>
