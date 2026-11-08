@@ -120,6 +120,7 @@ public partial struct SpellEmissionSystem : ISystem
     private BufferLookup<ActiveSpell> _activeSpellLookup;
     private BufferLookup<HitEntityMemory> _hitMemoryLookup;
     private ComponentLookup<Player> _playerLookup;
+    private ComponentLookup<Team> _teamLookup;
     private EntityStorageInfoLookup _entityInfo;
     private bool _warnedMissingConfig;
     private bool _warnedMisalignedPrefabs;
@@ -143,6 +144,7 @@ public partial struct SpellEmissionSystem : ISystem
         _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(false); // written: PersistentInstance (attached owner)
         _hitMemoryLookup = state.GetBufferLookup<HitEntityMemory>(true);
         _playerLookup = state.GetComponentLookup<Player>(true);
+        _teamLookup = state.GetComponentLookup<Team>(true);
         _entityInfo = state.GetEntityStorageInfoLookup();
     }
 
@@ -199,6 +201,7 @@ public partial struct SpellEmissionSystem : ISystem
         _activeSpellLookup.Update(ref state);
         _hitMemoryLookup.Update(ref state);
         _playerLookup.Update(ref state);
+        _teamLookup.Update(ref state);
         _entityInfo.Update(ref state);
 
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
@@ -236,6 +239,7 @@ public partial struct SpellEmissionSystem : ISystem
             ActiveSpellLookup = _activeSpellLookup,
             HitMemoryLookup = _hitMemoryLookup,
             PlayerLookup = _playerLookup,
+            TeamLookup = _teamLookup,
             EntityInfo = _entityInfo,
             Config = cfg,
             PlanetCenter = planetCenter,
@@ -321,6 +325,7 @@ public partial struct SpellEmissionSystem : ISystem
         public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [ReadOnly] public BufferLookup<HitEntityMemory> HitMemoryLookup;
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
+        [ReadOnly] public ComponentLookup<Team> TeamLookup;
         [ReadOnly] public EntityStorageInfoLookup EntityInfo;
 
         public EmitterConfig Config;
@@ -481,9 +486,7 @@ public partial struct SpellEmissionSystem : ISystem
                 ChildScale = childBaseScale * root.FinalSize,
             });
 
-            uint layers = PlayerLookup.HasComponent(req.Caster)
-                ? CollisionLayers.Enemy | CollisionLayers.Obstacle
-                : CollisionLayers.Player | CollisionLayers.Obstacle;
+            uint layers = TeamUtils.TargetLayers(TeamUtils.Resolve(req.Caster, in TeamLookup, in PlayerLookup));
             for (int i = 0; i < count; i++)
                 AttachedEmitterUtils.SpawnAnchoredChild(in Spawn, ECB, 0, req.Owner, childPrefab, i, req.Caster,
                     req.RootDatabaseIndex, req.Position, layers);
@@ -528,9 +531,7 @@ public partial struct SpellEmissionSystem : ISystem
                 CritChance = root.FinalCritChance,
                 CritMultiplier = root.FinalCritDamageMultiplier,
                 Effects = explode ? childEffects : EmitterQueries.MergeEffects(in childEffects, in root.FinalEffects),
-                TargetLayers = PlayerLookup.HasComponent(req.Caster)
-                    ? CollisionLayers.Enemy | CollisionLayers.Obstacle
-                    : CollisionLayers.Player | CollisionLayers.Obstacle,
+                TargetLayers = TeamUtils.TargetLayers(TeamUtils.Resolve(req.Caster, in TeamLookup, in PlayerLookup)),
             };
             var lineage = new SpellLineage
             {

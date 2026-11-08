@@ -13,6 +13,7 @@ using Unity.Transforms;
 public partial struct CollisionSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
+    private ComponentLookup<Team> _teamLookup;
     private ComponentLookup<Destructible> _cpEntityLookup;
     private ComponentLookup<LocalTransform> _transformLookup;
     private ComponentLookup<LocalToWorld> _ltwLookup;
@@ -58,6 +59,7 @@ public partial struct CollisionSystem : ISystem
         _coreStatsLookup = state.GetComponentLookup<CoreStats>(true);
 
         _playerLookup = state.GetComponentLookup<Player>(true);
+        _teamLookup = state.GetComponentLookup<Team>(true);
         _cpEntityLookup = state.GetComponentLookup<Destructible>(true);
         _transformLookup = state.GetComponentLookup<LocalTransform>(true);
         _ltwLookup = state.GetComponentLookup<LocalToWorld>(true);
@@ -116,6 +118,7 @@ public partial struct CollisionSystem : ISystem
             : 0.075f;
 
         _playerLookup.Update(ref state);
+        _teamLookup.Update(ref state);
         _cpEntityLookup.Update(ref state);
         _transformLookup.Update(ref state);
         _ltwLookup.Update(ref state);
@@ -173,6 +176,7 @@ public partial struct CollisionSystem : ISystem
             PlayerEntity = playerEntity,
 
             PlayerLookup = _playerLookup,
+            TeamLookup = _teamLookup,
             DestructibleLookup = _cpEntityLookup,
             DamageOnContactLookup = _damageOnContactLookup,
             DestroyOnContactLookup = _destroyOnContactLookup,
@@ -230,6 +234,7 @@ public partial struct CollisionSystem : ISystem
         public Entity PlayerEntity;
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
+        [ReadOnly] public ComponentLookup<Team> TeamLookup;
         [ReadOnly] public ComponentLookup<Destructible> DestructibleLookup;
 
         [ReadOnly] public ComponentLookup<DamageOnContact> DamageOnContactLookup;
@@ -395,11 +400,16 @@ public partial struct CollisionSystem : ISystem
                         byte generation = SpellLineageLookup.TryGetComponent(damagerEntity, out var lineage) ? lineage.Generation : (byte)0;
                         EmittedHitRulesLookup.TryGetComponent(damagerEntity, out var hitRules);
 
+                        // Knockback pushes from the CASTER (a Summon pushes from itself); player position when the
+                        // caster is gone or unknown — identical to eee06e4e for the player.
+                        float3 pushOrigin = caster != Entity.Null && LocalTransformLookup.TryGetComponent(caster, out var casterTransform)
+                            ? casterTransform.Position
+                            : LocalTransformLookup[PlayerEntity].Position;
                         var hitSource = new HitSource
                         {
                             Caster = caster,
                             DatabaseIndex = dbIndex,
-                            PushOrigin = LocalTransformLookup[PlayerEntity].Position,
+                            PushOrigin = pushOrigin,
                             Shake = ResolveShakeSource(damagerEntity, hitTags),
                             Emitter = damagerEntity,
                             DamageImmune = damageImmune,
@@ -410,8 +420,8 @@ public partial struct CollisionSystem : ISystem
                         hitCrit = ResolveHit.ApplyMany(in Resolve, ResolveECB, target.Index, target, in actions, in hitSource, ref random);
 
                         // Emitters (OnImpact): one request per resolved hit — pierce / bounce included, damage-immune
-                        // target included. Player casts only. Position read now, before the ECB.
-                        if (QueueEntity != Entity.Null && SpellDb.IsCreated && dbIndex >= 0 && caster == PlayerEntity)
+                        // target included. Player-side casts only. Position read now, before the ECB.
+                        if (QueueEntity != Entity.Null && SpellDb.IsCreated && dbIndex >= 0 && TeamUtils.IsPlayerSide(caster, in TeamLookup, in PlayerLookup))
                         {
                             int shapeIndex = dbIndex;
                             Entity lineageId = damagerEntity;
@@ -623,10 +633,14 @@ public partial struct CollisionSystem : ISystem
             // var memory = HitMemoryLookup[projectile];
             float3 currentPos = LocalTransformLookup[projectile].Position;
             var hits = new NativeList<DistanceHit>(16, Allocator.Temp);
+            // Hostiles of the instance's own team: its TargetLayers were TargetLayers(caster team) at cast, and survive the caster.
+            uint hostileLayers = DamageOnContactLookup.TryGetComponent(projectile, out var damager)
+                ? TeamUtils.HostileFromTargetLayers(damager.TargetLayers)
+                : CollisionLayers.Enemy;
             var filter = new CollisionFilter
             {
                 BelongsTo = CollisionLayers.Raycast,
-                CollidesWith = CollisionLayers.Enemy
+                CollidesWith = hostileLayers
             };
 
             CollisionWorld.OverlapSphere(currentPos, range, ref hits, filter);
@@ -667,10 +681,14 @@ public partial struct CollisionSystem : ISystem
             float3 currentPos = LocalTransformLookup[projectile].Position;
             var hits = new NativeList<DistanceHit>(16, Allocator.Temp);
 
+            // Hostiles of the instance's own team: its TargetLayers were TargetLayers(caster team) at cast, and survive the caster.
+            uint hostileLayers = DamageOnContactLookup.TryGetComponent(projectile, out var damager)
+                ? TeamUtils.HostileFromTargetLayers(damager.TargetLayers)
+                : CollisionLayers.Enemy;
             var filter = new CollisionFilter
             {
                 BelongsTo = CollisionLayers.Raycast,
-                CollidesWith = CollisionLayers.Enemy
+                CollidesWith = hostileLayers
             };
 
             CollisionWorld.OverlapSphere(currentPos, range, ref hits, filter);

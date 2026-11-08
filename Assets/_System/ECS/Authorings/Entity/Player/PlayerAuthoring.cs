@@ -68,6 +68,7 @@ public class PlayerAuthoring : MonoBehaviour
             var initialSpells = data.InitialSpells;
 
             AddComponent(entity, new Player());
+            AddComponent(entity, new Team { Value = ETeam.Player });
             AddComponent(entity, new InputData { Value = new float2(0, 0) });
             AddComponent(entity, new Health { Value = (int)baseStats.MaxHealth });
             AddComponent(entity, new HealthRegen { TickInterval = 1f });

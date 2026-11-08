@@ -38,6 +38,7 @@ public class EnemyAuthoring : MonoBehaviour
                 AddComponentObject(entity, new VisualRendererLink { Renderer = authoring.MainRenderer });
 
             AddComponent(entity, new Enemy());
+            AddComponent(entity, new Team { Value = ETeam.Enemy });
             // Velocity starts at zero; the two feel knobs are 0 = inherit the global settings.
             AddComponent(entity, new FlowFieldFollowerMovement
             {

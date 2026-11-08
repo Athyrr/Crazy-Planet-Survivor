@@ -51,6 +51,8 @@ public partial struct EmitterReconcileSystem : ISystem
         var pecb = ecb.AsParallelWriter();
         var prefabs = SystemAPI.GetSingletonBuffer<SpellPrefab>(true);
         var activeSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(true);
+        var teamLookup = SystemAPI.GetComponentLookup<Team>(true);
+        var playerLookup = SystemAPI.GetComponentLookup<Player>(true);
         ref var spells = ref db.Blobs.Value.Spells;
 
         foreach (var ownerEntity in dirtyOwners)
@@ -96,9 +98,7 @@ public partial struct EmitterReconcileSystem : ISystem
                 bool validChild = em.ChildIndex >= 0 && em.ChildIndex < prefabs.Length && prefabs[em.ChildIndex].Prefab != Entity.Null;
                 if (validChild)
                 {
-                    uint layers = SystemAPI.HasComponent<Player>(source.CasterEntity)
-                        ? CollisionLayers.Enemy | CollisionLayers.Obstacle
-                        : CollisionLayers.Player | CollisionLayers.Obstacle;
+                    uint layers = TeamUtils.TargetLayers(TeamUtils.Resolve(source.CasterEntity, in teamLookup, in playerLookup));
                     float3 casterPos = SystemAPI.GetComponent<LocalTransform>(source.CasterEntity).Position;
                     for (int i = owner.Count; i < newCount; i++)
                     {

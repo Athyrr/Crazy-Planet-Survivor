@@ -10,7 +10,7 @@ using Unity.Transforms;
 /// <summary>
 /// Channeled beam (spec channeled-beam). Per caster, rays in EmitterAnchor.Index order:
 ///   • target pass every RetargetInterval, or at once when a ray has never been served (new ray from the reconcile):
-///     candidates = OverlapSphere(caster, FinalRange) Raycast→Enemy, deduped, not DestroyEntityFlag, arc ≤ FinalRange,
+///     candidates = OverlapSphere(caster, FinalRange) Raycast→hostile layers of the caster's team (TeamUtils), deduped, not DestroyEntityFlag, arc ≤ FinalRange,
 ///     nearest arc first; distribution by AssignTargets;
 ///   • every frame: direction toward the target, re-projected on the caster's tangent plane, turned at most
 ///     TurnRate × dt (set directly on re-light, and every frame when TurnRate ≤ 0 = instant follow); transform = caster position + LookRotation(direction, normal);
@@ -39,6 +39,8 @@ public partial struct BeamAimSystem : ISystem
     private ComponentLookup<SpellSource> _sourceLookup;
     private ComponentLookup<DestroyEntityFlag> _destroyLookup;
     private BufferLookup<ActiveSpell> _activeSpellLookup;
+    private ComponentLookup<Team> _teamLookup;
+    private ComponentLookup<Player> _playerLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -59,6 +61,8 @@ public partial struct BeamAimSystem : ISystem
         _sourceLookup = state.GetComponentLookup<SpellSource>(true);
         _destroyLookup = state.GetComponentLookup<DestroyEntityFlag>(true);
         _activeSpellLookup = state.GetBufferLookup<ActiveSpell>(true);
+        _teamLookup = state.GetComponentLookup<Team>(true);
+        _playerLookup = state.GetComponentLookup<Player>(true);
     }
 
     [BurstCompile]
@@ -79,6 +83,8 @@ public partial struct BeamAimSystem : ISystem
         _sourceLookup.Update(ref state);
         _destroyLookup.Update(ref state);
         _activeSpellLookup.Update(ref state);
+        _teamLookup.Update(ref state);
+        _playerLookup.Update(ref state);
 
         var rays = _rayQuery.ToEntityArray(Allocator.TempJob);
         state.Dependency = new AimJob
@@ -94,6 +100,8 @@ public partial struct BeamAimSystem : ISystem
             SourceLookup = _sourceLookup,
             DestroyLookup = _destroyLookup,
             ActiveSpellLookup = _activeSpellLookup,
+            TeamLookup = _teamLookup,
+            PlayerLookup = _playerLookup,
             PlanetCenter = hasPlanet ? planet.Center : float3.zero,
             HasPlanet = hasPlanet,
             DeltaTime = SystemAPI.Time.DeltaTime,
@@ -214,6 +222,8 @@ public partial struct BeamAimSystem : ISystem
         [ReadOnly] public ComponentLookup<SpellSource> SourceLookup;
         [ReadOnly] public ComponentLookup<DestroyEntityFlag> DestroyLookup;
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
+        [ReadOnly] public ComponentLookup<Team> TeamLookup;
+        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
 
         public float3 PlanetCenter;
         public bool HasPlanet;
@@ -286,7 +296,8 @@ public partial struct BeamAimSystem : ISystem
 
             if (pass)
             {
-                CollectCandidates(p, n, planetRadius, range, ref candidates);
+                CollectCandidates(p, n, planetRadius, range,
+                    TeamUtils.HostileLayers(TeamUtils.Resolve(caster, in TeamLookup, in PlayerLookup)), ref candidates);
                 targets.Clear();
                 doubling.Clear();
                 for (int k = start; k < end; k++)
@@ -313,10 +324,11 @@ public partial struct BeamAimSystem : ISystem
                 UpdateRay(refs[k].Ray, p, n, range, in root);
         }
 
-        private void CollectCandidates(float3 p, float3 n, float planetRadius, float range, ref NativeList<Entity> candidates)
+        private void CollectCandidates(float3 p, float3 n, float planetRadius, float range, uint hostileLayers,
+            ref NativeList<Entity> candidates)
         {
             candidates.Clear();
-            var filter = new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = CollisionLayers.Enemy };
+            var filter = new CollisionFilter { BelongsTo = CollisionLayers.Raycast, CollidesWith = hostileLayers };
             var hits = new NativeList<DistanceHit>(32, Allocator.Temp);
             // A chord is never longer than its arc: the sphere of radius FinalRange holds every enemy within arc FinalRange.
             CollisionWorld.OverlapSphere(p, range, ref hits, filter);

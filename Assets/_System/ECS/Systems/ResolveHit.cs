@@ -84,19 +84,22 @@ public static class ResolveHit
     private static bool ApplyOne(in ResolveHitContext ctx, EntityCommandBuffer.ParallelWriter ecb, int sortKey,
         Entity target, in HitAction action, in HitSource source, float triggerDamage, ref Random rng)
     {
+        // HitAction.Target (§9.4): Self lands on the caster; every other value on the target the call site selected
+        // (selection by layers stays at the call site). No producer of Self today: no visible change.
+        Entity recipient = action.Target == EAllegiance.Self && source.Caster != Entity.Null ? source.Caster : target;
         switch (action.Kind)
         {
             case EHitKind.Damage:
-                return ApplyDamage(in ctx, ecb, sortKey, target, in action, in source, ref rng, allowLifeSteal: true);
+                return ApplyDamage(in ctx, ecb, sortKey, recipient, in action, in source, ref rng, allowLifeSteal: true);
             case EHitKind.Heal:
-                ecb.AppendToBuffer(sortKey, target, new HealBufferElement { Amount = (int)action.HealAmount });
+                ecb.AppendToBuffer(sortKey, recipient, new HealBufferElement { Amount = (int)action.HealAmount });
                 return false;
             case EHitKind.ApplyBuff:
-                ecb.AppendToBuffer(sortKey, target, new CharacterStatBuff { Stat = action.Stat, Value = action.StatValue, Remaining = action.Duration });
-                ecb.AddComponent<SpellStatsCalculationRequest>(sortKey, target);
+                ecb.AppendToBuffer(sortKey, recipient, new CharacterStatBuff { Stat = action.Stat, Value = action.StatValue, Remaining = action.Duration });
+                ecb.AddComponent<SpellStatsCalculationRequest>(sortKey, recipient);
                 return false;
             case EHitKind.ApplyEffect:
-                ApplyEffect(in ctx, ecb, sortKey, target, action.EffectType, triggerDamage, in source);
+                ApplyEffect(in ctx, ecb, sortKey, recipient, action.EffectType, triggerDamage, in source);
                 return false;
         }
         return false;

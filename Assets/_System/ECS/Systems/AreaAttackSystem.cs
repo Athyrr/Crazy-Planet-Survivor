@@ -43,6 +43,9 @@ public partial struct AreaAttackSystem : ISystem
     private ComponentLookup<EmittedHitRules> _emittedHitRulesLookup;
     private ComponentLookup<AreaSegment> _segmentLookup;
     private ComponentLookup<BeamActive> _beamActiveLookup;
+    private ComponentLookup<Team> _teamLookup;
+    private ComponentLookup<Player> _playerLookup;
+    private ComponentLookup<LocalTransform> _transformLookup;
 
     private NativeQueue<SpellDamageEvent> _damageEventsQueue;
 
@@ -72,6 +75,9 @@ public partial struct AreaAttackSystem : ISystem
         _emittedHitRulesLookup = state.GetComponentLookup<EmittedHitRules>(true);
         _segmentLookup = state.GetComponentLookup<AreaSegment>(true);
         _beamActiveLookup = state.GetComponentLookup<BeamActive>(true);
+        _teamLookup = state.GetComponentLookup<Team>(true);
+        _playerLookup = state.GetComponentLookup<Player>(true);
+        _transformLookup = state.GetComponentLookup<LocalTransform>(true);
 
         _damageEventsQueue = new NativeQueue<SpellDamageEvent>(Allocator.Persistent);
     }
@@ -119,6 +125,9 @@ public partial struct AreaAttackSystem : ISystem
         _emittedHitRulesLookup.Update(ref state);
         _segmentLookup.Update(ref state);
         _beamActiveLookup.Update(ref state);
+        _teamLookup.Update(ref state);
+        _playerLookup.Update(ref state);
+        _transformLookup.Update(ref state);
 
         float deltaTime = SystemAPI.Time.DeltaTime;
         uint seed = (uint)(SystemAPI.Time.ElapsedTime * 1000) + 1;
@@ -154,6 +163,9 @@ public partial struct AreaAttackSystem : ISystem
             GlobalIFramesLookup = _globalIFramesLookup,
             SpellLineageLookup = _spellLineageLookup,
             EmittedHitRulesLookup = _emittedHitRulesLookup,
+            TeamLookup = _teamLookup,
+            PlayerLookup = _playerLookup,
+            TransformLookup = _transformLookup,
             Resolve = resolveContext,
             Seed = seed,
             QueueEntity = SystemAPI.TryGetSingletonEntity<EmitRequestQueue>(out var emitQueue) ? emitQueue : Entity.Null,
@@ -332,6 +344,9 @@ public partial struct AreaAttackSystem : ISystem
         [ReadOnly] public ComponentLookup<GlobalIFrames> GlobalIFramesLookup;
         [ReadOnly] public ComponentLookup<SpellLineage> SpellLineageLookup;
         [ReadOnly] public ComponentLookup<EmittedHitRules> EmittedHitRulesLookup;
+        [ReadOnly] public ComponentLookup<Team> TeamLookup;
+        [ReadOnly] public ComponentLookup<Player> PlayerLookup;
+        [ReadOnly] public ComponentLookup<LocalTransform> TransformLookup;
 
         public ResolveHitContext Resolve;
         public uint Seed;
@@ -403,6 +418,11 @@ public partial struct AreaAttackSystem : ISystem
                 caster = spellSource.CasterEntity;
             }
 
+            // Knockback from the caster (LocalTransform, as PlayerPosition was); player position when the caster is gone.
+            float3 pushOrigin = caster != Entity.Null && TransformLookup.TryGetComponent(caster, out var casterTransform)
+                ? casterTransform.Position
+                : PlayerPosition;
+
             // Emitted-hit rules of this zone (constant over its hits): split generation, imposed crit, life-steal rule.
             byte generation = SpellLineageLookup.TryGetComponent(entity, out var lineage) ? lineage.Generation : (byte)0;
             EmittedHitRulesLookup.TryGetComponent(entity, out var hitRules);
@@ -441,7 +461,7 @@ public partial struct AreaAttackSystem : ISystem
 
                 var source = new HitSource
                 {
-                    Caster = caster, DatabaseIndex = dbIndex, PushOrigin = PlayerPosition, Shake = shakeSource, Emitter = entity,
+                    Caster = caster, DatabaseIndex = dbIndex, PushOrigin = pushOrigin, Shake = shakeSource, Emitter = entity,
                     DamageImmune = damageImmune,
                     Generation = generation, CritMode = hitRules.CritMode, LifeStealBlocked = hitRules.LifeStealBlocked,
                 };
@@ -467,7 +487,7 @@ public partial struct AreaAttackSystem : ISystem
         }
 
         /// <summary>OnArm (lot 2): one EmitRequest per Burst instance, when it arms, from its Offset point, if the
-        /// FORM spell declares an OnArm emitter. Player casts only (dbIndex -1 = enemy explosions). Posted even when
+        /// FORM spell declares an OnArm emitter. Player-side casts only (dbIndex -1 = enemy explosions). Posted even when
         /// Emit is not granted: SpellEmissionSystem drops it before any budget debit (E9).</summary>
         private void PostOnArm(int chunkIndex, Entity entity, in LocalToWorld localToWorld, float3 offset)
         {
@@ -475,7 +495,7 @@ public partial struct AreaAttackSystem : ISystem
                 return;
             if (!SpellSourceLookup.TryGetComponent(entity, out var source))
                 return;
-            if (source.DatabaseIndex < 0 || source.CasterEntity != Resolve.PlayerEntity)
+            if (source.DatabaseIndex < 0 || !TeamUtils.IsPlayerSide(source.CasterEntity, in TeamLookup, in PlayerLookup))
                 return;
 
             int shapeIndex = source.DatabaseIndex;

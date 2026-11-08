@@ -14,6 +14,7 @@ public partial struct SpellCastingSystem : ISystem
 {
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<Enemy> _enemyLookup;
+    private ComponentLookup<Team> _teamLookup;
     private ComponentLookup<LocalToWorld> _localToWorldLookup;
 
     private BufferLookup<ActiveSpell> _activeSpellLookup;
@@ -37,6 +38,7 @@ public partial struct SpellCastingSystem : ISystem
 
         _playerLookup = SystemAPI.GetComponentLookup<Player>(true);
         _enemyLookup = SystemAPI.GetComponentLookup<Enemy>(true);
+        _teamLookup = SystemAPI.GetComponentLookup<Team>(true);
         _localToWorldLookup = SystemAPI.GetComponentLookup<LocalToWorld>(true);
         _activeSpellLookup = SystemAPI.GetBufferLookup<ActiveSpell>(true);
         _entityInfo = state.GetEntityStorageInfoLookup();
@@ -53,6 +55,7 @@ public partial struct SpellCastingSystem : ISystem
         // Update lookups
         _playerLookup.Update(ref state);
         _enemyLookup.Update(ref state);
+        _teamLookup.Update(ref state);
         _localToWorldLookup.Update(ref state);
         _activeSpellLookup.Update(ref state);
         _entityInfo.Update(ref state);
@@ -99,6 +102,7 @@ public partial struct SpellCastingSystem : ISystem
 
             PlayerLookup = _playerLookup,
             EnemyLookup = _enemyLookup,
+            TeamLookup = _teamLookup,
             LocalToWorldLookup = _localToWorldLookup,
             ActiveSpellLookup = _activeSpellLookup,
             EntityInfo = _entityInfo,
@@ -130,6 +134,7 @@ public partial struct SpellCastingSystem : ISystem
 
         [ReadOnly] public ComponentLookup<Player> PlayerLookup;
         [ReadOnly] public ComponentLookup<Enemy> EnemyLookup;
+        [ReadOnly] public ComponentLookup<Team> TeamLookup;
         [ReadOnly] public ComponentLookup<LocalToWorld> LocalToWorldLookup;
         [ReadOnly] public BufferLookup<ActiveSpell> ActiveSpellLookup;
         [ReadOnly] public EntityStorageInfoLookup EntityInfo;
@@ -217,7 +222,7 @@ public partial struct SpellCastingSystem : ISystem
 
 
             // Multi-cast — how Amount is consumed at cast time (Single/Spread/MultiTarget).
-            // Enemy casts with MultiTarget degenerate to Spread (handled once isPlayerCaster is known, below).
+            // Enemy-side casts with MultiTarget degenerate to Spread (handled once the caster team is known, below).
             var multiCast = baseSpellData.MultiCast;
             int totalCount = multiCast == ESpellMultiCast.Single ? 1 : math.max(1, finalAmount);
 
@@ -225,14 +230,16 @@ public partial struct SpellCastingSystem : ISystem
             float3 targetPosition = casterTransform.Position;
             bool targetFound = false;
             Entity targetEntity = Entity.Null;
-            bool isPlayerCaster = PlayerLookup.HasComponent(request.Caster);
+            // Allegiance (spec allegeance-summon §1): "player side" = the Player or a Summon of team Player.
+            ETeam casterTeam = TeamUtils.Resolve(request.Caster, in TeamLookup, in PlayerLookup);
+            bool playerSide = casterTeam == ETeam.Player;
 
-            // Enemy MultiTarget degenerates to Spread — only one player target exists.
-            if (multiCast == ESpellMultiCast.MultiTarget && !isPlayerCaster)
+            // Enemy-side MultiTarget degenerates to Spread — only one player target exists.
+            if (multiCast == ESpellMultiCast.MultiTarget && !playerSide)
                 multiCast = ESpellMultiCast.Spread;
 
-            // Enemy-cast spells scale their damage with run difficulty (player spells are untouched).
-            if (!isPlayerCaster)
+            // Enemy-side casts scale their damage with run difficulty — never a Summon of the player.
+            if (casterTeam == ETeam.Enemy)
                 finalDamage *= EnemyDamageMult;
 
             // BaseSpawnOffset is a caster-local offset (x = right, y = up, z = forward).
@@ -248,8 +255,7 @@ public partial struct SpellCastingSystem : ISystem
             var filter = new CollisionFilter
             {
                 // BelongsTo = CollisionLayers.Spell
-                CollidesWith = (isPlayerCaster ? CollisionLayers.Enemy : CollisionLayers.Player) |
-                               CollisionLayers.Obstacle,
+                CollidesWith = TeamUtils.TargetLayers(casterTeam),
             };
 
             // A caster-anchored melee area (CopyEntityPosition) targets only within its real hitbox reach
@@ -278,7 +284,7 @@ public partial struct SpellCastingSystem : ISystem
                     break;
 
                 case ESpellTargetingMode.NearestTarget:
-                    if (!isPlayerCaster)
+                    if (casterTeam == ETeam.Enemy)
                     {
                         // Enemy spells target the player directly. A physics query on the Player
                         // layer also matches the planet collider (mis-categorized onto that layer,
@@ -304,7 +310,7 @@ public partial struct SpellCastingSystem : ISystem
                             Filter = new CollisionFilter
                             {
                                 BelongsTo = CollisionLayers.Raycast,
-                                CollidesWith = CollisionLayers.Enemy,
+                                CollidesWith = TeamUtils.HostileLayers(casterTeam),
                             }
                         };
                         if (CollisionWorld.CalculateDistance(input, out DistanceHit hit))
@@ -392,13 +398,13 @@ public partial struct SpellCastingSystem : ISystem
             // Zero found → cancel this cast cleanly. Surplus (Amount > found) is fanned from the caster.
             NativeList<float3> multiTargets = default;
             int multiTargetsFound = 0;
-            if (multiCast == ESpellMultiCast.MultiTarget && isPlayerCaster)
+            if (multiCast == ESpellMultiCast.MultiTarget && playerSide)
             {
                 multiTargets = new NativeList<float3>(totalCount, Allocator.Temp);
                 var mtFilter = new CollisionFilter
                 {
                     BelongsTo = CollisionLayers.Raycast,
-                    CollidesWith = CollisionLayers.Enemy
+                    CollidesWith = TeamUtils.HostileLayers(casterTeam)
                 };
                 var mtHits = new NativeList<DistanceHit>(32, Allocator.Temp);
                 CollisionWorld.OverlapSphere(casterTransform.Position, finalRange, ref mtHits, mtFilter);
@@ -428,8 +434,8 @@ public partial struct SpellCastingSystem : ISystem
                 }
             }
 
-            // Emitters: only player casts post. Root instances carry the lineage (LineageId = first instance).
-            bool postEmitters = isPlayerCaster && QueueEntity != Entity.Null && baseSpellData.Emitters.Length > 0;
+            // Emitters: only player-side casts post. Root instances carry the lineage (LineageId = first instance).
+            bool postEmitters = playerSide && QueueEntity != Entity.Null && baseSpellData.Emitters.Length > 0;
             bool hasOnActivation = postEmitters && EmitterQueries.HasTrigger(ref baseSpellData, EEmitterTrigger.OnActivation);
             byte rootDepth = (byte)math.clamp(math.min(activeSpell.FinalSplitDepth, MaxSplitDepth), 0, 255);
             Entity lineageId = Entity.Null;
