@@ -1,7 +1,7 @@
 using Unity.Mathematics;
 
 /// <summary>Pure emitter arithmetic (no ECS state) so EditMode tests can pin it down. Used by ResolveHit
-/// (falloff), AreaAttackSystem (radius ease), SpellEmissionSystem (layouts, budget, chance) and
+/// (falloff), AreaAttackSystem (radius ease), SpellEmissionSystem (layouts incl. Line, budget, chance) and
 /// EmitterAnchorSystem (orbit positions).</summary>
 public static class EmitterMath
 {
@@ -47,6 +47,28 @@ public static class EmitterMath
         float3 side = math.cross(normal, reference);
         math.sincos(angleRadians, out float s, out float c);
         return radius * (c * reference + s * side);
+    }
+
+    /// <summary>Line layout: point at arc distance <paramref name="distance"/> from <paramref name="origin"/> along the
+    /// tangent <paramref name="dir"/>, on the sphere of radius |origin − center| (planet), or on the straight line
+    /// without a planet. forward = tangent at the point (towards increasing distance), up = local normal.
+    /// Expects normal = normalize(origin − center) and dir unit, tangent (TangentReference).</summary>
+    public static void LinePoint(float3 origin, float3 normal, float3 dir, float3 center, bool hasPlanet, float distance,
+        out float3 position, out float3 forward, out float3 up)
+    {
+        float radius = math.length(origin - center);
+        if (!hasPlanet || radius < 1e-4f)
+        {
+            position = origin + distance * dir;
+            forward = dir;
+            up = normal;
+            return;
+        }
+
+        math.sincos(distance / radius, out float s, out float c);
+        up = c * normal + s * dir;
+        position = center + radius * up;
+        forward = c * dir - s * normal;
     }
 
     public static bool ChanceRoll(float roll01, float chance) => chance >= 1f || roll01 < chance;
