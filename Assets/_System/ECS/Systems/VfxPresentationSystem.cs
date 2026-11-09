@@ -179,12 +179,3 @@ public partial class VfxPresentationSystem : SystemBase
         active.Clear();
     }
 }
-
-/// <summary>
-/// Link to a GameObject renderer for an entity. Baked by some authorings (e.g. enemies); kept for
-/// compatibility. Not used by the effect-VFX system (entities are ECS-rendered).
-/// </summary>
-public class VisualRendererLink : IComponentData
-{
-    public Renderer Renderer;
-}

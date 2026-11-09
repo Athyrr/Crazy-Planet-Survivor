@@ -33,6 +33,11 @@ public class DeveloperConsole : MonoBehaviour
     private bool _isOpen;
     private bool _swallowNextInputChange;
 
+    // Every InputAction that was enabled when the console opened: disabled while it is open so the game
+    // and menus don't react to typed keys, then re-enabled (exactly these) when it closes.
+    private readonly List<InputAction> _suspendedActions = new();
+    private bool _inputsSuspended;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
@@ -49,6 +54,10 @@ public class DeveloperConsole : MonoBehaviour
         BuildUI();
         SetOpen(false);
     }
+
+    private void OnDisable() => ResumeGameInputs();
+
+    private void OnDestroy() => ResumeGameInputs();
 
     private void Update()
     {
@@ -92,6 +101,7 @@ public class DeveloperConsole : MonoBehaviour
 
         if (open)
         {
+            SuspendGameInputs();
             _historyIndex = -1;
             _swallowNextInputChange = true;
             _input.text = string.Empty;
@@ -102,7 +112,35 @@ public class DeveloperConsole : MonoBehaviour
         else
         {
             EventSystem.current?.SetSelectedGameObject(null);
+            ResumeGameInputs();
         }
+    }
+
+    // The console itself reads Keyboard.current and its text field, neither goes through an InputAction.
+    private void SuspendGameInputs()
+    {
+        if (_inputsSuspended) return;
+        _inputsSuspended = true;
+
+        _suspendedActions.Clear();
+        InputSystem.ListEnabledActions(_suspendedActions);
+        foreach (var action in _suspendedActions)
+            action.Disable();
+    }
+
+    private void ResumeGameInputs()
+    {
+        if (!_inputsSuspended) return;
+        _inputsSuspended = false;
+
+        foreach (var action in _suspendedActions)
+        {
+            // Skip actions whose asset was destroyed while the console was open (owner disposed its GameInputs).
+            var asset = action.actionMap?.asset;
+            if (!ReferenceEquals(asset, null) && asset == null) continue;
+            action.Enable();
+        }
+        _suspendedActions.Clear();
     }
 
     private void Submit()
