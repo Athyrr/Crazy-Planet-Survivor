@@ -28,6 +28,7 @@ public partial struct EntitiesMovementSystem : ISystem
 
     private ComponentLookup<Player> _playerLookup;
     private ComponentLookup<StunState> _stunLookup;
+    private ComponentLookup<Frozen> _frozenLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -42,6 +43,7 @@ public partial struct EntitiesMovementSystem : ISystem
         _stopDistanceLookup = state.GetComponentLookup<StopDistance>(true);
 
         _stunLookup = state.GetComponentLookup<StunState>(true);
+        _frozenLookup = state.GetComponentLookup<Frozen>(true);
     }
 
     [BurstCompile(OptimizeFor = OptimizeFor.Performance)]
@@ -68,6 +70,7 @@ public partial struct EntitiesMovementSystem : ISystem
         _playerLookup.Update(ref state);
         _stopDistanceLookup.Update(ref state);
         _stunLookup.Update(ref state);
+        _frozenLookup.Update(ref state);
 
         var linearSnappedJob = new MoveLinearSnappedJob
         {
@@ -99,7 +102,8 @@ public partial struct EntitiesMovementSystem : ISystem
             SteeringLookup = _steeringLookup,
             TransformLookup = _transformLookup,
             StopDistanceLookup = _stopDistanceLookup,
-            StunLookup = _stunLookup
+            StunLookup = _stunLookup,
+            FrozenLookup = _frozenLookup
         };
         JobHandle followSnappedHandle = followSnappedJob.ScheduleParallel(linearBareHandle);
 
@@ -322,6 +326,7 @@ public partial struct EntitiesMovementSystem : ISystem
         public ComponentLookup<LocalTransform> TransformLookup;
 
         [ReadOnly] public ComponentLookup<StunState> StunLookup;
+        [ReadOnly] public ComponentLookup<Frozen> FrozenLookup;
 
         private const float SNAP_DISTANCE = 500f;
         private const float VERT_SNAP_SPEED = 20.0f;
@@ -330,6 +335,9 @@ public partial struct EntitiesMovementSystem : ISystem
 
         public void Execute(ref LocalTransform transform, in FollowTargetMovement movement, Entity entity)
         {
+            if (FrozenLookup.HasComponent(entity))
+                return;
+
             if (StunLookup.TryGetComponent(entity, out var _) && StunLookup.IsComponentEnabled(entity))
                 return;
 

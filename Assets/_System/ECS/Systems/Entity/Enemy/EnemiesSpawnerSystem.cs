@@ -91,8 +91,13 @@ public partial struct EnemiesSpawnerSystem : ISystem
             // RunProgressionSystem write-job is completed first — avoids a read-after-write job hazard.
             var runProgEntity = SystemAPI.GetSingletonEntity<RunProgression>();
             var runProg = state.EntityManager.GetComponentData<RunProgression>(runProgEntity);
-            _healthMult = scaleCfg.ComputeHealthMult(runProg.Timer, runProg.EnemiesKilledCount);
-            _damageMult = scaleCfg.ComputeDamageMult(runProg.Timer, runProg.EnemiesKilledCount);
+            float progTimer = runProg.Timer;
+            float progKills = runProg.EnemiesKilledCount;
+            // Sandbox `difficulty <n>`: forced difficulty units (inputs only, EnemyScalingConfig untouched).
+            if (SystemAPI.TryGetSingleton<SandboxSettings>(out var sandboxScaling))
+                SandboxDifficulty.Apply(in sandboxScaling, in scaleCfg, ref progTimer, ref progKills);
+            _healthMult = scaleCfg.ComputeHealthMult(progTimer, progKills);
+            _damageMult = scaleCfg.ComputeDamageMult(progTimer, progKills);
             runTimer = runProg.Timer;
         }
 
@@ -101,6 +106,10 @@ public partial struct EnemiesSpawnerSystem : ISystem
 
         // Handle kills (attributed per wave)
         ProcessKills(ref ecb, ref state, ref spawnerState, waveRuntimes);
+        // Sandbox start / `spawn off`: kills are still credited above (ActiveEnemyCount stays right), but wave
+        // timers, the assault director and spawning are frozen.
+        if (SystemAPI.TryGetSingleton<SandboxSettings>(out var sandbox) && sandbox.SpawnPaused)
+            return;
         // Handle timers, wave progression and loop restarts
         ManageWaveProgression(ref state, ref spawnerState, waves, groups, waveRuntimes, groupRuntimes);
         // Handle Spawning across every active wave

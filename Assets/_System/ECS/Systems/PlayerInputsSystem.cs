@@ -23,19 +23,23 @@ public partial struct PlayerInputSystem : ISystem
         var inputData = SystemAPI.GetSingleton<InputData>();
         float2 inputVector = inputData.Value;
 
+        // Sandbox `measure <s> freeze`: a Frozen player gets no input (no move, no dash); its spells keep firing.
+        foreach (var frozenMovement in SystemAPI.Query<RefRW<LinearMovement>>().WithAll<Player, Frozen>())
+            frozenMovement.ValueRW.Direction = float3.zero;
+
         // Dash trigger — handled before the movement early-return so it works while standing still.
         // WithPresent is required: DashRequest is an enableable component and is disabled at rest, so a
         // plain query would filter the resting player out and the request would never be raised.
         if (inputData.IsDashPressed)
         {
             foreach (var dashRequest in SystemAPI.Query<EnabledRefRW<DashRequest>>()
-                         .WithPresent<DashRequest>().WithAll<Player>())
+                         .WithPresent<DashRequest>().WithAll<Player>().WithNone<Frozen>())
                 dashRequest.ValueRW = true;
         }
 
         if (math.lengthsq(inputVector) < 0.01f)
         {
-            foreach (var movement in SystemAPI.Query<RefRW<LinearMovement>>().WithAll<Player>())
+            foreach (var movement in SystemAPI.Query<RefRW<LinearMovement>>().WithAll<Player>().WithNone<Frozen>())
             {
                 movement.ValueRW.Direction = float3.zero;
             }
@@ -46,7 +50,7 @@ public partial struct PlayerInputSystem : ISystem
         float3 planetCenter = SystemAPI.GetSingleton<PlanetData>().Center;
 
         foreach (var (transform, movement) in
-                 SystemAPI.Query<RefRO<LocalTransform>, RefRW<LinearMovement>>().WithAll<Player>())
+                 SystemAPI.Query<RefRO<LocalTransform>, RefRW<LinearMovement>>().WithAll<Player>().WithNone<Frozen>())
         {
             float3 playerPos = transform.ValueRO.Position;
             float3 normal = math.normalize(playerPos - planetCenter);

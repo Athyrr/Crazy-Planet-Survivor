@@ -23,6 +23,7 @@ public partial struct FlowFieldMovementSystem : ISystem
     private ComponentLookup<Avoidance> _avoidanceLookup;
     private ComponentLookup<LiveStats> _liveStatsLookup;
     private ComponentLookup<StunState> _stunLookup;
+    private ComponentLookup<Frozen> _frozenLookup;
     private ComponentLookup<KnockbackState> _knockbackLookup;
     private ComponentLookup<StopDistance> _stopDistanceLookup;
     private BufferLookup<FlowFieldCell> _cellBufferLookup;
@@ -48,6 +49,7 @@ public partial struct FlowFieldMovementSystem : ISystem
         _avoidanceLookup = state.GetComponentLookup<Avoidance>(isReadOnly: true);
         _liveStatsLookup = state.GetComponentLookup<LiveStats>(isReadOnly: true);
         _stunLookup = state.GetComponentLookup<StunState>(isReadOnly: true);
+        _frozenLookup = state.GetComponentLookup<Frozen>(isReadOnly: true);
         _knockbackLookup = state.GetComponentLookup<KnockbackState>(isReadOnly: true);
         _stopDistanceLookup = state.GetComponentLookup<StopDistance>(isReadOnly: true);
         _cellBufferLookup = state.GetBufferLookup<FlowFieldCell>(isReadOnly: true);
@@ -90,6 +92,7 @@ public partial struct FlowFieldMovementSystem : ISystem
         _avoidanceLookup.Update(ref state);
         _liveStatsLookup.Update(ref state);
         _stunLookup.Update(ref state);
+        _frozenLookup.Update(ref state);
         _knockbackLookup.Update(ref state);
         _stopDistanceLookup.Update(ref state);
         _cellBufferLookup.Update(ref state);
@@ -107,6 +110,7 @@ public partial struct FlowFieldMovementSystem : ISystem
             AvoidanceLookup = _avoidanceLookup,
             LiveStatsLookup = _liveStatsLookup,
             StunLookup = _stunLookup,
+            FrozenLookup = _frozenLookup,
             KnockbackLookup = _knockbackLookup,
             StopDistanceLookup = _stopDistanceLookup,
             GlobalAcceleration = globalAcceleration,
@@ -143,6 +147,7 @@ public partial struct FlowFieldMovementSystem : ISystem
         [ReadOnly] public ComponentLookup<Avoidance> AvoidanceLookup;
         [ReadOnly] public ComponentLookup<LiveStats> LiveStatsLookup;
         [ReadOnly] public ComponentLookup<StunState> StunLookup;
+        [ReadOnly] public ComponentLookup<Frozen> FrozenLookup;
         [ReadOnly] public ComponentLookup<KnockbackState> KnockbackLookup;
         [ReadOnly] public ComponentLookup<StopDistance> StopDistanceLookup;
 
@@ -171,6 +176,13 @@ public partial struct FlowFieldMovementSystem : ISystem
 
         public void Execute(Entity entity, ref LocalTransform transform, ref FlowFieldFollowerMovement movement)
         {
+            // Sandbox enemies_freeze / dummy: own movement frozen; velocity cleared like a stun.
+            if (FrozenLookup.HasComponent(entity))
+            {
+                movement.Velocity = float3.zero;
+                return;
+            }
+
             // Stunned entities do not move; velocity is cleared so they restart from a standstill.
             if (StunLookup.TryGetComponent(entity, out var _) && StunLookup.IsComponentEnabled(entity))
             {
