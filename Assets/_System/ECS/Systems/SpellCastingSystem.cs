@@ -82,7 +82,14 @@ public partial struct SpellCastingSystem : ISystem
         // GetSingleton only checks safety, it does not complete RunProgressionJob (unordered writer) -> complete it first.
         state.EntityManager.CompleteDependencyBeforeRO<RunProgression>();
         if (SystemAPI.TryGetSingleton<RunProgression>(out var runProg))
-            enemyDamageMult = scaleCfg.ComputeDamageMult(runProg.Timer, runProg.EnemiesKilledCount);
+        {
+            float progTimer = runProg.Timer;
+            float progKills = runProg.EnemiesKilledCount;
+            // Sandbox `difficulty <n>`: forced difficulty units (inputs only, EnemyScalingConfig untouched).
+            if (SystemAPI.TryGetSingleton<SandboxSettings>(out var sandbox))
+                SandboxDifficulty.Apply(in sandbox, in scaleCfg, ref progTimer, ref progKills);
+            enemyDamageMult = scaleCfg.ComputeDamageMult(progTimer, progKills);
+        }
 
         // Active planet's world-space center. The surface normal at the caster is derived from this,
         // so an off-origin planet no longer tilts every Area spell. Fallback to zero for edge cases

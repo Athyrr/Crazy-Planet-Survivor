@@ -26,6 +26,9 @@ public partial struct HealthSystem : ISystem
     private ComponentLookup<SoundPlayerTag> _soundPlayaerTagLookup;
     private ComponentLookup<CoreStats> _coreStatsLookup;
     private ComponentLookup<LiveStats> _liveStatsLookup;
+    private ComponentLookup<HealthFloor> _healthFloorLookup;
+    private ComponentLookup<DamageTally> _damageTallyLookup;
+    private ComponentLookup<Invincible> _invincibleLookup;
 
     [BurstCompile]
     public void OnCreate(ref SystemState state)
@@ -42,6 +45,9 @@ public partial struct HealthSystem : ISystem
         _soundPlayaerTagLookup = state.GetComponentLookup<SoundPlayerTag>(false);
         _coreStatsLookup = state.GetComponentLookup<CoreStats>(true);
         _liveStatsLookup = state.GetComponentLookup<LiveStats>(true);
+        _healthFloorLookup = state.GetComponentLookup<HealthFloor>(false);
+        _damageTallyLookup = state.GetComponentLookup<DamageTally>(false);
+        _invincibleLookup = state.GetComponentLookup<Invincible>(true);
     }
 
     [BurstCompile]
@@ -70,6 +76,9 @@ public partial struct HealthSystem : ISystem
         _soundPlayaerTagLookup.Update(ref state);
         _coreStatsLookup.Update(ref state);
         _liveStatsLookup.Update(ref state);
+        _healthFloorLookup.Update(ref state);
+        _damageTallyLookup.Update(ref state);
+        _invincibleLookup.Update(ref state);
 
         var soundPlayerEntity = SystemAPI.TryGetSingletonEntity<SoundPlayerTag>(out var spe)
             ? spe
@@ -83,10 +92,17 @@ public partial struct HealthSystem : ISystem
 
         float playerArmorPen = 0f;
         float enemyDamageMult = 1f;
+        // GetSingleton only checks safety, it does not complete RunProgressionJob (heuristics) -> complete it first.
+        state.EntityManager.CompleteDependencyBeforeRO<RunProgression>();
         if (SystemAPI.TryGetSingleton<RunProgression>(out var runProg))
         {
-            playerArmorPen = scaleCfg.ComputeArmorPenetration(runProg.Timer, runProg.EnemiesKilledCount);
-            enemyDamageMult = scaleCfg.ComputeDamageMult(runProg.Timer, runProg.EnemiesKilledCount);
+            float progTimer = runProg.Timer;
+            float progKills = runProg.EnemiesKilledCount;
+            // Sandbox `difficulty <n>`: forced difficulty units (inputs only, EnemyScalingConfig untouched).
+            if (SystemAPI.TryGetSingleton<SandboxSettings>(out var sandbox))
+                SandboxDifficulty.Apply(in sandbox, in scaleCfg, ref progTimer, ref progKills);
+            playerArmorPen = scaleCfg.ComputeArmorPenetration(progTimer, progKills);
+            enemyDamageMult = scaleCfg.ComputeDamageMult(progTimer, progKills);
         }
 
         var applyDamageJob = new ApplyDamageJob
@@ -105,6 +121,10 @@ public partial struct HealthSystem : ISystem
             PlayerArmorPen = playerArmorPen,
             EnemyDamageMult = enemyDamageMult,
             MinDamagePerHit = scaleCfg.MinDamagePerHit,
+            HealthFloorLookup = _healthFloorLookup,
+            DamageTallyLookup = _damageTallyLookup,
+            InvincibleLookup = _invincibleLookup,
+            ElapsedTime = SystemAPI.Time.ElapsedTime,
         };
 
         state.Dependency = applyDamageJob.ScheduleParallel(state.Dependency);
@@ -153,6 +173,12 @@ public partial struct HealthSystem : ISystem
         // Damage floor per hit after armor mitigation.
         public float MinDamagePerHit;
 
+        // Sandbox hooks: written on the iterated entity only (safe in parallel by construction).
+        [NativeDisableParallelForRestriction] public ComponentLookup<HealthFloor> HealthFloorLookup;
+        [NativeDisableParallelForRestriction] public ComponentLookup<DamageTally> DamageTallyLookup;
+        [ReadOnly] public ComponentLookup<Invincible> InvincibleLookup;
+        public double ElapsedTime;
+
         // todo Opti here: If  possible use Query instead of lookup
 
         private void Execute(
@@ -176,6 +202,15 @@ public partial struct HealthSystem : ISystem
             if (health.Value <= 0 || damageBuffer.IsEmpty)
                 return;
 
+            // Universal damage-immunity net (god, enemies_invincible): HazardZoneSystem, DashEffectSystem and
+            // DashChainDamageSystem write DamageBufferElement directly, without ResolveHit.IsDamageImmune.
+            // Immune to damage, not to the hit: hit-side effects already ran upstream, only the damage is dropped.
+            if (InvincibleLookup.HasComponent(entity))
+            {
+                damageBuffer.Clear();
+                return;
+            }
+
             var isPlayer = PlayerLookup.HasComponent(entity);
 
             // Flat armor mitigation from LiveStats (composed = base + permanent + temporary buffs);
@@ -193,6 +228,9 @@ public partial struct HealthSystem : ISystem
             bool isBurn = false;
             EDamageShakeSource shakeSource = EDamageShakeSource.None;
 
+            float frameMaxHit = 0f;
+            int frameHits = 0;
+
             // Process every damage instance stored in the buffer this frame
             for (int i = 0; i < damageBuffer.Length; i++)
             {
@@ -206,6 +244,12 @@ public partial struct HealthSystem : ISystem
 
                 damage = math.max(0f, damage);
 
+                if (damage > 0f)
+                {
+                    frameHits++;
+                    frameMaxHit = math.max(frameMaxHit, damage);
+                }
+
                 totalDamage += damage;
                 isCritical = dbe.IsCritical;
                 isBurn = dbe.Tag == ESpellTag.Burn;
@@ -216,7 +260,43 @@ public partial struct HealthSystem : ISystem
             }
 
             // Apply the accumulated damage to the health component
-            health.Value -= (int)math.max(0, totalDamage);
+            float frameTotal = math.max(0f, totalDamage);
+
+            // Sandbox measurement (dummies, player during ttk): after armor, before the floor and the int cast.
+            if (frameHits > 0 && DamageTallyLookup.TryGetRefRW(entity, out var tallyRef))
+            {
+                ref var tally = ref tallyRef.ValueRW;
+                if (tally.Hits == 0)
+                    tally.FirstHit = ElapsedTime;
+                tally.Total += frameTotal;
+                tally.MaxHit = math.max(tally.MaxHit, frameMaxHit);
+                tally.Hits += frameHits;
+                tally.LastHit = ElapsedTime;
+            }
+
+            int newHealth = health.Value - (int)frameTotal;
+
+            // Health floor (dummy, enemies_immortal, Sandbox player): never below the floor, so the death block
+            // below is never reached for this entity.
+            if (HealthFloorLookup.TryGetRefRW(entity, out var floorRef))
+            {
+                ref var floor = ref floorRef.ValueRW;
+                if (frameHits > 0)
+                    floor.LastHitTime = ElapsedTime;
+
+                int floorValue = math.max(1, floor.Floor);
+                if (newHealth < floorValue)
+                {
+                    if (newHealth <= 0)
+                    {
+                        floor.FloorHits++;
+                        floor.PendingFloorHeal = true;
+                    }
+                    newHealth = floorValue;
+                }
+            }
+
+            health.Value = newHealth;
 
             damageBuffer.Clear();
 
