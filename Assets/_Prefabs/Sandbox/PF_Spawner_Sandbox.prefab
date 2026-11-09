@@ -1,0 +1,85 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &8435930473639621244
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7431183675149228988}
+  - component: {fileID: 6311765643488137397}
+  m_Layer: 0
+  m_Name: PF_Spawner_Sandbox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7431183675149228988
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8435930473639621244}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6311765643488137397
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8435930473639621244}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f95afcbbc4bb6e347b8fec784ae02fa9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemiesSpawnerAuthoring
+  MaxEnemies: 150
+  Waves:
+  - Name: Sandbox loop
+    Duration: 20
+    KillPercentageToAdvance: 0
+    Loop: 1
+    AroundBoss: 0
+    Groups:
+    - Mode: 3
+      Prefab: {fileID: 4960229139857780973, guid: fd7eaed6e82d7da4db613a1b9290da39, type: 3}
+      Amount: 12
+      ZoneTransform: {fileID: 0}
+      Delay: 0.25
+      MinRange: 20
+      MaxRange: 35
+      Scale: 0
+  EnableAssaultDirector: 0
+  AssaultPrefab: {fileID: 0}
+  FirstPulseDelay: 15
+  PulsePeriodStart: 22
+  PulsePeriodMin: 9
+  RingCountStart: 18
+  RingCountMax: 55
+  RingRadius: 16
+  HorizonCountStart: 12
+  HorizonCountMax: 40
+  HorizonMinRange: 45
+  HorizonMaxRange: 75
+  DirCountStart: 25
+  DirCountMax: 70
+  DirMinRange: 55
+  DirMaxRange: 85
+  DirArcWidth: 0.7
+  DirMaxClusters: 2
+  DirectorRampSeconds: 300
+  ShowDebugGizmos: 1
+  DebugPlanetCenter: {fileID: 0}
+  DebugPlanetRadius: 50
+  DebugPlayer: {fileID: 0}
