@@ -26,6 +26,7 @@ public class RunManager : MonoBehaviour
     private EntityQuery _gameStateQuery;
     private EntityQuery _finalBossQuery;
     private EntityQuery _audioPlayerQuery;
+    private EntityQuery _planetDataQuery;
 
     // True once the current final boss's appear-message has been played (reset when no boss is present).
     private bool _bossAnnounced;
@@ -57,6 +58,7 @@ public class RunManager : MonoBehaviour
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _endRunQuery = _entityManager.CreateEntityQuery(typeof(EndRunRequest));
         _playerQuery = _entityManager.CreateEntityQuery(typeof(Player));
+        _planetDataQuery = _entityManager.CreateEntityQuery(typeof(PlanetData));
         _finalBossQuery = _entityManager.CreateEntityQuery(
             ComponentType.ReadOnly<FinalBossTag>(),
             ComponentType.ReadOnly<BossPresentation>()
@@ -126,25 +128,36 @@ public class RunManager : MonoBehaviour
         if (GameManager.Instance.GetGameState() != EGameState.Running)
             return;
 
-        if (!_endRunQuery.IsEmpty && !_playerQuery.IsEmpty)
+        if (_endRunQuery.IsEmpty || _playerQuery.IsEmpty)
+            return;
+
+        // Two requests can land in the same frame (player death + final boss death): take the first, drop them all.
+        var requests = _endRunQuery.ToEntityArray(Allocator.Temp);
+        var endRunRequest = _entityManager.GetComponentData<EndRunRequest>(requests[0]);
+
+        // Sandbox planet: a run never ends (a boss spawned by hand, any stray request) — no victory, no GameOver.
+        if (_planetDataQuery.TryGetSingleton<PlanetData>(out var planet) && planet.PlanetID == EPlanetID.Sandbox)
         {
-            var endRunReqEntity = _endRunQuery.GetSingletonEntity();
-            var playerEntity = _playerQuery.GetSingletonEntity();
-
-            var endRunRequest = _entityManager.GetComponentData<EndRunRequest>(endRunReqEntity);
-            var playerResources = _entityManager.GetBuffer<ResourceBufferElement>(playerEntity);
-
-            if (GameManager.Instance.GetGameState() != EGameState.GameOver)
-                GameManager.Instance.ChangeState(EGameState.GameOver);
-
-            var resourcesArray = new ResourceBufferElement[playerResources.Length];
-            for (int i = 0; i < playerResources.Length; i++)
-                resourcesArray[i] = playerResources[i];
-
-            GameOverUIController.OpenView(endRunRequest.State, resourcesArray);
-
-            _entityManager.DestroyEntity(endRunReqEntity);
+            Debug.Log($"[Sandbox] EndRunRequest ({endRunRequest.State}) ignored: the Sandbox run never ends.");
+            _entityManager.DestroyEntity(requests);
+            requests.Dispose();
+            return;
         }
+
+        var playerEntity = _playerQuery.GetSingletonEntity();
+        var playerResources = _entityManager.GetBuffer<ResourceBufferElement>(playerEntity);
+
+        if (GameManager.Instance.GetGameState() != EGameState.GameOver)
+            GameManager.Instance.ChangeState(EGameState.GameOver);
+
+        var resourcesArray = new ResourceBufferElement[playerResources.Length];
+        for (int i = 0; i < playerResources.Length; i++)
+            resourcesArray[i] = playerResources[i];
+
+        GameOverUIController.OpenView(endRunRequest.State, resourcesArray);
+
+        _entityManager.DestroyEntity(requests);
+        requests.Dispose();
     }
 
     private void CheckPlayerHealth()

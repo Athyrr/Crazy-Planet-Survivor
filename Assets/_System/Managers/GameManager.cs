@@ -144,9 +144,17 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void StartRun(EPlanetID planet)
+    /// <param name="skipIntro">No RunStarting countdown (sandbox): the run is Running as soon as the scene is ready.</param>
+    /// <param name="clearCurrentRun">A run is in progress: clear its RunScope entities first, like ReturnToLobby.</param>
+    public void StartRun(EPlanetID planet, bool skipIntro = false, bool clearCurrentRun = false)
     {
-        RequestLoad(planet, EGameState.Running, sendStartRequest: true);
+        if (clearCurrentRun)
+        {
+            var clearEntity = _entityManager.CreateEntity();
+            _entityManager.AddComponentData(clearEntity, new ClearRunRequest());
+        }
+
+        RequestLoad(planet, EGameState.Running, sendStartRequest: true, skipIntro: skipIntro);
     }
 
     public void ReturnToLobby()
@@ -171,7 +179,7 @@ public class GameManager : MonoBehaviour
     /// unload/stream/transition sequence. Concurrent requests are rejected by the system, so this
     /// is safe to call even while a load is in flight.
     /// </summary>
-    private void RequestLoad(EPlanetID planetID, EGameState targetState, bool sendStartRequest)
+    private void RequestLoad(EPlanetID planetID, EGameState targetState, bool sendStartRequest, bool skipIntro = false)
     {
         var entity = _entityManager.CreateEntity();
         _entityManager.AddComponentData(
@@ -183,7 +191,7 @@ public class GameManager : MonoBehaviour
                 SendStartRequest = sendStartRequest,
                 MinScreenTime = _minLoadingTime,
                 Timeout = _loadTimeout,
-                RunStartDelay = _runStartDelay,
+                RunStartDelay = skipIntro ? 0f : _runStartDelay,
             }
         );
 
