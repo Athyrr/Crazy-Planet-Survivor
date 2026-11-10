@@ -4,8 +4,8 @@ using Unity.Entities;
 /// <summary>Sandbox entry (scene-de-test). Usable from the main menu, the lobby or a run; no Sandbox entry in any game menu.</summary>
 public static class SandboxEntryCommands
 {
-    [ConsoleCommand("sandbox", "Charge la planète Sandbox (perso : nom ou index), sans intro.")]
-    private static string Sandbox(string character = "")
+    [ConsoleCommand("sandbox", "Charge la planète Sandbox (perso : nom ou index ; preset : nom d'un preset JSON), sans intro.")]
+    private static string Sandbox(string character = "", string preset = "")
     {
         if (!SandboxCommandUtils.TryGetWorld(out _, out var em))
             return SandboxCommandUtils.NoWorld;
@@ -27,6 +27,15 @@ public static class SandboxEntryCommands
                 return "Pas de scène Sandbox dans Game Scenes Config (rebake SC_Entity_Core).";
         }
 
+        SandboxPreset loaded = null;
+        if (!string.IsNullOrWhiteSpace(preset))
+        {
+            if (!SandboxPresets.TryLoad(preset, out loaded, out var presetError))
+                return presetError;
+            if (string.IsNullOrWhiteSpace(character))
+                character = loaded.Character;
+        }
+
         string label = null;
         if (!string.IsNullOrWhiteSpace(character))
         {
@@ -43,7 +52,10 @@ public static class SandboxEntryCommands
 
         SandboxSession.ResetBuild();
         GameManager.Instance.StartRun(EPlanetID.Sandbox, skipIntro: true, clearCurrentRun: inRun);
-        return label != null ? $"Sandbox : chargement avec {label}." : "Sandbox : chargement.";
+        if (loaded != null)
+            SandboxRunner.Run(SandboxPresets.Apply(loaded));
+        string withPreset = loaded != null ? $", preset '{preset}' appliqué une fois le joueur prêt" : string.Empty;
+        return label != null ? $"Sandbox : chargement avec {label}{withPreset}." : $"Sandbox : chargement{withPreset}.";
     }
 }
 #endif
