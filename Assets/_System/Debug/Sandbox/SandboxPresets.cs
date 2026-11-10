@@ -45,6 +45,8 @@ public sealed class SandboxPreset
 public static class SandboxPresets
 {
     private const int MaxWaitFrames = 60;
+    // Real time, not frames: the wait includes the loading screen, and a load from the main menu can be slow.
+    private const float ReadyTimeoutSeconds = 30f;
 
     /// <summary>Editor: &lt;project&gt;/UserSettings/SandboxPresets (git-ignored). Development build: persistentDataPath/SandboxPresets.</summary>
     public static string Folder =>
@@ -145,20 +147,33 @@ public static class SandboxPresets
         if (waitForNewRun)
             SandboxCommandUtils.TryGetPlayer(out _, out previousPlayer);
 
-        for (int frame = 0; ; frame++)
+        var deadline = Time.realtimeSinceStartup + ReadyTimeoutSeconds;
+        Entity player;
+        while (true)
         {
             if (SandboxCommandUtils.TryGetPlayer(out var em, out var current)
                 && current != previousPlayer
                 && SandboxCommandUtils.GetGameState(em) == EGameState.Running
                 && (!SandboxCommandUtils.IsSandboxPlanet(em) || SandboxCommandUtils.GetSettings(em).IsSandboxPlanet))
+            {
+                player = current;
                 break;
-            if (frame > 600) { SandboxRunner.Report("[Sandbox] preset : joueur jamais prêt, abandon."); yield break; }
+            }
+            if (Time.realtimeSinceStartup > deadline)
+            {
+                SandboxRunner.Report($"[Sandbox] preset : joueur jamais prêt après {ReadyTimeoutSeconds:0} s, abandon.");
+                yield break;
+            }
             yield return null;
         }
+
+        // From here on, every step re-checks after a wait that the run is still the one we waited for: leaving it
+        // (Pause -> Lobby, game over) must not let the remaining commands create a lobby SandboxSettings.
 
         // 1) Spells: exactly the preset's list.
         Exec("clear_spells");
         yield return null;
+        if (RunLeft(player)) yield break;
         foreach (var spell in preset.Spells)
             Exec($"add_spell {spell}");
         for (int i = 0; i < MaxWaitFrames && !AllSpellsActive(preset.Spells); i++)
@@ -169,36 +184,43 @@ public static class SandboxPresets
         {
             for (int i = 0; i < MaxWaitFrames && PlayerHas<ApplyUpgradeRequest>(); i++)
                 yield return null;
+            if (RunLeft(player)) yield break;
             Exec($"give_upgrade \"{upgrade}\"");
             yield return null;
         }
         for (int i = 0; i < MaxWaitFrames && PlayerHas<ApplyUpgradeRequest>(); i++)
             yield return null;
+        if (RunLeft(player)) yield break;
 
         // 3) Fixed stats (after upgrades, which would add on top).
         foreach (var stat in preset.Stats)
             Exec($"set_stat {stat.Stat} {stat.Value.ToString(CultureInfo.InvariantCulture)}");
         yield return null;
+        if (RunLeft(player)) yield break;
 
         // 4) Capabilities and counters (counters need an up-to-date FinalBounces / FinalPierces).
         foreach (var o in preset.SpellOverrides)
         {
+            if (RunLeft(player)) yield break;
             if (o.Explode >= 0) Exec($"spell_cap {o.Spell} Explode {(o.Explode == 1 ? "on" : "off")}");
             if (o.Emit >= 0) Exec($"spell_cap {o.Spell} Emit {(o.Emit == 1 ? "on" : "off")}");
             if (o.Bounce >= 0)
             {
                 for (int i = 0; i < MaxWaitFrames && PlayerHas<SpellStatsCalculationRequest>(); i++)
                     yield return null;
+                if (RunLeft(player)) yield break;
                 Exec($"spell_bounce {o.Spell} {o.Bounce}");
             }
             if (o.Pierce >= 0)
             {
                 for (int i = 0; i < MaxWaitFrames && PlayerHas<SpellStatsCalculationRequest>(); i++)
                     yield return null;
+                if (RunLeft(player)) yield break;
                 Exec($"spell_pierce {o.Spell} {o.Pierce}");
             }
         }
         yield return null;
+        if (RunLeft(player)) yield break;
 
         // 5) Enemy modes and difficulty.
         Exec($"enemies_freeze {(preset.EnemiesFrozen ? "on" : "off")}");
@@ -207,6 +229,20 @@ public static class SandboxPresets
         Exec(preset.Difficulty < 0f ? "difficulty off" : $"difficulty {preset.Difficulty.ToString(CultureInfo.InvariantCulture)}");
 
         SandboxRunner.Report("[Sandbox] preset appliqué.");
+    }
+
+    /// <summary>True (and reported) when the player the routine waited for is gone, or the state is no longer an
+    /// in-run state (Running, Paused, UpgradeSelection).</summary>
+    private static bool RunLeft(Entity player)
+    {
+        if (SandboxCommandUtils.TryGetPlayer(out var em, out var current) && current == player)
+        {
+            var state = SandboxCommandUtils.GetGameState(em);
+            if (state == EGameState.Running || state == EGameState.Paused || state == EGameState.UpgradeSelection)
+                return false;
+        }
+        SandboxRunner.Report("[Sandbox] preset : la partie a été quittée pendant l'application, abandon.");
+        return true;
     }
 
     private static void Exec(string line)
