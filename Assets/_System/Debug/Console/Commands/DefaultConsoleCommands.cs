@@ -63,16 +63,17 @@ public static class DefaultConsoleCommands
 
         em.SetComponentData(entity, experience);
 
-        if (!em.TryGetComponentObject<PlayerLevelUpRequest>(entity, out var pendingLvls))
-            return "no lvl pending request found.";
+        // PlayerLevelUpRequest is an unmanaged IComponentData baked by PlayerAuthoring (GetComponentObject threw here).
+        int pending = em.HasComponent<PlayerLevelUpRequest>(entity)
+            ? em.GetComponentData<PlayerLevelUpRequest>(entity).PendingLevels
+            : 0;
+        var levelUp = new PlayerLevelUpRequest { PendingLevels = pending + count };
+        if (em.HasComponent<PlayerLevelUpRequest>(entity))
+            em.SetComponentData(entity, levelUp);
+        else
+            em.AddComponentData(entity, levelUp);
 
-        var pendings = pendingLvls.PendingLevels;
-        em.SetComponentData(entity, new PlayerLevelUpRequest
-        {
-            PendingLevels = pendings + 1,
-        });
-
-        return $"Player is now level {experience.Level} (+{count}).";
+        return $"Player is now level {experience.Level} (+{count}, {levelUp.PendingLevels} pending).";
     }
 
     [ConsoleCommand("give_xp", "Add raw experience to the player.")]

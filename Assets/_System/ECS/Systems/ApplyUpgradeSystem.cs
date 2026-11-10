@@ -203,8 +203,9 @@ public partial struct ApplyUpgradeSystem : ISystem
             // Remove request from player
             ECB.RemoveComponent<ApplyUpgradeRequest>(chunkIndex, playerEntity);
 
-            // Clear upgrades selection buffer 
-            ECB.SetBuffer<UpgradeSelectionBufferElement>(chunkIndex, GameStateEntity);
+            // Clear upgrades selection buffer (UI pick). A console give_upgrade (KeepSelection) leaves the open choices on screen.
+            if (!request.KeepSelection)
+                ECB.SetBuffer<UpgradeSelectionBufferElement>(chunkIndex, GameStateEntity);
         }
     }
 

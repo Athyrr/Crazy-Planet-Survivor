@@ -5,7 +5,7 @@ using Unity.Entities;
 
 public static class UpgradeConsoleCommands
 {
-    private readonly struct Entry
+    public readonly struct Entry
     {
         public readonly int DatabaseIndex;
         public readonly string AssetName;
@@ -47,18 +47,23 @@ public static class UpgradeConsoleCommands
         return count == 0 ? $"No upgrade matches '{filter}'." : $"{count} upgrade(s):\n{sb.ToString().TrimEnd()}";
     }
 
-    [ConsoleCommand("give_upgrade", "Apply an upgrade to the player as if picked at level-up (asset or display name, quote if spaces).")]
-    private static string GiveUpgrade(string name)
+    /// <summary>Upgrade names and DB indices, in baked-blob order (used by the sandbox window and presets).</summary>
+    public static bool TryGetUpgradeEntries(out List<Entry> entries, out string error) => TryLoadEntries(out entries, out error);
+
+    [ConsoleCommand("give_upgrade", "Apply an upgrade to the player N times, one per frame (asset or display name, quote if spaces). Keeps an open upgrade screen.")]
+    private static string GiveUpgrade(string name, int count = 1)
     {
         if (string.IsNullOrWhiteSpace(name))
-            return "Usage: give_upgrade <name>";
+            return "Usage: give_upgrade <name> [count]";
+        if (count < 1)
+            return "Count must be >= 1.";
         if (!TryLoadEntries(out var entries, out var error))
             return error;
 
         var world = World.DefaultGameObjectInjectionWorld;
         var em = world.EntityManager;
         using var playerQuery = em.CreateEntityQuery(typeof(Player));
-        if (playerQuery.IsEmpty)
+        if (playerQuery.CalculateEntityCount() != 1)
             return "No Player entity found. Are you in a run?";
 
         // Exact (asset/display, case-insensitive) first, then substring.
@@ -76,15 +81,54 @@ public static class UpgradeConsoleCommands
             return sb.ToString();
         }
 
-        var playerEntity = playerQuery.GetSingletonEntity();
-        var request = new ApplyUpgradeRequest { DatabaseIndex = matches[0].DatabaseIndex };
-        if (em.HasComponent<ApplyUpgradeRequest>(playerEntity))
-            em.SetComponentData(playerEntity, request);
-        else
-            em.AddComponentData(playerEntity, request);
-
-        return $"Applied upgrade {matches[0].Label} (index {matches[0].DatabaseIndex}).";
+        var match = matches[0];
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        SandboxSession.RecordUpgrade(match.AssetName, count);
+        if (count > 1)
+        {
+            SandboxRunner.Run(GiveRepeated(match.DatabaseIndex, match.Label, count));
+            return $"{match.Label}: {count} applications queued (one per frame).";
+        }
+#else
+        if (count > 1)
+            return "give_upgrade count > 1 needs a development build.";
+#endif
+        Post(em, playerQuery.GetSingletonEntity(), match.DatabaseIndex);
+        return $"Applied upgrade {match.Label} (index {match.DatabaseIndex}).";
     }
+
+    private static void Post(EntityManager em, Entity player, int databaseIndex)
+    {
+        var request = new ApplyUpgradeRequest { DatabaseIndex = databaseIndex, KeepSelection = true };
+        if (em.HasComponent<ApplyUpgradeRequest>(player))
+            em.SetComponentData(player, request);
+        else
+            em.AddComponentData(player, request);
+    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // ApplyUpgradeRequest is a single component, overwritten by a second post in the same frame: post the next one
+    // only once ApplyUpgradeSystem consumed the previous one.
+    private static System.Collections.IEnumerator GiveRepeated(int databaseIndex, string label, int count)
+    {
+        int applied = 0;
+        while (applied < count)
+        {
+            if (!SandboxCommandUtils.TryGetPlayer(out var em, out var player))
+            {
+                SandboxRunner.Report($"give_upgrade {label}: player lost after {applied}/{count}.");
+                yield break;
+            }
+            if (!em.HasComponent<ApplyUpgradeRequest>(player))
+            {
+                Post(em, player, databaseIndex);
+                applied++;
+            }
+            yield return null;
+        }
+        SandboxRunner.Report($"give_upgrade {label}: {count} application(s).");
+    }
+#endif
 
     // Indices must match the baked UpgradesDatabase blob (same order as GameUpgradesConfigSO.GetFlattenedUpgrades).
     private static bool TryLoadEntries(out List<Entry> entries, out string error)
