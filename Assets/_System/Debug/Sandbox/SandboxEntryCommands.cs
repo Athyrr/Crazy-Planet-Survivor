@@ -4,7 +4,7 @@ using Unity.Entities;
 /// <summary>Sandbox entry (scene-de-test). Usable from the main menu, the lobby or a run; no Sandbox entry in any game menu.</summary>
 public static class SandboxEntryCommands
 {
-    [ConsoleCommand("sandbox", "Charge la planète Sandbox (perso : nom ou index ; preset : nom d'un preset JSON), sans intro.")]
+    [ConsoleCommand("sandbox", "Charge la planète Sandbox (perso : nom ou index ; preset : nom d'un preset JSON ; `-` = perso du preset), sans intro.")]
     private static string Sandbox(string character = "", string preset = "")
     {
         if (!SandboxCommandUtils.TryGetWorld(out _, out var em))
@@ -32,7 +32,7 @@ public static class SandboxEntryCommands
         {
             if (!SandboxPresets.TryLoad(preset, out loaded, out var presetError))
                 return presetError;
-            if (string.IsNullOrWhiteSpace(character))
+            if (string.IsNullOrWhiteSpace(character) || character == "-")
                 character = loaded.Character;
         }
 
@@ -53,7 +53,7 @@ public static class SandboxEntryCommands
         SandboxSession.ResetBuild();
         GameManager.Instance.StartRun(EPlanetID.Sandbox, skipIntro: true, clearCurrentRun: inRun);
         if (loaded != null)
-            SandboxRunner.Run(SandboxPresets.Apply(loaded));
+            SandboxRunner.Run(SandboxPresets.Apply(loaded, waitForNewRun: true));
         string withPreset = loaded != null ? $", preset '{preset}' appliqué une fois le joueur prêt" : string.Empty;
         return label != null ? $"Sandbox : chargement avec {label}{withPreset}." : $"Sandbox : chargement{withPreset}.";
     }

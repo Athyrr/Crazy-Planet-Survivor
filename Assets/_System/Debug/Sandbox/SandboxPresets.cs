@@ -89,8 +89,16 @@ public static class SandboxPresets
         preset.ImmortalRegenDelay = settings.ImmortalRegenDelay;
         preset.Difficulty = settings.DifficultyLevel;
 
-        Directory.CreateDirectory(Folder);
-        File.WriteAllText(PathOf(name), JsonUtility.ToJson(preset, true));
+        try
+        {
+            Directory.CreateDirectory(Folder);
+            File.WriteAllText(PathOf(name), JsonUtility.ToJson(preset, true));
+        }
+        catch (Exception ex)
+        {
+            message = $"Preset '{name}' non sauvé : {ex.Message}";
+            return false;
+        }
         message = $"Preset '{name}' sauvé ({preset.Spells.Count} spell(s), {preset.Upgrades.Count} upgrade(s), {preset.Stats.Count} stat(s)).";
         return true;
     }
@@ -118,17 +126,29 @@ public static class SandboxPresets
     {
         var path = PathOf(name);
         if (!File.Exists(path)) return false;
-        File.Delete(path);
+        try { File.Delete(path); }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"[Sandbox] suppression du preset '{name}' impossible : {ex.Message}");
+            return false;
+        }
         return true;
     }
 
     /// <summary>Runner routine. Waits for Running + one player (+ the Sandbox bootstrap on the Sandbox planet), then:
     /// spells → upgrades → fixed stats → capabilities / counters → enemy modes, through the commands themselves.</summary>
-    public static IEnumerator Apply(SandboxPreset preset)
+    public static IEnumerator Apply(SandboxPreset preset, bool waitForNewRun = false)
     {
+        // StartRun only queues the load: the old player and the Running state survive a few frames. When launched
+        // from `sandbox`, ignore the player that exists now and wait for a different one.
+        var previousPlayer = Entity.Null;
+        if (waitForNewRun)
+            SandboxCommandUtils.TryGetPlayer(out _, out previousPlayer);
+
         for (int frame = 0; ; frame++)
         {
-            if (SandboxCommandUtils.TryGetPlayer(out var em, out _)
+            if (SandboxCommandUtils.TryGetPlayer(out var em, out var current)
+                && current != previousPlayer
                 && SandboxCommandUtils.GetGameState(em) == EGameState.Running
                 && (!SandboxCommandUtils.IsSandboxPlanet(em) || SandboxCommandUtils.GetSettings(em).IsSandboxPlanet))
                 break;
