@@ -43,13 +43,22 @@ public partial struct UpgradeSelectionSystem : ISystem
         if (pendingLvls <= 0)
             return;
 
+        // One selection screen at a time: only draw (and consume one pending level) while the run is Running,
+        // no open request is still waiting for RunManager, and the previous pick has been applied.
+        var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
+        if (SystemAPI.GetComponent<GameState>(gameStateEntity).State != EGameState.Running)
+            return;
+        if (SystemAPI.HasComponent<OpenUpgradesSelectionViewRequest>(gameStateEntity))
+            return;
+        if (SystemAPI.HasComponent<ApplyUpgradeRequest>(playerEntity))
+            return;
+
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
         var upgradesDatabase = SystemAPI.GetSingleton<UpgradesDatabase>();
         var spellsDatabase = SystemAPI.GetSingleton<SpellsDatabase>();
         var raritySettings = SystemAPI.GetSingleton<RaritySettings>();
-        var gameStateEntity = SystemAPI.GetSingletonEntity<GameState>();
 
         var selectUpgradeJob = new SelectUpgradeJob()
         {
