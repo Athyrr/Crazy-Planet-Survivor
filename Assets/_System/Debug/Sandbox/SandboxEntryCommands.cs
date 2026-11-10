@@ -1,7 +1,7 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 using Unity.Entities;
 
-/// <summary>Sandbox entry (scene-de-test). Usable from the main menu, the lobby or a run; no Sandbox entry in any game menu.</summary>
+/// <summary>Sandbox entry. Usable from the main menu, the lobby or a run; no Sandbox entry in any game menu.</summary>
 public static class SandboxEntryCommands
 {
     [ConsoleCommand("sandbox", "Charge la planète Sandbox (perso : nom ou index ; preset : nom d'un preset JSON ; `-` = perso du preset), sans intro.")]

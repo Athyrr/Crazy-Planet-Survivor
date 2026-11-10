@@ -2,7 +2,7 @@
 using Unity.Entities;
 using Unity.Transforms;
 
-/// <summary>Hot character swap (scene-de-test). The new player restarts from its prefab: starting spells, level 1, XP 0.</summary>
+/// <summary>Hot character swap. The new player restarts from its prefab: starting spells, level 1, XP 0.</summary>
 public static class SandboxCharacterCommands
 {
     [ConsoleCommand("set_character", "Remplace le joueur par ce perso, au même endroit (repart de son prefab).")]

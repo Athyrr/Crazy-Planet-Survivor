@@ -4,7 +4,7 @@ using System.Collections;
 using System.Linq;
 using Unity.Entities;
 
-/// <summary>Player stat commands (scene-de-test).</summary>
+/// <summary>Player stat commands.</summary>
 public static class SandboxStatCommands
 {
     [ConsoleCommand("set_stat", "Fixe une stat du joueur (valeur absolue ; entiers arrondis ; MaxHealth remet les PV au max).")]

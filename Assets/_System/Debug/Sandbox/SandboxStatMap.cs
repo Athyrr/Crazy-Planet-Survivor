@@ -1,6 +1,6 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 /// <summary>ECharacterStat ↔ CoreStats field, the same mapping as ApplyUpgradeSystem.ApplyPlayerStatUpgrade, in absolute
-/// values (scene-de-test). Stats without a CoreStats field (Health, Dash* flags on DashEffect, None) are not settable.</summary>
+/// values. Stats without a CoreStats field (Health, Dash* flags on DashEffect, None) are not settable.</summary>
 public static class SandboxStatMap
 {
     public static readonly ECharacterStat[] Settable =

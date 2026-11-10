@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>What the sandbox tools changed in the current session (scene-de-test), saved into presets: upgrades given
+/// <summary>What the sandbox tools changed in the current session, saved into presets: upgrades given
 /// (names, in order), stats set, per-spell capability / counter overrides; plus measure results for the window.
 /// Reset by `sandbox` and `set_character` (the player restarts from its prefab).</summary>
 public static class SandboxSession

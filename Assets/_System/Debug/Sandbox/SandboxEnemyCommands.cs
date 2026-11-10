@@ -4,7 +4,7 @@ using System.Globalization;
 using Unity.Collections;
 using Unity.Entities;
 
-/// <summary>Spawn / enemy / dummy commands (scene-de-test). Modes apply to present and future enemies through
+/// <summary>Spawn / enemy / dummy commands. Modes apply to present and future enemies through
 /// SandboxModeApplySystem; spawn_enemy, spawn_dummy, dummy_hp, dummy_armor are Sandbox-only.</summary>
 public static class SandboxEnemyCommands
 {

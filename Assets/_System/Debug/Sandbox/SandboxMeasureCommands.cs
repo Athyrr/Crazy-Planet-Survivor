@@ -5,7 +5,7 @@ using System.Text;
 using Unity.Collections;
 using Unity.Entities;
 
-/// <summary>Measure commands (scene-de-test). World time; results go to the console and to SandboxSession for the window.</summary>
+/// <summary>Measure commands. World time; results go to the console and to SandboxSession for the window.</summary>
 public static class SandboxMeasureCommands
 {
     private const float TtkTimeoutSeconds = 120f;

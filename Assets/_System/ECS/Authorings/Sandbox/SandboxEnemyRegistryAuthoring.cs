@@ -2,7 +2,7 @@ using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
-/// <summary>Enemy prefabs spawnable by spawn_enemy / ttk and the dummy prefab of spawn_dummy (scene-de-test).
+/// <summary>Enemy prefabs spawnable by spawn_enemy / ttk and the dummy prefab of spawn_dummy.
 /// Lives in SC_Sandbox only, so these prefabs are baked and loaded on the Sandbox planet only.
 /// Always compiled: baked type.</summary>
 public class SandboxEnemyRegistryAuthoring : MonoBehaviour

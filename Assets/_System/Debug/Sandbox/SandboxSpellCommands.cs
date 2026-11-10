@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using Unity.Entities;
 
-/// <summary>Spell commands (scene-de-test). &lt;spell&gt; = ESpellID name (exact, then substring) or numeric value.</summary>
+/// <summary>Spell commands. &lt;spell&gt; = ESpellID name (exact, then substring) or numeric value.</summary>
 public static class SandboxSpellCommands
 {
     [ConsoleCommand("add_spell", "Ajoute un spell au joueur, niveau 1 (nom ou valeur d'ESpellID).")]

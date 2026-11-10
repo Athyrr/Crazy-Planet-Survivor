@@ -3,7 +3,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-/// <summary>Coroutine host of the sandbox commands (scene-de-test): one-per-frame queues, timed measures, deferred
+/// <summary>Coroutine host of the sandbox commands: one-per-frame queues, timed measures, deferred
 /// preset. Created on demand (DontDestroyOnLoad), dies with the Play session. A routine that throws is reported and
 /// stopped: a command never throws at the console.</summary>
 public sealed class SandboxRunner : MonoBehaviour

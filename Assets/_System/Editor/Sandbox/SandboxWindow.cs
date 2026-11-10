@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>"Sandbox" window (scene-de-test): an interface over the sandbox console commands. Reads ECS only through
+/// <summary>"Sandbox" window: an interface over the sandbox console commands. Reads ECS only through
 /// SandboxMetrics.Capture at ~4 Hz; empty outside Play. Player / Enemies tabs and the presets section live in their own
 /// partial files.</summary>
 public sealed partial class SandboxWindow : EditorWindow

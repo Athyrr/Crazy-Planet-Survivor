@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
 
-/// <summary>One read of everything the sandbox window and measures show (scene-de-test), copied into managed data.
+/// <summary>One read of everything the sandbox window and measures show, copied into managed data.
 /// Every EntityManager read completes the jobs writing that type: call it at ~4 Hz, never per frame.</summary>
 public static class SandboxMetrics
 {

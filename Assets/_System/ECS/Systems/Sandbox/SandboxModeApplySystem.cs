@@ -2,7 +2,7 @@
 using Unity.Collections;
 using Unity.Entities;
 
-/// <summary>Applies SandboxSettings to the world (scene-de-test). Bootstrap: on the Sandbox planet, creates (or resets a
+/// <summary>Applies SandboxSettings to the world. Bootstrap: on the Sandbox planet, creates (or resets a
 /// command-created) singleton with Sandbox defaults, RunScope so it dies with the run. Modes: batched structural changes
 /// on present and future enemies (dummies excluded, they bake their own floor and Frozen) and on the player, only when
 /// something is new; on→off transitions remove. Drains the player's caught lethal blows into PlayerDeaths.

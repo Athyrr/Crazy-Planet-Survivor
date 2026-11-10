@@ -8,7 +8,7 @@ using System.Linq;
 using Unity.Entities;
 using UnityEngine;
 
-/// <summary>Named sandbox setup (scene-de-test). Names only (asset names, ESpellID names), never a database index:
+/// <summary>Named sandbox setup. Names only (asset names, ESpellID names), never a database index:
 /// DB indices are not stable across bakes (DB sorted by asset name).</summary>
 [Serializable]
 public sealed class SandboxPreset

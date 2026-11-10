@@ -1,6 +1,6 @@
 using Unity.Entities;
 
-/// <summary>Runtime state of the sandbox tools (scene-de-test). One singleton carrying RunScope, so RunCleanerSystem
+/// <summary>Runtime state of the sandbox tools. One singleton carrying RunScope, so RunCleanerSystem
 /// destroys it at run end and everything resets on exit. Created on the Sandbox planet by SandboxModeApplySystem,
 /// elsewhere by the first command that needs it. Always compiled (read by guards in shipped systems), never baked.</summary>
 public struct SandboxSettings : IComponentData

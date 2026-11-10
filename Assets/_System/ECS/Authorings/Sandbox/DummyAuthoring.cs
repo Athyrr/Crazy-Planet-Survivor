@@ -1,7 +1,7 @@
 using Unity.Entities;
 using UnityEngine;
 
-/// <summary>Training dummy (scene-de-test), on top of an EnemyAuthoring (Enemy, Health, CoreStats, LiveStats, buffers,
+/// <summary>Training dummy, on top of an EnemyAuthoring (Enemy, Health, CoreStats, LiveStats, buffers,
 /// RunScope). Adds DummyTag (excluded from kill_all and the enemy modes), Frozen (no own movement), DamageTally
 /// (sandbox measures) and HealthFloor (immortal: floor 1 HP, full heal RegenDelay s after the last hit).
 /// Always compiled: baked type.</summary>

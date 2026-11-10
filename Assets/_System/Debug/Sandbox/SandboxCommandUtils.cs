@@ -6,7 +6,7 @@ using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
-/// <summary>Shared helpers of the sandbox commands (scene-de-test): world / player / settings access, name resolution
+/// <summary>Shared helpers of the sandbox commands: world / player / settings access, name resolution
 /// (exact case-insensitive first, then substring — like give_upgrade), spell instance cleanup.</summary>
 public static class SandboxCommandUtils
 {

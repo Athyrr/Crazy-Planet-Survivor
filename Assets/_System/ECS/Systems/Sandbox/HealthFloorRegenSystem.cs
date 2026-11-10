@@ -2,7 +2,7 @@
 using Unity.Burst;
 using Unity.Entities;
 
-/// <summary>HealthFloor heal producer (scene-de-test): full heal through HealBufferElement — HealthSystem's heal pass
+/// <summary>HealthFloor heal producer: full heal through HealBufferElement — HealthSystem's heal pass
 /// stays the single writer of Health — right after a caught lethal blow (HealOnFloor: Sandbox player) or RegenDelay s
 /// after the last damaging hit (dummy, enemies_immortal). Runs before HealthSystem, like HealthRegenSystem.</summary>
 [UpdateInGroup(typeof(SimulationSystemGroup))]

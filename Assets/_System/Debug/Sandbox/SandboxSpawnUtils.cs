@@ -4,7 +4,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 
-/// <summary>Main-thread instantiation around the player (scene-de-test). Angular ring (heuristics: angles, never a
+/// <summary>Main-thread instantiation around the player. Angular ring (heuristics: angles, never a
 /// world-distance constant), evenly spaced bearings: reproducible placement for TTK measures.</summary>
 public static class SandboxSpawnUtils
 {
