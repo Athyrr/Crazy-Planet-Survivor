@@ -197,11 +197,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   MainRenderer: {fileID: 5275413370969737620}
   UseSnappedMovement: 1
+  Acceleration: 0
+  MaxTurnRateDeg: 0
   BaseStats:
     MaxHealth: 20000
     HealthRegen: 4
     BaseArmor: 0
     Armor: 0
+    KnockbackResistance: 0
     BaseMoveSpeed: 3
     MoveSpeed: 0
     BasePickupRange: 0
@@ -218,6 +221,18 @@ MonoBehaviour:
     CritChance: 0
     CritDamage: 0
     Luck: 0
+    LifeStealChance: 0
+    SummonPower: 0
+    GlobalBurnDamageMultiplier: 0
+    GlobalBurnDurationMultiplier: 0
+    GlobalSlowStrengthMultiplier: 0
+    GlobalSlowDurationMultiplier: 0
+    GlobalStunDurationMultiplier: 0
+    BurnCanCrit: 0
+    BurnCanLifeSteal: 0
+    ExplosionCanLifeSteal: 0
+    DashCount: 0
+    DashCooldown: 0
   InitialSpells:
   - {fileID: 11400000, guid: e3e2453ccd5bec541a39f28525b3ad10, type: 2}
   ContactDamage: 80
@@ -249,8 +264,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 569916e10732eba4caf53ace7f5ac10d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
-  _avoidanceDetectionRadius: 1
-  _avoidanceWeight: 0.8
+  _avoidanceRadius: 2
+  _mass: 1
 --- !u!114 &8515567069440220069
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -405,7 +420,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 72e1923197bf72543b22cf1f77d45f96, type: 2}
+  - {fileID: 2100000, guid: c7e67596089a0bb4e9cd068575221391, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
