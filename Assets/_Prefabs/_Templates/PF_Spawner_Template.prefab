@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &8149531860494612213
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2454249963332819452}
+  - component: {fileID: 1187228099428812942}
+  m_Layer: 0
+  m_Name: PF_Spawner_Template
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2454249963332819452
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8149531860494612213}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1187228099428812942
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8149531860494612213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f95afcbbc4bb6e347b8fec784ae02fa9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemiesSpawnerAuthoring
+  MaxEnemies: 500
+  Waves: []
+  EnableAssaultDirector: 0
+  AssaultPrefab: {fileID: 0}
+  FirstPulseDelay: 15
+  PulsePeriodStart: 22
+  PulsePeriodMin: 9
+  RingCountStart: 18
+  RingCountMax: 55
+  RingRadius: 16
+  HorizonCountStart: 12
+  HorizonCountMax: 40
+  HorizonMinRange: 45
+  HorizonMaxRange: 75
+  DirCountStart: 25
+  DirCountMax: 70
+  DirMinRange: 55
+  DirMaxRange: 85
+  DirArcWidth: 0.7
+  DirMaxClusters: 2
+  DirectorRampSeconds: 300
+  ShowDebugGizmos: 1
+  DebugPlanetCenter: {fileID: 0}
+  DebugPlanetRadius: 50
+  DebugPlayer: {fileID: 0}
