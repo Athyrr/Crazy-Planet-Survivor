@@ -5,7 +5,7 @@
 
 ## Overview
 
-Top-down planet-survivor game built on Unity ECS (DOTS). Players survive waves of enemies on destructible/terraformable planets. Heavy use of Unity Physics, procedural VFX (VFX Graph), and UI Toolkit.
+Top-down planet-survivor game built on Unity ECS (DOTS). Players survive waves of enemies on spherical planets generated in the editor (WFC baker). Heavy use of Unity Physics, procedural VFX (VFX Graph), and UI Toolkit.
 
 ## Project Structure
 
