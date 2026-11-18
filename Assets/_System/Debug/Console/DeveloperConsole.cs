@@ -124,9 +124,16 @@ public class DeveloperConsole : MonoBehaviour
 
         _suspendedActions.Clear();
         InputSystem.ListEnabledActions(_suspendedActions);
+        // Keep the UI module's pointer actions so the mouse still scrolls and clicks the open console.
+        if (EventSystem.current != null && EventSystem.current.currentInputModule is InputSystemUIInputModule ui)
+            _suspendedActions.RemoveAll(a => IsPointerAction(ui, a));
         foreach (var action in _suspendedActions)
             action.Disable();
     }
+
+    private static bool IsPointerAction(InputSystemUIInputModule ui, InputAction action) =>
+        action == ui.point?.action || action == ui.leftClick?.action || action == ui.rightClick?.action
+        || action == ui.middleClick?.action || action == ui.scrollWheel?.action;
 
     private void ResumeGameInputs()
     {
