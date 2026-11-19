@@ -2,19 +2,10 @@ using UnityEngine;
 using UnityEngine.UI;
 
 [CreateAssetMenu(fileName = "NewSpellData", menuName = "Survivor/Spells/Spell Data")]
-public class SpellSO : ScriptableObject
+public class SpellSO : EntityDefinitionSO
 {
     [Header("General")] [Tooltip("Unique identifier used by the code to recognize this spell logic.")]
     public ESpellID ID;
-
-    [Tooltip("Icon displayed in the UI (Level Up screen, etc.).")]
-    public Sprite Icon;
-
-    [Tooltip("Name displayed in the UI (Level Up screen, etc.).")]
-    public string DisplayName = string.Empty;
-
-    [TextArea(2, 4)] [Tooltip("Description displayed in the UI.")]
-    public string Description;
 
     [Tooltip(
         "The GameObject prefab that will be baked into an Entity. Must have Authoring components."

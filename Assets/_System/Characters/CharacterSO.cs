@@ -1,18 +1,9 @@
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewCharacterData", menuName = "Survivor/Characters/Character Data")]
-public class CharacterSO : ScriptableObject
+public class CharacterSO : EntityDefinitionSO
 {
-    [Header("General")] [Tooltip("Name displayed in the UI.")]
-    public string DisplayName = string.Empty;
-
-    [TextArea(2, 4)] [Tooltip("Description displayed in the UI.")]
-    public string Description;
-
-
-    [Header("UI")] [Tooltip("Icon displayed in the UI.")]
-    public Sprite Icon = null;
-
+    [Header("UI")]
     [SerializeField] [Tooltip("The GameObject prefab that will be used for UI. Only renderer")]
     public GameObject UIPrefab;
     

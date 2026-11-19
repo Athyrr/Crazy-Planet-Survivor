@@ -13,9 +13,9 @@ public struct SummonStatValue
 /// <summary>Data of a Summon (spec allegeance-summon §2), referenced by a SpellSO of the Summon family (SpellSO.Summon).
 /// Baked into SpellBlob.Summon by SpellsDatabaseAuthoring.</summary>
 [CreateAssetMenu(fileName = "NewSummonData", menuName = "Survivor/Spells/Summon Data")]
-public class SummonSO : ScriptableObject
+public class SummonSO : EntityDefinitionSO
 {
-    [Header("Identity")]
+    [Header("Agent")]
     [Tooltip("Agent prefab: visual only, carries SummonAgentAuthoring, NO collider (Summons are untouchable in this version).")]
     public GameObject AgentPrefab;
 
