@@ -12,14 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
   m_Name: SpellData_FrozenZone
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 3
-  Icon: {fileID: 21300000, guid: 27613690981c858449eda7c937fb5a4d, type: 3}
   DisplayName: Frozen Zone
+  Icon: {fileID: 21300000, guid: 27613690981c858449eda7c937fb5a4d, type: 3}
   Description: Surrounds you with a lasting field of frost that damages enemies caught
     inside.
+  Family: 1
+  ID: 3
   SpellPrefab: {fileID: 5630578436652499990, guid: 1dab0de3be27bb24098e1675ffb1c895, type: 3}
   Rarity: 0
   Tags: 512
+  Effects: []
   BaseDamage: 10
   BaseCooldown: -1
   BaseSpeed: 0
@@ -32,7 +34,16 @@ MonoBehaviour:
   Bounces: 0
   BounceRange: 0
   Pierces: 0
+  AllowBounce: 1
+  AllowPierce: 1
+  Emitters: []
+  BaseGrantedCapabilities: 0
+  BaseSplitCount: 0
+  BaseSplitDepth: 0
+  ReHitDelayOverride: 0
   TickRate: 0.5
-  ChildPrefab: {fileID: 0}
   BaseAmount: 1
-  ChildrenSpawnRadius: 1
+  MultiCast: 0
+  SpreadAngleDegrees: 30
+  MaxSpreadDegrees: 120
+  Summon: {fileID: 0}

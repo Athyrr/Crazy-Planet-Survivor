@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
   m_Name: SpellData_Fireball
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 1
-  Icon: {fileID: 21300000, guid: 4ec8fdf781de5cd4789609b970c63bfd, type: 3}
   DisplayName: Fireball
+  Icon: {fileID: 21300000, guid: 4ec8fdf781de5cd4789609b970c63bfd, type: 3}
   Description: Throws a fireball at the nearest enemy, dealing damage on impact.
+  Family: 0
+  ID: 1
   SpellPrefab: {fileID: 486797506737824905, guid: 41fa62722a0249648b1dbdd9ff513461, type: 3}
   Rarity: 0
   Tags: 4587776
@@ -45,7 +46,11 @@ MonoBehaviour:
     Child: {fileID: 11400000, guid: c9a8d68d015dcad4da28add22da95dff, type: 2}
     Radius: 0
     SpreadAngleDegrees: 0
+    LineStartDistance: 0
+    LineSpacing: 3
     Frame: 0
+    Timing: 0
+    SequenceInterval: 0.15
     Chance: 1
     DamageRatio: 0
   - Capability: 8
@@ -54,10 +59,14 @@ MonoBehaviour:
     Layout: 2
     Count: 2
     FixedCount: 1
-    Child: {fileID: 11400000, guid: a13ca1f0a33c36a46bac651b45432abc, type: 2}
+    Child: {fileID: 11400000}
     Radius: 0
     SpreadAngleDegrees: 30
+    LineStartDistance: 0
+    LineSpacing: 3
     Frame: 0
+    Timing: 0
+    SequenceInterval: 0.15
     Chance: 1
     DamageRatio: 0
   BaseGrantedCapabilities: 0
@@ -65,9 +74,8 @@ MonoBehaviour:
   BaseSplitDepth: 1
   ReHitDelayOverride: 0
   TickRate: -1
-  ChildPrefab: {fileID: 0}
   BaseAmount: 1
-  ChildrenSpawnRadius: 1
   MultiCast: 2
   SpreadAngleDegrees: 30
   MaxSpreadDegrees: 120
+  Summon: {fileID: 0}

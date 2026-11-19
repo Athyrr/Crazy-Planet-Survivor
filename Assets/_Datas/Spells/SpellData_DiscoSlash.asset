@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
   m_Name: SpellData_DiscoSlash
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 18
-  Icon: {fileID: 21300000, guid: 46f770d970f63e14db1d16195519e74f, type: 3}
   DisplayName: Disco  Slash
+  Icon: {fileID: 21300000, guid: 46f770d970f63e14db1d16195519e74f, type: 3}
   Description: Sends a wave of disco energy slicing toward the nearest enemy.
+  Family: 1
+  ID: 18
   SpellPrefab: {fileID: 486797506737824905, guid: b47681fa60ab1fa4eb35a7bbc055896a, type: 3}
   Rarity: 0
   Tags: 4194560
@@ -44,7 +45,11 @@ MonoBehaviour:
     Child: {fileID: 11400000, guid: c9a8d68d015dcad4da28add22da95dff, type: 2}
     Radius: 8
     SpreadAngleDegrees: 30
+    LineStartDistance: 0
+    LineSpacing: 3
     Frame: 0
+    Timing: 0
+    SequenceInterval: 0.15
     Chance: 1
     DamageRatio: 0
   BaseGrantedCapabilities: 0
@@ -52,9 +57,8 @@ MonoBehaviour:
   BaseSplitDepth: 0
   ReHitDelayOverride: 0
   TickRate: -1
-  ChildPrefab: {fileID: 0}
   BaseAmount: 1
-  ChildrenSpawnRadius: 1
   MultiCast: 0
   SpreadAngleDegrees: 30
   MaxSpreadDegrees: 120
+  Summon: {fileID: 0}

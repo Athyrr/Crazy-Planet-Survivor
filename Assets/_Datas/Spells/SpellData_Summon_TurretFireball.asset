@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
   m_Name: SpellData_Summon_TurretFireball
   m_EditorClassIdentifier: Assembly-CSharp::SpellSO
-  ID: 30
-  Icon: {fileID: 0}
   DisplayName: Fireball Turret
+  Icon: {fileID: 0}
   Description: Places a turret near you that shoots Fireballs at nearby enemies.
     When its time runs out it moves next to you again.
+  Family: 2
+  ID: 30
   SpellPrefab: {fileID: 0}
   Rarity: 0
   Tags: 1024

@@ -12,11 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
   m_Name: SpellData_Beam
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 28
-  Icon: {fileID: 0}
   DisplayName: Beam
+  Icon: {fileID: 0}
   Description: Channels a beam that locks onto the nearest enemy and sweeps to follow
     it, damaging everything it crosses.
+  Family: 3
+  ID: 28
   SpellPrefab: {fileID: 4593211969994765348, guid: a7a37f100657e574f993183d6cd118e4, type: 3}
   Rarity: 0
   Tags: 4194816
@@ -61,3 +62,4 @@ MonoBehaviour:
   MultiCast: 0
   SpreadAngleDegrees: 30
   MaxSpreadDegrees: 120
+  Summon: {fileID: 0}

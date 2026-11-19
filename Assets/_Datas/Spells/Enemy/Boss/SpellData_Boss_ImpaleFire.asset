@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
   m_Name: SpellData_Boss_ImpaleFire
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 15
-  Icon: {fileID: 0}
   DisplayName: Impale fire
+  Icon: {fileID: 0}
   Description: 
+  Family: 1
+  ID: 15
   SpellPrefab: {fileID: 7470252180303246380, guid: 11898c60b97fa554c898c49d1ebc060d, type: 3}
   Rarity: 0
   Tags: 1
@@ -32,10 +33,16 @@ MonoBehaviour:
   Bounces: 0
   BounceRange: 0
   Pierces: 0
+  AllowBounce: 1
+  AllowPierce: 1
+  Emitters: []
+  BaseGrantedCapabilities: 0
+  BaseSplitCount: 0
+  BaseSplitDepth: 0
+  ReHitDelayOverride: 0
   TickRate: -1
-  ChildPrefab: {fileID: 0}
   BaseAmount: 1
-  ChildrenSpawnRadius: 1
   MultiCast: 1
   SpreadAngleDegrees: 30
   MaxSpreadDegrees: 120
+  Summon: {fileID: 0}

@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
   m_Name: SpellData_Explosion_Tech
   m_EditorClassIdentifier: Assembly-CSharp::SpellSO
-  ID: 23
-  Icon: {fileID: 0}
   DisplayName: Explosion_Tech
+  Icon: {fileID: 0}
   Description: 
+  Family: 1
+  ID: 23
   SpellPrefab: {fileID: 6340610747241723204, guid: 4db8426746796a84fbaa712066d80fe0, type: 3}
   Rarity: 0
   Tags: 512
@@ -40,9 +41,8 @@ MonoBehaviour:
   BaseSplitDepth: 0
   ReHitDelayOverride: 0
   TickRate: 1
-  ChildPrefab: {fileID: 0}
   BaseAmount: 0
-  ChildrenSpawnRadius: 1
   MultiCast: 0
   SpreadAngleDegrees: 30
   MaxSpreadDegrees: 120
+  Summon: {fileID: 0}

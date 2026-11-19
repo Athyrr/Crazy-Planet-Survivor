@@ -12,13 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
   m_Name: SpellData_Enemy_Projectile
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 12
-  Icon: {fileID: 0}
   DisplayName: Projectile
+  Icon: {fileID: 0}
   Description: 
+  Family: 0
+  ID: 12
   SpellPrefab: {fileID: 486797506737824905, guid: fb755105426288f4ebd204dd63a22f86, type: 3}
   Rarity: 0
   Tags: 1
+  Effects: []
   BaseDamage: 20
   BaseCooldown: 4
   BaseSpeed: 8
@@ -31,7 +33,16 @@ MonoBehaviour:
   Bounces: 0
   BounceRange: 0
   Pierces: 0
+  AllowBounce: 1
+  AllowPierce: 1
+  Emitters: []
+  BaseGrantedCapabilities: 0
+  BaseSplitCount: 0
+  BaseSplitDepth: 0
+  ReHitDelayOverride: 0
   TickRate: -1
-  ChildPrefab: {fileID: 0}
   BaseAmount: 1
-  ChildrenSpawnRadius: 1
+  MultiCast: 0
+  SpreadAngleDegrees: 30
+  MaxSpreadDegrees: 120
+  Summon: {fileID: 0}

@@ -12,13 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c52b9981b4df384c92708fe31646c45, type: 3}
   m_Name: SpellData_ShockStrike
   m_EditorClassIdentifier: Assembly-CSharp::SpellDataSO
-  ID: 6
-  Icon: {fileID: 21300000, guid: 2f73768474b7f0a439a69ead188fef93, type: 3}
   DisplayName: Shock Strike
+  Icon: {fileID: 21300000, guid: 2f73768474b7f0a439a69ead188fef93, type: 3}
   Description: Calls down a bolt of lightning onto the nearest enemy.
+  Family: 1
+  ID: 6
   SpellPrefab: {fileID: 8608917286184711326, guid: d28cec6fccad67647a118a50394f0172, type: 3}
   Rarity: 0
   Tags: 4194304
+  Effects: []
   BaseDamage: 50
   BaseCooldown: 0.8
   BaseSpeed: 0
@@ -31,7 +33,16 @@ MonoBehaviour:
   Bounces: 0
   BounceRange: 0
   Pierces: 0
+  AllowBounce: 1
+  AllowPierce: 1
+  Emitters: []
+  BaseGrantedCapabilities: 0
+  BaseSplitCount: 0
+  BaseSplitDepth: 0
+  ReHitDelayOverride: 0
   TickRate: 1
-  ChildPrefab: {fileID: 0}
   BaseAmount: 1
-  ChildrenSpawnRadius: 1
+  MultiCast: 0
+  SpreadAngleDegrees: 30
+  MaxSpreadDegrees: 120
+  Summon: {fileID: 0}
