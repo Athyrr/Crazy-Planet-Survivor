@@ -4,6 +4,9 @@ using UnityEngine;
 [RequireComponent(typeof(DestructibleAuthoring))]
 public class EnemyAuthoring : MonoBehaviour
 {
+    [Tooltip("Enemy definition (values), resolved through its parent chain at bake time. A boss prefab points at its BossSO here.")]
+    public EnemySO Config;
+
     public Renderer MainRenderer;
 
     [Header("Movement precision")]
