@@ -197,47 +197,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
   Config: {fileID: 11400000, guid: 8d8478d39afeb7f41b4b0031e2457711, type: 2}
   MainRenderer: {fileID: 7461600597337187580}
-  UseSnappedMovement: 1
-  Acceleration: 0
-  MaxTurnRateDeg: 0
-  BaseStats:
-    MaxHealth: 5000
-    HealthRegen: 2
-    BaseArmor: 0
-    Armor: 0
-    KnockbackResistance: 0
-    BaseMoveSpeed: 4
-    MoveSpeed: 0
-    BasePickupRange: 0
-    PickupRange: 0
-    Damage: 0
-    AttackSpeed: 0.1
-    SpellSize: 0.5
-    SpellSpeed: 0
-    SpellDuration: 0
-    CastRange: 0
-    Amount: 0
-    Pierce: 0
-    Bounce: 1
-    CritChance: 0.2
-    CritDamage: 0.5
-    Luck: 0
-    LifeStealChance: 0
-    SummonPower: 0
-    GlobalBurnDamageMultiplier: 0
-    GlobalBurnDurationMultiplier: 0
-    GlobalSlowStrengthMultiplier: 0
-    GlobalSlowDurationMultiplier: 0
-    GlobalStunDurationMultiplier: 0
-    BurnCanCrit: 0
-    BurnCanLifeSteal: 0
-    ExplosionCanLifeSteal: 0
-    DashCount: 0
-    DashCooldown: 0
-  InitialSpells:
-  - {fileID: 11400000, guid: e3e2453ccd5bec541a39f28525b3ad10, type: 2}
-  - {fileID: 11400000, guid: 661b2319623c54740bf8ef45f265f093, type: 2}
-  ContactDamage: 10
 --- !u!114 &7077652745905088192
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -304,7 +263,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b3af2add97523844b15be64c5c152e1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossAuthoring
-  Config: {fileID: 11400000, guid: 8d8478d39afeb7f41b4b0031e2457711, type: 2}
 --- !u!114 &7299598361462969398
 MonoBehaviour:
   m_ObjectHideFlags: 0

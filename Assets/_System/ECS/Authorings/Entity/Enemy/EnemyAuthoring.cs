@@ -1,6 +1,10 @@
 using Unity.Entities;
 using UnityEngine;
 
+/// <summary>
+/// Enemy structure. The values live on the <see cref="EnemySO"/> referenced by <see cref="Config"/> and are baked
+/// from its resolved version (parent chain applied, see <see cref="DefinitionResolver"/>).
+/// </summary>
 [RequireComponent(typeof(DestructibleAuthoring))]
 public class EnemyAuthoring : MonoBehaviour
 {
@@ -9,48 +13,42 @@ public class EnemyAuthoring : MonoBehaviour
 
     public Renderer MainRenderer;
 
-    [Header("Movement precision")]
-    [Tooltip(
-        "If true, the enemy will be snapped perfectly on the ground following the terrain height. Otherwise, it will follow the base radius.")]
-    public bool UseSnappedMovement = true;
-
-    [Header("Movement feel")]
-    [Tooltip("Acceleration in units/s². Leave at 0 to inherit CpBaseEnemySettings. Raise for darting " +
-             "enemies, lower for heavy ones that take time to get going.")]
-    public float Acceleration = 0f;
-
-    [Tooltip("Max turn rate in degrees/second. Leave at 0 to inherit CpBaseEnemySettings. Lower it on " +
-             "big enemies so they describe wide curves instead of pivoting on the spot.")]
-    public float MaxTurnRateDeg = 0f;
-
-    [Header("Stats")] public CoreStats BaseStats;
-
-    [Header("Spells")] public SpellSO[] InitialSpells;
-
-    [Header("Contact damage")]
-    [Tooltip("Damage dealt to whatever Destructible this enemy's body touches (the player). ")]
-    public float ContactDamage = 10f;
-
     private class Baker : Baker<EnemyAuthoring>
     {
         public override void Bake(EnemyAuthoring authoring)
         {
             var entity = GetEntity(TransformUsageFlags.Dynamic);
 
+            if (authoring.Config == null)
+                Debug.LogError($"[EnemyAuthoring] {authoring.name}: no EnemySO assigned to Config, baking the enemy " +
+                               "archetype with default values.", authoring);
+
+            // Resolved copy (parent chain applied), destroyed at the end of Bake. DependsOn is declared on every link.
+            using var resolved = DefinitionResolver.Resolve(authoring.Config, this);
+            EnemySO config = resolved.Value;
+
+            // Fallbacks mirror the former EnemyAuthoring field initializers.
+            bool useSnappedMovement = config == null || config.UseSnappedMovement;
+            float acceleration = config != null ? config.Acceleration : 0f;
+            float maxTurnRateDeg = config != null ? config.MaxTurnRateDeg : 0f;
+            CoreStats baseStats = config != null ? config.BaseStats : default;
+            SpellSO[] initialSpells = config != null ? config.InitialSpells : null;
+            float contactDamage = config != null ? config.ContactDamage : 10f;
+
             AddComponent(entity, new Enemy());
             AddComponent(entity, new Team { Value = ETeam.Enemy });
             // Velocity starts at zero; the two feel knobs are 0 = inherit the global settings.
             AddComponent(entity, new FlowFieldFollowerMovement
             {
-                Acceleration = authoring.Acceleration,
-                MaxTurnRateDeg = authoring.MaxTurnRateDeg
+                Acceleration = acceleration,
+                MaxTurnRateDeg = maxTurnRateDeg
             });
             AddComponent(entity, new RunScope());
 
-            if (authoring.UseSnappedMovement)
+            if (useSnappedMovement)
                 AddComponent<HardSnappedMovement>(entity);
 
-            AddComponent(entity, new Health { Value = (int)authoring.BaseStats.MaxHealth });
+            AddComponent(entity, new Health { Value = (int)baseStats.MaxHealth });
 
             AddBuffer<EnemySpellReady>(entity);
             AddBuffer<DamageBufferElement>(entity);
@@ -60,14 +58,14 @@ public class EnemyAuthoring : MonoBehaviour
 
             AddComponent(entity, new DamageOnContact
             {
-                Damage = authoring.ContactDamage,
+                Damage = contactDamage,
                 TargetLayers = CollisionLayers.Player | CollisionLayers.Obstacle,
                 Tags = ESpellTag.None,
                 TotalCritChance = 0,
                 TotalCritMultiplier = 1,
             });
             SetComponentEnabled<DamageOnContact>(entity, true);
-            
+
             AddBuffer<HitEntityMemory>(entity);
 
             // NOTE: KnockbackState is already pre-added (disabled) by ActiveEffectsAuthoring, together
@@ -79,53 +77,57 @@ public class EnemyAuthoring : MonoBehaviour
             AddComponent<DashChainDamage>(entity);
             SetComponentEnabled<DashChainDamage>(entity, false);
 
+            // Field-by-field copy on purpose: the 11 stats not listed here stay 0 on enemies.
             AddComponent(entity, new CoreStats
             {
                 // Bases
-                MaxHealth = authoring.BaseStats.MaxHealth,
-                BaseArmor = authoring.BaseStats.BaseArmor,
-                BaseMoveSpeed = authoring.BaseStats.BaseMoveSpeed,
-                BasePickupRange = authoring.BaseStats.BasePickupRange,
+                MaxHealth = baseStats.MaxHealth,
+                BaseArmor = baseStats.BaseArmor,
+                BaseMoveSpeed = baseStats.BaseMoveSpeed,
+                BasePickupRange = baseStats.BasePickupRange,
 
-                HealthRegen = authoring.BaseStats.HealthRegen,
-                Armor = authoring.BaseStats.Armor,
-                KnockbackResistance = authoring.BaseStats.KnockbackResistance,
-                MoveSpeed = authoring.BaseStats.MoveSpeed,
-                PickupRange = authoring.BaseStats.PickupRange,
+                HealthRegen = baseStats.HealthRegen,
+                Armor = baseStats.Armor,
+                KnockbackResistance = baseStats.KnockbackResistance,
+                MoveSpeed = baseStats.MoveSpeed,
+                PickupRange = baseStats.PickupRange,
 
-                Damage = authoring.BaseStats.Damage,
-                AttackSpeed = authoring.BaseStats.AttackSpeed,
-                SpellSize = authoring.BaseStats.SpellSize,
-                SpellSpeed = authoring.BaseStats.SpellSpeed,
-                SpellDuration = authoring.BaseStats.SpellDuration,
-                CastRange = authoring.BaseStats.CastRange,
+                Damage = baseStats.Damage,
+                AttackSpeed = baseStats.AttackSpeed,
+                SpellSize = baseStats.SpellSize,
+                SpellSpeed = baseStats.SpellSpeed,
+                SpellDuration = baseStats.SpellDuration,
+                CastRange = baseStats.CastRange,
 
-                Amount = authoring.BaseStats.Amount,
-                Pierce = authoring.BaseStats.Pierce,
-                Bounce = authoring.BaseStats.Bounce,
+                Amount = baseStats.Amount,
+                Pierce = baseStats.Pierce,
+                Bounce = baseStats.Bounce,
 
-                CritChance = authoring.BaseStats.CritChance,
-                CritDamage = authoring.BaseStats.CritDamage,
+                CritChance = baseStats.CritChance,
+                CritDamage = baseStats.CritDamage,
 
-                DashCount = authoring.BaseStats.DashCount,
-                DashCooldown = authoring.BaseStats.DashCooldown,
+                DashCount = baseStats.DashCount,
+                DashCooldown = baseStats.DashCooldown,
             });
 
             AddComponent(entity, new LiveStats());
             // Temporary stat buffs on enemies (debuffs from player spells, or future ally buffs).
             AddBuffer<CharacterStatBuff>(entity);
 
-            // todo virer ça et utiliser lookup de spell modifier dans spell calculation system
+            // todo: remove this and use the spell modifier lookup in the spell calculation system
             AddBuffer<SpellStatUpgrade>(entity);
 
             AddBuffer<ActiveSpell>(entity);
             DynamicBuffer<SpellActivationRequest> baseSpellBuffer = AddBuffer<SpellActivationRequest>(entity);
 
-            if (authoring.InitialSpells != null)
+            if (initialSpells != null)
             {
-                foreach (var spellSO in authoring.InitialSpells)
+                foreach (var spellSO in initialSpells)
                 {
                     if (spellSO == null) continue;
+
+                    // The baker reads the spell's ID and Emitters: editing the spell asset must rebake the enemy.
+                    DependsOn(spellSO);
 
                     if (spellSO.Emitters != null && spellSO.Emitters.Length > 0)
                         Debug.LogError($"[EnemyAuthoring] {authoring.name}: spell '{spellSO.name}' declares emitters — " +

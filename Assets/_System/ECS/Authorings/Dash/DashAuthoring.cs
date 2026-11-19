@@ -17,7 +17,14 @@ public class DashAuthoring : MonoBehaviour
             var so = authoring.Settings;
 
             if (so != null)
+            {
                 DependsOn(so);
+                // The Resolved* values walk the BaseTemplate chain: depend on every template, so editing the
+                // shared base (DashSO_Base) rebakes the characters. The visited set guards against a loop.
+                var visited = new System.Collections.Generic.HashSet<DashSO> { so };
+                for (var template = so.BaseTemplate; template != null && visited.Add(template); template = template.BaseTemplate)
+                    DependsOn(template);
+            }
 
             int resolution = so != null ? Mathf.Max(2, so.CurveResolution) : 32;
             var builder = new BlobBuilder(Unity.Collections.Allocator.Temp);

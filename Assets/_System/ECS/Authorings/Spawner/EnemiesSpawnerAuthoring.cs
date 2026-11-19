@@ -348,8 +348,9 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
         }
 
         /// <summary>
-        /// True if the prefab carries a <see cref="BossAuthoring"/> configured as a final boss (or with no
-        /// config, which BossAuthoring itself defaults to FinalBoss). Used to forbid looping a boss wave.
+        /// True if the prefab carries a <see cref="BossAuthoring"/> whose resolved <see cref="BossSO"/> (its
+        /// EnemyAuthoring.Config) is a final boss, or whose Config is not a BossSO (BossAuthoring then falls back to
+        /// FinalBoss). Used to forbid looping a boss wave. DependsOn is declared on the whole BossSO chain.
         /// </summary>
         private bool ContainsFinalBoss(GameObject prefab)
         {
@@ -357,7 +358,13 @@ public class EnemiesSpawnerAuthoring : MonoBehaviour
             if (boss == null)
                 return false;
 
-            return boss.Config == null || boss.Config.Kind == EBossKind.FinalBoss;
+            var enemy = GetComponent<EnemyAuthoring>(prefab);
+            var bossConfig = enemy != null ? enemy.Config as BossSO : null;
+            if (bossConfig == null)
+                return true;
+
+            using var resolved = DefinitionResolver.Resolve(bossConfig, this);
+            return resolved.Value.Kind == EBossKind.FinalBoss;
         }
     }
 }

@@ -32,10 +32,12 @@ public class WaveDataDrawer : PropertyDrawer
         if (wave.Groups == null) return false;
         foreach (var g in wave.Groups)
         {
-            if (g.Prefab == null) continue;
-            var ba = g.Prefab.GetComponent<BossAuthoring>();
-            if (ba != null && (ba.Config == null || ba.Config.Kind == EBossKind.FinalBoss))
-                return true;
+            if (g.Prefab == null || g.Prefab.GetComponent<BossAuthoring>() == null) continue;
+            var enemy = g.Prefab.GetComponent<EnemyAuthoring>();
+            var bossConfig = enemy != null ? enemy.Config as BossSO : null;
+            if (bossConfig == null) return true; // BossAuthoring falls back to FinalBoss
+            using (var resolved = DefinitionResolver.Resolve(bossConfig, null))
+                if (resolved.Value.Kind == EBossKind.FinalBoss) return true;
         }
         return false;
     }
