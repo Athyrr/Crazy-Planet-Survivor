@@ -75,31 +75,41 @@ public static class DefinitionResolver
 
 #if UNITY_EDITOR
         T copy = Object.Instantiate(leaf);
-        copy.name = leaf.name;
-        copy.hideFlags = HideFlags.HideAndDontSave;
-
         var serializedChain = new List<SerializedObject>(chain.Count);
-        foreach (InheritableDefinitionSO node in chain)
-            serializedChain.Add(new SerializedObject(node));
-
-        using (var target = new SerializedObject(copy))
+        try
         {
-            foreach (string path in GetOverridablePaths(serializedChain[0]))
-            {
-                if (leaf.IsOverridden(path))
-                    continue;
-                int source = FindInheritedSourceIndex(serializedChain, path);
-                if (source > 0)
-                    target.CopyFromSerializedProperty(serializedChain[source].FindProperty(path));
-            }
-            target.ApplyModifiedPropertiesWithoutUndo();
-        }
+            copy.name = leaf.name;
+            copy.hideFlags = HideFlags.HideAndDontSave;
 
-        foreach (SerializedObject so in serializedChain)
-            so.Dispose();
+            foreach (InheritableDefinitionSO node in chain)
+                serializedChain.Add(new SerializedObject(node));
+
+            using (var target = new SerializedObject(copy))
+            {
+                foreach (string path in GetOverridablePaths(serializedChain[0]))
+                {
+                    if (leaf.IsOverridden(path))
+                        continue;
+                    int source = FindInheritedSourceIndex(serializedChain, path);
+                    if (source > 0)
+                        target.CopyFromSerializedProperty(serializedChain[source].FindProperty(path));
+                }
+                target.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+        catch
+        {
+            Object.DestroyImmediate(copy);
+            throw;
+        }
+        finally
+        {
+            foreach (SerializedObject so in serializedChain)
+                so.Dispose();
+        }
         return new ResolvedDefinition<T>(copy, true);
 #else
-        // Never reached: only bakers and editor code resolve definitions, and both run in the editor.
+        Debug.LogError("[DefinitionResolver] Resolve is editor/bake-only; returning the unresolved asset.", leaf);
         return new ResolvedDefinition<T>(leaf, false);
 #endif
     }
@@ -172,6 +182,61 @@ public static class DefinitionResolver
                 orphans.Add(path);
         }
         return orphans;
+    }
+
+    /// <summary>Overridable paths not yet overridden whose own serialized value differs from the value inherited from
+    /// the parent chain. Nothing is modified.</summary>
+    public static List<string> GetPathsDifferingFromParent(SerializedObject leaf)
+    {
+        var differing = new List<string>();
+        var chain = new List<InheritableDefinitionSO>();
+        TryGetChain((InheritableDefinitionSO)leaf.targetObject, null, chain, out _);
+        if (chain.Count < 2)
+            return differing;
+
+        var serializedChain = new List<SerializedObject> { leaf };
+        for (int i = 1; i < chain.Count; i++)
+            serializedChain.Add(new SerializedObject(chain[i]));
+        try
+        {
+            foreach (string path in GetOverridablePaths(leaf))
+            {
+                if (((InheritableDefinitionSO)leaf.targetObject).IsOverridden(path) || IsPathListed(leaf, path))
+                    continue;
+                int source = FindInheritedSourceIndex(serializedChain, path);
+                if (source > 0 && !SerializedProperty.DataEquals(leaf.FindProperty(path), serializedChain[source].FindProperty(path)))
+                    differing.Add(path);
+            }
+        }
+        finally
+        {
+            for (int i = 1; i < serializedChain.Count; i++)
+                serializedChain[i].Dispose();
+        }
+        return differing;
+    }
+
+    /// <summary>Ticks the override of every path that differs from the parent chain, keeping the leaf's own values.
+    /// The caller applies the modified properties (which records the undo).</summary>
+    public static int OverrideDifferingPaths(SerializedObject leaf)
+    {
+        List<string> paths = GetPathsDifferingFromParent(leaf);
+        SerializedProperty list = leaf.FindProperty(InheritableDefinitionSO.OverriddenPathsFieldName);
+        foreach (string path in paths)
+        {
+            list.arraySize++;
+            list.GetArrayElementAtIndex(list.arraySize - 1).stringValue = path;
+        }
+        return paths.Count;
+    }
+
+    private static bool IsPathListed(SerializedObject leaf, string path)
+    {
+        SerializedProperty list = leaf.FindProperty(InheritableDefinitionSO.OverriddenPathsFieldName);
+        for (int i = 0; i < list.arraySize; i++)
+            if (list.GetArrayElementAtIndex(i).stringValue == path)
+                return true;
+        return false;
     }
 
     /// <summary>Turns the override of <paramref name="path"/> on (copying the inherited value into the leaf first)

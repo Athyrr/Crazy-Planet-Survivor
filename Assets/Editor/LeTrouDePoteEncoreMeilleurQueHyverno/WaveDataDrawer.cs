@@ -36,10 +36,25 @@ public class WaveDataDrawer : PropertyDrawer
             var enemy = g.Prefab.GetComponent<EnemyAuthoring>();
             var bossConfig = enemy != null ? enemy.Config as BossSO : null;
             if (bossConfig == null) return true; // BossAuthoring falls back to FinalBoss
-            using (var resolved = DefinitionResolver.Resolve(bossConfig, null))
-                if (resolved.Value.Kind == EBossKind.FinalBoss) return true;
+            if (ReadKind(bossConfig) == EBossKind.FinalBoss) return true;
         }
         return false;
+    }
+
+    /// <summary>Kind as the baker resolves it, read without a resolved copy nor logs (called every IMGUI event):
+    /// the nearest BossSO of the chain overriding "Kind", else the farthest BossSO. A loop just cuts the chain.</summary>
+    private static EBossKind ReadKind(BossSO leaf)
+    {
+        var chain = new List<InheritableDefinitionSO>();
+        DefinitionResolver.TryGetChain(leaf, null, chain, out _);
+        BossSO farthest = leaf;
+        foreach (var node in chain)
+        {
+            if (!(node is BossSO boss)) continue;
+            if (boss.IsOverridden("Kind")) return boss.Kind;
+            farthest = boss;
+        }
+        return farthest.Kind;
     }
 
     private static bool WaveHasAroundBoss(EnemiesSpawnerAuthoring.WaveData wave)

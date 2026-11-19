@@ -15,6 +15,9 @@ public class InheritableDefinitionEditor : UnityEditor.Editor
     private const float ToggleWidth = 18f;
     private static readonly GUIContent OverrideToggle = new GUIContent(string.Empty, "Override the parent value");
 
+    private static readonly GUIContent OverrideDifferingLabel = new GUIContent("Override fields that differ from parent",
+        "Ticks Override on every field whose own value differs from the inherited one, keeping the own values.");
+
     private readonly Dictionary<string, bool> _foldouts = new Dictionary<string, bool>();
     private string _pendingPath;
     private bool _pendingOverride;
@@ -38,6 +41,13 @@ public class InheritableDefinitionEditor : UnityEditor.Editor
         var chain = new List<InheritableDefinitionSO>();
         if (!DefinitionResolver.TryGetChain(leaf, null, chain, out string chainError))
             EditorGUILayout.HelpBox(chainError, MessageType.Error);
+
+        if (leaf.ParentDefinition != null && GUILayout.Button(OverrideDifferingLabel))
+        {
+            int count = DefinitionResolver.OverrideDifferingPaths(serializedObject);
+            if (count == 0)
+                Debug.Log($"[InheritableDefinitionEditor] No field of '{leaf.name}' differs from its parent.", leaf);
+        }
 
         List<string> orphans = DefinitionResolver.GetOrphanPaths(serializedObject);
         if (orphans.Count > 0)
@@ -110,7 +120,16 @@ public class InheritableDefinitionEditor : UnityEditor.Editor
         bool overridden = IsOverridden(serializedObject, path);
         using (new EditorGUILayout.HorizontalScope())
         {
-            bool toggled = GUILayout.Toggle(overridden, OverrideToggle, GUILayout.Width(ToggleWidth));
+            // A [Header]/[Space] decorator is drawn above the field: push the toggle down onto the field's own line.
+            float decorator = Mathf.Max(0f, EditorGUI.GetPropertyHeight(own, false) -
+                                            EditorGUI.GetPropertyHeight(own.propertyType, GUIContent.none));
+            bool toggled;
+            using (new EditorGUILayout.VerticalScope(GUILayout.Width(ToggleWidth)))
+            {
+                if (decorator > 0f)
+                    GUILayout.Space(decorator);
+                toggled = GUILayout.Toggle(overridden, OverrideToggle, GUILayout.Width(ToggleWidth));
+            }
             if (toggled != overridden)
             {
                 _pendingPath = path;
