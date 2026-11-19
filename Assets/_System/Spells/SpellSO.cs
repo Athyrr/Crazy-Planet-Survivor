@@ -4,6 +4,11 @@ using UnityEngine.UI;
 [CreateAssetMenu(fileName = "NewSpellData", menuName = "Survivor/Spells/Spell Data")]
 public class SpellSO : EntityDefinitionSO
 {
+    [Header("Family")]
+    [Tooltip("Editing category, set by hand: decides which fields the inspector shows. Not baked: changing it " +
+             "changes no game value.")]
+    public ESpellFamily Family = ESpellFamily.Projectile;
+
     [Header("General")] [Tooltip("Unique identifier used by the code to recognize this spell logic.")]
     public ESpellID ID;
 
