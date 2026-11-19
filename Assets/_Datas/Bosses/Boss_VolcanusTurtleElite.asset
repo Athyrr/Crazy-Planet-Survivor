@@ -14,12 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossSO
   DisplayName: Volcanic Warden
   Icon: {fileID: 0}
-  Kind: 0
+  Description: 
+  OverriddenPaths: []
+  Parent: {fileID: 0}
+  UseSnappedMovement: 1
+  Acceleration: 0
+  MaxTurnRateDeg: 0
   BaseStats:
     MaxHealth: 800
     HealthRegen: 0
     BaseArmor: 0
     Armor: 0
+    KnockbackResistance: 0
     BaseMoveSpeed: 2.5
     MoveSpeed: 0
     BasePickupRange: 0
@@ -37,4 +43,17 @@ MonoBehaviour:
     CritDamage: 0
     Luck: 0
     LifeStealChance: 0
+    SummonPower: 0
+    GlobalBurnDamageMultiplier: 0
+    GlobalBurnDurationMultiplier: 0
+    GlobalSlowStrengthMultiplier: 0
+    GlobalSlowDurationMultiplier: 0
+    GlobalStunDurationMultiplier: 0
+    BurnCanCrit: 0
+    BurnCanLifeSteal: 0
+    ExplosionCanLifeSteal: 0
+    DashCount: 0
+    DashCooldown: 0
   InitialSpells: []
+  ContactDamage: 50
+  Kind: 0

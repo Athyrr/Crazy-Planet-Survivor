@@ -195,13 +195,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03db88175c3880e4d91f5497f684801e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
+  Config: {fileID: 11400000, guid: 8d8478d39afeb7f41b4b0031e2457711, type: 2}
   MainRenderer: {fileID: 7461600597337187580}
   UseSnappedMovement: 1
+  Acceleration: 0
+  MaxTurnRateDeg: 0
   BaseStats:
     MaxHealth: 5000
     HealthRegen: 2
     BaseArmor: 0
     Armor: 0
+    KnockbackResistance: 0
     BaseMoveSpeed: 4
     MoveSpeed: 0
     BasePickupRange: 0
@@ -218,6 +222,18 @@ MonoBehaviour:
     CritChance: 0.2
     CritDamage: 0.5
     Luck: 0
+    LifeStealChance: 0
+    SummonPower: 0
+    GlobalBurnDamageMultiplier: 0
+    GlobalBurnDurationMultiplier: 0
+    GlobalSlowStrengthMultiplier: 0
+    GlobalSlowDurationMultiplier: 0
+    GlobalStunDurationMultiplier: 0
+    BurnCanCrit: 0
+    BurnCanLifeSteal: 0
+    ExplosionCanLifeSteal: 0
+    DashCount: 0
+    DashCooldown: 0
   InitialSpells:
   - {fileID: 11400000, guid: e3e2453ccd5bec541a39f28525b3ad10, type: 2}
   - {fileID: 11400000, guid: 661b2319623c54740bf8ef45f265f093, type: 2}
@@ -250,8 +266,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 569916e10732eba4caf53ace7f5ac10d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvoidanceAuthoring
-  _avoidanceDetectionRadius: 1
-  _avoidanceWeight: 0.8
+  _avoidanceRadius: 2
+  _mass: 1
 --- !u!114 &8515567069440220069
 MonoBehaviour:
   m_ObjectHideFlags: 0

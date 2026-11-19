@@ -194,8 +194,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03db88175c3880e4d91f5497f684801e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAuthoring
+  Config: {fileID: 11400000, guid: 10e765f73e681db4abaa3d2e4fbbac45, type: 2}
   MainRenderer: {fileID: 6365321859695952217}
   UseSnappedMovement: 1
+  Acceleration: 0
+  MaxTurnRateDeg: 0
   BaseStats:
     MaxHealth: 800
     HealthRegen: 0
@@ -219,6 +222,15 @@ MonoBehaviour:
     CritDamage: 0
     Luck: 0
     LifeStealChance: 0
+    SummonPower: 0
+    GlobalBurnDamageMultiplier: 0
+    GlobalBurnDurationMultiplier: 0
+    GlobalSlowStrengthMultiplier: 0
+    GlobalSlowDurationMultiplier: 0
+    GlobalStunDurationMultiplier: 0
+    BurnCanCrit: 0
+    BurnCanLifeSteal: 0
+    ExplosionCanLifeSteal: 0
     DashCount: 0
     DashCooldown: 0
   InitialSpells: []

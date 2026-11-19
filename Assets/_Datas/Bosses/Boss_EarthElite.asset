@@ -14,12 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossSO
   DisplayName: Earth Guardian
   Icon: {fileID: 21300000, guid: 7c8026600ee9f974386901e672741be7, type: 3}
-  Kind: 0
+  Description: 
+  OverriddenPaths: []
+  Parent: {fileID: 0}
+  UseSnappedMovement: 1
+  Acceleration: 0
+  MaxTurnRateDeg: 0
   BaseStats:
     MaxHealth: 5000
     HealthRegen: 4
     BaseArmor: 0
     Armor: 0
+    KnockbackResistance: 0
     BaseMoveSpeed: 3
     MoveSpeed: 0
     BasePickupRange: 0
@@ -35,5 +41,20 @@ MonoBehaviour:
     Bounce: 0
     CritChance: 0
     CritDamage: 0
+    Luck: 0
+    LifeStealChance: 0
+    SummonPower: 0
+    GlobalBurnDamageMultiplier: 0
+    GlobalBurnDurationMultiplier: 0
+    GlobalSlowStrengthMultiplier: 0
+    GlobalSlowDurationMultiplier: 0
+    GlobalStunDurationMultiplier: 0
+    BurnCanCrit: 0
+    BurnCanLifeSteal: 0
+    ExplosionCanLifeSteal: 0
+    DashCount: 0
+    DashCooldown: 0
   InitialSpells:
   - {fileID: 11400000, guid: 84ec68c1a07e93b4ca70521509af9d9e, type: 2}
+  ContactDamage: 50
+  Kind: 0
