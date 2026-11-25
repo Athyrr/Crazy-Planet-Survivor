@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 466734ce3c2af1c46a03a66aa54c3052, type: 3}
+  m_Name: WFCPlanetSettings_Earth
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::Editor.WFCPlanetSettingsSO
+  Planet: {fileID: 11400000, guid: 5fc58dda5df0ce14081db3b4c8054cc0, type: 2}
+  OutputName: Earth
+  Theme: {fileID: 11400000, guid: 89b333653a4af174bb2a67a2f25b2c55, type: 2}
+  Density: 4
+  Seed: 67
+  FallbackRadius: 100
+  DisableRoots:
+  - Avoidance Container
+  Sea: 0
+  LavaHazards: 0
+  RimColor: {r: 0.45, g: 0.8, b: 1.5, a: 1}
+  AtmoColor: {r: 0.3, g: 0.62, b: 1.6, a: 1}
+  SunsetColor: {r: 1.5, g: 0.65, b: 0.3, a: 1}
+  LowTint: {r: 0.72, g: 0.8, b: 0.82, a: 1}
+  ShadowTint: {r: 0.3, g: 0.42, b: 0.7, a: 1}
+  HazeColor: {r: 0.45, g: 0.65, b: 0.95, a: 0.35}
+  AtmoScale: 1.12
+  Clouds: 1
+  CloudScale: 1.055

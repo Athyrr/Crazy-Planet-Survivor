@@ -25,49 +25,14 @@ namespace Editor
     {
         public enum SeaStyle { Water, Lava }
 
-        public class PlanetJob
-        {
-            public string Name;              // Earth, Volcanus
-            public int PlanetId;             // EPlanetID
-            public string ThemePath;
-            public string ScenePath;
-            public string LobbyInstanceName; // instance dans PF_UI_PlanetSelection
-            public int Density = 4;
-            public int Seed = 67;
-            public float FallbackRadius = 100f;
-            public float FallbackRunDuration = 300f;
-            // racines des decors qui suivaient le relief de l'ancienne planete: desactivees (pas detruites)
-            public string[] DisableRoots = new string[0];
-            public SeaStyle Sea;
-            public bool LavaHazards;
-            public Color RimColor, AtmoColor, SunsetColor, LowTint, ShadowTint, HazeColor;
-            public float AtmoScale = 1.12f;
-            public bool Clouds;
-            public float CloudScale = 1.055f;
-        }
-
-        public static readonly PlanetJob[] Jobs =
-        {
-            new PlanetJob
-            {
-                Name = "Earth", PlanetId = 3, ThemePath = "Assets/_WFC/WFCContent/Themes/Theme_Earth.asset",
-                ScenePath = "Assets/_Scenes/SC_Main/SC_Earth.unity", LobbyInstanceName = "PF_PlanetEarth",
-                FallbackRunDuration = 300f, DisableRoots = new[] { "Avoidance Container" },
-                Sea = SeaStyle.Water, LavaHazards = false, Clouds = true,
-                RimColor = new Color(0.45f, 0.8f, 1.5f), AtmoColor = new Color(0.3f, 0.62f, 1.6f), SunsetColor = new Color(1.5f, 0.65f, 0.3f),
-                LowTint = new Color(0.72f, 0.8f, 0.82f), ShadowTint = new Color(0.3f, 0.42f, 0.7f), HazeColor = new Color(0.45f, 0.65f, 0.95f, 0.35f),
-            },
-            new PlanetJob
-            {
-                Name = "Volcanus", PlanetId = 2, ThemePath = "Assets/_WFC/WFCContent/Themes/Theme_Volcanus.asset",
-                ScenePath = "Assets/_Scenes/SC_Main/SC_Volcanus.unity", LobbyInstanceName = "PF_Planet_Volcanus",
-                FallbackRunDuration = 600f, DisableRoots = new[] { "Enviro", "HazardZone" },
-                Sea = SeaStyle.Lava, LavaHazards = true,
-                RimColor = new Color(1.6f, 0.45f, 0.12f), AtmoColor = new Color(1.4f, 0.38f, 0.1f), SunsetColor = new Color(1.8f, 0.9f, 0.3f),
-                LowTint = new Color(0.8f, 0.72f, 0.72f), ShadowTint = new Color(0.4f, 0.14f, 0.1f), HazeColor = new Color(0.35f, 0.1f, 0.04f, 0.3f),
-                AtmoScale = 1.1f,
-            },
-        };
+        /// <summary>Build settings of every planet the tool bakes (one WFCPlanetSettingsSO asset each), by OutputName.</summary>
+        public static List<WFCPlanetSettingsSO> LoadSettings() =>
+            AssetDatabase.FindAssets("t:" + nameof(WFCPlanetSettingsSO))
+                .Select(guid => AssetDatabase.GUIDToAssetPath(guid))
+                .Select(path => AssetDatabase.LoadAssetAtPath<WFCPlanetSettingsSO>(path))
+                .Where(s => s != null)
+                .OrderBy(s => s.OutputName, System.StringComparer.Ordinal)
+                .ToList();
 
         private const string OutputRoot = "Assets/_Prefabs/Planets";
         private const string SelectionPrefab = "Assets/_Prefabs/UI/Lobby/PF_UI_PlanetSelection.prefab";
@@ -111,9 +76,9 @@ namespace Editor
         public static void SwapLobbyBatch()
         {
             Report.Clear();
-            foreach (var job in Jobs)
+            foreach (var job in LoadSettings())
             {
-                var visual = AssetDatabase.LoadAssetAtPath<GameObject>($"{Folder(job)}/PF_WFC_Planet_{job.Name}_Visual.prefab");
+                var visual = AssetDatabase.LoadAssetAtPath<GameObject>($"{Folder(job)}/PF_WFC_Planet_{job.OutputName}_Visual.prefab");
                 if (visual != null)
                     SwapLobbyVisual(job, visual);
             }
@@ -124,28 +89,42 @@ namespace Editor
         public static void BakeAll()
         {
             Report.Clear();
-            foreach (var job in Jobs)
+            foreach (var job in LoadSettings())
                 Bake(job);
             AssetDatabase.SaveAssets();
         }
 
-        private static string Folder(PlanetJob job) => $"{OutputRoot}/WFC_{job.Name}";
-
-        public static void Bake(PlanetJob job)
+        // one planet only (context menu "Bake this planet (WFC)" of its WFCPlanetSettingsSO asset)
+        public static void BakeOne(WFCPlanetSettingsSO job)
         {
-            string folder = Folder(job);
-            string gameplayPath = $"{folder}/PF_WFC_Planet_{job.Name}.prefab";
+            Report.Clear();
+            Bake(job);
+            AssetDatabase.SaveAssets();
+            Debug.Log(string.Join("\n", Report));
+        }
 
-            // 1) planete actuelle de la scene: rayon, centre, duree de run. deja la planete WFC = re-cuisson (pas de re-calage)
+        private static string Folder(WFCPlanetSettingsSO job) => $"{OutputRoot}/WFC_{job.OutputName}";
+
+        public static void Bake(WFCPlanetSettingsSO job)
+        {
+            if (job.Planet == null || string.IsNullOrEmpty(job.ScenePath))
+            {
+                Report.Add($"[{job.name}] no Planet or no valid Planet.Scene: skipped");
+                Debug.LogError($"[WFCBaker] {job.name}: Planet or Planet.Scene is missing, planet not baked.", job);
+                return;
+            }
+            string folder = Folder(job);
+            string gameplayPath = $"{folder}/PF_WFC_Planet_{job.OutputName}.prefab";
+
+            // 1) planete actuelle de la scene: rayon, centre. deja la planete WFC = re-cuisson (pas de re-calage)
             var scene = EditorSceneManager.OpenScene(job.ScenePath, OpenSceneMode.Single);
             var old = FindPlanet(job);
             var oldRoot = old != null ? OutermostRoot(old.gameObject) : null;
             bool alreadyWfc = oldRoot != null && PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(oldRoot) == gameplayPath;
             float targetRadius = old != null ? old.WorldRadius : job.FallbackRadius;
             Vector3 center = old != null ? (Vector3)old.WorldCenter : Vector3.zero;
-            float runDuration = old != null ? new SerializedObject(old).FindProperty("_runDuration").floatValue : job.FallbackRunDuration;
-            Report.Add($"[{job.Name}] current planet '{(oldRoot != null ? oldRoot.name : "none")}'{(alreadyWfc ? " (WFC, re-bake)" : "")} " +
-                       $"radius {targetRadius:0.##} center {center} run {runDuration}s");
+            Report.Add($"[{job.OutputName}] current planet '{(oldRoot != null ? oldRoot.name : "none")}'{(alreadyWfc ? " (WFC, re-bake)" : "")} " +
+                       $"radius {targetRadius:0.##} center {center}");
 
             // 2) generation dans une scene vide (la scene de jeu reste intacte jusqu'a la pose)
             var baked = Generate(job, targetRadius / GenerationRadius);
@@ -155,23 +134,23 @@ namespace Editor
             SeaRadius = seaVerts.Length > 0 ? seaVerts.Average(v => v.magnitude) : 0f;
 
             if (!AssetDatabase.IsValidFolder(folder))
-                AssetDatabase.CreateFolder(OutputRoot, "WFC_" + job.Name);
+                AssetDatabase.CreateFolder(OutputRoot, "WFC_" + job.OutputName);
             var materials = EnsureMaterials(job, folder, targetRadius);
 
             // morceaux pour le culling; lobby = un seul mesh (sol + mer en 2 sous-meshes)
             var dirs = FibonacciDirections(ChunkCount);
-            var landChunks = Chunk(baked.Land, dirs, $"WFC_{job.Name}_Land");
-            var seaChunks = Chunk(baked.Sea, dirs, $"WFC_{job.Name}_Sea");
-            var lobby = Combine(new[] { baked.Land, baked.Sea }, $"WFC_{job.Name}_Lobby");
+            var landChunks = Chunk(baked.Land, dirs, $"WFC_{job.OutputName}_Land");
+            var seaChunks = Chunk(baked.Sea, dirs, $"WFC_{job.OutputName}_Sea");
+            var lobby = Combine(new[] { baked.Land, baked.Sea }, $"WFC_{job.OutputName}_Lobby");
             var sphere = BuildSphere(48, 24);
-            SaveChunks($"{folder}/M_WFC_{job.Name}_Chunks.asset", landChunks.Concat(seaChunks).Append(sphere).ToList());
-            lobby = SaveMesh(lobby, $"{folder}/M_WFC_{job.Name}_Render.asset");
-            var collider = SaveMesh(baked.Collider, $"{folder}/M_WFC_{job.Name}_Collider.asset");
+            SaveChunks($"{folder}/M_WFC_{job.OutputName}_Chunks.asset", landChunks.Concat(seaChunks).Append(sphere).ToList());
+            lobby = SaveMesh(lobby, $"{folder}/M_WFC_{job.OutputName}_Render.asset");
+            var collider = SaveMesh(baked.Collider, $"{folder}/M_WFC_{job.OutputName}_Collider.asset");
             baked.Collider = collider;
 
-            var visual = BuildVisualPrefab(job, lobby, sphere, materials, $"{folder}/PF_WFC_Planet_{job.Name}_Visual.prefab");
-            var gameplay = BuildGameplayPrefab(job, landChunks, seaChunks, sphere, collider, materials, targetRadius, runDuration, gameplayPath);
-            Report.Add($"[{job.Name}] theme {Path.GetFileNameWithoutExtension(job.ThemePath)} density {job.Density} seed {job.Seed}: " +
+            var visual = BuildVisualPrefab(job, lobby, sphere, materials, $"{folder}/PF_WFC_Planet_{job.OutputName}_Visual.prefab");
+            var gameplay = BuildGameplayPrefab(job, landChunks, seaChunks, sphere, collider, materials, targetRadius, gameplayPath);
+            Report.Add($"[{job.OutputName}] theme {Path.GetFileNameWithoutExtension(job.ThemePath)} density {job.Density} seed {job.Seed}: " +
                        $"land {Tris(baked.Land)} tris in {landChunks.Count} chunks, sea {Tris(baked.Sea)} tris in {seaChunks.Count} chunks " +
                        $"({covered * 100f / Mathf.Max(1, baked.Sea.vertexCount):0}% of the sea under land), collider {Tris(collider)} tris");
 
@@ -187,7 +166,7 @@ namespace Editor
                 int sibling = oldRoot != null ? oldRoot.transform.GetSiblingIndex() : 0;
                 if (oldRoot != null)
                 {
-                    Report.Add($"[{job.Name}] removed old planet '{oldRoot.name}'");
+                    Report.Add($"[{job.OutputName}] removed old planet '{oldRoot.name}'");
                     Object.DestroyImmediate(oldRoot);
                 }
                 planet = (GameObject)PrefabUtility.InstantiatePrefab(gameplay, scene);
@@ -198,7 +177,7 @@ namespace Editor
                     var go = scene.GetRootGameObjects().FirstOrDefault(g => g.name == rootName);
                     if (go == null) continue;
                     go.SetActive(false);
-                    Report.Add($"[{job.Name}] disabled '{rootName}' ({go.transform.childCount} children, placed for the old relief)");
+                    Report.Add($"[{job.OutputName}] disabled '{rootName}' ({go.transform.childCount} children, placed for the old relief)");
                 }
                 Resnap(job, scene, planet, collider, center, targetRadius);
             }
@@ -209,15 +188,24 @@ namespace Editor
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
 
-            // 4) lobby: visuel WFC dans l'instance existante (references du prefab conservees), anciens renderers coupes
+            // 4) copie visuelle de la planete dans son PlanetSO, puis visuel du lobby dans l'instance qui la selectionne
+            job.Planet.VisualPrefab = visual;
+            EditorUtility.SetDirty(job.Planet);
             SwapLobbyVisual(job, visual);
         }
 
         private static int Tris(Mesh m) => Enumerable.Range(0, m.subMeshCount).Sum(s => (int)m.GetIndexCount(s)) / 3;
 
-        private static PlanetDataAuthoring FindPlanet(PlanetJob job) =>
-            Object.FindObjectsByType<PlanetDataAuthoring>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-                .FirstOrDefault(p => (int)p.PlanetID == job.PlanetId);
+        // the scene's planet: its single PlanetDataAuthoring (a second one would freeze SceneLoadingSystem, which waits
+        // for exactly one PlanetData)
+        private static PlanetDataAuthoring FindPlanet(WFCPlanetSettingsSO job)
+        {
+            var all = Object.FindObjectsByType<PlanetDataAuthoring>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (all.Length > 1)
+                throw new System.InvalidOperationException(
+                    $"[WFCBaker] {job.OutputName}: {all.Length} PlanetDataAuthoring in {job.ScenePath}, expected at most one");
+            return all.FirstOrDefault();
+        }
 
         // ---------------------------------------------------------------- generation
 
@@ -230,14 +218,14 @@ namespace Editor
             public Mesh Collider;   // sol + niveau 0
         }
 
-        private static Baked Generate(PlanetJob job, float scale)
+        private static Baked Generate(WFCPlanetSettingsSO job, float scale)
         {
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             // singleton du solveur: present dans la scene (sinon il est cree avec DontDestroyOnLoad, interdit hors Play)
             new GameObject("WFC Manager").AddComponent<WaveFunctionCollapseManager>();
 
             var theme = AssetDatabase.LoadAssetAtPath<WFCPlanetTheme>(job.ThemePath);
-            var go = new GameObject("WFC " + job.Name, typeof(MeshFilter), typeof(MeshRenderer), typeof(SphereCollider));
+            var go = new GameObject("WFC " + job.OutputName, typeof(MeshFilter), typeof(MeshRenderer), typeof(SphereCollider));
             var planetMaterial = AssetDatabase.LoadAllAssetsAtPath(PlanetMaterialPath).OfType<Material>().FirstOrDefault();
             go.GetComponent<MeshRenderer>().sharedMaterial = planetMaterial;
             var planet = go.AddComponent<GoldbergPolyhedron>();
@@ -249,7 +237,7 @@ namespace Editor
             so.FindProperty("defaultStamp").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(DefaultStampPath);
             so.ApplyModifiedPropertiesWithoutUndo();
             planet.Generate();
-            Report.Add($"[{job.Name}] generated {planet.LastSlotCount} slots, {planet.LastConflictCount} conflicts");
+            Report.Add($"[{job.OutputName}] generated {planet.LastSlotCount} slots, {planet.LastConflictCount} conflicts");
 
             var toPlanet = Matrix4x4.Scale(Vector3.one * scale) * go.transform.worldToLocalMatrix;
             var byMaterial = new Dictionary<Material, List<CombineInstance>>();
@@ -289,7 +277,7 @@ namespace Editor
                 part.CombineMeshes(byMaterial[mat].ToArray(), true, true);
                 parts.Add(new CombineInstance { mesh = part, transform = Matrix4x4.identity });
             }
-            baked.Land = NewMesh($"WFC_{job.Name}_Land");
+            baked.Land = NewMesh($"WFC_{job.OutputName}_Land");
             baked.Land.CombineMeshes(parts.ToArray(), false, true);
             foreach (var p in parts) Object.DestroyImmediate(p.mesh);
 
@@ -300,7 +288,7 @@ namespace Editor
             baked.LandGround = NewMesh("ground");
             baked.LandGround.CombineMeshes(ground.ToArray(), true, true);
 
-            baked.Sea = NewMesh($"WFC_{job.Name}_Sea");
+            baked.Sea = NewMesh($"WFC_{job.OutputName}_Sea");
             if (sea != null)
                 baked.Sea.CombineMeshes(new[] { sea.Value }, true, true);
 
@@ -308,7 +296,7 @@ namespace Editor
             if (sea != null) all.Add(sea.Value);
             var colliderFull = NewMesh("collider");
             colliderFull.CombineMeshes(all.ToArray(), true, true);
-            baked.Collider = NewMesh($"WFC_{job.Name}_Collider");
+            baked.Collider = NewMesh($"WFC_{job.OutputName}_Collider");
             baked.Collider.SetVertices(colliderFull.vertices);
             baked.Collider.SetTriangles(colliderFull.triangles, 0);
             baked.Collider.RecalculateNormals();
@@ -580,11 +568,11 @@ namespace Editor
         private class PlanetMaterials { public Material Land, Sea, Atmo, Clouds; }
 
         // crees une fois avec les reglages du job, puis laisses tels quels (on peut les retoucher sans que la cuisson les ecrase)
-        private static PlanetMaterials EnsureMaterials(PlanetJob job, string folder, float radius)
+        private static PlanetMaterials EnsureMaterials(WFCPlanetSettingsSO job, string folder, float radius)
         {
             Material Get(string suffix, string shader, System.Action<Material> init)
             {
-                string path = $"{folder}/M_WFC_{job.Name}_{suffix}.mat";
+                string path = $"{folder}/M_WFC_{job.OutputName}_{suffix}.mat";
                 var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
                 if (mat != null) return mat;
                 mat = new Material(Shader.Find(shader)) { name = Path.GetFileNameWithoutExtension(path) };
@@ -638,7 +626,7 @@ namespace Editor
             Enumerable.Repeat(mats.Land, Mathf.Max(1, mesh.subMeshCount)).ToArray();
 
         // coques au-dessus du plus haut point du sol (montagnes, arbres): sinon elles le coupent (mouchetures au bord du disque)
-        private static void AddShells(PlanetJob job, Transform parent, Mesh sphere, PlanetMaterials mats, float radius, float surfaceTop, float seaRadius)
+        private static void AddShells(WFCPlanetSettingsSO job, Transform parent, Mesh sphere, PlanetMaterials mats, float radius, float surfaceTop, float seaRadius)
         {
             float atmo = Mathf.Max(radius * job.AtmoScale, surfaceTop * 1.05f);
             AddShell("Atmosphere", parent, sphere, mats.Atmo, atmo);
@@ -675,7 +663,7 @@ namespace Editor
             mr.receiveShadows = false;
         }
 
-        private static GameObject BuildVisualPrefab(PlanetJob job, Mesh lobby, Mesh sphere, PlanetMaterials mats, string path)
+        private static GameObject BuildVisualPrefab(WFCPlanetSettingsSO job, Mesh lobby, Mesh sphere, PlanetMaterials mats, string path)
         {
             var go = new GameObject(Path.GetFileNameWithoutExtension(path));
             go.AddComponent<MeshFilter>().sharedMesh = lobby;
@@ -688,8 +676,8 @@ namespace Editor
             return prefab;
         }
 
-        private static GameObject BuildGameplayPrefab(PlanetJob job, List<Mesh> land, List<Mesh> sea, Mesh sphere, Mesh collider,
-            PlanetMaterials mats, float radius, float runDuration, string path)
+        private static GameObject BuildGameplayPrefab(WFCPlanetSettingsSO job, List<Mesh> land, List<Mesh> sea, Mesh sphere, Mesh collider,
+            PlanetMaterials mats, float radius, string path)
         {
             var go = new GameObject(Path.GetFileNameWithoutExtension(path));
             const StaticEditorFlags flags = (StaticEditorFlags)127;
@@ -715,12 +703,10 @@ namespace Editor
 
             var data = go.AddComponent<PlanetDataAuthoring>();
             var so = new SerializedObject(data);
-            so.FindProperty("_planetID").intValue = job.PlanetId;
             so.FindProperty("_autoCalculate").boolValue = false;
             so.FindProperty("_planetRenderer").objectReferenceValue = first;
             so.FindProperty("_manualRadius").floatValue = radius;
             so.FindProperty("_manualCenterOffset").vector3Value = Vector3.zero;
-            so.FindProperty("_runDuration").floatValue = runDuration;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             // meme reglage que l'ancienne Volcanus: Mesh, appartient a Landscape, collisionne avec Raycast
@@ -754,7 +740,7 @@ namespace Editor
         }
 
         // objets poses sur l'ancienne surface: rayon vers le centre sur le nouveau collider, meme hauteur au-dessus du sol
-        private static void Resnap(PlanetJob job, Scene scene, GameObject planet, Mesh collider, Vector3 center, float radius)
+        private static void Resnap(WFCPlanetSettingsSO job, Scene scene, GameObject planet, Mesh collider, Vector3 center, float radius)
         {
             var meshCollider = Probe(scene, collider, center);
             var targets = new List<Transform>();
@@ -781,13 +767,13 @@ namespace Editor
                 moved++;
             }
             Object.DestroyImmediate(meshCollider.gameObject);
-            Report.Add($"[{job.Name}] re-snapped {moved} objects onto the WFC surface" +
+            Report.Add($"[{job.OutputName}] re-snapped {moved} objects onto the WFC surface" +
                        (skipped.Count > 0 ? $"; left as is (not on the surface or no hit): {string.Join(", ", skipped)}" : ""));
         }
 
         // le joueur ne doit pas apparaitre dans l'eau ou la lave: point de terre le plus proche (sommet de mer recouvert le plus
         // proche en direction), pose sur le sol
-        private static void MovePlayerStartOnLand(PlanetJob job, Scene scene, Vector3[] seaVerts, Mesh collider, float[] shore, Vector3 center, float radius)
+        private static void MovePlayerStartOnLand(WFCPlanetSettingsSO job, Scene scene, Vector3[] seaVerts, Mesh collider, float[] shore, Vector3 center, float radius)
         {
             var start = scene.GetRootGameObjects().FirstOrDefault(g => g.name.StartsWith("PF_PlayerStart"));
             if (start == null) return;
@@ -809,18 +795,18 @@ namespace Editor
             {
                 start.transform.position = hit.point + landDir * Mathf.Min(height, 2f);
                 start.transform.rotation = Quaternion.FromToRotation(dir, landDir) * start.transform.rotation;
-                Report.Add($"[{job.Name}] PF_PlayerStart was in the {(job.Sea == SeaStyle.Lava ? "lava" : "sea")}: moved {Vector3.Angle(dir, landDir) * Mathf.Deg2Rad * radius:0} m to land");
+                Report.Add($"[{job.OutputName}] PF_PlayerStart was in the {(job.Sea == SeaStyle.Lava ? "lava" : "sea")}: moved {Vector3.Angle(dir, landDir) * Mathf.Deg2Rad * radius:0} m to land");
             }
             Object.DestroyImmediate(mc.gameObject);
         }
 
         // zones de brulure sur la lave: spheres posees au milieu des coulees, rayon borne par la distance au rivage (pas sur la roche)
-        private static List<(Vector3 p, float r)> PlaceLavaHazards(PlanetJob job, Scene scene, Vector3[] verts, float[] shore, Vector3 center)
+        private static List<(Vector3 p, float r)> PlaceLavaHazards(WFCPlanetSettingsSO job, Scene scene, Vector3[] verts, float[] shore, Vector3 center)
         {
             var existing = scene.GetRootGameObjects().FirstOrDefault(g => g.name == HazardRootName);
             if (existing != null) Object.DestroyImmediate(existing);
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(LavaHazardPrefab);
-            if (prefab == null) { Report.Add($"[{job.Name}] {LavaHazardPrefab} not found, no lava hazards"); return new List<(Vector3 p, float r)>(); }
+            if (prefab == null) { Report.Add($"[{job.OutputName}] {LavaHazardPrefab} not found, no lava hazards"); return new List<(Vector3 p, float r)>(); }
 
             const float minRadius = 5f, maxRadius = 18f;
             var candidates = Enumerable.Range(0, verts.Length).Where(i => shore[i] >= minRadius - 1f && shore[i] < 900f)
@@ -850,7 +836,7 @@ namespace Editor
                     so.ApplyModifiedPropertiesWithoutUndo();
                 }
             }
-            Report.Add($"[{job.Name}] placed {chosen.Count} lava hazard zones (radius {minRadius}-{maxRadius}) under '{HazardRootName}'");
+            Report.Add($"[{job.OutputName}] placed {chosen.Count} lava hazard zones (radius {minRadius}-{maxRadius}) under '{HazardRootName}'");
             return chosen;
         }
 
@@ -858,7 +844,7 @@ namespace Editor
 
         // etalonnage propre a la planete (Volume global dans la sous-scene: actif seulement quand la planete est chargee)
         // + braises qui montent des plus grandes coulees de lave. Volume et ParticleSystem sont des companions Entities
-        private static void BuildAmbience(PlanetJob job, Scene scene, string folder, Vector3 center, List<(Vector3 p, float r)> lava)
+        private static void BuildAmbience(WFCPlanetSettingsSO job, Scene scene, string folder, Vector3 center, List<(Vector3 p, float r)> lava)
         {
             var existing = scene.GetRootGameObjects().FirstOrDefault(g => g.name == AmbienceRootName);
             if (existing != null) Object.DestroyImmediate(existing);
@@ -883,12 +869,12 @@ namespace Editor
                     embers++;
                 }
             }
-            Report.Add($"[{job.Name}] ambience: planet grade volume{(embers > 0 ? $", {embers} ember emitters over the lava" : "")}");
+            Report.Add($"[{job.OutputName}] ambience: planet grade volume{(embers > 0 ? $", {embers} ember emitters over the lava" : "")}");
         }
 
-        private static VolumeProfile EnsureProfile(PlanetJob job, string folder)
+        private static VolumeProfile EnsureProfile(WFCPlanetSettingsSO job, string folder)
         {
-            string path = $"{folder}/VP_WFC_{job.Name}.asset";
+            string path = $"{folder}/VP_WFC_{job.OutputName}.asset";
             var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(path);
             if (profile != null) return profile;
             profile = ScriptableObject.CreateInstance<VolumeProfile>();
@@ -1003,17 +989,20 @@ namespace Editor
 
         // ---------------------------------------------------------------- lobby
 
-        private static void SwapLobbyVisual(PlanetJob job, GameObject visual)
+        private static void SwapLobbyVisual(WFCPlanetSettingsSO job, GameObject visual)
         {
             var contents = PrefabUtility.LoadPrefabContents(SelectionPrefab);
             try
             {
-                var target = contents.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == job.LobbyInstanceName);
-                if (target == null)
+                var owners = job.Planet == null ? new List<PlanetComponent>()
+                    : contents.GetComponentsInChildren<PlanetComponent>(true).Where(p => p.Planet == job.Planet).ToList();
+                if (owners.Count != 1)
                 {
-                    Report.Add($"[{job.Name}] lobby: '{job.LobbyInstanceName}' not found in PF_UI_PlanetSelection, untouched");
+                    Report.Add($"[{job.OutputName}] lobby: {owners.Count} PlanetComponent select " +
+                               $"{(job.Planet != null ? job.Planet.name : "no planet")} in PF_UI_PlanetSelection (expected 1), untouched");
                     return;
                 }
+                var target = owners[0].transform;
                 const string childName = "WFC Visual";
                 var previous = target.Find(childName);
                 if (previous != null) Object.DestroyImmediate(previous.gameObject);
@@ -1046,7 +1035,7 @@ namespace Editor
                 foreach (var r in oldRenderers)
                     r.enabled = false;
                 PrefabUtility.SaveAsPrefabAsset(contents, SelectionPrefab);
-                Report.Add($"[{job.Name}] lobby: '{job.LobbyInstanceName}' now shows the WFC planet ({oldRenderers.Length} old renderers disabled)");
+                Report.Add($"[{job.OutputName}] lobby: '{target.name}' now shows the WFC planet ({oldRenderers.Length} old renderers disabled)");
             }
             finally
             {
