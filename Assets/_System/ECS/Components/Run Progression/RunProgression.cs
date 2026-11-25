@@ -5,7 +5,6 @@ using Unity.Entities;
 /// </summary>
 public struct RunProgression : IComponentData
 {
-    public EPlanetID PlanetID;
     public float Timer;
     public float ProgressRatio;
     /// <summary> Ratio of enemies killed in the current wave (0 to 1). </summary>

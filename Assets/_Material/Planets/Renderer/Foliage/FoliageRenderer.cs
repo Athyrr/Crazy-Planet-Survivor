@@ -10,7 +10,6 @@ using UnityEditor;
 public class FoliageRenderer : MonoBehaviour
 {
     #region Members
-    [SerializeField] private EnumValues<EPlanetID, FoliageData> datas;
     [SerializeField] private Mesh _mesh;
     [SerializeField] private Material _material;
     [SerializeField] private Bounds _renderBounds = new Bounds(Vector3.zero, Vector3.one * 1000f);

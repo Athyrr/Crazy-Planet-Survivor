@@ -11,7 +11,6 @@ namespace _Material.Planets.Renderer.Wind
 
         [Header("Reference")]
         [SerializeField] private EnumValues<EPlanetFx, VisualEffect> _vfxEnabled;
-        [SerializeField] private EnumValues<EPlanetID, EPlanetFx> _enabled;
 
         #endregion
 

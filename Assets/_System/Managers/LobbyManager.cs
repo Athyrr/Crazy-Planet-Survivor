@@ -34,8 +34,6 @@ public class LobbyManager : MonoBehaviour
         [Tooltip("Planet whose run moves the galaxy to this placement.")]
         public PlanetSO Planet;
 
-        public EPlanetID PlanetID;
-
         [Tooltip("Local position the galaxy is moved to when a run starts on this planet.")]
         public Vector3 GalaxyPosition;
 

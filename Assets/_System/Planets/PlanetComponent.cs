@@ -9,8 +9,6 @@ public class PlanetComponent : MonoBehaviour,
     [Tooltip("Planet this lobby visual selects. Empty = scenery: it still rotates, but takes no hover, click or outline.")]
     public PlanetSO Planet;
 
-    public EPlanetID PlanetID;
-
     public Vector3 FocusOffset;
 
     [Header("Animation")] public bool AllowRotate = false;

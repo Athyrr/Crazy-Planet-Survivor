@@ -23,12 +23,7 @@ namespace _System.Settings
         [Tooltip("Camera of every planet that does not override it (PlanetSO.OverrideCamera). Read live: tunable in Play.")]
         [SerializeField] private CameraSettingsData _default;
 
-        [Header("Projet Setting")]
-        [SerializeField] private EnumValues<EPlanetID, CameraSettingsData> _planetCameraSettings;
-
         #region Accessor
-
-        public static EnumValues<EPlanetID, CameraSettingsData> PlanetCameraSettings => I._planetCameraSettings;
 
         /// <summary>Global camera, read live from the settings asset.</summary>
         public static CameraSettingsData Default => I._default;

@@ -4,10 +4,6 @@ using UnityEngine;
 
 public class PlanetDataAuthoring : MonoBehaviour
 {
-    [Header("Planet Identity")]
-    [Tooltip("Planet ID")]
-    [SerializeField] private EPlanetID _planetID = EPlanetID.None;
-
     [Header("Auto-Detection")]
     [SerializeField] private bool _autoCalculate = true;
 
@@ -17,15 +13,11 @@ public class PlanetDataAuthoring : MonoBehaviour
     [SerializeField] private float _manualRadius = 50f;
     [SerializeField] private Vector3 _manualCenterOffset = Vector3.zero;
 
-    [Header("Run Settings")]
-    [SerializeField] private float _runDuration = 60f;
-
     private float _finalRadius => _autoCalculate ? CalculateWorldRadius() : _manualRadius;
     private float3 _finalCenter => _autoCalculate ? CalculateWorldCenter() : transform.position + _manualCenterOffset;
 
     // Public read-only accessors so editor tooling (e.g. the Prop Placer) can query the exact surface
     // sphere the game bakes on ANY planet, instead of guessing it from renderer bounds.
-    public EPlanetID PlanetID => _planetID;
     public float WorldRadius => _finalRadius;
     public float3 WorldCenter => _finalCenter;
 
@@ -46,10 +38,8 @@ public class PlanetDataAuthoring : MonoBehaviour
 
             AddComponent(entity, new PlanetData
             {
-                PlanetID = authoring._planetID,
                 Center = center,
                 Radius = radius,
-                RunDuration = authoring._runDuration
             });
         }
     }
