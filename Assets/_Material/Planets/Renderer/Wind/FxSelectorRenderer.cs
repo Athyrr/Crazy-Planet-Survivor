@@ -7,19 +7,11 @@ namespace _Material.Planets.Renderer.Wind
 {
     public class FxSelectorRenderer : MonoBehaviour
     {
-        [Serializable]
-        public enum EFxSelectorRenderer
-        {
-            NONE,
-            WIND,
-            LAVA
-        }
-
         #region Members
-        
-        [Header("Reference")] 
-        [SerializeField] private EnumValues<EFxSelectorRenderer, VisualEffect> _vfxEnabled;
-        [SerializeField] private EnumValues<EPlanetID, EFxSelectorRenderer> _enabled;
+
+        [Header("Reference")]
+        [SerializeField] private EnumValues<EPlanetFx, VisualEffect> _vfxEnabled;
+        [SerializeField] private EnumValues<EPlanetID, EPlanetFx> _enabled;
 
         #endregion
 
