@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e401ce6de3a1fc943aabee9e6a8292b5, type: 3}
+  m_Name: GamePlanetsDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::PlanetsDatabaseSO
+  Lobby: {fileID: 11400000, guid: f0173ae15761af64faf453d7985df697, type: 2}
+  Sandbox: {fileID: 11400000, guid: 651b7c0cb785daa43b8ab8fcad16cc12, type: 2}
+  Planets:
+  - {fileID: 11400000, guid: 5fc58dda5df0ce14081db3b4c8054cc0, type: 2}
+  - {fileID: 11400000, guid: 67fcd43361555054b9e3ebdfe9cbfbcd, type: 2}
+  RunDuration: 600
