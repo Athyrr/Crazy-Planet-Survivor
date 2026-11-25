@@ -28,6 +28,9 @@ public partial struct SceneLoadingSystem : ISystem
                 LoadingSceneEntity = Entity.Null,
             }
         );
+
+        // Planet the loader shows (database index), persistent across loads and outside any RunScope.
+        state.EntityManager.CreateSingleton(new CurrentPlanet { Index = CurrentPlanet.None });
     }
 
     public void OnUpdate(ref SystemState state)
@@ -57,9 +60,9 @@ public partial struct SceneLoadingSystem : ISystem
         entities.Dispose();
         state.EntityManager.DestroyEntity(_requestQuery);
 
-        if (!TryResolveScene(ref state, request.PlanetID, out var sceneRef))
+        if (!TryResolveScene(ref state, request.PlanetIndex, out var sceneRef))
         {
-            Debug.LogError($"[SceneLoading] Scene not found: {request.PlanetID}");
+            Debug.LogError($"[SceneLoading] Scene not found for planet index {request.PlanetIndex}");
             return;
         }
 
@@ -77,6 +80,8 @@ public partial struct SceneLoadingSystem : ISystem
         SetGameState(ref state, EGameState.Loading);
 
         loading.LoadingSceneEntity = SceneSystem.LoadSceneAsync(state.WorldUnmanaged, sceneRef);
+        // Identity is right from the start of the load, as the streamed PlanetData.PlanetID used to be.
+        SystemAPI.SetSingleton(new CurrentPlanet { Index = request.PlanetIndex });
         loading.TargetState = request.TargetState;
         loading.SendStartRequest = request.SendStartRequest;
         loading.MinScreenTime = request.MinScreenTime < 0f ? 0f : request.MinScreenTime;
@@ -187,30 +192,22 @@ public partial struct SceneLoadingSystem : ISystem
         }
 
         loading.Phase = ELoadPhase.Idle;
+        SystemAPI.SetSingleton(new CurrentPlanet { Index = CurrentPlanet.None });
         SetGameState(ref state, EGameState.MainMenu);
     }
 
-    private bool TryResolveScene(
-        ref SystemState state,
-        EPlanetID planetID,
-        out EntitySceneReference sceneRef
-    )
+    private bool TryResolveScene(ref SystemState state, int planetIndex, out EntitySceneReference sceneRef)
     {
         sceneRef = default;
 
-        if (!SystemAPI.TryGetSingletonBuffer<PlanetSceneRefBufferElement>(out var buffer, true))
+        if (!SystemAPI.TryGetSingletonBuffer<PlanetEntry>(out var entries, true))
             return false;
 
-        foreach (var scene in buffer)
-        {
-            if (scene.PlanetID == planetID)
-            {
-                sceneRef = scene.SceneReference;
-                return true;
-            }
-        }
+        if (planetIndex < 0 || planetIndex >= entries.Length)
+            return false;
 
-        return false;
+        sceneRef = entries[planetIndex].Scene;
+        return true;
     }
 
     private void SetGameState(ref SystemState state, EGameState newState)

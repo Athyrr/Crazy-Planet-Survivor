@@ -31,6 +31,9 @@ public class LobbyManager : MonoBehaviour
     [System.Serializable]
     private struct GalaxyPlanetPlacement
     {
+        [Tooltip("Planet whose run moves the galaxy to this placement.")]
+        public PlanetSO Planet;
+
         public EPlanetID PlanetID;
 
         [Tooltip("Local position the galaxy is moved to when a run starts on this planet.")]
@@ -55,7 +58,7 @@ public class LobbyManager : MonoBehaviour
     private bool _galaxyHomeCaptured;
 
     // Planet selected for the current/last run, deactivated on run start and reactivated on return.
-    private EPlanetID _selectedPlanetID = EPlanetID.None;
+    private PlanetSO _selectedPlanet;
     private Transform _selectedPlanetTransform;
     private GameObject _deactivatedPlanet;
 
@@ -219,14 +222,14 @@ public class LobbyManager : MonoBehaviour
     }
 
     private void HandlePlanetFocus(
-        EPlanetID planetID,
+        PlanetSO planet,
         Transform planetTransform,
         Vector3 focusOffset
     )
     {
-        if (planetID != EPlanetID.None && planetTransform != null)
+        if (planet != null && planetTransform != null)
         {
-            _selectedPlanetID = planetID;
+            _selectedPlanet = planet;
             _selectedPlanetTransform = planetTransform;
 
             PlanetFocusCamera.Follow = planetTransform;
@@ -242,7 +245,7 @@ public class LobbyManager : MonoBehaviour
         }
         else
         {
-            _selectedPlanetID = EPlanetID.None;
+            _selectedPlanet = null;
             _selectedPlanetTransform = null;
 
             PlanetFocusCamera.Priority = 0;
@@ -273,7 +276,7 @@ public class LobbyManager : MonoBehaviour
         }
 
         // Move the galaxy to the placement configured for the selected planet.
-        if (_galaxy != null && TryGetGalaxyPlacement(_selectedPlanetID, out var placement))
+        if (_galaxy != null && TryGetGalaxyPlacement(_selectedPlanet, out var placement))
         {
             _galaxy.transform.localPosition = placement.GalaxyPosition;
             _galaxy.transform.localEulerAngles = placement.GalaxyRotation;
@@ -300,17 +303,17 @@ public class LobbyManager : MonoBehaviour
             _deactivatedPlanet = null;
         }
 
-        _selectedPlanetID = EPlanetID.None;
+        _selectedPlanet = null;
         _selectedPlanetTransform = null;
     }
 
-    private bool TryGetGalaxyPlacement(EPlanetID planetID, out GalaxyPlanetPlacement placement)
+    private bool TryGetGalaxyPlacement(PlanetSO planet, out GalaxyPlanetPlacement placement)
     {
-        if (_galaxyPlacements != null)
+        if (planet != null && _galaxyPlacements != null)
         {
             foreach (var entry in _galaxyPlacements)
             {
-                if (entry.PlanetID == planetID)
+                if (entry.Planet == planet)
                 {
                     placement = entry;
                     return true;

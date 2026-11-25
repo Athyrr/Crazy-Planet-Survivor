@@ -140,7 +140,18 @@ public partial struct AvoidanceSystem : ISystem
                 ? CpAvoidanceSettings.I.LodFallbackCameraHeight
                 : FallbackCameraHeight;
             if (CpBaseCameraSettings.I != null)
-                cameraHeight = CpBaseCameraSettings.PlanetCameraSettings[planetData.PlanetID].RadiusOffset;
+            {
+                bool overrideCamera = false;
+                var planetCamera = default(CpBaseCameraSettings.CameraSettingsData);
+                if (SystemAPI.TryGetSingleton<CurrentPlanet>(out var current)
+                    && SystemAPI.TryGetSingletonBuffer<PlanetEntry>(out var entries, true)
+                    && current.TryGetEntry(entries, out var entry))
+                {
+                    overrideCamera = entry.OverrideCamera;
+                    planetCamera = entry.Camera;
+                }
+                cameraHeight = CpBaseCameraSettings.Resolve(overrideCamera, planetCamera).RadiusOffset;
+            }
 
             float cosDegrade = FallbackLodCosDegrade;
             float cosRestore = FallbackLodCosRestore;

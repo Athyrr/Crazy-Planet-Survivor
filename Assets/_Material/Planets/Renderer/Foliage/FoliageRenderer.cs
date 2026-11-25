@@ -72,11 +72,11 @@ public class FoliageRenderer : MonoBehaviour
         }
     }
 
-    private void OnGameStateChanged(EPlanetID planetID)
+    private void OnGameStateChanged(PlanetSO planet)
     {
         ReleaseBuffers();
         
-        _data = datas[planetID];
+        _data = planet != null ? planet.Foliage : null;
         
         CreateBuffers();
     }

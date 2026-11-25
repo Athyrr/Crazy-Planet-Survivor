@@ -6,7 +6,11 @@ using Unity.Entities;
 /// </summary>
 public struct LoadSceneRequest : IComponentData
 {
-    public EPlanetID PlanetID;
+    /// <summary>
+    /// Index of the planet in the baked planets database (PlanetsDatabaseSO order). Never written by hand:
+    /// GameManager gets it from PlanetsDatabaseSO.IndexOf.
+    /// </summary>
+    public int PlanetIndex;
 
     /// <summary>State the game enters once the scene is fully streamed and its data is ready.</summary>
     public EGameState TargetState;

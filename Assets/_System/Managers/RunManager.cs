@@ -26,7 +26,6 @@ public class RunManager : MonoBehaviour
     private EntityQuery _gameStateQuery;
     private EntityQuery _finalBossQuery;
     private EntityQuery _audioPlayerQuery;
-    private EntityQuery _planetDataQuery;
 
     // True once the current final boss's appear-message has been played (reset when no boss is present).
     private bool _bossAnnounced;
@@ -58,7 +57,6 @@ public class RunManager : MonoBehaviour
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
         _endRunQuery = _entityManager.CreateEntityQuery(typeof(EndRunRequest));
         _playerQuery = _entityManager.CreateEntityQuery(typeof(Player));
-        _planetDataQuery = _entityManager.CreateEntityQuery(typeof(PlanetData));
         _finalBossQuery = _entityManager.CreateEntityQuery(
             ComponentType.ReadOnly<FinalBossTag>(),
             ComponentType.ReadOnly<BossPresentation>()
@@ -136,7 +134,7 @@ public class RunManager : MonoBehaviour
         var endRunRequest = _entityManager.GetComponentData<EndRunRequest>(requests[0]);
 
         // Sandbox planet: a run never ends (a boss spawned by hand, any stray request) — no victory, no GameOver.
-        if (_planetDataQuery.TryGetSingleton<PlanetData>(out var planet) && planet.PlanetID == EPlanetID.Sandbox)
+        if (PlanetsDatabase.IsCurrentSandbox(_entityManager))
         {
             Debug.Log($"[Sandbox] EndRunRequest ({endRunRequest.State}) ignored: the Sandbox run never ends.");
             _entityManager.DestroyEntity(requests);

@@ -13,7 +13,7 @@ public class GameManager : MonoBehaviour
 
     public event GameStateChanged OnGameStateChanged;
 
-    public Action<EPlanetID> OnPlanetSelected;
+    public Action<PlanetSO> OnPlanetSelected;
 
     public Canvas LoadingCanvas;
 
@@ -45,11 +45,21 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private int TargetFrameRate = 60;
 
+    [Header("Planets")]
+    [Tooltip("Planets database baked into SC_Entity_Core by PF_Database_Planets (same asset). A planet's index in it " +
+             "is its only key between ECS and managed code.")]
+    [SerializeField]
+    private PlanetsDatabaseSO _planets;
+
+    /// <summary>The planets database (Lobby, Sandbox, playable planets).</summary>
+    public PlanetsDatabaseSO Planets => _planets;
+
     public static GameManager Instance { get; private set; }
 
     private EntityManager _entityManager;
     private EntityQuery _gameStateQuery;
-    private EntityQuery _planetScenesBufferQuery;
+    private EntityQuery _planetsDatabaseQuery;
+    private EntityQuery _currentPlanetQuery;
     private EntityQuery _planetDataQuery;
 
     // Mirror of the ECS GameState. The scene loader (SceneLoadingSystem) mutates the GameState
@@ -92,13 +102,13 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator WaitForSceneBufferCoroutine()
     {
-        // Wait until the baked planet-scene reference buffer is available before loading the lobby.
-        while (_planetScenesBufferQuery.IsEmpty)
+        // Wait until the baked planets database is available before loading the lobby.
+        while (_planetsDatabaseQuery.IsEmpty)
         {
             yield return null;
         }
 
-        RequestLoad(EPlanetID.Lobby, EGameState.Lobby, sendStartRequest: false);
+        RequestLoad(_planets != null ? _planets.Lobby : null, EGameState.Lobby, sendStartRequest: false);
     }
 
     private void OnEnable()
@@ -107,9 +117,8 @@ public class GameManager : MonoBehaviour
 
         _entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         _gameStateQuery = _entityManager.CreateEntityQuery(typeof(GameState));
-        _planetScenesBufferQuery = _entityManager.CreateEntityQuery(
-            typeof(PlanetSceneRefBufferElement)
-        );
+        _planetsDatabaseQuery = _entityManager.CreateEntityQuery(typeof(PlanetsDatabase));
+        _currentPlanetQuery = _entityManager.CreateEntityQuery(typeof(CurrentPlanet));
         _planetDataQuery = _entityManager.CreateEntityQuery(typeof(PlanetData));
     }
 
@@ -139,14 +148,20 @@ public class GameManager : MonoBehaviour
         // load was aborted, so no planet was actually selected.
         if (previous == EGameState.Loading && current != EGameState.MainMenu)
         {
-            if (_planetDataQuery.HasSingleton<PlanetData>())
-                OnPlanetSelected?.Invoke(_planetDataQuery.GetSingleton<PlanetData>().PlanetID);
+            if (_planetDataQuery.HasSingleton<PlanetData>()
+                && _currentPlanetQuery.TryGetSingleton<CurrentPlanet>(out var currentPlanet)
+                && _planets != null)
+            {
+                PlanetSO planet = _planets.Get(currentPlanet.Index);
+                if (planet != null)
+                    OnPlanetSelected?.Invoke(planet);
+            }
         }
     }
 
     /// <param name="skipIntro">No RunStarting countdown (sandbox): the run is Running as soon as the scene is ready.</param>
     /// <param name="clearCurrentRun">A run is in progress: clear its RunScope entities first, like ReturnToLobby.</param>
-    public void StartRun(EPlanetID planet, bool skipIntro = false, bool clearCurrentRun = false)
+    public void StartRun(PlanetSO planet, bool skipIntro = false, bool clearCurrentRun = false)
     {
         if (clearCurrentRun)
         {
@@ -162,7 +177,7 @@ public class GameManager : MonoBehaviour
         var entity = _entityManager.CreateEntity();
         _entityManager.AddComponentData(entity, new ClearRunRequest());
 
-        RequestLoad(EPlanetID.Lobby, EGameState.Lobby, sendStartRequest: false);
+        RequestLoad(_planets != null ? _planets.Lobby : null, EGameState.Lobby, sendStartRequest: false);
     }
 
     public void Quit()
@@ -179,14 +194,22 @@ public class GameManager : MonoBehaviour
     /// unload/stream/transition sequence. Concurrent requests are rejected by the system, so this
     /// is safe to call even while a load is in flight.
     /// </summary>
-    private void RequestLoad(EPlanetID planetID, EGameState targetState, bool sendStartRequest, bool skipIntro = false)
+    private void RequestLoad(PlanetSO planet, EGameState targetState, bool sendStartRequest, bool skipIntro = false)
     {
+        int index = _planets != null ? _planets.IndexOf(planet) : -1;
+        if (index < 0)
+        {
+            Debug.LogError($"[GameManager] Load refused: planet '{(planet != null ? planet.name : "null")}' is not in " +
+                           "the planets database (GameManager > Planets).", this);
+            return;
+        }
+
         var entity = _entityManager.CreateEntity();
         _entityManager.AddComponentData(
             entity,
             new LoadSceneRequest
             {
-                PlanetID = planetID,
+                PlanetIndex = index,
                 TargetState = targetState,
                 SendStartRequest = sendStartRequest,
                 MinScreenTime = _minLoadingTime,
@@ -195,7 +218,7 @@ public class GameManager : MonoBehaviour
             }
         );
 
-        Debug.Log($"[GameManager] Load requested: {planetID}");
+        Debug.Log($"[GameManager] Load requested: {planet.name} (index {index})");
     }
 
     public void ChangeState(EGameState newState)

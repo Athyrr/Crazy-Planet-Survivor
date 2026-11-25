@@ -134,12 +134,10 @@ MonoBehaviour:
   MetaProgressionController: {fileID: 0}
   _galaxy: {fileID: 0}
   _galaxyPlacements:
-  - PlanetID: 3
+  - Planet: {fileID: 11400000, guid: 5fc58dda5df0ce14081db3b4c8054cc0, type: 2}
+    PlanetID: 3
     GalaxyPosition: {x: 10571, y: -7800, z: 5907}
     GalaxyRotation: {x: -44.5, y: -15.5, z: 0}
-  - PlanetID: 1
-    GalaxyPosition: {x: -799, y: -7942, z: 2644}
-    GalaxyRotation: {x: -44.9, y: 0, z: 0}
 --- !u!1 &2797364882074898508
 GameObject:
   m_ObjectHideFlags: 0
@@ -237,8 +235,10 @@ MonoBehaviour:
   MainMenuCanvas: {fileID: 0}
   _minLoadingTime: 5
   _loadTimeout: 45
+  _runStartDelay: 5
   _joystickCanvas: {fileID: 0}
   TargetFrameRate: 60
+  _planets: {fileID: 11400000, guid: 223af41fbe6993e4294991dff3aaf2c7, type: 2}
   StartingState: 10
 --- !u!1 &8739841618001394295
 GameObject:

@@ -75,9 +75,19 @@ public partial class CameraTargetUpdaterSystem : SystemBase
         _cameraTargetTransform.rotation = Quaternion.LookRotation(toCenter, currentUp);
         
         float radiusOffset = 35f; // fallback used when no planet data / settings asset is available
-        if (CpBaseCameraSettings.I != null && SystemAPI.TryGetSingleton<PlanetData>(out var planetData))
+        if (CpBaseCameraSettings.I != null && SystemAPI.HasSingleton<PlanetData>())
         {
-            var cam = CpBaseCameraSettings.PlanetCameraSettings[planetData.PlanetID];
+            // The loaded planet's baked override, else the live global camera (CpBaseCameraSettings.Resolve).
+            bool overrideCamera = false;
+            var planetCamera = default(CpBaseCameraSettings.CameraSettingsData);
+            if (SystemAPI.TryGetSingleton<CurrentPlanet>(out var current)
+                && SystemAPI.TryGetSingletonBuffer<PlanetEntry>(out var entries, true)
+                && current.TryGetEntry(entries, out var entry))
+            {
+                overrideCamera = entry.OverrideCamera;
+                planetCamera = entry.Camera;
+            }
+            var cam = CpBaseCameraSettings.Resolve(overrideCamera, planetCamera);
 
             radiusOffset = cam.RadiusOffset;
             _cameraTargetFollow.VerticalAxis.Value = cam.VerticalAxis;

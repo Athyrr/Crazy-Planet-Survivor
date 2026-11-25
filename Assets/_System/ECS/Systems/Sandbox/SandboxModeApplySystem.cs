@@ -26,6 +26,8 @@ public partial struct SandboxModeApplySystem : ISystem
     {
         state.RequireForUpdate<GameState>();
         state.RequireForUpdate<PlanetData>();
+        state.RequireForUpdate<CurrentPlanet>();
+        state.RequireForUpdate<PlanetsDatabase>();
 
         _settingsQuery = state.GetEntityQuery(ComponentType.ReadWrite<SandboxSettings>());
 
@@ -47,10 +49,10 @@ public partial struct SandboxModeApplySystem : ISystem
     {
         var em = state.EntityManager;
         var gameState = SystemAPI.GetSingleton<GameState>().State;
-        var planet = SystemAPI.GetSingleton<PlanetData>();
+        bool onSandbox = SystemAPI.GetSingleton<CurrentPlanet>().Index == SystemAPI.GetSingleton<PlanetsDatabase>().SandboxIndex;
 
         // 1) Bootstrap on the Sandbox planet.
-        if (planet.PlanetID == EPlanetID.Sandbox
+        if (onSandbox
             && (gameState == EGameState.Running || gameState == EGameState.RunStarting))
         {
             if (_settingsQuery.IsEmpty)

@@ -2,33 +2,17 @@ using UnityEngine;
 
 public class SaveManagerExtender : MonoBehaviour
 {
+    // The auto-save on lobby arrival is intentionally disabled. It never fired before so-inheritance lot 3: the lobby
+    // baked the None planet id, so the Lobby branch was never reached. Once the loader gave the real identity it would
+    // have saved on every lobby arrival. The save system is a separate need: do not re-enable it here.
+
     private void OnEnable()
     {
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnPlanetSelected += OnGameStateChanged;
-
         LoadLastSave();
-    }
-
-    private void OnDisable()
-    {
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnPlanetSelected -= OnGameStateChanged;
     }
 
     private void LoadLastSave()
     {
         SaveManager.LoadSelectedSave();
-    }
-
-    private void OnGameStateChanged(EPlanetID planetID)
-    {
-        switch (planetID)
-        {
-            case EPlanetID.Lobby:
-                // todo create event first load when we lunch game
-                SaveManager.ManualSave();
-                break;
-        }
     }
 }

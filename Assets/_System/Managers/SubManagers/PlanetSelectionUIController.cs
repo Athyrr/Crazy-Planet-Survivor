@@ -8,13 +8,13 @@ using UnityEngine.UI;
 
 public class PlanetSelectionUIController : MonoBehaviour
 {
-    public delegate void OnPlanetSelectedDelegate(EPlanetID planetID, Transform planetTransform, Vector3 focusOffset);
-    public delegate void OnPlanetHoveredDelegate(EPlanetID planetID);
+    public delegate void OnPlanetSelectedDelegate(PlanetSO planet, Transform planetTransform, Vector3 focusOffset);
+    public delegate void OnPlanetHoveredDelegate(PlanetSO planet);
 
-    /// <summary>Fired when the committed (focused) planet changes. Drives camera focus + select visual.</summary>
+    /// <summary>Fired when the committed (focused) planet changes (null = none). Drives camera focus + select visual.</summary>
     public event OnPlanetSelectedDelegate OnPlanetSelected = null;
 
-    /// <summary>Fired when the highlighted (hovered) planet changes. Drives the hover visual only.</summary>
+    /// <summary>Fired when the highlighted (hovered) planet changes (null = none). Drives the hover visual only.</summary>
     public event OnPlanetHoveredDelegate OnPlanetHovered = null;
 
     public Button ExploreButton;
@@ -24,8 +24,9 @@ public class PlanetSelectionUIController : MonoBehaviour
 
     public Button BackButton;
 
-    private EPlanetID _focusedPlanet;
-    private EPlanetID _hoveredPlanet;   
+    // null = no planet focused / hovered.
+    private PlanetSO _focusedPlanet;
+    private PlanetSO _hoveredPlanet;
 
     private GameInputs _inputs;
     private List<PlanetComponent> _planets = new();
@@ -33,8 +34,8 @@ public class PlanetSelectionUIController : MonoBehaviour
 
     private void Awake()
     {
-        _focusedPlanet = EPlanetID.None;
-        _hoveredPlanet = EPlanetID.None;
+        _focusedPlanet = null;
+        _hoveredPlanet = null;
     }
 
     private void OnEnable()
@@ -63,8 +64,8 @@ public class PlanetSelectionUIController : MonoBehaviour
         SetExploreOutlineFocused(false);
         if (BackButton != null)
             BackButton.gameObject.SetActive(false);
-        _focusedPlanet = EPlanetID.None;
-        _hoveredPlanet = EPlanetID.None;
+        _focusedPlanet = null;
+        _hoveredPlanet = null;
 
         if (_inputs != null)
         {
@@ -77,63 +78,63 @@ public class PlanetSelectionUIController : MonoBehaviour
         }
     }
 
-    public EPlanetID SelectedPlanet => _focusedPlanet;
-    public EPlanetID HoveredPlanet => _hoveredPlanet;
+    public PlanetSO SelectedPlanet => _focusedPlanet;
+    public PlanetSO HoveredPlanet => _hoveredPlanet;
 
 
     /// <summary>
     /// Highlights a planet (controller navigation, or mouse/touch pointer-enter).
     /// Locked while a planet is focused — you must unfocus (Cancel) before hovering another.
     /// </summary>
-    public void HoverPlanet(EPlanetID planetID)
+    public void HoverPlanet(PlanetSO planet)
     {
-        if (_focusedPlanet != EPlanetID.None)
+        if (_focusedPlanet != null)
             return;
 
-        if (_hoveredPlanet == planetID)
+        if (_hoveredPlanet == planet)
             return;
 
-        _hoveredPlanet = planetID;
+        _hoveredPlanet = planet;
         OnPlanetHovered?.Invoke(_hoveredPlanet);
     }
 
     /// <summary>Clears the hover when the pointer leaves the hovered planet (ignored while focused).</summary>
-    public void ClearHover(EPlanetID planetID)
+    public void ClearHover(PlanetSO planet)
     {
-        if (_focusedPlanet != EPlanetID.None)
+        if (_focusedPlanet != null)
             return;
 
-        if (_hoveredPlanet != planetID)
+        if (_hoveredPlanet != planet)
             return;
 
-        _hoveredPlanet = EPlanetID.None;
+        _hoveredPlanet = null;
         
         // BackButton.gameObject.SetActive(true);
         
-        OnPlanetHovered?.Invoke(EPlanetID.None);
+        OnPlanetHovered?.Invoke(null);
     }
 
     // ---------- Focus (committed selection) ----------
 
-    public void SelectPlanet(EPlanetID planetID, Transform planetTransform = null, Vector3 focusOffset = default)
+    public void SelectPlanet(PlanetSO planet, Transform planetTransform = null, Vector3 focusOffset = default)
     {
-        if (_focusedPlanet == planetID)
+        if (_focusedPlanet == planet)
         {
             // Toggle off.
-            _focusedPlanet = EPlanetID.None;
+            _focusedPlanet = null;
             planetTransform = null;
         }
         else
         {
-            _focusedPlanet = planetID;
+            _focusedPlanet = planet;
         }
 
-        bool hasSelection = _focusedPlanet != EPlanetID.None;
+        bool hasSelection = _focusedPlanet != null;
         ExploreButton.gameObject.SetActive(hasSelection);
         SetExploreOutlineFocused(hasSelection);
 
         if (hasSelection)
-            Debug.Log($"[Planet Selection] Focused Planet: {_focusedPlanet}");
+            Debug.Log($"[Planet Selection] Focused Planet: {_focusedPlanet.name}");
 
         BackButton.gameObject.SetActive(!hasSelection);
         
@@ -143,21 +144,22 @@ public class PlanetSelectionUIController : MonoBehaviour
     /// <summary>Mouse/touch tap on a planet. While focused, only the focused planet responds (toggles off).</summary>
     public void ClickPlanet(PlanetComponent planet)
     {
-        if (planet == null)
+        // Scenery planets (no PlanetSO) are not selectable.
+        if (planet == null || planet.Planet == null)
             return;
 
         // Locked to the focused planet — tapping another is ignored until you unfocus.
-        if (_focusedPlanet != EPlanetID.None && planet.PlanetID != _focusedPlanet)
+        if (_focusedPlanet != null && planet.Planet != _focusedPlanet)
             return;
 
-        HoverPlanet(planet.PlanetID);
-        SelectPlanet(planet.PlanetID, planet.transform, planet.FocusOffset);
+        HoverPlanet(planet.Planet);
+        SelectPlanet(planet.Planet, planet.transform, planet.FocusOffset);
     }
 
     /// <summary>Confirm input: focus the hovered planet, or launch the run if it is already focused.</summary>
     public void ConfirmHovered()
     {
-        if (_hoveredPlanet == EPlanetID.None)
+        if (_hoveredPlanet == null)
             return;
 
         if (_focusedPlanet == _hoveredPlanet)
@@ -168,17 +170,17 @@ public class PlanetSelectionUIController : MonoBehaviour
 
         var planet = FindPlanet(_hoveredPlanet);
         if (planet != null)
-            SelectPlanet(planet.PlanetID, planet.transform, planet.FocusOffset);
+            SelectPlanet(planet.Planet, planet.transform, planet.FocusOffset);
     }
 
     public void ExplorePlanet()
     {
-        if (_focusedPlanet == EPlanetID.None)
+        if (_focusedPlanet == null)
             return;
 
         // Capture and clear first so a double confirm/click can't launch twice.
         var planet = _focusedPlanet;
-        _focusedPlanet = EPlanetID.None;
+        _focusedPlanet = null;
         ExploreButton.gameObject.SetActive(false);
         SetExploreOutlineFocused(false);
         if (BackButton != null)
@@ -193,23 +195,23 @@ public class PlanetSelectionUIController : MonoBehaviour
         if (!IsSelecting())
             return;
 
-        _focusedPlanet = EPlanetID.None;
-        _hoveredPlanet = EPlanetID.None;
+        _focusedPlanet = null;
+        _hoveredPlanet = null;
         ExploreButton.gameObject.SetActive(false);
         SetExploreOutlineFocused(false);
         if (BackButton != null)
             BackButton.gameObject.SetActive(false);
 
-        OnPlanetSelected?.Invoke(EPlanetID.None, null, default);
-        OnPlanetHovered?.Invoke(EPlanetID.None);
+        OnPlanetSelected?.Invoke(null, null, default);
+        OnPlanetHovered?.Invoke(null);
 
         GameManager.Instance.ChangeState(EGameState.Lobby);
     }
 
     public void OpenView()
     {
-        _focusedPlanet = EPlanetID.None;
-        _hoveredPlanet = EPlanetID.None;
+        _focusedPlanet = null;
+        _hoveredPlanet = null;
         ExploreButton.gameObject.SetActive(false);
         SetExploreOutlineFocused(false);
 
@@ -219,8 +221,8 @@ public class PlanetSelectionUIController : MonoBehaviour
 
         RefreshPlanets();
 
-        OnPlanetSelected?.Invoke(EPlanetID.None, null, default);
-        OnPlanetHovered?.Invoke(EPlanetID.None);
+        OnPlanetSelected?.Invoke(null, null, default);
+        OnPlanetHovered?.Invoke(null);
     }
 
     public void CloseView()
@@ -229,8 +231,8 @@ public class PlanetSelectionUIController : MonoBehaviour
         SetExploreOutlineFocused(false);
         if (BackButton != null)
             BackButton.gameObject.SetActive(false);
-        _focusedPlanet = EPlanetID.None;
-        _hoveredPlanet = EPlanetID.None;
+        _focusedPlanet = null;
+        _hoveredPlanet = null;
     }
 
     /// <summary>
@@ -263,16 +265,16 @@ public class PlanetSelectionUIController : MonoBehaviour
         GameManager.Instance != null && GameManager.Instance.GetGameState() == EGameState.PlanetSelection;
 
 
-    /// <summary>Collects the selectable planets in the scene, ordered left-to-right.</summary>
+    /// <summary>Collects the selectable planets (those with a PlanetSO) in the scene, ordered left-to-right.</summary>
     private void RefreshPlanets()
     {
         _planets = FindObjectsByType<PlanetComponent>(FindObjectsSortMode.None)
-            .Where(p => p.PlanetID != EPlanetID.None && p.PlanetID != EPlanetID.Lobby)
+            .Where(p => p.Planet != null)
             .OrderBy(p => p.transform.position.x)
             .ToList();
     }
 
-    private PlanetComponent FindPlanet(EPlanetID id) => _planets.FirstOrDefault(p => p.PlanetID == id);
+    private PlanetComponent FindPlanet(PlanetSO planet) => _planets.FirstOrDefault(p => p.Planet == planet);
 
     private void OnNavigate(InputAction.CallbackContext ctx)
     {
@@ -280,7 +282,7 @@ public class PlanetSelectionUIController : MonoBehaviour
             return;
 
         // Hover is locked while a planet is focused — unfocus (Cancel) first.
-        if (_focusedPlanet != EPlanetID.None)
+        if (_focusedPlanet != null)
             return;
 
         if (_planets.Count == 0)
@@ -303,11 +305,11 @@ public class PlanetSelectionUIController : MonoBehaviour
 
         int step = x > 0 ? 1 : -1;
         int n = _planets.Count;
-        int current = _planets.FindIndex(p => p.PlanetID == _hoveredPlanet);
+        int current = _planets.FindIndex(p => p.Planet == _hoveredPlanet);
         int start = current < 0 ? (step > 0 ? -1 : 0) : current;
         int next = ((start + step) % n + n) % n;
 
-        HoverPlanet(_planets[next].PlanetID);
+        HoverPlanet(_planets[next].Planet);
     }
 
     private void OnConfirm(InputAction.CallbackContext ctx)
@@ -324,9 +326,9 @@ public class PlanetSelectionUIController : MonoBehaviour
             return;
 
         // A planet is focused → drop the focus but keep the hover (navigation can continue from here).
-        if (_focusedPlanet != EPlanetID.None)
+        if (_focusedPlanet != null)
         {
-            SelectPlanet(_focusedPlanet); // same id → toggles the focus off
+            SelectPlanet(_focusedPlanet); // same planet → toggles the focus off
             return;
         }
 

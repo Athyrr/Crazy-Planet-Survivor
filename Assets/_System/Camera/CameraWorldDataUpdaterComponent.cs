@@ -77,9 +77,12 @@ public class CameraWorldDataUpdaterComponent : MonoBehaviour
 
     #region Methods
     
-    private void OnGameStateChanged(EPlanetID planetID)
+    private void OnGameStateChanged(PlanetSO planet)
     {
-        var data = CpBaseCameraSettings.PlanetCameraSettings[planetID];
+        if (planet == null)
+            return;
+
+        var data = planet.EffectiveCamera;
 
         _cameraGameOrbitalFollow.VerticalAxis.Value = data.VerticalAxis;
         _cameraGameOrbitalFollow.RadialAxis.Value = data.RadialAxis;

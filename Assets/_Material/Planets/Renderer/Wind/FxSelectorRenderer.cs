@@ -29,9 +29,9 @@ namespace _Material.Planets.Renderer.Wind
                 GameManager.Instance.OnPlanetSelected -= OnGameStateChanged;
         }
 
-        private void OnGameStateChanged(EPlanetID planetID)
+        private void OnGameStateChanged(PlanetSO planet)
         {
-            var vfx = _enabled[planetID];
+            EPlanetFx fx = planet != null ? planet.Fx : EPlanetFx.None;
             
             // step 1 disable all fx
             var vfxEnabled = _vfxEnabled.ToList();
@@ -39,8 +39,8 @@ namespace _Material.Planets.Renderer.Wind
                 if (value.Value!= null) value.Value.gameObject.SetActive(false);
             
             // step 2 enable selected
-            if (_vfxEnabled[vfx] != null)
-                _vfxEnabled[vfx].gameObject.SetActive(true);
+            if (_vfxEnabled[fx] != null)
+                _vfxEnabled[fx].gameObject.SetActive(true);
         }
 
         #endregion

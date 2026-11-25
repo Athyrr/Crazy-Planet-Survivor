@@ -43,11 +43,7 @@ public static class SandboxCommandUtils
         return q.TryGetSingleton<GameState>(out var gs) ? gs.State : EGameState.MainMenu;
     }
 
-    public static bool IsSandboxPlanet(EntityManager em)
-    {
-        using var q = em.CreateEntityQuery(typeof(PlanetData));
-        return q.TryGetSingleton<PlanetData>(out var p) && p.PlanetID == EPlanetID.Sandbox;
-    }
+    public static bool IsSandboxPlanet(EntityManager em) => PlanetsDatabase.IsCurrentSandbox(em);
 
     /// <summary>The SandboxSettings singleton; created (all modes off, RunScope) when missing.</summary>
     public static Entity EnsureSandboxSettings(EntityManager em)

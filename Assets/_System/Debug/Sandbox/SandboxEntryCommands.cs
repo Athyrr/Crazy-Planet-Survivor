@@ -16,16 +16,14 @@ public static class SandboxEntryCommands
         if (state == EGameState.Loading)
             return "Chargement en cours, réessaie après.";
 
-        using (var scenes = em.CreateEntityQuery(typeof(PlanetSceneRefBufferElement)))
+        using (var databases = em.CreateEntityQuery(typeof(PlanetsDatabase)))
         {
-            if (scenes.IsEmpty)
+            if (databases.IsEmpty)
                 return "Scènes de planètes pas encore chargées, réessaie.";
-            bool found = false;
-            foreach (var s in em.GetBuffer<PlanetSceneRefBufferElement>(scenes.GetSingletonEntity(), true))
-                found |= s.PlanetID == EPlanetID.Sandbox;
-            if (!found)
-                return "Pas de scène Sandbox dans Game Scenes Config (rebake SC_Entity_Core).";
         }
+        PlanetSO sandbox = GameManager.Instance.Planets != null ? GameManager.Instance.Planets.Sandbox : null;
+        if (sandbox == null)
+            return "No Sandbox planet in the planets database (GameManager > Planets).";
 
         SandboxPreset loaded = null;
         if (!string.IsNullOrWhiteSpace(preset))
@@ -51,7 +49,7 @@ public static class SandboxEntryCommands
                      || state == EGameState.UpgradeSelection || state == EGameState.GameOver;
 
         SandboxSession.ResetBuild();
-        GameManager.Instance.StartRun(EPlanetID.Sandbox, skipIntro: true, clearCurrentRun: inRun);
+        GameManager.Instance.StartRun(sandbox, skipIntro: true, clearCurrentRun: inRun);
         if (loaded != null)
             SandboxRunner.Run(SandboxPresets.Apply(loaded, waitForNewRun: true));
         string withPreset = loaded != null ? $", preset '{preset}' appliqué une fois le joueur prêt" : string.Empty;

@@ -35,8 +35,8 @@ public class PlanetComponent : MonoBehaviour,
     // Outline shown only on the hovered playable planet while the planet-selection view is open.
     private Outline _outline;
 
-    /// <summary>Only real, selectable planets are playable (decorative planets carry PlanetID.None / Lobby).</summary>
-    private bool IsPlayable => PlanetID != EPlanetID.None && PlanetID != EPlanetID.Lobby;
+    /// <summary>Only planets with a PlanetSO are selectable; scenery planets (no PlanetSO) only rotate.</summary>
+    private bool IsPlayable => Planet != null;
 
     private void Awake()
     {
@@ -113,15 +113,15 @@ public class PlanetComponent : MonoBehaviour,
             _outline.enabled = shouldOutline;
     }
 
-    private void HandleSelectionChanged(EPlanetID planetID, Transform planetTransform, Vector3 focusOffset)
+    private void HandleSelectionChanged(PlanetSO planet, Transform planetTransform, Vector3 focusOffset)
     {
-        _isSelected = planetID == PlanetID;
+        _isSelected = IsPlayable && planet == Planet;
         UpdateVisual();
     }
 
-    private void HandleHoverChanged(EPlanetID planetID)
+    private void HandleHoverChanged(PlanetSO planet)
     {
-        _isHovered = planetID == PlanetID;
+        _isHovered = IsPlayable && planet == Planet;
 
         if (GameManager.Instance != null)
             ApplyOutline(GameManager.Instance.GetGameState());
@@ -162,23 +162,23 @@ public class PlanetComponent : MonoBehaviour,
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (!IsSelecting())
+        if (!IsPlayable || !IsSelecting())
             return;
 
-        _controller?.HoverPlanet(PlanetID);
+        _controller?.HoverPlanet(Planet);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        if (!IsSelecting())
+        if (!IsPlayable || !IsSelecting())
             return;
 
-        _controller?.ClearHover(PlanetID);
+        _controller?.ClearHover(Planet);
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (!IsSelecting())
+        if (!IsPlayable || !IsSelecting())
             return;
 
         _controller?.ClickPlanet(this);

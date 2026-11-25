@@ -29,7 +29,7 @@ public partial struct RunProgressionSystem : ISystem
         if (gameState.State != EGameState.Running)
             return;
 
-        if (!SystemAPI.TryGetSingleton<PlanetData>(out PlanetData planetData))
+        if (!SystemAPI.HasSingleton<PlanetData>())
             return;
 
         if (!SystemAPI.TryGetSingletonEntity<RunProgression>(out var progressionEntity))
@@ -39,7 +39,6 @@ public partial struct RunProgressionSystem : ISystem
             {
                 Timer = 0,
                 ProgressRatio = 0,
-                PlanetID = planetData.PlanetID,
                 EnemiesKilledCount = 0
             });
 
@@ -60,7 +59,8 @@ public partial struct RunProgressionSystem : ISystem
         var runProgressionJob = new RunProgressionJob
         {
             DeltaTime = SystemAPI.Time.DeltaTime,
-            RunDuration = planetData.RunDuration
+            // Global run duration, baked with the planets database (0 = no ratio, as before when unset).
+            RunDuration = SystemAPI.TryGetSingleton<PlanetsDatabase>(out var planets) ? planets.RunDuration : 0f
         };
         state.Dependency = runProgressionJob.Schedule(state.Dependency);
     }
