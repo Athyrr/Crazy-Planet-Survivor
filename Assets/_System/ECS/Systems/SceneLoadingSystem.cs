@@ -80,7 +80,7 @@ public partial struct SceneLoadingSystem : ISystem
         SetGameState(ref state, EGameState.Loading);
 
         loading.LoadingSceneEntity = SceneSystem.LoadSceneAsync(state.WorldUnmanaged, sceneRef);
-        // Identity is right from the start of the load, as the streamed PlanetData.PlanetID used to be.
+        // Identity is right from the start of the load, before the streamed PlanetData exists.
         SystemAPI.SetSingleton(new CurrentPlanet { Index = request.PlanetIndex });
         loading.TargetState = request.TargetState;
         loading.SendStartRequest = request.SendStartRequest;

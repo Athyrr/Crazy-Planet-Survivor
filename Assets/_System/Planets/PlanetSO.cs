@@ -8,7 +8,7 @@ using UnityEngine;
 /// index in the baked database. Nothing here is baked except Scene and the camera override (PlanetsDatabaseAuthoring);
 /// FX and foliage are read on the managed side through GameManager.OnPlanetSelected.
 /// </summary>
-[CreateAssetMenu(fileName = "NewPlanetData", menuName = "Survivor/Planets/Planet")]
+[CreateAssetMenu(fileName = "Planet_New", menuName = "Survivor/Planets/Planet")]
 public class PlanetSO : EntityDefinitionSO
 {
     [Header("Scene")]

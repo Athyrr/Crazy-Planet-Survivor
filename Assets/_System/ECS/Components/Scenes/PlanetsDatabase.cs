@@ -14,7 +14,7 @@ public struct PlanetsDatabase : IComponentData
 
     /// <summary>
     /// Main-thread check for managed code: a planet scene is streamed (one PlanetData) and the loader's planet is the
-    /// Sandbox. Replaces the former PlanetData.PlanetID == Sandbox test.
+    /// Sandbox. Used to tell the Sandbox apart from the other planets.
     /// </summary>
     public static bool IsCurrentSandbox(EntityManager em)
     {

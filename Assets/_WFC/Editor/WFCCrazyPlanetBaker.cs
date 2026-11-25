@@ -116,7 +116,7 @@ namespace Editor
             string folder = Folder(job);
             string gameplayPath = $"{folder}/PF_WFC_Planet_{job.OutputName}.prefab";
 
-            // 1) planete actuelle de la scene: rayon, centre. deja la planete WFC = re-cuisson (pas de re-calage)
+            // 1) current planet of the scene: radius, center. already the WFC planet = re-bake (no re-fit)
             var scene = EditorSceneManager.OpenScene(job.ScenePath, OpenSceneMode.Single);
             var old = FindPlanet(job);
             var oldRoot = old != null ? OutermostRoot(old.gameObject) : null;
@@ -188,7 +188,7 @@ namespace Editor
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
 
-            // 4) copie visuelle de la planete dans son PlanetSO, puis visuel du lobby dans l'instance qui la selectionne
+            // 4) copy the planet visual into its PlanetSO, then the lobby visual into the instance that selects it
             job.Planet.VisualPrefab = visual;
             EditorUtility.SetDirty(job.Planet);
             SwapLobbyVisual(job, visual);

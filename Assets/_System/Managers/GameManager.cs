@@ -108,6 +108,10 @@ public class GameManager : MonoBehaviour
             yield return null;
         }
 
+        int bakedCount = _planetsDatabaseQuery.GetSingletonBuffer<PlanetEntry>(true).Length;
+        if (_planets != null && bakedCount != _planets.Count)
+            Debug.LogError($"[GameManager] Baked planets buffer has {bakedCount} entries but the planets database has {_planets.Count}: rebake SC_Entity_Core.");
+
         RequestLoad(_planets != null ? _planets.Lobby : null, EGameState.Lobby, sendStartRequest: false);
     }
 
@@ -155,6 +159,8 @@ public class GameManager : MonoBehaviour
                 PlanetSO planet = _planets.Get(currentPlanet.Index);
                 if (planet != null)
                     OnPlanetSelected?.Invoke(planet);
+                else
+                    Debug.LogError($"[GameManager] No planet at database index {currentPlanet.Index}.");
             }
         }
     }
