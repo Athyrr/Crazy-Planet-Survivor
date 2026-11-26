@@ -45,6 +45,14 @@ public class VATAnimationAuthoring : MonoBehaviour
                 return;
             }
 
+            var meshRenderer = GetComponent<MeshRenderer>();
+            var materialCount = meshRenderer.sharedMaterials.Length;
+            if (materialCount != 1)
+            {
+                Debug.LogError($"[VATAnimationAuthoring] {authoring.name}: the MeshRenderer has {materialCount} materials, expected 1 (Entities Graphics splits a multi-material renderer into extra entities that VATFrame would not drive).", authoring);
+                return;
+            }
+
             var entity = GetEntity(TransformUsageFlags.Renderable);
             var blob = VATClipTableBuilder.Build(animation, Allocator.Persistent);
             AddBlobAsset(ref blob, out _);

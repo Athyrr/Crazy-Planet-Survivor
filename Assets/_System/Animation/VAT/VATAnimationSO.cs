@@ -60,5 +60,6 @@ public struct VATClipInfo
     public float Duration;
     public bool Loop;
     [Tooltip("Movement speed (world units/s) at which this clip does not slide. Tuned by hand, kept across rebakes.")]
+    [Min(0f)]
     public float NativeSpeed;
 }
