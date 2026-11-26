@@ -1,0 +1,105 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &8364385686140998005
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_Name
+      value: PF_VATBaker_Wolf
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      propertyPath: m_CullingMode
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4825459141467158682}
+  m_SourcePrefab: {fileID: 100100000, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+--- !u!1 &8706915649718774820 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+  m_PrefabInstance: {fileID: 8364385686140998005}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4825459141467158682
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8706915649718774820}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8163f8d6443c55541a0dc42d262f31ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VATBaker
+  bakeOptions: 1
+  animationBounds:
+    m_Center: {x: 0.009227067, y: -0.029419422, z: 0.08004618}
+    m_Extent: {x: 0.47608837, y: 1.5436633, z: 0.95314157}
+  objectOffsetMaxDistance: {x: 0, y: 0, z: 0}
+  clips:
+  - {fileID: -5252816984213320552, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+  - {fileID: 5599871095008294255, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+  - {fileID: 2216972904187992000, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+  sampleRate: 30
+  smr: {fileID: 9091007365987182981}
+  replaceMeshIfObjectOffset: 0
+  destinationMeshFilter: {fileID: 0}
+  modelName: Wolf
+  animationData: {fileID: 11400000, guid: d60e7ac9f8914244e9fdf01a18c9501f, type: 2}
+  targetMaterials:
+  - {fileID: 2100000, guid: d6c7f3e34083bb348b375d99738ebbc8, type: 2}
+--- !u!137 &9091007365987182981 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 738022438699006192, guid: 9b58ac0b68cd313499cc2c4eb9cf2669, type: 3}
+  m_PrefabInstance: {fileID: 8364385686140998005}
+  m_PrefabAsset: {fileID: 0}

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06df0494598bc004a99a176d4f30d5e2, type: 3}
+  m_Name: VATAnimationData_Wolf
+  m_EditorClassIdentifier: Assembly-CSharp::VATAnimationSO
+  Texture: {fileID: 2800000, guid: aa7e729ae26c3ca42a2976a400d7d453, type: 3}
+  VertexCount: 5555
+  RowsPerBlock: 111
+  SampleRate: 30
+  BoundsSize: {x: 0.95217675, y: 3.0873265, z: 1.9062831}
+  ObjectOffsetMaxDistance: {x: 0, y: 0, z: 0}
+  ObjectSpace: 0
+  NormalsBaked: 1
+  Clips:
+  - Name: idle
+    StartRow: 0
+    FrameCount: 61
+    Duration: 2.0333333
+    Loop: 1
+    NativeSpeed: 0
+  - Name: Walk_Forward
+    StartRow: 62
+    FrameCount: 31
+    Duration: 1.0333333
+    Loop: 1
+    NativeSpeed: 2.5
+  - Name: Run_Forward
+    StartRow: 94
+    FrameCount: 16
+    Duration: 0.53333336
+    Loop: 1
+    NativeSpeed: 6
+  MaxPlaybackScale: 2
+  SpeedSmoothingTime: 0.1
+  TeleportSpeedFactor: 8
