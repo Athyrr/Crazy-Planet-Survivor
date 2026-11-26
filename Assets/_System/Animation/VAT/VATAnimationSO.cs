@@ -23,6 +23,10 @@ public class VATAnimationSO : ScriptableObject
     [Header("Playback (tuned by hand)")]
     [Tooltip("Above the native speed of the fastest clip, the cadence follows the speed up to this factor.")]
     [Min(1f)] public float MaxPlaybackScale = 2f;
+    [Tooltip("Width of the crossfade, as a fraction of the interval between two neighbouring native speeds. " +
+             "1 = blend over the whole interval between two clips; 0.2 = stay on the lower clip, sped up with the speed, " +
+             "and crossfade over the last 20 % before the upper clip's native speed.")]
+    [Range(0.01f, 1f)] public float CrossfadeWidth = 1f;
     [Tooltip("Time constant (s) of the exponential smoothing of the measured speed.")]
     [Min(0f)] public float SpeedSmoothingTime = 0.1f;
     [Tooltip("A raw speed above this factor x the highest NativeSpeed is a teleport and is ignored.")]

@@ -21,12 +21,15 @@ public struct VATClipTableBlob
     public float TeleportSpeed;
     public float MaxPlaybackScale;
     public float SpeedSmoothingTime;
+    /// <summary>Crossfade width as a fraction of the interval between two native speeds, in (0, 1]; 1 = linear blend over the whole interval.</summary>
+    public float CrossfadeWidth;
 }
 
 /// <summary>Builds the clip table blob, the same way for the ECS baker and for VATAnimationPlayer.</summary>
 public static class VATClipTableBuilder
 {
     private const float SameSpeedEpsilon = 1e-4f;
+    private const float MinCrossfadeWidth = 0.01f;   // a zero-width smoothstep divides by zero
 
     public static BlobAssetReference<VATClipTableBlob> Build(VATAnimationSO animation, Allocator allocator)
     {
@@ -37,10 +40,10 @@ public static class VATClipTableBuilder
             var c = source[i];
             clips[i] = new VATClip { StartRow = c.StartRow, FrameCount = c.FrameCount, Duration = c.Duration, NativeSpeed = c.NativeSpeed, Loop = c.Loop };
         }
-        return Build(clips, animation.TeleportSpeedFactor, animation.MaxPlaybackScale, animation.SpeedSmoothingTime, allocator);
+        return Build(clips, animation.TeleportSpeedFactor, animation.MaxPlaybackScale, animation.SpeedSmoothingTime, allocator, animation.CrossfadeWidth);
     }
 
-    public static BlobAssetReference<VATClipTableBlob> Build(VATClip[] clips, float teleportSpeedFactor, float maxPlaybackScale, float speedSmoothingTime, Allocator allocator)
+    public static BlobAssetReference<VATClipTableBlob> Build(VATClip[] clips, float teleportSpeedFactor, float maxPlaybackScale, float speedSmoothingTime, Allocator allocator, float crossfadeWidth = 1f)
     {
         var sorted = (VATClip[])clips.Clone();
         Array.Sort(sorted, (a, b) => a.NativeSpeed.CompareTo(b.NativeSpeed));
@@ -60,6 +63,7 @@ public static class VATClipTableBuilder
         root.TeleportSpeed = teleportSpeedFactor * maxNative;
         root.MaxPlaybackScale = math.max(1f, maxPlaybackScale);
         root.SpeedSmoothingTime = math.max(0f, speedSmoothingTime);
+        root.CrossfadeWidth = math.clamp(crossfadeWidth, MinCrossfadeWidth, 1f);
 
         var result = builder.CreateBlobAssetReference<VATClipTableBlob>(allocator);
         builder.Dispose();

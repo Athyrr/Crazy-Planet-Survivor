@@ -334,7 +334,7 @@ public class VATBaker : MonoBehaviour
         for (var i = 0; i < clipInfos.Count; i++)
         {
             var info = clipInfos[i];
-            var kept = Array.FindIndex(previous, c => c.Name == info.Name);
+            var kept = FindByNameAndRank(previous, info.Name, RankOfName(clipInfos, i));
             info.NativeSpeed = kept >= 0 ? previous[kept].NativeSpeed : i;   // new clip: distinct placeholder, tuned by hand
             clipInfos[i] = info;
         }
@@ -350,6 +350,23 @@ public class VATBaker : MonoBehaviour
         animationData.Clips = clipInfos.ToArray();
         EditorUtility.SetDirty(animationData);
         AssetDatabase.SaveAssetIfDirty(animationData);
+    }
+
+    /// <summary>Occurrence rank of clip i among the clips before it with the same name (several FBX clips share "Unreal Take").</summary>
+    private static int RankOfName(List<VATClipInfo> clips, int i)
+    {
+        var rank = 0;
+        for (var j = 0; j < i; j++)
+            if (clips[j].Name == clips[i].Name) rank++;
+        return rank;
+    }
+
+    /// <summary>Index of the rank-th clip named name, or -1.</summary>
+    private static int FindByNameAndRank(VATClipInfo[] clips, string name, int rank)
+    {
+        for (var j = 0; j < clips.Length; j++)
+            if (clips[j].Name == name && rank-- == 0) return j;
+        return -1;
     }
 
     /// <summary>BAT mode (out of scope of ecs-vat-animation): the former Bat branch, unchanged, on the first clip.</summary>
