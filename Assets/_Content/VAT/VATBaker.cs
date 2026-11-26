@@ -136,7 +136,25 @@ public class VATBaker : MonoBehaviour
         var bakedMesh = new Mesh();
         PrepareRestPose();
         var clipInfos = new List<VATClipInfo>();
-        foreach (var clip in clips) clipInfos.Add(SampleClip(clip, animator, bakedMesh));
+
+        // Sampling needs the rig evaluated even when off-screen, and must not leave the prefab posed on the last frame.
+        var cullingMode = animator.cullingMode;
+        animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+        var transforms = GetComponentsInChildren<Transform>(true);
+        var restPose = new (Vector3 position, Quaternion rotation, Vector3 scale)[transforms.Length];
+        for (var i = 0; i < transforms.Length; i++)
+            restPose[i] = (transforms[i].localPosition, transforms[i].localRotation, transforms[i].localScale);
+        try
+        {
+            foreach (var clip in clips) clipInfos.Add(SampleClip(clip, animator, bakedMesh));
+        }
+        finally
+        {
+            for (var i = 0; i < transforms.Length; i++)
+                transforms[i].SetLocalPositionAndRotation(restPose[i].position, restPose[i].rotation);
+            for (var i = 0; i < transforms.Length; i++) transforms[i].localScale = restPose[i].scale;
+            animator.cullingMode = cullingMode;
+        }
 
         var rowsPerBlock = _framesAndVerts.Count;
         EvaluateBounds();
@@ -223,17 +241,20 @@ public class VATBaker : MonoBehaviour
         var startRow = _framesAndVerts.Count;
         var maxDisplacementSq = 0f;
         Vector3[] first = null;
-        for (var frame = 0; frame < frames; frame++)
+        try
         {
-            playable.SetTime((float)frame / sampleRate);
-            graph.Evaluate(0f);
-            smr.BakeMesh(bakedMesh, true);
-            var verts = bakedMesh.vertices;
-            _framesAndVerts.Add((verts, bakedMesh.normals));
-            if (first == null) first = verts;
-            else for (var i = 0; i < verts.Length; i++) maxDisplacementSq = Mathf.Max(maxDisplacementSq, (verts[i] - first[i]).sqrMagnitude);
+            for (var frame = 0; frame < frames; frame++)
+            {
+                playable.SetTime((float)frame / sampleRate);
+                graph.Evaluate(0f);
+                smr.BakeMesh(bakedMesh, true);
+                var verts = bakedMesh.vertices;
+                _framesAndVerts.Add((verts, bakedMesh.normals));
+                if (first == null) first = verts;
+                else for (var i = 0; i < verts.Length; i++) maxDisplacementSq = Mathf.Max(maxDisplacementSq, (verts[i] - first[i]).sqrMagnitude);
+            }
         }
-        graph.Destroy();
+        finally { graph.Destroy(); }
         _framesAndVerts.Add(_framesAndVerts[startRow]);   // buffer row: copy of the clip's frame 0 (clean loop)
 
         var maxDisplacement = Mathf.Sqrt(maxDisplacementSq);
