@@ -29,7 +29,7 @@ void VAT_SafeNormal_float(float3 In, float3 Fallback, out float3 Out)
     Out = lenSq > 1e-6 ? In * rsqrt(lenSq) : normalize(Fallback);
 }
 
-/* Flash de hit : _PowerHit decroit de 5 a 0 (HitFrameFeedbackSystem). Sortie additive vers Emission. */
+/* Hit flash: _HitFlash decays from 5 to 0 (HitFlashSystem). Additive output to Emission. */
 void VAT_HitFlash_float(float PowerHit, out float3 Out)
 {
     Out = float3(1.0, 1.0, 1.0) * saturate(PowerHit / 5.0) * 2.0;

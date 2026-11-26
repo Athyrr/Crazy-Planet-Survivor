@@ -318,7 +318,7 @@ public partial struct ActiveEffectsSystem : ISystem
             if (!source.DamageImmune && DestructibleLookup.HasComponent(entity))
             {
                 var flashReq = ECB.CreateEntity(chunkIndex);
-                ECB.AddComponent(chunkIndex, flashReq, new HitFrameFeedbackSystem.HitFrameColorRequest { TargetEntity = entity });
+                ECB.AddComponent(chunkIndex, flashReq, new HitFlashRequest { TargetEntity = entity });
             }
         }
     }

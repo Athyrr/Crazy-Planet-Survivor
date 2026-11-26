@@ -139,10 +139,6 @@ public class EnemyAuthoring : MonoBehaviour
                     });
                 }
             }
-
-            // var hitColor = new HitFrameFeedbackSystem.HitFrameColor { Value = 0 };
-            // AddComponent(entity, hitColor);
-            // SetComponentEnabled<HitFrameFeedbackSystem.HitFrameColor>(entity, false);
         }
     }
 }

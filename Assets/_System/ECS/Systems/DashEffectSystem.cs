@@ -207,7 +207,7 @@ public partial struct DashEffectSystem : ISystem
                         if (DestructibleLookup.HasComponent(enemy))
                         {
                             var flashReq = ECB.CreateEntity();
-                            ECB.AddComponent(flashReq, new HitFrameFeedbackSystem.HitFrameColorRequest { TargetEntity = enemy });
+                            ECB.AddComponent(flashReq, new HitFlashRequest { TargetEntity = enemy });
                         }
                     }
                 }

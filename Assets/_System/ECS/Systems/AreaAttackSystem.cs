@@ -481,7 +481,7 @@ public partial struct AreaAttackSystem : ISystem
                     if (DestructibleLookup.HasComponent(hitEntity))
                     {
                         var flashReq = ECB.CreateEntity(chunkIndex);
-                        ECB.AddComponent(chunkIndex, flashReq, new HitFrameFeedbackSystem.HitFrameColorRequest { TargetEntity = hitEntity });
+                        ECB.AddComponent(chunkIndex, flashReq, new HitFlashRequest { TargetEntity = hitEntity });
                     }
                 }
 
@@ -714,7 +714,7 @@ public partial struct AreaAttackSystem : ISystem
                     if (DestructibleLookup.HasComponent(target))
                     {
                         var flashReq = ECB.CreateEntity(chunkIndex);
-                        ECB.AddComponent(chunkIndex, flashReq, new HitFrameFeedbackSystem.HitFrameColorRequest { TargetEntity = target });
+                        ECB.AddComponent(chunkIndex, flashReq, new HitFlashRequest { TargetEntity = target });
                     }
                 }
             }

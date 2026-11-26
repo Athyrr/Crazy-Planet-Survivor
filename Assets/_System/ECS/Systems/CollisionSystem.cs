@@ -577,7 +577,7 @@ public partial struct CollisionSystem : ISystem
             // ECB.AddComponent<ShakeFeedbackRequest>(0, shakeReq);
 
             var flashReq = ECB.CreateEntity();
-            ECB.AddComponent(flashReq, new HitFrameFeedbackSystem.HitFrameColorRequest { TargetEntity = hitEntity });
+            ECB.AddComponent(flashReq, new HitFlashRequest { TargetEntity = hitEntity });
         }
 
         private bool TryResolveDamagerVsTarget(Entity entityA, Entity entityB, out Entity damager, out Entity target)

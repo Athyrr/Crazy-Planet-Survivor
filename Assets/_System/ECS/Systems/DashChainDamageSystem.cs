@@ -140,7 +140,7 @@ public partial struct DashChainDamageSystem : ISystem
             if (!DestructibleLookup.HasComponent(target))
                 return;
             var flashReq = ECB.CreateEntity();
-            ECB.AddComponent(flashReq, new HitFrameFeedbackSystem.HitFrameColorRequest { TargetEntity = target });
+            ECB.AddComponent(flashReq, new HitFlashRequest { TargetEntity = target });
         }
     }
 }
