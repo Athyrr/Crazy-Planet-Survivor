@@ -83,16 +83,25 @@ public class AreaAttackAuthoring : MonoBehaviour
     // ── Gizmos ──
     // Faithful preview of what AreaAttackSystem actually queries at runtime:
     //   • Hitbox center = transform.position + rotation × Offset   (rotation+scale aware; entity faces target in-game)
-    //   • Timeline      = successive t = 0/N…N/N over ActiveDuration
-    //                     · Circle/Cone/Ring: radius = lerp(RadiusStart, RadiusEnd, t) ; Cone sweep = lerp(Sweep…)
+    //   • Cone          = the 3D cone dot(axis, toHit) ≥ cos(HalfAngle); its axis = forward rotated by the sweep
+    //                     around the entity up (surface normal at cast). Drawn: the whole swept zone (translucent),
+    //                     the cone at the start and end of the first pass, its vertical aperture, and one arrowed
+    //                     arc per pass in its real direction (AlternateSweep reverses the odd passes).
+    //   • Other shapes  = successive t = 0/N…N/N over one pass (every pass repeats it)
+    //                     · Circle/Ring: radius = lerp(RadiusStart, RadiusEnd, t)
     //                     · Capsule (progressive thrust): segment [caster → lerp(caster, offset endpoint, t)],
     //                       half-width = RadiusStart. At t=0 it's a sphere on the caster; at t=1 the full estoc.
+    // Play-mode counterpart (live zones + hit pulses): AreaAttackDebugDrawer, console `debug_areas on`.
 
 #if UNITY_EDITOR
     private static readonly Color CasterMarkerColor = new Color(1f, 1f, 1f, 0.6f);
     private static readonly Color OffsetLinkColor   = new Color(1f, 1f, 1f, 0.3f);
     private static readonly Color SweepArcColor     = new Color(1f, 0.8f, 0f, 0.7f);
     private static readonly Color FinalShapeColor   = new Color(0f, 1f, 1f, 1f);
+    private static readonly Color SweptZoneColor    = new Color(0f, 1f, 1f, 0.06f);
+    // Same pass colors as the Play-mode view (AreaAttackDebugDrawer).
+    private static readonly Color FirstPassColor    = new Color(1f, 0.45f, 0.05f, 1f);
+    private static readonly Color LaterPassColor    = new Color(1f, 0.2f, 0.85f, 1f);
 
     private const int TimelineSteps = 4; // t = 0/4, 1/4, 2/4, 3/4, 4/4
 
@@ -122,22 +131,108 @@ public class AreaAttackAuthoring : MonoBehaviour
             return;
         }
 
-        // Timeline of the active window — alpha ramps 0.2 → 1.0 to show progression.
-        for (int i = 0; i <= TimelineSteps; i++)
+        if (Shape == EAttackAreaShape.Cone)
         {
-            float t = (float)i / TimelineSteps;
-            var color = new Color(0f, 1f, 1f, 0.2f + 0.8f * t);
-            DrawShapeAtTime(t, color, i == TimelineSteps, casterPos, hitboxCenter, rot, up);
+            DrawConePasses(hitboxCenter, rot * Vector3.forward, up);
+        }
+        else
+        {
+            // Timeline of the active window — alpha ramps 0.2 → 1.0 to show progression.
+            for (int i = 0; i <= TimelineSteps; i++)
+            {
+                float t = (float)i / TimelineSteps;
+                var color = new Color(0f, 1f, 1f, 0.2f + 0.8f * t);
+                DrawShapeAtTime(t, color, i == TimelineSteps, casterPos, hitboxCenter, rot, up);
+            }
         }
 
         DrawInfoLabel(casterPos, BuildInfoLabel());
     }
 
+    private int PassCount => Mathf.Max(1, Passes);
+
+    /// <summary>Sweep angles (degrees) of pass <paramref name="pass"/>: from → to, reversed on odd passes with
+    /// AlternateSweep (AreaAttackSystem.BurstSweepT).</summary>
+    private void GetPassSweep(int pass, out float from, out float to)
+    {
+        bool reversed = AlternateSweep && (pass & 1) == 1;
+        from = reversed ? SweepEnd : SweepStart;
+        to = reversed ? SweepStart : SweepEnd;
+    }
+
+    private void DrawConePasses(Vector3 pos, Vector3 fwd, Vector3 up)
+    {
+        float span = SweepEnd - SweepStart;
+        float radius = Mathf.Max(RadiusStart, RadiusEnd);
+
+        // Whole swept zone: everything the cone covers over a pass (sweep span + aperture each side).
+        float zoneAngle = Mathf.Min(360f, Mathf.Abs(span) + 2f * HalfAngle);
+        Vector3 zoneFrom = Quaternion.AngleAxis(Mathf.Min(SweepStart, SweepEnd) - HalfAngle, up) * fwd;
+        UnityEditor.Handles.color = SweptZoneColor;
+        UnityEditor.Handles.DrawSolidArc(pos, up, zoneFrom, zoneAngle, radius);
+        UnityEditor.Handles.color = new Color(0f, 1f, 1f, 0.35f);
+        UnityEditor.Handles.DrawWireArc(pos, up, zoneFrom, zoneAngle, radius);
+
+        // The cone at the start (faint) and at the end (full) of the first pass.
+        GetPassSweep(0, out float firstFrom, out float firstTo);
+        DrawConeShape(pos, fwd, up, RadiusStart, HalfAngle, firstFrom, new Color(0f, 1f, 1f, 0.35f), false);
+        DrawConeShape(pos, fwd, up, RadiusEnd, HalfAngle, firstTo, FinalShapeColor, true);
+        DrawConeAperture(pos, fwd, up, RadiusEnd, HalfAngle, firstTo, new Color(0f, 1f, 1f, 0.5f));
+
+        if (Mathf.Abs(span) < 0.5f)
+            return;
+
+        // One arrowed arc per pass, in its real direction, with its time window.
+        for (int p = 0; p < PassCount; p++)
+        {
+            GetPassSweep(p, out float from, out float to);
+            Color color = p == 0 ? FirstPassColor : LaterPassColor;
+            float arcRadius = radius * (0.35f + 0.15f * (p % 4));
+            Vector3 fromDir = Quaternion.AngleAxis(from, up) * fwd;
+            Vector3 toDir = Quaternion.AngleAxis(to, up) * fwd;
+
+            UnityEditor.Handles.color = color;
+            UnityEditor.Handles.DrawWireArc(pos, up, fromDir, to - from, arcRadius);
+
+            // Arrow head at the arc end, along the direction of travel.
+            Vector3 tip = pos + toDir * arcRadius;
+            Vector3 travel = Vector3.Cross(up, toDir).normalized * Mathf.Sign(to - from);
+            float head = radius * 0.1f;
+            Gizmos.color = color;
+            Gizmos.DrawLine(tip, tip - Quaternion.AngleAxis(30f, up) * travel * head);
+            Gizmos.DrawLine(tip, tip - Quaternion.AngleAxis(-30f, up) * travel * head);
+            Gizmos.DrawWireSphere(pos + fromDir * arcRadius, radius * 0.025f); // pass start
+
+            float start = ActivationDelay + p * ActiveDuration;
+            var style = new GUIStyle { normal = new GUIStyleState { textColor = color } };
+            UnityEditor.Handles.Label(tip + up * 0.15f, $"P{p + 1} {start:F2}–{start + ActiveDuration:F2}s  {from:F0}°→{to:F0}°", style);
+        }
+    }
+
+    /// <summary>Vertical aperture of the 3D cone (the hit test is symmetric around the axis, not a flat fan).</summary>
+    private static void DrawConeAperture(Vector3 pos, Vector3 fwd, Vector3 up, float radius, float halfAngleDeg,
+        float sweepDeg, Color color)
+    {
+        Vector3 axis = Quaternion.AngleAxis(sweepDeg, up) * fwd;
+        Vector3 side = Vector3.Cross(up, axis).normalized;
+        Vector3 upEdge = Quaternion.AngleAxis(-halfAngleDeg, side) * axis;
+        Vector3 downEdge = Quaternion.AngleAxis(halfAngleDeg, side) * axis;
+
+        Gizmos.color = color;
+        Gizmos.DrawLine(pos, pos + upEdge * radius);
+        Gizmos.DrawLine(pos, pos + downEdge * radius);
+        UnityEditor.Handles.color = color;
+        UnityEditor.Handles.DrawWireArc(pos, side, downEdge, -2f * halfAngleDeg, radius);
+        float rad = halfAngleDeg * Mathf.Deg2Rad;
+        UnityEditor.Handles.DrawWireDisc(pos + axis * (radius * Mathf.Cos(rad)), axis, radius * Mathf.Sin(rad));
+    }
+
     private string BuildInfoLabel()
     {
         string s = $"{Shape}  |  Delay={ActivationDelay:F2}s + Active={ActiveDuration:F2}s";
-        if (Passes > 1)
-            s += $" × {Passes} passes{(AlternateSweep ? " (alternate sweep)" : "")}";
+        if (PassCount > 1)
+            s += $" × {PassCount} passes{(AlternateSweep ? " (alternate sweep)" : "")}" +
+                 $"  →  active {ActivationDelay:F2}–{ActivationDelay + PassCount * ActiveDuration:F2}s";
         switch (Shape)
         {
             case EAttackAreaShape.Circle:
@@ -150,7 +245,7 @@ public class AreaAttackAuthoring : MonoBehaviour
                 break;
         }
         if (Shape == EAttackAreaShape.Cone)
-            s += $"  |  Half {HalfAngle:F0}°  Sweep {SweepStart:F0}→{SweepEnd:F0}°";
+            s += $"  |  Half {HalfAngle:F0}° (3D cone)  Sweep {SweepStart:F0}→{SweepEnd:F0}°";
         if (Shape == EAttackAreaShape.Ring)
             s += $"  |  Thickness {RingThickness:F2}";
         return s;
