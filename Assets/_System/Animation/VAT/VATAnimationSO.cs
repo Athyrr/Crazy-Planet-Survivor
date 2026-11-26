@@ -21,11 +21,14 @@ public class VATAnimationSO : ScriptableObject
     public VATClipInfo[] Clips = Array.Empty<VATClipInfo>();
 
     [Header("Playback (tuned by hand)")]
-    [Tooltip("Above the native speed of the fastest clip, the cadence follows the speed up to this factor.")]
+    [Tooltip("Above the native speed of the fastest clip, the cadence follows the speed up to this factor. " +
+             "Caps only above the fastest clip: the speed-up or slow-down of a clip inside the table (CrossfadeWidth < 1) is not capped.")]
     [Min(1f)] public float MaxPlaybackScale = 2f;
     [Tooltip("Width of the crossfade, as a fraction of the interval between two neighbouring native speeds. " +
-             "1 = blend over the whole interval between two clips; 0.2 = stay on the lower clip, sped up with the speed, " +
-             "and crossfade over the last 20 % before the upper clip's native speed.")]
+             "1 = linear blend over the whole interval between two clips, at native cadences (the former behaviour). " +
+             "Below 1 the curve changes shape (smoothstep, cadence following the speed), so 0.99 and 1 differ visibly. " +
+             "0.2 = stay on the lower clip, sped up with the speed, and crossfade over the last 20 % before the upper clip's native speed; " +
+             "from an idle (native speed 0) the upper clip takes over over the first 20 % instead, slowed down to the speed.")]
     [Range(0.01f, 1f)] public float CrossfadeWidth = 1f;
     [Tooltip("Time constant (s) of the exponential smoothing of the measured speed.")]
     [Min(0f)] public float SpeedSmoothingTime = 0.1f;
