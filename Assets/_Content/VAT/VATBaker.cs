@@ -17,7 +17,7 @@ using UnityEditor;
 
 //https://medium.com/tech-at-wildlife-studios/texture-animation-techniques-1daecb316657
 //https://stoyan3d.wordpress.com/2021/07/23/vertex-animation-texture-vat/
-public class VatBaker : MonoBehaviour
+public class VATBaker : MonoBehaviour
 {
     //───────────────────────────────────────────────────────────────────────────
     //  Public user‑tweakable fields                                            
@@ -68,8 +68,9 @@ public class VatBaker : MonoBehaviour
     public Vector3 objectOffsetMaxDistance;
 
     [Header("Animation Source")]
-    [Tooltip("AnimationClip to analyse. If left null, the first clip from the\nAnimator Controller is used.")]
-    public AnimationClip clip;
+    [Tooltip("Clips baked one under the other into a single atlas, in this order (idle first by convention).")]
+    public List<AnimationClip> clips = new();
+
 
     [Tooltip("Sampling rate in frames per second. Higher = smoother but larger\ntexture.")]
     public int sampleRate = 30;
@@ -86,10 +87,21 @@ public class VatBaker : MonoBehaviour
     [Tooltip("Target MeshFilter that will receive the baked reference mesh when\nusing Object‑Space Offset.")]
     public MeshFilter destinationMeshFilter;
 
-    [Header("Output Material")]
-    [Tooltip("Material that uses the VAT shader / ShaderGraph. The bake process\nupdates all relevant textures and uniforms.")]
+    [Header("Output")]
+    [Tooltip("Model name used in the output names: VATAnimationData_<modelName>.asset and T_VAT_<modelName>.exr.")]
+    public string modelName;
+
+    [Tooltip("Output asset. Created in Assets/_Datas/VAT/ on the first bake when empty; the texture is written next to it.")]
     [ContextMenuItem("Ping Texture", nameof(PingTexture))]
-    public Material materialToChange;
+    public VATAnimationSO animationData;
+
+    [Tooltip("Materials on SG_VAT_Master that receive the texture and the decoding settings.")]
+    public List<Material> targetMaterials = new();
+
+    private const string DefaultDataFolder = "Assets/_Datas/VAT";
+    private const int MaxTextureSize = 16384;
+    private const float StaticClipThreshold = 1e-4f;
+
 
     //───────────────────────────────────────────────────────────────────────────
     //  Private / internal fields                                               
@@ -105,20 +117,225 @@ public class VatBaker : MonoBehaviour
     private bool _useBat;
     
     /// <summary>
-    /// Bake the VAT texture based on the current inspector settings. Writes
-    /// the texture on disk and updates <see cref="materialToChange"/>.
+    /// Bakes every clip of <see cref="clips"/> one under the other into one RGBA Half EXR (each clip followed by a
+    /// copy of its frame 0), writes <see cref="animationData"/> and the decoding settings of every target material.
+    /// Synchronous: the files exist when it returns.
     /// </summary>
     [ContextMenu("Bake Vertex Animation Texture (VAT)")]
-    public async void Bake()
+    public void Bake()
     {
         _useObjectSpaceOffset = BakeObject();
         _bakeNormal = BakeNormal();
         _useBat = bakeOptions == BakeOptions.Bat;
-        
-        var (graph, playable, bakedMesh, frames) = BakeSetup();
-        
-        if (_useBat)
+        if (!smr) smr = GetComponentInChildren<SkinnedMeshRenderer>();
+        var animator = GetComponent<Animator>();
+        if (!ValidateInputs(animator)) return;
+        if (_useBat) { BakeBat(); return; }
+
+        _framesAndVerts.Clear();
+        var bakedMesh = new Mesh();
+        PrepareRestPose();
+        var clipInfos = new List<VATClipInfo>();
+        foreach (var clip in clips) clipInfos.Add(SampleClip(clip, animator, bakedMesh));
+
+        var rowsPerBlock = _framesAndVerts.Count;
+        EvaluateBounds();
+
+        var (x, y) = CutTexture(smr.sharedMesh.vertexCount, rowsPerBlock);
+        _xy = new int2(x, y);
+        var height = _bakeNormal ? y * 2 : y;
+        if (x > MaxTextureSize || height > MaxTextureSize)
         {
+            Debug.LogError($"[VATBaker] {modelName}: texture {x}x{height} exceeds {MaxTextureSize}. Nothing written.", this);
+            return;
+        }
+
+        var tex = new Texture2D(x, height, TextureFormat.RGBAHalf, false, true);
+        var colors = tex.GetPixels();
+        var painters = new Task[rowsPerBlock];
+        for (var row = 0; row < rowsPerBlock; row++)
+        {
+            var r = row;
+            painters[row] = _useObjectSpaceOffset
+                ? Task.Run(() => PaintInTextureObjectSpaceVat(r, colors))
+                : Task.Run(() => PaintInTextureWorldSpaceVat(r, colors));
+        }
+        Task.WaitAll(painters);
+        tex.SetPixels(colors);
+        tex.Apply();
+
+        EnsureAnimationData();
+        var folder = Path.GetDirectoryName(AssetDatabase.GetAssetPath(animationData)).Replace('\\', '/');
+        var texturePath = $"{folder}/T_VAT_{modelName}.exr";
+        var textureAsset = SaveTextureEXR(tex, texturePath);
+        DestroyImmediate(tex);
+        if (!textureAsset) return;
+
+        WriteAnimationData(textureAsset, rowsPerBlock, clipInfos);
+        foreach (var material in targetMaterials)
+        {
+            animationData.ApplyTo(material);
+            EditorUtility.SetDirty(material);
+            AssetDatabase.SaveAssetIfDirty(material);
+        }
+        Debug.Log($"[VATBaker] {modelName}: {clipInfos.Count} clips, {rowsPerBlock} rows per block, texture {x}x{height} -> {texturePath}", this);
+    }
+
+    private bool ValidateInputs(Animator animator)
+    {
+        var errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(modelName)) errors.Add("modelName is empty");
+        if (clips == null || clips.Count == 0 || clips.Contains(null)) errors.Add("clips is empty or holds an empty entry");
+        if (!smr) errors.Add("no SkinnedMeshRenderer");
+        if (!animator) errors.Add("no Animator on the baker's GameObject");
+        if (sampleRate <= 0) errors.Add("sampleRate must be > 0");
+        if (targetMaterials == null || targetMaterials.Contains(null)) errors.Add("targetMaterials holds an empty entry");
+        if (_useObjectSpaceOffset && replaceMeshIfObjectOffset && !destinationMeshFilter) errors.Add("destinationMeshFilter is required to replace the mesh");
+        if (errors.Count == 0) return true;
+        Debug.LogError($"[VATBaker] {name}: {string.Join("; ", errors)}. Nothing baked.", this);
+        return false;
+    }
+
+    private void PrepareRestPose()
+    {
+        if (!_useObjectSpaceOffset) return;
+        var rest = new Mesh();
+        smr.BakeMesh(rest, true);
+        if (replaceMeshIfObjectOffset)
+        {
+            _proxyVertices = rest.vertices;
+            destinationMeshFilter.sharedMesh = rest;
+        }
+        else _proxyVertices = smr.sharedMesh.vertices;
+    }
+
+    private VATClipInfo SampleClip(AnimationClip clip, Animator animator, Mesh bakedMesh)
+    {
+        var graph = PlayableGraph.Create("VATBaker");
+        graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+        var playable = AnimationClipPlayable.Create(graph, clip);
+        playable.SetApplyFootIK(false);
+        var output = AnimationPlayableOutput.Create(graph, "AnimOutput", animator);
+        output.SetSourcePlayable(playable);
+        graph.Play();
+
+        var frames = Mathf.CeilToInt(clip.length * sampleRate);
+        var startRow = _framesAndVerts.Count;
+        var maxDisplacementSq = 0f;
+        Vector3[] first = null;
+        for (var frame = 0; frame < frames; frame++)
+        {
+            playable.SetTime((float)frame / sampleRate);
+            graph.Evaluate(0f);
+            smr.BakeMesh(bakedMesh, true);
+            var verts = bakedMesh.vertices;
+            _framesAndVerts.Add((verts, bakedMesh.normals));
+            if (first == null) first = verts;
+            else for (var i = 0; i < verts.Length; i++) maxDisplacementSq = Mathf.Max(maxDisplacementSq, (verts[i] - first[i]).sqrMagnitude);
+        }
+        graph.Destroy();
+        _framesAndVerts.Add(_framesAndVerts[startRow]);   // buffer row: copy of the clip's frame 0 (clean loop)
+
+        var maxDisplacement = Mathf.Sqrt(maxDisplacementSq);
+        Debug.Log($"[VATBaker] {modelName} clip '{clip.name}': {frames} frames, rows {startRow}-{startRow + frames}, max displacement {maxDisplacement:0.####}", this);
+        if (maxDisplacement < StaticClipThreshold)
+            Debug.LogWarning($"[VATBaker] {modelName} clip '{clip.name}' does not move the mesh: does it bind to this hierarchy?", this);
+
+        return new VATClipInfo { Name = clip.name, StartRow = startRow, FrameCount = frames, Duration = (float)frames / sampleRate, Loop = clip.isLooping };
+    }
+
+    private void EvaluateBounds()
+    {
+        var rows = _framesAndVerts.Count;
+        if (!_useObjectSpaceOffset)
+        {
+            var workers = new Task<Bounds>[rows];
+            for (var row = 0; row < rows; row++) { var r = row; workers[row] = Task.Run(() => EvaluateVerticesWorldOffsetVat(r)); }
+            Task.WaitAll(workers);
+            animationBounds = workers[0].Result;
+            for (var i = 1; i < rows; i++) animationBounds.Encapsulate(workers[i].Result);
+        }
+        else
+        {
+            var workers = new List<Task<Vector3>>(rows);
+            for (var row = 0; row < rows; row++) { var r = row; workers.Add(Task.Run(() => EvaluateVerticesObjectOffsetVat(r))); }
+            Task.WaitAll(workers.ToArray());
+            objectOffsetMaxDistance = GetBiggestDistanceVat(workers);
+        }
+    }
+
+    private void EnsureAnimationData()
+    {
+        if (animationData) return;
+        var path = $"{DefaultDataFolder}/VATAnimationData_{modelName}.asset";
+        animationData = AssetDatabase.LoadAssetAtPath<VATAnimationSO>(path);
+        if (!animationData)
+        {
+            if (!AssetDatabase.IsValidFolder(DefaultDataFolder)) AssetDatabase.CreateFolder("Assets/_Datas", "VAT");
+            animationData = ScriptableObject.CreateInstance<VATAnimationSO>();
+            AssetDatabase.CreateAsset(animationData, path);
+        }
+        EditorUtility.SetDirty(this);
+    }
+
+    private Texture2D SaveTextureEXR(Texture2D tex, string path)
+    {
+        File.WriteAllBytes(path, tex.EncodeToEXR(Texture2D.EXRFlags.CompressZIP));   // half precision, lossless ZIP
+        AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+
+        var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+        var size = Mathf.Min(MaxTextureSize, Mathf.NextPowerOfTwo(Mathf.Max(tex.width, tex.height)));
+        importer.textureType = TextureImporterType.Default;
+        importer.sRGBTexture = false;
+        importer.mipmapEnabled = false;
+        importer.npotScale = TextureImporterNPOTScale.None;
+        importer.textureCompression = TextureImporterCompression.Uncompressed;
+        importer.filterMode = FilterMode.Bilinear;
+        importer.wrapMode = TextureWrapMode.Clamp;
+        importer.maxTextureSize = size;
+        var standalone = importer.GetPlatformTextureSettings("Standalone");
+        standalone.overridden = true;
+        standalone.format = TextureImporterFormat.RGBAHalf;
+        standalone.textureCompression = TextureImporterCompression.Uncompressed;
+        standalone.maxTextureSize = size;
+        importer.SetPlatformTextureSettings(standalone);
+        importer.SaveAndReimport();
+
+        var asset = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        if (asset && asset.format != TextureFormat.RGBAHalf)
+            Debug.LogError($"[VATBaker] {modelName}: {path} imported as {asset.format}, expected RGBAHalf.", this);
+        return asset;
+    }
+
+    private void WriteAnimationData(Texture2D texture, int rowsPerBlock, List<VATClipInfo> clipInfos)
+    {
+        var previous = animationData.Clips ?? Array.Empty<VATClipInfo>();
+        for (var i = 0; i < clipInfos.Count; i++)
+        {
+            var info = clipInfos[i];
+            var kept = Array.FindIndex(previous, c => c.Name == info.Name);
+            info.NativeSpeed = kept >= 0 ? previous[kept].NativeSpeed : i;   // new clip: distinct placeholder, tuned by hand
+            clipInfos[i] = info;
+        }
+
+        animationData.Texture = texture;
+        animationData.VertexCount = smr.sharedMesh.vertexCount;
+        animationData.RowsPerBlock = rowsPerBlock;
+        animationData.SampleRate = sampleRate;
+        animationData.BoundsSize = animationBounds.extents * 2;
+        animationData.ObjectOffsetMaxDistance = objectOffsetMaxDistance;
+        animationData.ObjectSpace = _useObjectSpaceOffset;
+        animationData.NormalsBaked = _bakeNormal;
+        animationData.Clips = clipInfos.ToArray();
+        EditorUtility.SetDirty(animationData);
+        AssetDatabase.SaveAssetIfDirty(animationData);
+    }
+
+    /// <summary>BAT mode (out of scope of ecs-vat-animation): the former Bat branch, unchanged, on the first clip.</summary>
+    private void BakeBat()
+    {
+        var bakedMesh = new Mesh();
+        smr.BakeMesh(bakedMesh, true);
             //bakedMesh.bindposes
             var weights = smr.sharedMesh.boneWeights;
             var xBat = bakedMesh.vertexCount;
@@ -165,149 +382,6 @@ public class VatBaker : MonoBehaviour
             
             //TODO debloquer
             return;// pour l'instant
-        }
-        
-        var evaluateVerticesObjectOffsetWorkers = new List<Task<Vector3>>();
-        var evaluateVerticesWorldOffsetWorkers = new List<Task<Bounds>>();
-
-        _bonesAcrossFrames = new Matrix4x4[frames+1][];
-
-        _framesAndVerts.Clear();
-        
-        var bones = smr.bones;
-        
-        for (var frameIndex = 0; frameIndex < frames; frameIndex++)
-        {
-            var t = (float)frameIndex / sampleRate;
-            playable.SetTime(t);
-            graph.Evaluate(0f);          // force l’état du squelette
-            
-            smr.BakeMesh(bakedMesh, true);
-            
-            var verts = bakedMesh.vertices;
-            var normals = bakedMesh.normals;
-            
-            //on va réut ça ensuite
-            _framesAndVerts.Add((verts, normals));
-            
-            var frameIndexCached = frameIndex;
-            if (_useBat)
-            {
-                var arrayMatrices = new Matrix4x4[bones.Length+1];
-                
-                arrayMatrices[0] = smr.rootBone.localToWorldMatrix;//root bone
-
-                for (var boneIndex = 1; boneIndex < bones.Length; boneIndex++) 
-                    arrayMatrices[boneIndex] = bones[boneIndex].localToWorldMatrix;
-                
-                _bonesAcrossFrames[frameIndex] = arrayMatrices;
-            }
-            else if (!_useObjectSpaceOffset) evaluateVerticesWorldOffsetWorkers.Add(Task.Run(() => EvaluateVerticesWorldOffsetVat(frameIndexCached))); //giga vitesse
-            else evaluateVerticesObjectOffsetWorkers.Add(Task.Run(() => EvaluateVerticesObjectOffsetVat(frameIndexCached)));
-        }
-
-
-        if (!_useBat)
-        {
-            if (!_useObjectSpaceOffset)
-            {
-                await Task.WhenAll(evaluateVerticesWorldOffsetWorkers);
-                
-                await Task.Run(() =>
-                {
-                    var workersC = evaluateVerticesWorldOffsetWorkers.Count;
-                    if(workersC == 0) return;
-                    animationBounds = evaluateVerticesWorldOffsetWorkers[0].Result;
-                    if (workersC == 1) return;
-                    for (var i = 1; i < workersC; i++) 
-                        animationBounds.Encapsulate(evaluateVerticesWorldOffsetWorkers[i].Result);
-                });
-                //on a le world offset
-            }
-            else
-            {
-                await Task.WhenAll(evaluateVerticesObjectOffsetWorkers);
-                objectOffsetMaxDistance = GetBiggestDistanceVat(evaluateVerticesObjectOffsetWorkers);
-                //on a l'object offset
-            }
-        }
-        
-        // après avoir échantillonné toutes les vraies frames…
-        if(!_useBat) _framesAndVerts.Add(_framesAndVerts[0]);   // ligne-tampon (boucle propre)
-        else _bonesAcrossFrames[^1] = _bonesAcrossFrames[0];
-        
-        var texFrames  = frames + 1;  // nb de lignes réelles dans la texture (le +1 c pour la marge quand on tente de CutTexture ça évite les artefacts)
-        
-        graph.Destroy();
-
-        var workersTexture = new List<Task>();
-        
-        var x = _useBat ? bones.Length : smr.sharedMesh.vertexCount;
-        var y = texFrames; //hauteur frames + 1
-
-        //couper ou pas la texture en 2 sur x pour eco de lespace
-        (x,y) = CutTexture(x,y);
-
-        _xy.x = x;
-        _xy.y = y;
-
-        var trueY = _xy.y;
-        if (_bakeNormal)
-        {
-            //le y est * 2 pour pack la normal en dessous
-            trueY *= 2;
-        }
-        
-        var tex = new Texture2D(
-            _xy.x,   // width  = nb de sommets
-            trueY,                       // height = nb de frames
-            TextureFormat.RGBAHalf,
-            /*mipMaps*/ false,
-            /*linear */ true);            // VAT = données, donc linéaire
-        
-        var colors = tex.GetPixels();
-
-        if (_useBat)
-        {
-            for (var i = 0; i < texFrames; i++)
-            {
-                var i1 = i;
-                workersTexture.Add(Task.Run(() => PaintInTextureBat(i1, colors))); //viouuuuuu
-            }
-        }
-        else if (!_useObjectSpaceOffset)
-        {
-            for (var i = 0; i < texFrames; i++)
-            {
-                var i1 = i;
-                workersTexture.Add(Task.Run(() => PaintInTextureWorldSpaceVat(i1, colors))); //viouuuuuu
-            }
-        }
-        else
-        {
-            for (var i = 0; i < texFrames; i++)
-            {
-                var i1 = i;
-                workersTexture.Add(Task.Run(() => PaintInTextureObjectSpaceVat(i1, colors))); //viouuuuuu
-            }
-        }
-        
-        await Task.WhenAll(workersTexture);
-        
-        tex.SetPixels(colors);
-        tex.Apply();
-        var textureAsset = SaveTexture(tex, smr.name);
-        
-        //set du mat
-        
-        materialToChange.SetFloat("_totalVertices", smr.sharedMesh.vertexCount);
-        if(textureAsset) materialToChange.SetTexture("_Texture2D", textureAsset);
-        materialToChange.SetFloat("_frames", frames);
-        materialToChange.SetVector("_bounds", animationBounds.extents*2);
-        //materialToChange.SetFloat("_timesCut", _timesCut); //retrouvé dans le shader
-        materialToChange.SetFloat("_addPositionMode", _useObjectSpaceOffset ? 1f : 0f);
-        materialToChange.SetFloat("_normalIsBaked", _bakeNormal ? 1f : 0f);
-        materialToChange.SetVector("_objectOffsetMaxDistance", objectOffsetMaxDistance);
     }
 
     
@@ -356,44 +430,6 @@ public class VatBaker : MonoBehaviour
         }
     }
     
-    private (PlayableGraph graph, AnimationClipPlayable playable, Mesh bakedMesh, int frames) BakeSetup()
-    {
-        if (!smr) smr = GetComponentInChildren<SkinnedMeshRenderer>();
-        if (!clip) clip = GetComponent<Animator>().runtimeAnimatorController.animationClips[0];//prend le permier de la liste (faudra un truc pour for sur tout quoi)
-        
-        //on commence
-        
-        // 1. Graph Playables minimal
-        var graph = PlayableGraph.Create("BoundsPreview");
-        graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
-
-        var playable = AnimationClipPlayable.Create(graph, clip);
-        playable.SetApplyFootIK(false);
-
-        var output = AnimationPlayableOutput.Create(graph, "AnimOutput", GetComponent<Animator>());
-        output.SetSourcePlayable(playable);
-
-        graph.Play();
-
-        var bakedMesh = new Mesh();
-        smr.BakeMesh(bakedMesh, true);//premier pour init quoi
-        if (!_useObjectSpaceOffset)
-        {
-            // 2. Préparer la mesh tampon
-            animationBounds = new Bounds(bakedMesh.vertices[0], Vector3.zero); // sera initialisé au 1er vertex
-        }
-        else
-        {
-            if (replaceMeshIfObjectOffset)
-            {
-                _proxyVertices = bakedMesh.vertices;
-                 destinationMeshFilter.sharedMesh = bakedMesh;
-            }
-            else _proxyVertices = smr.sharedMesh.vertices;
-        }
-        
-        return (graph, playable, bakedMesh, Mathf.CeilToInt(clip.length * sampleRate));
-    }
     private static (int xout, int yout) CutTexture(int x, int y)
     {
         // | Symbole | Nom                                 | Ce qu’il fait sur un entier                                                                                                     |
@@ -621,51 +657,6 @@ public class VatBaker : MonoBehaviour
     }
 
 
-    private Texture2D SaveTexture(Texture2D tex, string smrName, string additionalName = "VAT")
-    {
-        var defaultName = $"{smrName}_{additionalName}.png";
-
-        string path;
-        if (materialToChange)
-        {
-            var t = materialToChange.GetTexture("_Texture2D");
-
-            path = !t ? 
-                PromptUserForPath() : 
-                AssetDatabase.GetAssetPath(t);
-        }else path = PromptUserForPath();
-        
-        if (string.IsNullOrEmpty(path)) return null;
-        
-        var png = tex.EncodeToPNG();          // besoin de tex.Apply() avant :contentReference[oaicite:0]{index=0}
-        File.WriteAllBytes(path, png);
-        
-        AssetDatabase.ImportAsset(path);
-        var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-        
-        importer.npotScale       = TextureImporterNPOTScale.None;
-        importer.maxTextureSize  = Mathf.NextPowerOfTwo(Mathf.Max(tex.width, tex.height));
-        
-        importer.textureCompression   = TextureImporterCompression.Uncompressed;
-        importer.wrapMode             = TextureWrapMode.Clamp;
-        importer.filterMode           = FilterMode.Bilinear;
-        importer.sRGBTexture          = false;
-        importer.alphaSource          = TextureImporterAlphaSource.None;
-        importer.SaveAndReimport();
-
-        Debug.Log($"✅ VAT texture sauvegardée : {path}");
-
-        return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-        string PromptUserForPath()
-        {
-            path = EditorUtility.SaveFilePanelInProject(
-                "Save VAT texture",
-                defaultName,
-                "png",
-                "Choose where to save the baked VAT texture");
-            return path;
-        }
-    }
     
     private Texture2D SaveBatTexture(Texture2D tex, string smrName)
     {
@@ -710,22 +701,18 @@ public class VatBaker : MonoBehaviour
     //───────────────────────────────────────────────────────────────────────────
     private void PingTexture()
     {
-        if (materialToChange)
-        {
-            var t = materialToChange.GetTexture("_Texture2D");
-            EditorGUIUtility.PingObject(t);
-        }
+        if (animationData && animationData.Texture) EditorGUIUtility.PingObject(animationData.Texture);
     }
 }
 
 
-[CustomEditor(typeof(VatBaker))]
-public class VatBakerEditor : UnityEditor.Editor
+[CustomEditor(typeof(VATBaker))]
+public class VATBakerEditor : UnityEditor.Editor
 {
     public override void OnInspectorGUI()
     {
         base.OnInspectorGUI();
-        var vatBaker = (VatBaker)target;
+        var vatBaker = (VATBaker)target;
         if (GUILayout.Button("Bake")) vatBaker.Bake();
     }
 }
