@@ -20,8 +20,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: SG_Warrior_VAT
-  m_Shader: {fileID: -6465566751694194690, guid: 8ea983b9c59083247a4f46bb5e33d061, type: 3}
+  m_Name: M_VAT_Thybault
+  m_Shader: {fileID: -6465566751694194690, guid: d3256d66371cd824086261831c747944, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -38,11 +38,11 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseColor:
-        m_Texture: {fileID: 2800000, guid: 80d62dcd7c13f184a91159c5e3624a15, type: 3}
+        m_Texture: {fileID: 2800000, guid: 5dfb91262ef27df498b5313c6acc88b1, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Texture2D:
-        m_Texture: {fileID: 2800000, guid: a9bd331b15ec2c443a402c13386a7870, type: 3}
+        m_Texture: {fileID: 2800000, guid: 7d37517e0218cc64a95c7e2f2b9e08a8, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Texture2D_A:
@@ -69,12 +69,14 @@ Material:
     m_Floats:
     - _BlendingValue: 1
     - _DebugMode: 0
+    - _HitFlash: 0
     - _IsPlayer: 1
     - _Metallic: 0
     - _QueueControl: 0
     - _QueueOffset: 0
     - _Smoothness: 0
     - _UseTexture: 1
+    - _VATRowsPerBlock: 51
     - _XRMotionVectorsPass: 1
     - _addPositionMode: 0
     - _frames: 20
@@ -87,7 +89,8 @@ Material:
     - _totalVertices: 3968
     m_Colors:
     - _Color: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-    - _bounds: {r: 0.9359313, g: 1.5505124, b: 1.0974609, a: 0}
+    - _VATFrame: {r: 0, g: 0, b: 0, a: 0}
+    - _bounds: {r: 0.9359313, g: 1.5505124, b: 1.0974607, a: 0}
     - _objectOffsetMaxDistance: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
