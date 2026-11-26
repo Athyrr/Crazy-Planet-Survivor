@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: CharacterData_Mage
   m_EditorClassIdentifier: Assembly-CSharp::CharacterDataSO
   DisplayName: Mage
+  Icon: {fileID: 21300000, guid: 00a291417d0f12541ac72d8c985825cb, type: 3}
   Description: A frail archmage who annihilates foes from afar with overwhelming
     spell power.
-  Icon: {fileID: 21300000, guid: 00a291417d0f12541ac72d8c985825cb, type: 3}
   UIPrefab: {fileID: 19448560152866022, guid: a8137bc0b51337a4385f5119c3acea89, type: 3}
   GamePrefab: {fileID: 5342180323788850383, guid: 6ecfb52b658f42d409bc20abc8921769, type: 3}
   StatsUpgradesPool: {fileID: 11400000, guid: 65be180b5958ee040864032b0a195caf, type: 2}
@@ -54,6 +54,7 @@ MonoBehaviour:
     CritDamage: 0.5
     Luck: 0
     LifeStealChance: 0
+    SummonPower: 0
     GlobalBurnDamageMultiplier: 0
     GlobalBurnDurationMultiplier: 0
     GlobalSlowStrengthMultiplier: 0
@@ -61,6 +62,7 @@ MonoBehaviour:
     GlobalStunDurationMultiplier: 0
     BurnCanCrit: 0
     BurnCanLifeSteal: 0
-    DashCount: 0
-    DashCooldown: 0
+    ExplosionCanLifeSteal: 0
+    DashCount: 1
+    DashCooldown: 0.5
   Dash: {fileID: 11400000, guid: be9090377d7111b4ca62e37639dddf34, type: 2}
