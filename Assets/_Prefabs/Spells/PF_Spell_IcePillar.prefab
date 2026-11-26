@@ -110,6 +110,8 @@ MonoBehaviour:
   Offset: {x: 0, y: 0, z: 0}
   ActivationDelay: 0.75
   ActiveDuration: 0.1
+  Passes: 1
+  AlternateSweep: 0
 --- !u!1001 &8317913596752951882
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -118,9 +120,21 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8608917286184711325}
     m_Modifications:
+    - target: {fileID: 396491238959278764, guid: 534f744e5ad48de49a26c586e12248f9, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1611928576691706370, guid: 534f744e5ad48de49a26c586e12248f9, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1789834063856586859, guid: 534f744e5ad48de49a26c586e12248f9, type: 3}
       propertyPath: m_Name
       value: PF_Spell_IcePillar_Renderer
+      objectReference: {fileID: 0}
+    - target: {fileID: 2320066174188054692, guid: 534f744e5ad48de49a26c586e12248f9, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3061761340999520152, guid: 534f744e5ad48de49a26c586e12248f9, type: 3}
       propertyPath: m_LocalPosition.x
@@ -161,6 +175,14 @@ PrefabInstance:
     - target: {fileID: 3061761340999520152, guid: 534f744e5ad48de49a26c586e12248f9, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5894361144163924688, guid: 534f744e5ad48de49a26c586e12248f9, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7717053888650184549, guid: 534f744e5ad48de49a26c586e12248f9, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
