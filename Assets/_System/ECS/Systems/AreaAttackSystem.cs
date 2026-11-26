@@ -10,8 +10,8 @@ using Unity.Transforms;
 /// Unified area-of-effect delivery system. Merges the former AreaAttackSystem (Burst one-shot) and
 /// TickDamageSystem (OverTime aura) into a single system branched on <see cref="AreaAttack.Cadence"/>.
 ///
-///   Burst    — hit each target once over [ActivationDelay, +ActiveDuration]; shape can animate
-///              (Expand/Sweep). Dedup via <see cref="HitEntityMemory"/>. (VoidSlash, ShockStrike…)
+///   Burst    — hit each target once per pass over [ActivationDelay, +Passes × ActiveDuration]; shape can
+///              animate (Expand/Sweep). Dedup via <see cref="HitEntityMemory"/>. (VoidSlash, ShockStrike…)
 ///   OverTime — re-hit tracked targets every TickRate; enter/exit via <see cref="TickDamageTarget"/>. (FrozenZone…)
 ///
 /// Burst also posts an OnArm EmitRequest once per instance when it arms (AreaAttack.Armed).
@@ -246,6 +246,42 @@ public partial struct AreaAttackSystem : ISystem
         }
     }
 
+    /// <summary>Burst pass timing: which pass <paramref name="activeTime"/> (time since ActivationDelay) falls in, and
+    /// the normalized time <paramref name="t"/> within that pass. Passes ≤ 1 (or ActiveDuration ≤ 0) is the single
+    /// window: pass 0, t = activeTime / ActiveDuration. Returns false past the last pass
+    /// (activeTime > Passes × ActiveDuration, inclusive end as before). Pure and static for an Edit-Mode test.</summary>
+    internal static bool TryGetBurstPass(float activeTime, float activeDuration, int passes,
+        out int passIndex, out float t)
+    {
+        passIndex = 0;
+        if (passes <= 1 || activeDuration <= 0f)
+        {
+            t = activeDuration > 0f ? math.saturate(activeTime / activeDuration) : 1f;
+            return activeTime <= activeDuration;
+        }
+
+        t = 1f;
+        if (activeTime > activeDuration * passes)
+            return false;
+
+        passIndex = math.min((int)math.floor(activeTime / activeDuration), passes - 1);
+        t = math.saturate((activeTime - passIndex * activeDuration) / activeDuration);
+        return true;
+    }
+
+    /// <summary>Sweep progress of a pass: t, reversed (1 − t) on odd passes when the sweep alternates.</summary>
+    internal static float BurstSweepT(float t, int passIndex, bool alternateSweep)
+        => alternateSweep && (passIndex & 1) == 1 ? 1f - t : t;
+
+    /// <summary>New pass: forget the targets of the previous one (Pinned entries — the emission trigger target —
+    /// are never re-hit, so they stay).</summary>
+    private static void ClearUnpinnedHitMemory(ref DynamicBuffer<HitEntityMemory> hitMemory)
+    {
+        for (int i = hitMemory.Length - 1; i >= 0; i--)
+            if (!hitMemory[i].Pinned)
+                hitMemory.RemoveAtSwapBack(i);
+    }
+
     /// <summary>Player i-frames after a damaging area hit (Burst or OverTime), mirroring the contact path —
     /// so N area hits in one window don't all land. Deferred (ECB): this job is parallel, no live write.</summary>
     private static void GrantGlobalIFrames(EntityCommandBuffer.ParallelWriter ecb, int sortKey, Entity target,
@@ -378,12 +414,18 @@ public partial struct AreaAttackSystem : ISystem
             }
 
             float activeTime = area.ElapsedTime - area.ActivationDelay;
-            if (activeTime > area.ActiveDuration)
+            if (!TryGetBurstPass(activeTime, area.ActiveDuration, area.Passes, out int passIndex, out float t))
                 return;
 
-            float t = area.ActiveDuration > 0f ? math.saturate(activeTime / area.ActiveDuration) : 1f;
+            // Start of a later pass: each target can be hit once per pass.
+            if (passIndex > area.CurrentPass)
+            {
+                area.CurrentPass = passIndex;
+                ClearUnpinnedHitMemory(ref hitMemory);
+            }
+
             float currentRadius = math.lerp(area.RadiusStart, area.RadiusEnd, EmitterMath.EaseRadiusT(area.RadiusEase, t));
-            float currentSweep = math.lerp(area.SweepStart, area.SweepEnd, t);
+            float currentSweep = math.lerp(area.SweepStart, area.SweepEnd, BurstSweepT(t, passIndex, area.AlternateSweep));
 
             quaternion rotation = localToWorld.Rotation;
 

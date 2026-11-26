@@ -21,8 +21,8 @@ public enum EZoneCadence : byte
 /// AreaAttack (Burst one-shot) and DamageOnTick (OverTime aura) components — the <see cref="Cadence"/>
 /// field discriminates the two behaviors, processed by <c>AreaAttackSystem</c>.
 ///
-/// Burst    : evaluated over [ActivationDelay, ActivationDelay + ActiveDuration]; RadiusStart→RadiusEnd
-///            and SweepStart→SweepEnd interpolate over the window; each target hit once.
+/// Burst    : evaluated over [ActivationDelay, ActivationDelay + Passes × ActiveDuration]; RadiusStart→RadiusEnd
+///            and SweepStart→SweepEnd interpolate over each pass; each target hit once per pass.
 /// OverTime : RadiusStart == RadiusEnd (static, refreshed by size upgrades); re-hits every TickRate.
 /// </summary>
 public struct AreaAttack : IComponentData
@@ -49,6 +49,11 @@ public struct AreaAttack : IComponentData
     // ── Burst timing ──
     public float ActivationDelay;   // seconds before first evaluation
     public float ActiveDuration;    // how long collision evaluation runs
+    /// <summary>Burst: back-to-back passes of ActiveDuration each (≤ 1 = a single pass, the default). The hit-once
+    /// memory is cleared at the start of each pass after the first, so a target can be hit once per pass.</summary>
+    public int Passes;
+    /// <summary>Burst Cone: odd passes sweep SweepEnd → SweepStart (a back-and-forth swipe).</summary>
+    public bool AlternateSweep;
 
     // ── OverTime timing ──
     public float TickRate;          // seconds between ticks
@@ -58,6 +63,8 @@ public struct AreaAttack : IComponentData
     /// <summary>Burst: true once ElapsedTime ≥ ActivationDelay has been observed — OnArm emitters fire once per
     /// instance. Runtime only: false at bake, reset by SpellSpawnUtils.SetZonePower (the single clock restart).</summary>
     public bool Armed;
+    /// <summary>Burst: index of the pass whose hit memory is current. Runtime only: 0 at bake (and so at instantiate).</summary>
+    public int CurrentPass;
 
     // ── Combat (shared) ──
     public float Damage;            // per-hit (Burst) or per-tick (OverTime)

@@ -30,8 +30,14 @@ public class AreaAttackAuthoring : MonoBehaviour
     [Header("Timing")]
     [Tooltip("Delay before collision evaluation starts")]
     public float ActivationDelay;
-    [Tooltip("How long collision evaluation runs")]
+    [Tooltip("How long collision evaluation runs (per pass when Passes > 1)")]
     public float ActiveDuration = 0.5f;
+    [Tooltip("Back-to-back passes of ActiveDuration each. Each target can be hit once per pass " +
+             "(the hit memory is cleared at the start of every pass after the first). 1 = a single hit-once window.")]
+    [Min(1)]
+    public int Passes = 1;
+    [Tooltip("Cone: odd passes sweep from SweepEnd back to SweepStart (a back-and-forth swipe). Ignored with Passes = 1.")]
+    public bool AlternateSweep;
 
     class Baker : Baker<AreaAttackAuthoring>
     {
@@ -57,7 +63,10 @@ public class AreaAttackAuthoring : MonoBehaviour
 
                 ActivationDelay = authoring.ActivationDelay,
                 ActiveDuration = authoring.ActiveDuration,
+                Passes = math.max(1, authoring.Passes),
+                AlternateSweep = authoring.AlternateSweep,
                 ElapsedTime = 0f,
+                CurrentPass = 0,
 
                 Damage = 0f,
                 CritChance = 0f,
@@ -127,6 +136,8 @@ public class AreaAttackAuthoring : MonoBehaviour
     private string BuildInfoLabel()
     {
         string s = $"{Shape}  |  Delay={ActivationDelay:F2}s + Active={ActiveDuration:F2}s";
+        if (Passes > 1)
+            s += $" × {Passes} passes{(AlternateSweep ? " (alternate sweep)" : "")}";
         switch (Shape)
         {
             case EAttackAreaShape.Circle:
