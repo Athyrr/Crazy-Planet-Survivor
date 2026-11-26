@@ -59,13 +59,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5918595755341077641, guid: 74434248154eecd4983819e99571f042, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6176341756580285913}
   m_SourcePrefab: {fileID: 100100000, guid: 74434248154eecd4983819e99571f042, type: 3}
 --- !u!4 &1937786342515074637 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3263681133732140180, guid: 74434248154eecd4983819e99571f042, type: 3}
   m_PrefabInstance: {fileID: 4012296988686643929}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &7317673887761968720 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5918595755341077641, guid: 74434248154eecd4983819e99571f042, type: 3}
+  m_PrefabInstance: {fileID: 4012296988686643929}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6176341756580285913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7317673887761968720}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0bd7bc48009167e4d9a3473198e69410, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VATAnimationPlayer
+  Animation: {fileID: 11400000, guid: f0090510a783cc7498b1a9e623486283, type: 2}
+  ClipIndex: 0
 --- !u!1001 &8243087183539672967
 PrefabInstance:
   m_ObjectHideFlags: 0
