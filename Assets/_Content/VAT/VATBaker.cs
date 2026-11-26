@@ -60,7 +60,7 @@ public class VATBaker : MonoBehaviour
     
     public BakeOptions bakeOptions = BakeOptions.VatWorldWithNormal;
     
-    [Tooltip("Axis‑aligned bounds encompassing *all* frames in world space.\nPopulated automatically after baking.")]
+    [Tooltip("Axis‑aligned bounds encompassing *all* frames in the space of this root.\nPopulated automatically after baking.")]
     [FormerlySerializedAs("globalBounds")]
     public Bounds animationBounds;
 
@@ -219,12 +219,22 @@ public class VATBaker : MonoBehaviour
         if (!_useObjectSpaceOffset) return;
         var rest = new Mesh();
         smr.BakeMesh(rest, true);
+        var restVertices = rest.vertices;
+        var restNormals = rest.normals;
+        ToRootFrame(restVertices, restNormals);
+        rest.vertices = restVertices;
+        rest.normals = restNormals;
+        rest.RecalculateBounds();
         if (replaceMeshIfObjectOffset)
         {
-            _proxyVertices = rest.vertices;
+            _proxyVertices = restVertices;
             destinationMeshFilter.sharedMesh = rest;
         }
-        else _proxyVertices = smr.sharedMesh.vertices;
+        else
+        {
+            _proxyVertices = smr.sharedMesh.vertices;
+            ToRootFrame(_proxyVertices, null);
+        }
     }
 
     private VATClipInfo SampleClip(AnimationClip clip, Animator animator, Mesh bakedMesh)
@@ -249,7 +259,9 @@ public class VATBaker : MonoBehaviour
                 graph.Evaluate(0f);
                 smr.BakeMesh(bakedMesh, true);
                 var verts = bakedMesh.vertices;
-                _framesAndVerts.Add((verts, bakedMesh.normals));
+                var normals = bakedMesh.normals;
+                ToRootFrame(verts, normals);
+                _framesAndVerts.Add((verts, normals));
                 if (first == null) first = verts;
                 else for (var i = 0; i < verts.Length; i++) maxDisplacementSq = Mathf.Max(maxDisplacementSq, (verts[i] - first[i]).sqrMagnitude);
             }
@@ -263,6 +275,21 @@ public class VATBaker : MonoBehaviour
             Debug.LogWarning($"[VATBaker] {modelName} clip '{clip.name}' does not move the mesh: does it bind to this hierarchy?", this);
 
         return new VATClipInfo { Name = clip.name, StartRow = startRow, FrameCount = frames, Duration = (float)frames / sampleRate, Loop = clip.isLooping };
+    }
+
+    /// <summary>
+    /// Moves a BakeMesh result (SkinnedMeshRenderer space, its scale baked in) into the space of this root, the space
+    /// the Visual renders in: a mesh node rotated inside the FBX (the wolf's is Z-up) comes out upright.
+    /// Positions go through the renderer-to-root matrix, normals through its rotation only.
+    /// </summary>
+    private void ToRootFrame(Vector3[] vertices, Vector3[] normals)
+    {
+        var smrTransform = smr.transform;
+        var toRoot = transform.worldToLocalMatrix * Matrix4x4.TRS(smrTransform.position, smrTransform.rotation, Vector3.one);
+        for (var i = 0; i < vertices.Length; i++) vertices[i] = toRoot.MultiplyPoint3x4(vertices[i]);
+        if (normals == null) return;
+        var rotation = Quaternion.Inverse(transform.rotation) * smrTransform.rotation;
+        for (var i = 0; i < normals.Length; i++) normals[i] = rotation * normals[i];
     }
 
     private void EvaluateBounds()
